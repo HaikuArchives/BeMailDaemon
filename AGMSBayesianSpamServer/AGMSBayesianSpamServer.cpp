@@ -74,6 +74,10 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
+ * Revision 1.71  2002/12/11 22:37:30  agmsmith
+ * Added commands to train on spam and genuine e-mail messages passed
+ * in string arguments rather then via external files.
+ *
  * Revision 1.70  2002/12/10 22:12:41  agmsmith
  * Adding a message to the database now uses a BPositionIO rather than a
  * file and file name (for future string rather than file additions).  Also
@@ -2153,7 +2157,7 @@ void ABSApp::DefaultSettings ()
   m_DatabaseFileName.SetTo (TempString);
 
   m_IgnorePreviousClassification = false;
-  g_ServerMode = false;
+  g_ServerMode = true;
   m_PurgeAge = 2000;
   m_PurgePopularity = 2;
   m_ScoringMode = SM_CHISQUARED;
@@ -3433,6 +3437,8 @@ void ABSApp::ProcessScriptingMessage (
   if (ErrorCode == B_OK)
   {
     if (PropInfoPntr->extra_data != PN_EVALUATE_STRING &&
+    PropInfoPntr->extra_data != PN_SPAM_STRING &&
+    PropInfoPntr->extra_data != PN_GENUINE_STRING &&
     strlen (ArgumentString) >= PATH_MAX)
     {
       sprintf (TempString, "\"data\" string of a scripting message is too "
