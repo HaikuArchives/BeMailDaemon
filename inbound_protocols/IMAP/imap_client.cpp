@@ -62,8 +62,7 @@ class IMAP4Client : public Mail::RemoteStorageProtocol {
 		
 		void GetUniqueIDs();
 		
-		status_t ReceiveLine(BString &out, bigtime_t timeout = kIMAP4ClientTimeout,
-							 bool care_about_timeouts = true);
+		status_t ReceiveLine(BString &out);
 		status_t SendCommand(const char *command);
 		
 		status_t Select(const char *mb, bool force_reselect = false, bool queue_new_messages = true, bool noop = true, bool no_command = false, bool ignore_forced_reselect = false);
@@ -425,13 +424,12 @@ status_t IMAP4Client::AddMessage(const char *mailbox, BPositionIO *data, BString
 	if (use_ssl) {
 		SSL_write(ssl,buffer,size);
 		SSL_write(ssl,"\r\n",2);
-	} else {
+	} else 
 #endif
+	{
 		send(net,buffer,size,0);
 		send(net,"\r\n",2,0);
-#ifdef IMAPSSL
 	}
-#endif
 	Select(mailbox,false,false,false,true);
 	
 	if (((struct mailbox_info *)(box_info.ItemAt(box_index)))->next_uid <= 0) {
@@ -895,7 +893,7 @@ IMAP4Client::SendCommand(const char* command)
 }
 
 int32
-IMAP4Client::ReceiveLine(BString &out, bigtime_t timeout, bool care)
+IMAP4Client::ReceiveLine(BString &out)
 {
 	if (net < 0)
 		return net;
@@ -907,8 +905,8 @@ IMAP4Client::ReceiveLine(BString &out, bigtime_t timeout, bool care)
 	struct timeval tv;
 	struct fd_set fds; 
 
-	tv.tv_sec = long(timeout / 1e6); 
-	tv.tv_usec = long(timeout-(tv.tv_sec * 1e6)); 
+	tv.tv_sec = long(kIMAP4ClientTimeout / 1e6); 
+	tv.tv_usec = long(kIMAP4ClientTimeout-(tv.tv_sec * 1e6)); 
 	
 	/* Initialize (clear) the socket mask. */ 
 	FD_ZERO(&fds);
@@ -917,7 +915,7 @@ IMAP4Client::ReceiveLine(BString &out, bigtime_t timeout, bool care)
 	FD_SET(net, &fds);
 	int result;
 #ifdef IMAPSSL
-	if (use_ssl)
+	if ((use_ssl) && (SSL_pending(ssl)))
 		result = 1;
 	else
 #endif
@@ -930,9 +928,11 @@ IMAP4Client::ReceiveLine(BString &out, bigtime_t timeout, bool care)
 	{
 		while(c != '\n' && c != xEOF)
 		{
+		  #ifdef IMAPSSL
 			if (use_ssl)
 				r = SSL_read(ssl,&c,1);
 			else
+		  #endif
 				r = recv(net,&c,1,0);
 			if(r <= 0) {
 				BString error;
@@ -948,9 +948,7 @@ IMAP4Client::ReceiveLine(BString &out, bigtime_t timeout, bool care)
 		}
 	}else{
 		// Log an error somewhere instead
-		if (care)
-			runner->ShowError("IMAP Timeout.");
-		len = B_TIMED_OUT;		
+		runner->ShowError("IMAP Timeout.");
 	}
 	PRINT(("S:%s\n",out.String()));
 	return len;
@@ -982,7 +980,7 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 		/* Set the socket in the mask. */ 
 		FD_SET(net, &fds);
 #ifdef IMAPSSL
-		if (use_ssl)
+		if ((use_ssl) && (SSL_pending(ssl)))
 			result = 1;
 		else
 #endif
