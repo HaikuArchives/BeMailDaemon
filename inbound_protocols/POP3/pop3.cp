@@ -509,25 +509,28 @@ int32 POP3Protocol::ReceiveLine(BString &line) {
 }
 
 
-status_t POP3Protocol::SendCommand(const char* cmd) {
-	int32 len;
+status_t
+POP3Protocol::SendCommand(const char *cmd)
+{
+	if (conn < 0)
+		return B_FILE_ERROR;
 
 	// Flush any accumulated garbage data before we send our command, so we
 	// don't misinterrpret responses from previous commands (that got left over
 	// due to bugs) as being from this command.
 	
 	struct timeval tv;
-	struct fd_set fds; 
-
 	tv.tv_sec = long(1000 / 1e6); 
 	tv.tv_usec = long(1000-(tv.tv_sec * 1e6));  /* very short timeout, hangs with 0 in R5 */
-	
+
+	struct fd_set fds; 
+
 	/* Initialize (clear) the socket mask. */ 
 	FD_ZERO(&fds);
-	
+
 	/* Set the socket in the mask. */ 
 	FD_SET(conn, &fds);
-	
+
 	while (select(32, &fds, NULL, NULL, &tv) > 0) {
 		int amountReceived;
 		char tempString [1025];
@@ -541,22 +544,22 @@ status_t POP3Protocol::SendCommand(const char* cmd) {
 			break;
 	}
 
-	if (send(conn,cmd, ::strlen(cmd),0) < 0) {
+	if (send(conn, cmd, ::strlen(cmd), 0) < 0) {
 		fLog = strerror(errno);
 		printf ("POP3Protocol::SendCommand Send \"%s\" failed, code %d: %s\n",
 			cmd, errno, fLog.String());
 		return errno;
 	}
 
-	fLog="";
+	fLog = "";
 	status_t err = B_OK;
 
-	while(true) {
-		len = ReceiveLine(fLog);
-		if(len <= 0 || fLog.ICompare("+OK",3) == 0)
+	while (true) {
+		int32 len = ReceiveLine(fLog);
+		if (len <= 0 || fLog.ICompare("+OK", 3) == 0)
 			break;
 
-		else if(fLog.ICompare("-ERR",4) == 0) {
+		if (fLog.ICompare("-ERR", 4) == 0) {
 			printf("POP3Protocol::SendCommand \"%s\" got error message "
 				"from server: %s\n", cmd, fLog.String());
 			err = B_ERROR;
