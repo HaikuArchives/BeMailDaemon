@@ -980,79 +980,87 @@ void TTextView::MakeFocus(bool focus)
 
 void TTextView::MessageReceived(BMessage *msg)
 {
-	bool		inserted = false;
-	bool		is_enclosure = false;
-	char		*text;
-	int32		end;
-	int32		loop;
-	int32		offset;
-	int32		start;
-	BFile		file;
-	BMessage	message(REFS_RECEIVED);
-	entry_ref	ref;
-	off_t		len = 0;
-	off_t		size;
-	hyper_text	*enclosure;
-
 	switch (msg->what)
 	{
 		case B_SIMPLE_DATA:
-			if (!fIncoming)
-			{
-				for (int32 index = 0;msg->FindRef("refs", index++, &ref) == B_NO_ERROR;)
-				{
-					file.SetTo(&ref, O_RDONLY);
-					if (file.InitCheck() == B_NO_ERROR)
-					{
-						BNodeInfo node(&file);
-						char type[B_FILE_NAME_LENGTH];
-						node.GetType(type);
+		{
+			if (fIncoming)
+				break;
 
-						file.GetSize(&size);
-						if ((!strncasecmp(type, "text/", 5)) && (size))
+			BMessage message(REFS_RECEIVED);
+			bool is_enclosure = false;
+			bool inserted = false;
+			entry_ref ref;
+			off_t len = 0;
+			off_t size;
+			int32 end;
+			int32 loop;
+			int32 start;
+
+			for (int32 index = 0;msg->FindRef("refs", index++, &ref) == B_NO_ERROR;)
+			{
+				BFile file(&ref, O_RDONLY);
+				if (file.InitCheck() == B_NO_ERROR)
+				{
+					BNodeInfo node(&file);
+					char type[B_FILE_NAME_LENGTH];
+					node.GetType(type);
+
+					file.GetSize(&size);
+					if (!strncasecmp(type, "text/", 5) && size > 0)
+					{
+						len += size;
+						char *text = (char *)malloc(size);
+						if (text == NULL)
 						{
-							len += size;
-							text = (char *)malloc(size);
-							file.Read(text, size);
-							if (!inserted)
-							{
-								GetSelection(&start, &end);
-								Delete();
-								inserted = true;
-							}
-							offset = 0;
-							for (loop = 0; loop < size; loop++)
-							{
-								if (text[loop] == '\n')
-								{
-									Insert(&text[offset], loop - offset + 1);
-									offset = loop + 1;
-								}
-								else if (text[loop] == '\r')
-								{
-									text[loop] = '\n';
-									Insert(&text[offset], loop - offset + 1);
-									if ((loop + 1 < size)
-											&& (text[loop + 1] == '\n'))
-										loop++;
-									offset = loop + 1;
-								}
-							}
-							free(text);
+							puts("no memory!");
+							return;
 						}
-						else
+						if (file.Read(text, size) < B_OK)
 						{
-							is_enclosure = true;
-							message.AddRef("refs", &ref);
+							puts("could not read from file");
+							return;
 						}
+						if (!inserted)
+						{
+							GetSelection(&start, &end);
+							Delete();
+							inserted = true;
+						}
+
+						int32 offset = 0;
+						for (loop = 0; loop < size; loop++)
+						{
+							if (text[loop] == '\n')
+							{
+								Insert(&text[offset], loop - offset + 1);
+								offset = loop + 1;
+							}
+							else if (text[loop] == '\r')
+							{
+								text[loop] = '\n';
+								Insert(&text[offset], loop - offset + 1);
+								if ((loop + 1 < size)
+										&& (text[loop + 1] == '\n'))
+									loop++;
+								offset = loop + 1;
+							}
+						}
+						free(text);
+					}
+					else
+					{
+						is_enclosure = true;
+						message.AddRef("refs", &ref);
 					}
 				}
-				if (inserted)
-					Select(start, start + len);
-				if (is_enclosure)
-					Window()->PostMessage(&message, Window());
 			}
+			if (inserted)
+				Select(start, start + len);
+			if (is_enclosure)
+				Window()->PostMessage(&message, Window());
 			break;
+		}
 
 		case M_HEADER:
 			msg->FindBool("header", &fHeader);
@@ -1090,6 +1098,7 @@ void TTextView::MessageReceived(BMessage *msg)
 				if (msg->FindInt64("node", &inode) < B_OK)
 					break;
 
+				hyper_text *enclosure;
 				for (int32 index = 0;(enclosure = (hyper_text *)fEnclosures->ItemAt(index++)) != NULL;)
 				{
 					if (device == enclosure->node.device
@@ -1625,7 +1634,7 @@ void TTextView::ClearList()
 			free(enclosure->content_type);
 		if (enclosure->encoding)
 			free(enclosure->encoding);
-		if ((enclosure->have_ref) && (!enclosure->saved))
+		if (enclosure->have_ref && !enclosure->saved)
 		{
 			entry.SetTo(&enclosure->ref);
 			entry.Remove();

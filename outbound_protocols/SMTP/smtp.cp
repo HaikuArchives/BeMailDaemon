@@ -223,12 +223,12 @@ status_t SMTPProtocol::Login(const char* _login, const char* password)
 									// instantiating and deleting should be enough
 									Mail::Filter *filter = (*instantiate)(&msg,status_view);
 									delete filter;
-
-									return B_OK;
 								}
 								else
 									fLog = "Cannot run POP3 add-on, symbol not found";
+
 								unload_add_on(image);
+								return status;
 							}
 						}
 					}

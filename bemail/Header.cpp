@@ -98,8 +98,9 @@ struct evil
 
 //====================================================================
 
+
 THeaderView::THeaderView(BRect rect,BRect windowRect,bool incoming,BFile *file,bool resending)
-	:	BBox(rect, "m_header", B_FOLLOW_LEFT_RIGHT, B_WILL_DRAW, B_PLAIN_BORDER),
+	:	BBox(rect, "m_header", B_FOLLOW_LEFT_RIGHT, B_WILL_DRAW, B_NO_BORDER),
 		fAccountMenu(NULL),
 		fChain(gDefaultChain),
 		fAccountTo(NULL),
@@ -317,7 +318,6 @@ THeaderView::THeaderView(BRect rect,BRect windowRect,bool incoming,BFile *file,b
 	ResizeTo(Bounds().Width(),y);
 }
 
-//--------------------------------------------------------------------
 
 void 
 THeaderView::InitEmailCompletion()
@@ -358,6 +358,7 @@ THeaderView::InitEmailCompletion()
 		}
 	}
 }
+
 
 void 
 THeaderView::InitGroupCompletion()
@@ -448,33 +449,21 @@ THeaderView::InitGroupCompletion()
 }
 
 
-void THeaderView::MessageReceived(BMessage *msg)
+void
+THeaderView::MessageReceived(BMessage *msg)
 {
 	switch (msg->what)
 	{
 		case B_SIMPLE_DATA:
 		{
-			BTextView *textView = (BTextView *)fTo->ChildAt(0);
-
-			if (textView->IsFocus())
-				fTo->MessageReceived(msg);
-			else if (!fIncoming)
+			BTextView *textView = dynamic_cast<BTextView *>(Window()->CurrentFocus());
+			if (dynamic_cast<TTextControl *>(textView->Parent()) != NULL)
+				textView->Parent()->MessageReceived(msg);
+			else
 			{
-				textView = (BTextView *)fCc->ChildAt(0);
-				if (textView->IsFocus())
-					fCc->MessageReceived(msg);
-				else
-				{
-					textView = (BTextView *)fBcc->ChildAt(0);
-					if (textView->IsFocus())
-						fBcc->MessageReceived(msg);
-					else
-					{
-						BMessage message(*msg);
-						message.what = REFS_RECEIVED;
-						Window()->PostMessage(&message, Window());
-					}
-				}
+				BMessage message(*msg);
+				message.what = REFS_RECEIVED;
+				Window()->PostMessage(&message, Window());
 			}
 			break;
 		}
@@ -493,7 +482,9 @@ void THeaderView::MessageReceived(BMessage *msg)
 	}
 }
 
-void THeaderView::AttachedToWindow(void)
+
+void
+THeaderView::AttachedToWindow(void)
 {
 	if (fToMenu)
 	{
@@ -527,7 +518,8 @@ void THeaderView::AttachedToWindow(void)
 }
 
 
-void THeaderView::BuildMenus()
+void
+THeaderView::BuildMenus()
 {
 	/*
 	BMenuItem *item;
@@ -695,18 +687,12 @@ void THeaderView::BuildMenus()
 }
 
 
-void THeaderView::SetAddress(BMessage *msg)
+void
+THeaderView::SetAddress(BMessage *msg)
 {
-	bool			group = false;
-	const char		*msgStr;
-	int32			end;
-	int32			start;
-	BEntry			entry;
-	BFile			file;
-	BQuery			query;
-	BTextView		*text = NULL;
-	BVolume			vol;
-	BVolumeRoster	volume;
+	const char *msgStr = NULL;
+	BTextView *text = NULL;
+	bool group = false;
 
 	switch (msg->what)
 	{
@@ -742,22 +728,28 @@ void THeaderView::SetAddress(BMessage *msg)
 			break;
 	}
 
+	int32 start, end;
 	text->GetSelection(&start, &end);
 	if (start != end)
 		text->Delete();
 
 	if (group)
 	{
-		volume.GetBootVolume(&vol);
-		query.SetVolume(&vol);
+		BVolume volume;
+		BVolumeRoster().GetBootVolume(&volume);
+
+		BQuery query;
+		query.SetVolume(&volume);
 
 		BString predicate;
 		predicate << "META:group='*" << msgStr << "'";
 		query.SetPredicate(predicate.String());
 		query.Fetch();
 
+		BEntry entry;
 		while (query.GetNextEntry(&entry) == B_NO_ERROR)
 		{
+			BFile file;
 			file.SetTo(&entry, O_RDONLY);
 			BString	name;
 			ReadAttrString(&file,"META:name",&name);
@@ -794,7 +786,8 @@ void THeaderView::SetAddress(BMessage *msg)
 }
 
 
-status_t THeaderView::LoadMessage(BFile *file)
+status_t
+THeaderView::LoadMessage(BFile *file)
 {
 	char		dateStr[129] = "Unknown";
 	char		theString[257] = "";
@@ -820,7 +813,8 @@ status_t THeaderView::LoadMessage(BFile *file)
 	//	Set the date on this message
 	//
 	const char *dateHeader = strstr(header, "Date: ");
-	if (dateHeader != NULL) {
+	if (dateHeader != NULL)
+	{
 		dateHeader += strlen("Date: ");
 
 		int32 i = 0;
@@ -898,7 +892,8 @@ TTextControl::TTextControl(BRect rect, char *label, BMessage *msg,
 }
 
 
-void TTextControl::AttachedToWindow()
+void
+TTextControl::AttachedToWindow()
 {
 	BFont font = *be_plain_font;
 	BTextView *text;
@@ -915,7 +910,8 @@ void TTextControl::AttachedToWindow()
 }
 
 
-void TTextControl::MessageReceived(BMessage *msg)
+void
+TTextControl::MessageReceived(BMessage *msg)
 {
 	switch (msg->what)
 	{
@@ -998,6 +994,15 @@ void TTextControl::MessageReceived(BMessage *msg)
 }
 
 
+bool
+TTextControl::HasFocus()
+{
+	BTextView *textView = TextView();
+
+	return textView->IsFocus();
+}
+
+
 //====================================================================
 //	QPopupMenu (definition at the beginning of this file)
 //	#pragma mark -
@@ -1010,7 +1015,8 @@ QPopupMenu::QPopupMenu(const char *title)
 }
 
 
-void QPopupMenu::AddPersonItem(const entry_ref *ref, ino_t node, BString &name, BString &email,
+void
+QPopupMenu::AddPersonItem(const entry_ref *ref, ino_t node, BString &name, BString &email,
 	const char *attr, BMenu *groupMenu, BMenuItem *superItem)
 {
 	BString label;
@@ -1045,7 +1051,8 @@ void QPopupMenu::AddPersonItem(const entry_ref *ref, ino_t node, BString &name, 
 }
 
 
-void QPopupMenu::EntryCreated(const entry_ref &ref, ino_t node)
+void
+QPopupMenu::EntryCreated(const entry_ref &ref, ino_t node)
 {
 	BNode file;
 	if (file.SetTo(&ref) < B_OK)
@@ -1152,8 +1159,8 @@ void QPopupMenu::EntryCreated(const entry_ref &ref, ino_t node)
 }
 
 
-void QPopupMenu::EntryRemoved(ino_t node)
+void
+QPopupMenu::EntryRemoved(ino_t /*node*/)
 {
-	// eliminate unused parameter warning
-	(void)node;	
 }
+

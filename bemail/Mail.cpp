@@ -1215,7 +1215,7 @@ skip:			if (!done)
 	else
 		fButtonBar = NULL;
 
-	r.top = r.bottom = height + bbheight;
+	r.top = r.bottom = height + bbheight + 1;
 	fHeaderView = new THeaderView(r, rect, fIncoming, fFile, resending);
 
 	r = Frame();
@@ -1364,7 +1364,7 @@ void TMailWindow::UpdateViews( void )
 		fButtonBar->GetPreferredSize( &bbwidth, &bbheight);
 		fButtonBar->ResizeTo(Bounds().right+3, bbheight+1);
 		fButtonBar->MoveTo(-1, nextY-1);
-		nextY += bbheight;
+		nextY += bbheight + 1;
 		if (fButtonBar->IsHidden())
 			fButtonBar->Show();
 		else
@@ -1514,7 +1514,7 @@ void TMailWindow::MenusBeginning()
 	bool		enable;
 	int32		finish = 0;
 	int32		start = 0;
-	BTextView	*text_view;
+	BTextView	*textView;
 
 	if (!fIncoming)
 	{
@@ -1542,10 +1542,12 @@ void TMailWindow::MenusBeginning()
 			enable = strlen(fHeaderView->fTo->Text());
 			fSendNow->SetEnabled(enable);
 			// fSendLater->SetEnabled(enable);
-			text_view = (BTextView *)fHeaderView->fTo->ChildAt(0);
-			if (text_view->IsFocus())
+
+			if (fHeaderView->fTo->HasFocus())
 			{
-				text_view->GetSelection(&start, &finish);
+				textView = fHeaderView->fTo->TextView();
+				textView->GetSelection(&start, &finish);
+
 				fCut->SetEnabled(start != finish);
 				be_clipboard->Lock();
 				fPaste->SetEnabled(be_clipboard->Data()->HasData("text/plain", B_MIME_TYPE));
@@ -1570,42 +1572,24 @@ void TMailWindow::MenusBeginning()
 		}
 	}
 
-	if ((!fIncoming) || (fResending))
+	if (!fIncoming || fResending)
 		fHeaderView->BuildMenus();
 
 	fPrint->SetEnabled(fContentView->fTextView->TextLength());
 
-	text_view = (BTextView *)fHeaderView->fTo->ChildAt(0);
-	if (text_view->IsFocus())
-		text_view->GetSelection(&start, &finish);
-	else
+	textView = dynamic_cast<BTextView *>(CurrentFocus());
+	if (dynamic_cast<TTextControl *>(textView->Parent()) != NULL)
 	{
-		text_view = (BTextView *)fHeaderView->fSubject->ChildAt(0);
-		if (text_view->IsFocus())
-			text_view->GetSelection(&start, &finish);
-		else
+		// one of To:, Subject:, Account:, Cc:, Bcc:
+		textView->GetSelection(&start, &finish);
+	}
+	else if (fContentView->fTextView->IsFocus())
+	{
+		fContentView->fTextView->GetSelection(&start, &finish);
+		if (!fIncoming)
 		{
-			if (fContentView->fTextView->IsFocus())
-			{
-				fContentView->fTextView->GetSelection(&start, &finish);
-				if (!fIncoming)
-				{
-					fQuote->SetEnabled(true);
-					fRemoveQuote->SetEnabled(true);
-				}
-			}
-			else if (!fIncoming)
-			{
-				text_view = (BTextView *)fHeaderView->fCc->ChildAt(0);
-				if (text_view->IsFocus())
-					text_view->GetSelection(&start, &finish);
-				else
-				{
-					text_view = (BTextView *)fHeaderView->fBcc->ChildAt(0);
-					if (text_view->IsFocus())
-						text_view->GetSelection(&start, &finish);
-				}
-			}
+			fQuote->SetEnabled(true);
+			fRemoveQuote->SetEnabled(true);
 		}
 	}
 
@@ -1614,7 +1598,7 @@ void TMailWindow::MenusBeginning()
 		fCut->SetEnabled(start != finish);
 
 	// Undo stuff	
-	bool		isRedo = false;
+	bool isRedo = false;
 	undo_state	undoState = B_UNDO_UNAVAILABLE;
 
 	BTextView *focusTextView = dynamic_cast<BTextView *>(CurrentFocus());
@@ -2155,7 +2139,6 @@ void TMailWindow::AddEnclosure(BMessage *msg)
 		r.top = fHeaderView->Frame().bottom - 1;
 		r.right = Frame().Width() + 2;
 		r.bottom = r.top + ENCLOSURES_HEIGHT;
-		fHeaderView->ResizeBy(0, ENCLOSURES_HEIGHT);
 
 		fEnclosuresView = new TEnclosuresView(r, Frame());
 		AddChild(fEnclosuresView, fContentView);
@@ -2264,17 +2247,18 @@ bool TMailWindow::QuitRequested()
 
 void TMailWindow::Show()
 {
-	BTextView	*text_view;
-
-	Lock();
-	if ((!fResending) && ((fIncoming) || (fReplying)))
-		fContentView->fTextView->MakeFocus(true);
-	else {
-		text_view = (BTextView *)fHeaderView->fTo->ChildAt(0);
-		fHeaderView->fTo->MakeFocus(true);
-		text_view->Select(0, text_view->TextLength());
+	if (Lock())
+	{
+		if (!fResending && (fIncoming || fReplying))
+			fContentView->fTextView->MakeFocus(true);
+		else
+		{
+			BTextView *textView = fHeaderView->fTo->TextView();
+			fHeaderView->fTo->MakeFocus(true);
+			textView->Select(0, textView->TextLength());
+		}
+		Unlock();
 	}
-	Unlock();
 	BWindow::Show();
 }
 

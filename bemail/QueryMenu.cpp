@@ -44,66 +44,75 @@ All rights reserved.
 #include <string.h>
 #include <PopUpMenu.h>
 
+
 BLooper *QueryMenu::fQueryLooper = NULL;
 int32 QueryMenu::fMenuCount = 0;
+
 
 // ***
 // QHandler
 // ***
 
+
 class QHandler : public BHandler
 {
 	public:
-		QHandler( QueryMenu *queryMenu );
-		virtual void MessageReceived( BMessage *msg );
+		QHandler(QueryMenu *queryMenu);
+		virtual void MessageReceived(BMessage *msg);
+
 		QueryMenu *fQueryMenu;
 };
 
-QHandler::QHandler( QueryMenu *queryMenu )
-	: BHandler( (const char *)NULL ),
-	fQueryMenu( queryMenu )
+
+QHandler::QHandler(QueryMenu *queryMenu)
+	:	BHandler((const char *)NULL),
+	fQueryMenu(queryMenu)
 {
-	
 }
 
-void QHandler::MessageReceived( BMessage *msg )
+
+void QHandler::MessageReceived(BMessage *msg)
 {
-	switch( msg->what )
+	switch (msg->what)
 	{
 		case B_QUERY_UPDATE:
-			fQueryMenu->DoQueryMessage( msg );
+			fQueryMenu->DoQueryMessage(msg);
 			break;
 		
 		default:
-			BHandler::MessageReceived( msg );
+			BHandler::MessageReceived(msg);
 			break;
 	}
 }
+
 
 // ***
 // QueryMenu
 // ***
 
-QueryMenu::QueryMenu( const char *title, bool popUp, bool radioMode, bool autoRename )
-	: BPopUpMenu( title, radioMode, autoRename ),
-	fTargetHandler( NULL ),
-	fPopUp( popUp )
+
+QueryMenu::QueryMenu(const char *title, bool popUp, bool radioMode, bool autoRename)
+	:	BPopUpMenu(title, radioMode, autoRename),
+	fTargetHandler(NULL),
+	fPopUp(popUp)
 {
-	if( atomic_add( &fMenuCount, 1 ) == 0 )
+	if (atomic_add(&fMenuCount, 1) == 0)
 	{
-		fQueryLooper = new BLooper( "Query Watcher" );
+		fQueryLooper = new BLooper("Query Watcher");
 		fQueryLooper->Run();
 	}
-	fQueryHandler = new QHandler( this );
+	fQueryHandler = new QHandler(this);
 	fQueryLooper->Lock();
-	fQueryLooper->AddHandler( fQueryHandler );
+	fQueryLooper->AddHandler(fQueryHandler);
 	fQueryLooper->Unlock();
-	BMessenger mercury( fQueryHandler, fQueryLooper );
+
+	BMessenger mercury(fQueryHandler, fQueryLooper);
 	fQuery = new BQuery();
-	fQuery->SetTarget( mercury );
+	fQuery->SetTarget(mercury);
 }
 
-QueryMenu::~QueryMenu( void )
+
+QueryMenu::~QueryMenu(void)
 {
 	fCancelQuery = true;
 	fQueryLock.Lock();
@@ -111,10 +120,10 @@ QueryMenu::~QueryMenu( void )
 	fQueryLock.Unlock();
 	
 	fQueryLooper->Lock();
-	fQueryLooper->RemoveHandler( fQueryHandler );
+	fQueryLooper->RemoveHandler(fQueryHandler);
 	delete fQueryHandler;
 	
-	if( atomic_add( &fMenuCount, -1 ) == 1 )
+	if (atomic_add(&fMenuCount, -1) == 1)
 	{
 		fQueryLooper->Lock();
 		fQueryLooper->Quit();
@@ -123,155 +132,168 @@ QueryMenu::~QueryMenu( void )
 		fQueryLooper->Unlock();
 }
 
-void QueryMenu::DoQueryMessage( BMessage *msg )
+
+void QueryMenu::DoQueryMessage(BMessage *msg)
 {
-	int32		opcode;
-	int64		directory;
-	int32		device;
-	int64		node;
-	const char 	*name;
-	
-	if( (msg->FindInt32( "opcode", &opcode ) == B_OK)&&
-		(msg->FindInt64( "directory", &directory ) == B_OK)&&
-		(msg->FindInt32( "device", &device ) == B_OK)&&
-		(msg->FindInt64( "node", &node ) == B_OK) )
+	int32 opcode;
+	int64 directory;
+	int32 device;
+	int64 node;
+	if (msg->FindInt32("opcode", &opcode) == B_OK
+		&& msg->FindInt64("directory", &directory) == B_OK
+		&& msg->FindInt32("device", &device) == B_OK
+		&& msg->FindInt64("node", &node) == B_OK)
 	{
-		if( (opcode == B_ENTRY_CREATED)&&(msg->FindString( "name", &name ) == B_OK) )
+		const char *name;
+		if (opcode == B_ENTRY_CREATED && msg->FindString("name", &name) == B_OK)
 		{
-			entry_ref ref( device, directory, name );
-			EntryCreated( ref, node );
+			entry_ref ref(device, directory, name);
+			EntryCreated(ref, node);
 			return;
 		}
-		else if( opcode == B_ENTRY_REMOVED )
+		else if (opcode == B_ENTRY_REMOVED)
 		{
-			BAutolock lock( fQueryLock );
-			if( !lock.IsLocked() )
+			BAutolock lock(fQueryLock);
+			if (!lock.IsLocked())
 				return;
-			EntryRemoved( node );
+			EntryRemoved(node);
 		}
 	}
 }
 
-status_t QueryMenu::SetPredicate( const char *expr, BVolume *vol )
+
+status_t QueryMenu::SetPredicate(const char *expr, BVolume *volume)
 {
-	status_t		status;
-	
+	status_t status;
+
 	// Set the volume
-	if( !vol )
+	if (volume == NULL)
 	{
-		BVolumeRoster rosta;
-		BVolume v;
-		rosta.GetBootVolume( &v );
-		
-		if( (status = fQuery->SetVolume( &v )) != B_OK )
+		BVolume bootVolume;
+		BVolumeRoster().GetBootVolume(&bootVolume);
+
+		if ( (status = fQuery->SetVolume(&bootVolume)) != B_OK)
 			return status;
 	}
-	else if( (status = fQuery->SetVolume( vol )) != B_OK )
+	else if ((status = fQuery->SetVolume(volume)) != B_OK)
 		return status;
 	
-	if( (status = fQuery->SetPredicate( expr )) == B_OK )
-	{
-		// Force query thread to exit if still running
-		fCancelQuery = true;
-		fQueryLock.Lock();
-		// Remove all existing menu items (if any... )
-		RemoveEntries();
-		fQueryLock.Unlock();
-		
-		// Resolve Query/Build Menu in seperate thread
-		thread_id tid;
-		tid = spawn_thread( query_thread, "query menu thread", B_NORMAL_PRIORITY, this  );
-		return resume_thread( tid );
-	}
-	return status;
+	if ((status = fQuery->SetPredicate(expr)) < B_OK)
+		return status;
+
+	// Force query thread to exit if still running
+	fCancelQuery = true;
+	fQueryLock.Lock();
+
+	// Remove all existing menu items (if any... )
+	RemoveEntries();
+	fQueryLock.Unlock();
+	
+	// Resolve Query/Build Menu in seperate thread
+	thread_id thread;
+	thread = spawn_thread(query_thread, "query menu thread", B_NORMAL_PRIORITY, this);
+
+	return resume_thread(thread);
 }
 
-void QueryMenu::RemoveEntries( void )
+
+void QueryMenu::RemoveEntries()
 {
 	int64 node;
-	for( int32 i=CountItems()-1; i>=0; i-- )
+	for (int32 i = CountItems() - 1;i >= 0;i--)
 	{
-		if(ItemAt(i)->Message()->FindInt64( "node", &node ) == B_OK)
+		if (ItemAt(i)->Message()->FindInt64("node", &node) == B_OK)
 			RemoveItem(i);
 	}
 }
 
-int32 QueryMenu::query_thread( void *data )
+
+int32 QueryMenu::query_thread(void *data)
 {
 	return ((QueryMenu *)(data))->QueryThread();
 }
 
-int32 QueryMenu::QueryThread( void )
+
+int32 QueryMenu::QueryThread()
 {
-	BAutolock	lock( fQueryLock );
-	
-	if( !lock.IsLocked() )
+	BAutolock lock(fQueryLock);
+
+	if (!lock.IsLocked())
 		return B_ERROR;
-	fCancelQuery = false;
-	
+
 	// Begin resolving query
+	fCancelQuery = false;
 	fQuery->Fetch();
-	
-	entry_ref 		ref;
-	node_ref		node;
-	
+
 	// Build Menu
-	// The leash it a work-around for when the something in the query breaks and prevents
+	// The leash is a work-around for when something in the query breaks and prevents
 	// GetNextRef() from ever returning B_ENTRY_NOT_FOUND
-	for( int32 leash=0; (fQuery->GetNextRef( &ref ) != B_ENTRY_NOT_FOUND)&&(!fCancelQuery)&&(leash < 128); leash++ )
+	entry_ref ref;
+	node_ref node;
+	for (int32 leash = 0;fQuery->GetNextRef(&ref) != B_ENTRY_NOT_FOUND && !fCancelQuery && leash < 128;leash++)
 	{
-		BEntry entry( &ref );
-		entry.GetNodeRef( &node );
-		EntryCreated( ref, node.node );
+		BEntry entry(&ref);
+		entry.GetNodeRef(&node);
+		EntryCreated(ref, node.node);
 	}
-	
+
+	// Remove the group separator if there are no groups or no items without groups
+	BMenuItem *item;
+	if (dynamic_cast<BSeparatorItem *>(item = ItemAt(0)) != NULL)
+		RemoveItem(item);
+	else if (dynamic_cast<BSeparatorItem *>(item = ItemAt(CountItems() - 1)) != NULL)
+		RemoveItem(item);
+
 	return B_OK;
 }
 
-status_t QueryMenu::SetTargetForItems( BHandler *handler )
+
+status_t QueryMenu::SetTargetForItems(BHandler *handler)
 {
 	fTargetHandler = handler;
-	return BMenu::SetTargetForItems( handler );
+	return BMenu::SetTargetForItems(handler);
 }
 
 // Include the following version of SetTargetForItems() to eliminate
 // hidden polymorphism warning. Should be correct, but is unused and untested.
+
 status_t QueryMenu::SetTargetForItems(BMessenger messenger)
 {
-	if (messenger.IsTargetLocal()) {
-		BLooper* ignore; // don't care what value this gets
+	if (messenger.IsTargetLocal())
+	{
+		BLooper *ignore; // don't care what value this gets
 		fTargetHandler = messenger.Target(&ignore);
 		return BMenu::SetTargetForItems(messenger);
-	} else {
-		return B_ERROR;
 	}
+	return B_ERROR;
 }
 
-void QueryMenu::EntryCreated( const entry_ref &ref, ino_t node )
+
+void QueryMenu::EntryCreated(const entry_ref &ref, ino_t node)
 {
 	BMessage 		*msg;
 	BMenuItem 		*item;
 	
-	msg = new BMessage( B_REFS_RECEIVED );
-	msg->AddRef( "refs", &ref );
-	msg->AddInt64( "node", node );
-	item = new BMenuItem( ref.name, msg );
-	if( fTargetHandler )
-		item->SetTarget( fTargetHandler );
-	AddItem( item );
+	msg = new BMessage(B_REFS_RECEIVED);
+	msg->AddRef("refs", &ref);
+	msg->AddInt64("node", node);
+	item = new BMenuItem(ref.name, msg);
+	if (fTargetHandler)
+		item->SetTarget(fTargetHandler);
+	AddItem(item);
 }
 
-void QueryMenu::EntryRemoved( ino_t node )
+
+void QueryMenu::EntryRemoved(ino_t node)
 {
-	BMenuItem 	*item;
-	int64		inode;
-			
 	// Search for item in menu
-	for( int32 i=0; (item=ItemAt(i)) != NULL; i++)
+	BMenuItem  *item;
+	for (int32 i = 0;(item = ItemAt(i)) != NULL;i++)
 	{
 		// Is it our item?
-		if( ((item->Message())->FindInt64( "node", &inode ) == B_OK)&&
-			(inode == node) )
+		int64 inode;
+		if ((item->Message())->FindInt64("node", &inode) == B_OK
+			&& inode == node)
 		{
 			RemoveItem(i);
 			return;
@@ -279,10 +301,12 @@ void QueryMenu::EntryRemoved( ino_t node )
 	}
 }
 
-BPoint QueryMenu::ScreenLocation(void)
+
+BPoint QueryMenu::ScreenLocation()
 {
-	if( fPopUp )
+	if (fPopUp)
 		return BPopUpMenu::ScreenLocation();
-	else
-		return BMenu::ScreenLocation();
+
+	return BMenu::ScreenLocation();
 }
+

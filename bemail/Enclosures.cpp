@@ -45,6 +45,7 @@ All rights reserved.
 #include <Debug.h>
 #include <Beep.h>
 #include <Bitmap.h>
+#include <MenuItem.h>
 #include <Alert.h>
 #include <NodeMonitor.h>
 
@@ -291,6 +292,54 @@ void TListView::MakeFocus(bool focus)
 {
 	BListView::MakeFocus(focus);
 	fParent->Focus(focus);
+}
+
+
+void TListView::MouseDown(BPoint point)
+{
+	int32 buttons;	
+	Looper()->CurrentMessage()->FindInt32("buttons",&buttons);
+
+	if (buttons & B_SECONDARY_MOUSE_BUTTON)
+	{
+		BFont font = *be_plain_font;
+		font.SetSize(10);
+
+		BPopUpMenu menu("enclosure", false, false);
+		menu.SetFont(&font);
+		menu.AddItem(new BMenuItem("Open Enclosure",new BMessage(LIST_INVOKED)));
+		menu.AddItem(new BMenuItem("Remove Enclosure",new BMessage(M_REMOVE)));
+
+		BPoint menuStart = ConvertToScreen(point);
+		
+		BMenuItem *item;
+		if ((item = menu.Go(menuStart)) != NULL)
+		{
+			if (item->Command() == LIST_INVOKED)
+			{
+				BMessage msg(LIST_INVOKED);
+				msg.AddPointer("source",this);
+				msg.AddInt32("index",IndexOf(point));
+				Window()->PostMessage(&msg,fParent);
+			}
+			else
+			{
+				Select(IndexOf(point));
+				Window()->PostMessage(item->Command(),fParent);
+			}
+		}
+	}
+	else
+		BListView::MouseDown(point);
+}
+
+
+void TListView::KeyDown(const char *bytes, int32 numBytes)
+{
+	BListView::KeyDown(bytes,numBytes);
+
+	if (numBytes == 1 && *bytes == B_DELETE)
+		Window()->PostMessage(M_REMOVE, fParent);
 }
 
 

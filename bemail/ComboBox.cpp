@@ -116,36 +116,38 @@ class StringObjectList : public BObjectList<BString> {};
 // BComboBox.  BListView is not used because it requires that a BStringItem be
 // created for each choice.  ChoiceListView just pulls the choice strings
 // directly from the BComboBox and draws them.
-class BComboBox::ChoiceListView : public BView {
-public:
-	ChoiceListView(	BRect frame, BComboBox *parent);
-	virtual ~ChoiceListView();
-		
-	virtual void Draw(BRect update);
-	virtual void MouseDown(BPoint where);
-	virtual void MouseUp(BPoint where);
-	virtual void MouseMoved(BPoint where, uint32 transit,
-		const BMessage *dragMessage);
-	virtual void KeyDown(const char *bytes, int32 numBytes);
-	virtual void SetFont(const BFont *font, uint32 properties = B_FONT_ALL);
-	void ScrollToSelection();
-	void InvalidateItem(int32 index, bool force = false);
-	BRect ItemFrame(int32 index);
-	void AdjustScrollBar();
-	// XXX: add BArchivable functionality
+class BComboBox::ChoiceListView : public BView
+{
+	public:
+		ChoiceListView(	BRect frame, BComboBox *parent);
+		virtual ~ChoiceListView();
+			
+		virtual void Draw(BRect update);
+		virtual void MouseDown(BPoint where);
+		virtual void MouseUp(BPoint where);
+		virtual void MouseMoved(BPoint where, uint32 transit,
+			const BMessage *dragMessage);
+		virtual void KeyDown(const char *bytes, int32 numBytes);
+		virtual void SetFont(const BFont *font, uint32 properties = B_FONT_ALL);
 
-private:
-	inline float LineHeight();
+		void ScrollToSelection();
+		void InvalidateItem(int32 index, bool force = false);
+		BRect ItemFrame(int32 index);
+		void AdjustScrollBar();
+		// XXX: add BArchivable functionality
 	
-	BPoint fClickLoc;
-	font_height fFontHeight;
-	bigtime_t fClickTime;
-	rgb_color fForeCol;
-	rgb_color fBackCol;
-	rgb_color fSelCol;
-	int32 fSelIndex;
-	BComboBox *fParent;
-	bool fTrackingMouseDown;
+	private:
+		inline float LineHeight();
+		
+		BPoint fClickLoc;
+		font_height fFontHeight;
+		bigtime_t fClickTime;
+		rgb_color fForeCol;
+		rgb_color fBackCol;
+		rgb_color fSelCol;
+		int32 fSelIndex;
+		BComboBox *fParent;
+		bool fTrackingMouseDown;
 };
 
 
@@ -154,54 +156,56 @@ private:
 // TextInput is a somewhat modified version of the _BTextInput_ class defined
 // in TextControl.cpp.
 
-class BComboBox::TextInput : public BTextView {
-public:
-	TextInput(BRect rect, BRect trect, ulong rMask, ulong flags);
-	TextInput(BMessage *data);
-	virtual ~TextInput();
-	static BArchivable *Instantiate(BMessage *data);
-	virtual status_t Archive(BMessage *data, bool deep = true) const;
-
-	virtual void KeyDown(const char *bytes, int32 numBytes);
-	virtual void MakeFocus(bool state);
-	virtual void FrameResized(float x, float y);
-	virtual void Paste(BClipboard *clipboard);
-
-	void AlignTextRect();
-
-	void SetInitialText();
-
-	// XXX: add BArchivable functionality
-
-protected:
-	virtual void InsertText(const char *inText, int32 inLength, int32 inOffset,
-		const text_run_array *inRuns);
-	virtual void DeleteText(int32 fromOffset, int32 toOffset);
-
-private:
-	char *fInitialText;
-	bool fClean;
+class BComboBox::TextInput : public BTextView
+{
+	public:
+		TextInput(BRect rect, BRect trect, ulong rMask, ulong flags);
+		TextInput(BMessage *data);
+		virtual ~TextInput();
+		static BArchivable *Instantiate(BMessage *data);
+		virtual status_t Archive(BMessage *data, bool deep = true) const;
+	
+		virtual void KeyDown(const char *bytes, int32 numBytes);
+		virtual void MakeFocus(bool state);
+		virtual void FrameResized(float x, float y);
+		virtual void Paste(BClipboard *clipboard);
+	
+		void AlignTextRect();
+	
+		void SetInitialText();
+	
+		// XXX: add BArchivable functionality
+	
+	protected:
+		virtual void InsertText(const char *inText, int32 inLength, int32 inOffset,
+			const text_run_array *inRuns);
+		virtual void DeleteText(int32 fromOffset, int32 toOffset);
+	
+	private:
+		char *fInitialText;
+		bool fClean;
 };
 
 // ----------------------------------------------------------------------------
 
-class BComboBox::ComboBoxWindow : public BWindow {
-public:
-	ComboBoxWindow(BComboBox *box);
-	virtual ~ComboBoxWindow();
-	virtual void WindowActivated(bool active);
-	virtual void FrameResized(float width, float height);
+class BComboBox::ComboBoxWindow : public BWindow
+{
+	public:
+		ComboBoxWindow(BComboBox *box);
+		virtual ~ComboBoxWindow();
+		virtual void WindowActivated(bool active);
+		virtual void FrameResized(float width, float height);
+		
+		void DoPosition();
+		BComboBox::ChoiceListView *ListView();
+		BScrollBar *ScrollBar();
 	
-	void DoPosition();
-	BComboBox::ChoiceListView *ListView();
-	BScrollBar *ScrollBar();
-
-	// XXX: add BArchivable functionality
-	
-private:
-	BScrollBar			*fScrollBar;
-	ChoiceListView		*fListView;
-	BComboBox			*fParent;
+		// XXX: add BArchivable functionality
+		
+	private:
+		BScrollBar			*fScrollBar;
+		ChoiceListView		*fListView;
+		BComboBox			*fParent;
 };
 
 // ----------------------------------------------------------------------------
@@ -215,21 +219,24 @@ private:
 // BComboBox.  We need to intercept the B_WINDOW_MOVED messages so that we can
 // hide the popup window when the window moves.
 
-class BComboBox::MovedMessageFilter : public BMessageFilter {
-public:
-	MovedMessageFilter(BHandler *target);
-	virtual filter_result Filter(BMessage *message, BHandler **target);
-	
-private:
-	BHandler *fTarget;
+class BComboBox::MovedMessageFilter : public BMessageFilter
+{
+	public:
+		MovedMessageFilter(BHandler *target);
+		virtual filter_result Filter(BMessage *message, BHandler **target);
+		
+	private:
+		BHandler *fTarget;
 };
 
+
 // ----------------------------------------------------------------------------
+
 
 BComboBox::ChoiceListView::ChoiceListView(BRect frame, BComboBox *parent)
 	: BView(frame, "_choice_list_view_", B_FOLLOW_ALL_SIDES, B_WILL_DRAW
 			| B_NAVIGABLE),
-		fClickLoc(-100, -100)
+	fClickLoc(-100, -100)
 {
 	fParent = parent;
 	GetFontHeight(&fFontHeight);
@@ -244,9 +251,11 @@ BComboBox::ChoiceListView::ChoiceListView(BRect frame, BComboBox *parent)
 	fClickTime = 0;
 }
 
+
 BComboBox::ChoiceListView::~ChoiceListView()
 {
 }
+
 
 void BComboBox::ChoiceListView::Draw(BRect update)
 {
@@ -254,10 +263,11 @@ void BComboBox::ChoiceListView::Draw(BRect update)
 	BRect rect(Bounds());
 	int32 index;
 	int32 choices = fParent->fChoiceList->CountChoices();
-	int32 selected = (fTrackingMouseDown) ? fSelIndex
-		: fParent->CurrentSelection();
+	int32 selected = (fTrackingMouseDown) ? fSelIndex : fParent->CurrentSelection();
+
 	// draw each visible item
-	for (index = (int32)floor(update.top / h); index < choices; index++) {
+	for (index = (int32)floor(update.top / h); index < choices; index++)
+	{
 		rect.top = index * h;
 		rect.bottom = rect.top + h;
 		SetLowColor((index == selected) ? fSelCol : fBackCol);
@@ -265,21 +275,26 @@ void BComboBox::ChoiceListView::Draw(BRect update)
 		DrawString(fParent->fChoiceList->ChoiceAt(index), BPoint(rect.left + 2,
 			rect.bottom - fFontHeight.descent - 1));
 	}
+
 	// draw empty area on bottom
-	if (rect.bottom < update.bottom) {
+	if (rect.bottom < update.bottom)
+	{
 		update.top = rect.bottom;
 		SetLowColor(fBackCol);
 		FillRect(update, B_SOLID_LOW);
 	}
 }
 
+
 void BComboBox::ChoiceListView::MouseDown(BPoint where)
 {
 	BRect rect(Window()->Frame());
 	ConvertFromScreen(&rect);
-	if (!rect.Contains(where)) {
+	if (!rect.Contains(where))
+	{
 		// hide the popup window when the user clicks outside of it
-		if (fParent->Window()->Lock()) {
+		if (fParent->Window()->Lock())
+		{
 			fParent->HidePopupWindow();
 			fParent->Window()->Unlock();
 		}
@@ -290,13 +305,15 @@ void BComboBox::ChoiceListView::MouseDown(BPoint where)
 		// before sending the mouse down? Should we call
 		// fParent->Window()->MakeActive(true) here?
 		
-		if (fParent->Window()->Lock()) {
+		if (fParent->Window()->Lock())
+		{
 			// resend the mouse event to the textinput, if necessary
 			BTextView *text = fParent->TextView();
 			BPoint screenWhere(ConvertToScreen(where));
 			rect = text->Window()->ConvertToScreen(text->Frame());
-			if (rect.Contains(screenWhere)) {
-				printf("  resending mouse down to textinput\n");
+			if (rect.Contains(screenWhere))
+			{
+				//printf("  resending mouse down to textinput\n");
 				BMessage *msg = new BMessage(*Window()->CurrentMessage());
 				msg->RemoveName("be:view_where");
 				text->ConvertFromScreen(&screenWhere);
@@ -311,9 +328,8 @@ void BComboBox::ChoiceListView::MouseDown(BPoint where)
 	}
 
 	rect = Bounds();
-	if (!rect.Contains(where)) {
+	if (!rect.Contains(where))
 		return;
-	}
 	
 	fTrackingMouseDown = true;
 	// check for double click
@@ -322,7 +338,8 @@ void BComboBox::ChoiceListView::MouseDown(BPoint where)
 	get_click_speed(&clickSpeed);
 	if ((now - fClickTime < clickSpeed)
 		&& ((abs((int)(fClickLoc.x - where.x)) < 3)
-		&& (abs((int)(fClickLoc.y - where.y)) < 3))) {
+		&& (abs((int)(fClickLoc.y - where.y)) < 3)))
+	{
 		// this is a double click
 		// XXX: what to do here?
 		printf("BComboBox::ChoiceListView::MouseDown() -- unhandled double click\n");
@@ -334,10 +351,11 @@ void BComboBox::ChoiceListView::MouseDown(BPoint where)
 	int32 oldIndex = fSelIndex;
 	fSelIndex = (int32)floor(where.y / h);
 	int32 choices = fParent->fChoiceList->CountChoices();
-	if (fSelIndex < 0 || fSelIndex >= choices) {
+	if (fSelIndex < 0 || fSelIndex >= choices)
 		fSelIndex = -1;
-	}
-	if (oldIndex != fSelIndex) {
+
+	if (oldIndex != fSelIndex)
+	{
 		InvalidateItem(oldIndex);
 		InvalidateItem(fSelIndex);
 	}
@@ -347,89 +365,88 @@ void BComboBox::ChoiceListView::MouseDown(BPoint where)
 //	SetMouseEventMask(B_POINTER_EVENTS, B_LOCK_WINDOW_FOCUS);
 }
 
-void BComboBox::ChoiceListView::MouseUp(BPoint where)
+
+void BComboBox::ChoiceListView::MouseUp(BPoint /*where*/)
 {
-	// eliminate unused parameter warning
-	(void)where;	
-	
-	if (fTrackingMouseDown) {
+	if (fTrackingMouseDown)
+	{
 		fTrackingMouseDown = false;
-		if (fSelIndex >= 0) { 
+		if (fSelIndex >= 0)
 			fParent->Select(fSelIndex, true);
-		} else {
+		else
 			fParent->Deselect();
-		}
 	}
 //	fClickLoc = where;
 }
 
-void BComboBox::ChoiceListView::MouseMoved(BPoint where, uint32 transit,
-	const BMessage *dragMessage)
+
+void BComboBox::ChoiceListView::MouseMoved(BPoint where, uint32 /*transit*/,
+	const BMessage */*dragMessage*/)
 {
-	// eliminate unused parameter warnings
-	(void)transit;
-	(void)dragMessage;
-	
-	if (fTrackingMouseDown) {
+	if (fTrackingMouseDown)
+	{
 		float h = LineHeight();
 		int32 oldIndex = fSelIndex;
 		fSelIndex = (int32)floor(where.y / h);
 		int32 choices = fParent->fChoiceList->CountChoices();
-		if (fSelIndex < 0 || fSelIndex >= choices) {
+		if (fSelIndex < 0 || fSelIndex >= choices)
 			fSelIndex = -1;
-		}
-		if (oldIndex != fSelIndex) {
+
+		if (oldIndex != fSelIndex)
+		{
 			InvalidateItem(oldIndex);
 			InvalidateItem(fSelIndex);
 		}
 	}
 }
 
-void BComboBox::ChoiceListView::KeyDown(const char *bytes, int32 numBytes)
+
+void BComboBox::ChoiceListView::KeyDown(const char *bytes, int32 /*numBytes*/)
 {
-	// eliminate unused parameter warning
-	(void)numBytes;
-	
 	BComboBox *cb = fParent;
 	BWindow *win = cb->Window();
 	BComboBox::TextInput *text = dynamic_cast<BComboBox::TextInput*>(cb->TextView());
 	uchar aKey = bytes[0];
 
-	switch (aKey) {
+	switch (aKey)
+	{
 		case B_UP_ARROW:	// fall through
 		case B_DOWN_ARROW:
-			if (win->Lock()) {
+			if (win->Lock())
+			{
 				// change the selection
 				int32 index = cb->CurrentSelection();
 				int32 choices = cb->fChoiceList->CountChoices();
-				if (choices > 0) {
-					if (index < 0) {
+				if (choices > 0)
+				{
+					if (index < 0)
+					{
 						// no previous selection, so select first or last item
 						// depending on whether this is a up or down arrow
 						cb->Select((aKey == B_UP_ARROW) ? choices - 1 : 0);
-					} else {
+					}
+					else
+					{
 						// select the previous or the next item, if possible,
 						// depending on whether this is an up or down arrow
-						if ((aKey == B_UP_ARROW) && (index - 1 >= 0)) {
+						if (aKey == B_UP_ARROW && (index - 1 >= 0))
 							cb->Select(index - 1, true);
-						} else if ((aKey == B_DOWN_ARROW)
-								&& (index + 1 < choices)) {
+						else if (aKey == B_DOWN_ARROW && (index + 1 < choices))
 							cb->Select(index + 1, true);
-						}
 					}
 				}
 				win->Unlock();
 			}
 			break;
 		default:
-			{	// send all other key down events to the text input view
-				BMessage *msg = Window()->DetachCurrentMessage();
-				if (msg) {
-					win->PostMessage(msg, text);
-					delete msg;
-				}
+		{	// send all other key down events to the text input view
+			BMessage *msg = Window()->DetachCurrentMessage();
+			if (msg) {
+				win->PostMessage(msg, text);
+				delete msg;
 			}
 			break;
+		}
 	}
 }
 
@@ -441,30 +458,35 @@ void BComboBox::ChoiceListView::SetFont(const BFont *font, uint32 properties)
 	Invalidate();
 }
 
+
 void BComboBox::ChoiceListView::ScrollToSelection()
 {
 	int32 selected = fParent->CurrentSelection();
-	if (selected >= 0) {
+	if (selected >= 0)
+	{
 		BRect frame(ItemFrame(selected));
 		BRect bounds(Bounds());
 		float newY = -1.0; // dummy value -- not used
         bool doScroll = false;
 
-		if (frame.bottom > bounds.bottom) {
+		if (frame.bottom > bounds.bottom)
+		{
 			newY = frame.bottom - bounds.Height();
 			doScroll = true;
-		} else if (frame.top < bounds.top) {
+		}
+		else if (frame.top < bounds.top)
+		{
 			newY = frame.top;
 			doScroll = true;
 		}
-		if (doScroll) {
+		if (doScroll)
 			ScrollTo(bounds.left, newY);
-		}
 	}
 }
 
 // InvalidateItem() only does a real invalidate if the index is valid or the
 // force flag is turned on
+
 void BComboBox::ChoiceListView::InvalidateItem(int32 index, bool force)
 {
 	int32 choices = fParent->fChoiceList->CountChoices();
@@ -475,6 +497,7 @@ void BComboBox::ChoiceListView::InvalidateItem(int32 index, bool force)
 
 // This method doesn't check the index to see if it is valid, it just returns
 // the BRect that an item and the index would have if it existed.
+
 BRect BComboBox::ChoiceListView::ItemFrame(int32 index)
 {
 	BRect rect(Bounds());
@@ -485,6 +508,7 @@ BRect BComboBox::ChoiceListView::ItemFrame(int32 index)
 }
 
 // The window must be locked before this method is called
+
 void BComboBox::ChoiceListView::AdjustScrollBar()
 {
 	BScrollBar *sb = ScrollBar(B_VERTICAL);
@@ -510,8 +534,10 @@ float BComboBox::ChoiceListView::LineHeight()
 	return fFontHeight.ascent + fFontHeight.descent + fFontHeight.leading + 2;
 }
 
+
 // ----------------------------------------------------------------------------
 //	#pragma mark -
+
 
 BComboBox::TextInput::TextInput(BRect rect, BRect text_r, ulong rMask,
 		ulong flags)
@@ -522,6 +548,7 @@ BComboBox::TextInput::TextInput(BRect rect, BRect text_r, ulong rMask,
 	fClean = FALSE;
 }
 
+
 BComboBox::TextInput::~TextInput()
 {
 	if (fInitialText) {
@@ -529,6 +556,7 @@ BComboBox::TextInput::~TextInput()
 		fInitialText = NULL;
 	}
 }
+
 
 BComboBox::TextInput::TextInput(BMessage *data)
 	: BTextView(data)
@@ -538,11 +566,13 @@ BComboBox::TextInput::TextInput(BMessage *data)
 	fClean = FALSE;
 }
 
+
 status_t BComboBox::TextInput::Archive(BMessage *data, bool) const
 {
 	BTextView::Archive(data);
 	return 0;
 }
+
 
 BArchivable *BComboBox::TextInput::Instantiate(BMessage *data)
 {
@@ -553,23 +583,26 @@ BArchivable *BComboBox::TextInput::Instantiate(BMessage *data)
 	return new TextInput(data);
 }
 
+
 void BComboBox::TextInput::SetInitialText()
 {
-	if (fInitialText) {
+	if (fInitialText)
+	{
 		free(fInitialText);
 		fInitialText = NULL;
 	}
-	if (Text()) {
+	if (Text())
 		fInitialText = strdup(Text());
-	}
 }
+
 
 void BComboBox::TextInput::KeyDown(const char *bytes, int32 numBytes)
 {
 	BComboBox		*cb;
 	uchar			aKey = bytes[0];
 
-	switch (aKey) {
+	switch (aKey)
+	{
 		case B_RETURN:
 			cb = cast_as(Parent(), BComboBox);
 
@@ -669,13 +702,15 @@ void BComboBox::TextInput::KeyDown(const char *bytes, int32 numBytes)
 		case B_ESCAPE:
 			cb = cast_as(Parent(), BComboBox);
 			ASSERT(cb);
-			if (cb->fChoiceList) {
+			if (cb->fChoiceList)
+			{
 				cb = cast_as(Parent(), BComboBox);
 				ASSERT(cb);
-				if (cb->fPopupWindow && cb->fPopupWindow->Lock()) {
-					if (!cb->fPopupWindow->IsHidden()) {
+				if (cb->fPopupWindow && cb->fPopupWindow->Lock())
+				{
+					if (!cb->fPopupWindow->IsHidden())
 						cb->HidePopupWindow();
-					}
+
 					cb->fPopupWindow->Unlock();
 				}
 			}
@@ -696,7 +731,6 @@ void BComboBox::TextInput::KeyDown(const char *bytes, int32 numBytes)
 	}
 }
 
-/* -------------------------------------------------------------------- */
 
 void BComboBox::TextInput::MakeFocus(bool state)
 {
@@ -710,41 +744,45 @@ void BComboBox::TextInput::MakeFocus(bool state)
 
 	BTextView::MakeFocus(state);
 
-	if (state) {
+	if (state)
+	{
 		SetInitialText();
 		fClean = TRUE;			// text hasn't been dirtied yet.
 
 		BMessage *m;
-		if (Window() && (m = Window()->CurrentMessage()) != 0 &&
-			m->what == B_KEY_DOWN) {
-				// we're being focused by a keyboard event, so
-				// select all...
-				SelectAll();
+		if (Window() && (m = Window()->CurrentMessage()) != 0 && m->what == B_KEY_DOWN)
+		{
+			// we're being focused by a keyboard event, so
+			// select all...
+			SelectAll();
 		}
-	} else {
+	}
+	else
+	{
 		ASSERT(fInitialText);
 		if (strcmp(fInitialText, Text()) != 0)
 			parent->CommitValue();
+
 		free(fInitialText);
 		fInitialText = NULL;
 		fClean = FALSE;
 		BMessage *m;
-		if (Window() && (m = Window()->CurrentMessage()) != 0 &&
-			m->what == B_MOUSE_DOWN)
-		{
-				Select(0,0);
-		}
+		if (Window() && (m = Window()->CurrentMessage()) != 0 && m->what == B_MOUSE_DOWN)
+			Select(0,0);
+
 		// hide popup window if it's showing when the text input loses focus
-		if (parent->fPopupWindow && parent->fPopupWindow->Lock()) {
-			if (!parent->fPopupWindow->IsHidden()) {
+		if (parent->fPopupWindow && parent->fPopupWindow->Lock())
+		{
+			if (!parent->fPopupWindow->IsHidden())
 				parent->HidePopupWindow();
-			}
+
 			parent->fPopupWindow->Unlock();
 		}
 	}
 	
 	// make sure the focus indicator gets drawn or undrawn
-	if (Window()) {
+	if (Window())
+	{
 		BRect invalRect(Bounds());
 		invalRect.InsetBy(-kTextInputMargin, -kTextInputMargin);
 		parent->Draw(invalRect);
@@ -752,7 +790,6 @@ void BComboBox::TextInput::MakeFocus(bool state)
 	}
 }
 
-/* -------------------------------------------------------------------- */
 
 void BComboBox::TextInput::FrameResized(float x, float y)
 {
@@ -767,13 +804,15 @@ void BComboBox::TextInput::Paste(BClipboard *clipboard)
 	Invalidate();
 }
 
+
 // What a hack...
 void BComboBox::TextInput::AlignTextRect()
 {
 	BRect bounds = Bounds();
 	BRect textRect = TextRect();
 
-	switch (Alignment()) {
+	switch (Alignment())
+	{
 		case B_ALIGN_LEFT:
 			textRect.OffsetTo(B_ORIGIN);
 			break;
@@ -791,7 +830,6 @@ void BComboBox::TextInput::AlignTextRect()
 	SetTextRect(textRect);
 }
 
-/* -------------------------------------------------------------------- */
 
 void BComboBox::TextInput::InsertText(const char *inText, int32 inLength, 
 	   int32 inOffset, const text_run_array *inRuns)
@@ -801,50 +839,53 @@ void BComboBox::TextInput::InsertText(const char *inText, int32 inLength,
 	// strip out any return characters
 	// limiting to a reasonable amount of chars for a text control.
 	// otherwise this code could malloc some huge amount which isn't good.
-	if (strpbrk(inText, "\r\n") && (inLength <= 1024)) {
+	if (strpbrk(inText, "\r\n") && (inLength <= 1024))
+	{
 		int32	len = inLength;
 		ptr = (char *) malloc(len+1);
-		if (ptr) {
+		if (ptr)
+		{
 			strncpy(ptr, inText, len);
 			ptr[len] = '\0';
 
 			char *p = ptr;
 
 			while (len--) {
-				if (*p == '\n') {
+				if (*p == '\n')
 					*p = ' ';
-				} else if (*p == '\r') {
+				else if (*p == '\r')
 					*p = ' ';
-				}
+
 				p++;
 			}
-//+			PRINT(("a:ptr = %s\n", ptr));
 		}
 	}
 
 	BTextView::InsertText(ptr ? ptr : inText, inLength, inOffset, inRuns);
 
-	BComboBox	*parent = cast_as(Parent(), BComboBox);
-	if (parent) {
-		if (parent->fModificationMessage) {
+	BComboBox *parent = dynamic_cast<BComboBox *>(Parent());
+	if (parent)
+	{
+		if (parent->fModificationMessage)
 			parent->Invoke(parent->fModificationMessage);
-		}
+
 		BMessage *msg;
 		parent->Window()->PostMessage(msg = new BMessage(kTextInputModifyMessage),
 			parent);
 		delete msg;
 	}
 
-	if (ptr) {
+	if (ptr)
 		free(ptr);
-	}
 }
+
 
 void BComboBox::TextInput::DeleteText(int32 fromOffset, int32 toOffset)
 {
 	BTextView::DeleteText(fromOffset, toOffset);
-	BComboBox	*parent = cast_as(Parent(), BComboBox);
-	if (parent) {
+	BComboBox *parent = dynamic_cast<BComboBox *>(Parent());
+	if (parent)
+	{
 		if (parent->fModificationMessage) {
 			parent->Invoke(parent->fModificationMessage);
 		}
@@ -855,8 +896,10 @@ void BComboBox::TextInput::DeleteText(int32 fromOffset, int32 toOffset)
 	}
 }
 
+
 // ----------------------------------------------------------------------------
 //	#pragma mark -
+
 
 BComboBox::ComboBoxWindow::ComboBoxWindow(BComboBox *box)
 	: BWindow(BRect(0, 0, 10, 10), NULL,  B_BORDERED_WINDOW_LOOK,
@@ -867,9 +910,9 @@ BComboBox::ComboBoxWindow::ComboBoxWindow(BComboBox *box)
 	fParent = box;
 	DoPosition();
 	BWindow *parentWin = fParent->Window();
-	if (parentWin) {
+	if (parentWin)
 		AddToSubset(parentWin);
-	}
+
 	BRect rect(Bounds());
 	rect.right -= B_V_SCROLL_BAR_WIDTH;
 	fListView = new ChoiceListView(rect, fParent);
@@ -889,22 +932,16 @@ BComboBox::ComboBoxWindow::~ComboBoxWindow()
 	delete fListView;
 }
 
-void BComboBox::ComboBoxWindow::WindowActivated(bool active)
+
+void BComboBox::ComboBoxWindow::WindowActivated(bool /*active*/)
 {
-	// eliminate unused parameter warning
-	(void)active;
-	
-//	if (active) {
+//	if (active)
 //		fListView->AdjustScrollBar();
-//	}
 }
 
-void BComboBox::ComboBoxWindow::FrameResized(float width, float height)
+
+void BComboBox::ComboBoxWindow::FrameResized(float /*width*/, float /*height*/)
 {
-	// eliminate unused parameter warnings
-	(void)width;
-	(void)height;
-	
 	fListView->AdjustScrollBar();
 }
 
@@ -921,18 +958,22 @@ void BComboBox::ComboBoxWindow::DoPosition()
 	ResizeTo(winRect.IntegerWidth(), winRect.IntegerHeight());
 }
 
+
 BComboBox::ChoiceListView *BComboBox::ComboBoxWindow::ListView()
 {
 	return fListView;
 }
+
 
 BScrollBar *BComboBox::ComboBoxWindow::ScrollBar()
 {
 	return fScrollBar;
 }
 
+
 // ----------------------------------------------------------------------------
 //	#pragma mark -
+
 
 BComboBox::BComboBox(BRect frame, const char *name, const char *label,
 	BMessage *message, uint32 resizeMask, uint32 flags)
@@ -951,7 +992,8 @@ BComboBox::BComboBox(BRect frame, const char *name, const char *label,
 	// If the user wants this control to be keyboard navigable, then we really
 	// want the underlying text view to be navigable, not this view.
 	bool navigate = ((Flags() & B_NAVIGABLE) != 0);
-	if (navigate) {
+	if (navigate)
+	{
 		fSkipSetFlags = true;
 		SetFlags(Flags() & ~B_NAVIGABLE);	// disable navigation for this
 		fSkipSetFlags = false;
@@ -976,19 +1018,15 @@ BComboBox::BComboBox(BRect frame, const char *name, const char *label,
 	rect.bottom = rect.top + height;
 //	fText->ResizeTo(rect.IntegerWidth(), height);
 	AddChild(fText);
-	
-	font_height	finfo;
-	float		h1;
-	float		h2;
-	float		h;
-	BRect		b = Bounds();
 
-	GetFontHeight(&finfo);
-	h1 = ceil(finfo.ascent + finfo.descent + finfo.leading);
-	h2 = fText->LineHeight();
+	font_height	fontInfo;
+	GetFontHeight(&fontInfo);
+	float h1 = ceil(fontInfo.ascent + fontInfo.descent + fontInfo.leading);
+	float h2 = fText->LineHeight();
 
 	// Height of main view must be the larger of h1 and h2+(TV_MARGIN*2)
-	h = (h1 > h2 + (TV_MARGIN*2)) ? h1 : h2 + (TV_MARGIN*2);
+	float h = (h1 > h2 + (TV_MARGIN*2)) ? h1 : h2 + (TV_MARGIN*2);
+	BRect b = Bounds();
 	ResizeTo(b.Width(), h);
 	b.bottom = h;
 
@@ -1010,35 +1048,40 @@ BComboBox::BComboBox(BRect frame, const char *name, const char *label,
 
 BComboBox::~BComboBox()
 {
-	if (fPopupWindow && fPopupWindow->Lock()) {
+	if (fPopupWindow && fPopupWindow->Lock())
 		fPopupWindow->Quit();
-	}
+
 	RemoveChild(fText);
 	delete fText;
-	if (fWinMovedFilter->Looper()) {
+
+	if (fWinMovedFilter->Looper())
 		fWinMovedFilter->Looper()->RemoveFilter(fWinMovedFilter);
-	}
+
 	delete fWinMovedFilter;
 	
 }
 
+
 void BComboBox::SetChoiceList(BChoiceList *list)
 {
-//	if (fChoiceList)
-//		delete fChoiceList;
+//	delete fChoiceList;
 	fChoiceList = list;
 	ChoiceListUpdated();
 }
+
 
 BChoiceList *BComboBox::ChoiceList()
 {
 	return fChoiceList;
 }
 
+
 void BComboBox::ChoiceListUpdated()
 {
-	if (fPopupWindow && fPopupWindow->Lock()) {
-		if (!fPopupWindow->IsHidden()) {
+	if (fPopupWindow && fPopupWindow->Lock())
+	{
+		if (!fPopupWindow->IsHidden())
+		{
 			// do an invalidate on the choice list
 			fPopupWindow->ListView()->Invalidate();
 			fPopupWindow->ListView()->AdjustScrollBar();
@@ -1047,6 +1090,7 @@ void BComboBox::ChoiceListUpdated()
 		fPopupWindow->Unlock();
 	}
 }
+
 
 //void BComboBox::AddChoice(const char *text)
 //{
@@ -1062,49 +1106,59 @@ void BComboBox::ChoiceListUpdated()
 //	}
 //}
 
+
 //const char *BComboBox::ChoiceAt(int32 index)
 //{
 //	return (const char *)fChoiceList.ItemAt(index);
 //}
+
 
 //int32 BComboBox::CountChoices()
 //{
 //	return fChoiceList.CountItems();
 //}
 
+
 void BComboBox::Select(int32 index, bool changeTextSelection)
 {
 	int32 oldIndex = fSelected;
-	if (index < fChoiceList->CountChoices() && index >= 0) {
+	if (index < fChoiceList->CountChoices() && index >= 0)
+	{
 		BWindow *win = Window();
 		bool gotLock = (win && win->Lock());
-		if (!win || gotLock) {	
+		if (!win || gotLock)
+		{
 			fSelected = index;
-			if (fPopupWindow && fPopupWindow->Lock()) {
+			if (fPopupWindow && fPopupWindow->Lock())
+			{
 				ChoiceListView *lv = fPopupWindow->ListView();
 				lv->InvalidateItem(oldIndex);
 				lv->InvalidateItem(fSelected);		
 				lv->ScrollToSelection();
 				fPopupWindow->Unlock();
 			}
-	
-			if (changeTextSelection) {
+
+			if (changeTextSelection)
+			{
 				// Find last coma
 				const char *ptr = fText->Text();
 				const char *end;
 				int32 tlength = fText->TextLength();
 				
 				for (end = ptr+tlength-1; end>ptr; end--)
+				{
 					if (*end == ',')
 					{
 						// Find end of whitespace
 						for (end++; isspace(*end); end++) {}
 						break;
 					}
+				}
 				int32 soffset = end-ptr;
 				int32 eoffset = tlength;
 				if (end != 0)
 					fText->Delete(soffset, eoffset);
+
 				tlength = strlen(fChoiceList->ChoiceAt(fSelected));
 				fText->Insert(soffset, fChoiceList->ChoiceAt(fSelected), tlength);
 				eoffset = fText->TextLength();
@@ -1113,50 +1167,56 @@ void BComboBox::Select(int32 index, bool changeTextSelection)
 //				fText->SelectAll();
 			}
 
-			if (gotLock) {
+			if (gotLock)
 				win->Unlock();
-			}
 		}
-	} else {
+	}
+	else
+	{
 		Deselect();
 		return;
 	}
-	
 }
+
 
 void BComboBox::Deselect()
 {
 	BWindow *win = Window();
 	bool gotLock = (win && win->Lock());
-	if (!win || gotLock) {
+	if (!win || gotLock)
+	{
 		int32 oldIndex = fSelected;
 		fSelected = -1;
 		// invalidate the old selected item, if needed
-		if (oldIndex >= 0 && fPopupWindow && fPopupWindow->Lock()) {
+		if (oldIndex >= 0 && fPopupWindow && fPopupWindow->Lock())
+		{
 			fPopupWindow->ListView()->InvalidateItem(oldIndex);
 			fPopupWindow->Unlock();
 		}
-	
-		if (gotLock) {
+
+		if (gotLock)
 			win->Unlock();
-		}
 	}
 }
+
 
 int32 BComboBox::CurrentSelection()
 {
 	return fSelected;
 }
 
+
 void BComboBox::SetAutoComplete(bool on)
 {
 	fAutoComplete = on;
 }
 
+
 bool BComboBox::GetAutoComplete()
 {
 	return fAutoComplete;
 }
+
 
 void BComboBox::SetLabel(const char *text)
 {
@@ -1166,29 +1226,34 @@ void BComboBox::SetLabel(const char *text)
 	Invalidate(invalRect);
 }
 
+
 void BComboBox::SetValue(int32 value)
 {
 	BControl::SetValue(value);
 }
 
+
 void BComboBox::SetText(const char *text)
 {
 	fText->SetText(text);
-	if (fText->IsFocus()) {
+	if (fText->IsFocus())
 		fText->SetInitialText();
-	}
+
 	fText->Invalidate();
 }
+
 
 const char *BComboBox::Text() const
 {
 	return fText->Text();
 }
 
+
 BTextView *BComboBox::TextView()
 {
 	return fText;
 }
+
 
 void BComboBox::SetDivider(float divide)
 {
@@ -1198,27 +1263,32 @@ void BComboBox::SetDivider(float divide)
 	fText->MoveBy(-diff, 0);
 	fText->ResizeBy(diff, 0);
 
-	if (Window()) {
+	if (Window())
+	{
 		fText->Invalidate();
 		Invalidate();
 	}
 }
+
 
 float BComboBox::Divider() const
 {
 	return fDivider;
 }
 
+
 void BComboBox::SetAlignment(alignment label, alignment text)
 {
 	fText->SetAlignment(text);
 	fText->AlignTextRect();
 
-	if (fLabelAlign != label) {
+	if (fLabelAlign != label)
+	{
 		fLabelAlign = label;
 		Invalidate();
 	}
 }
+
 
 void BComboBox::GetAlignment(alignment *label, alignment *text) const
 {
@@ -1226,23 +1296,22 @@ void BComboBox::GetAlignment(alignment *label, alignment *text) const
 	*label = fLabelAlign;
 }
 
+
 void BComboBox::SetModificationMessage(BMessage *message)
 {
 	delete fModificationMessage;	
 	fModificationMessage = message;
 }
 
+
 BMessage *BComboBox::ModificationMessage() const
 {
 	return fModificationMessage;
 }
 
-void BComboBox::GetPreferredSize(float *width, float *height)
+
+void BComboBox::GetPreferredSize(float */*width*/, float */*height*/)
 {
-	// eliminate unused parameter warnings
-	(void)width;
-	(void)height;
-	
 //	BFont font;
 //	GetFont(&font);
 //
@@ -1265,14 +1334,17 @@ void BComboBox::GetPreferredSize(float *width, float *height)
 //	*height = ceil((h1 > h2 + (kTextInputMargin*2)) ? h1 : h2 + (kTextInputMargin*2));
 }
 
+
 void BComboBox::ResizeToPreferred()
 {
 	BControl::ResizeToPreferred();
 }
 
+
 void BComboBox::FrameMoved(BPoint new_position)
 {
-	if (fPopupWindow && fPopupWindow->Lock()) {
+	if (fPopupWindow && fPopupWindow->Lock())
+	{
 		fPopupWindow->MoveBy(new_position.x - fFrameCache.left,
 			new_position.y - fFrameCache.top); 
 		fPopupWindow->Unlock();
@@ -1280,12 +1352,14 @@ void BComboBox::FrameMoved(BPoint new_position)
 	fFrameCache.OffsetTo(new_position);
 }
 
+
 void BComboBox::FrameResized(float new_width, float new_height)
 {
 	// It's the cheese!
 	float dx = new_width - fFrameCache.Width();
 	float dy = new_height - fFrameCache.Height();
-	if (dx != 0 && Window()) {
+	if (dx != 0 && Window())
+	{
 //		BRect inval(fFrameCache.right, fFrameCache.top,
 //			fFrameCache.right+dx, fFrameCache.bottom);
 		BRect inval(Bounds());
@@ -1302,29 +1376,25 @@ void BComboBox::FrameResized(float new_width, float new_height)
 	fFrameCache.bottom += dy;
 //	fButtonRect.OffsetBy(dx, 0);
 
-	if (fPopupWindow && fPopupWindow->Lock()) {
-		if (!fPopupWindow->IsHidden()) {
+	if (fPopupWindow && fPopupWindow->Lock())
+	{
+		if (!fPopupWindow->IsHidden())
 			HidePopupWindow();
-		}
+
 		fPopupWindow->Unlock();
 	}
 }
 
-void BComboBox::WindowActivated(bool active)
+
+void BComboBox::WindowActivated(bool /*active*/)
 {
-	// eliminate unused parameter warning
-	(void)active;
-	
-	if (fText->IsFocus()) {
+	if (fText->IsFocus())
 		Draw(Bounds());
-	}
 }
 
-void BComboBox::Draw(BRect updateRect)
+
+void BComboBox::Draw(BRect /*updateRect*/)
 {
-	// eliminate unused parameter warning
-	(void)updateRect;
-	
 	BRect		bounds = Bounds();
 	font_height	fInfo;
 	rgb_color	high = HighColor();
@@ -1346,8 +1416,10 @@ void BComboBox::Draw(BRect updateRect)
 		SetHighColor(tint_color(base, B_DARKEN_1_TINT));
 	else
 		SetHighColor(base);
+
 	StrokeLine(fr.LeftBottom(), fr.LeftTop());
 	StrokeLine(fr.RightTop());
+
 	if (enabled)
 		SetHighColor(white);
 	else
@@ -1356,11 +1428,15 @@ void BComboBox::Draw(BRect updateRect)
 	StrokeLine(fr.LeftBottom()+BPoint(1,0), fr.RightBottom());
 	StrokeLine(fr.RightTop()+BPoint(0,1));
 	fr.InsetBy(1,1);
-	if (focused) {
+
+	if (focused)
+	{
 		// draw UI indication for 'active'
 		SetHighColor(ui_color(B_KEYBOARD_NAVIGATION_COLOR));
 		StrokeRect(fr);
-	} else {
+	}
+	else
+	{
 		if (enabled)
 			SetHighColor(tint_color(base, B_DARKEN_4_TINT));
 		else
@@ -1385,7 +1461,8 @@ void BComboBox::Draw(BRect updateRect)
 	rgb_color oldCol = HighColor();
 	
 	bounds.right = bounds.left + fDivider;
-	if ((Label()) && (fDivider > 0.0)) {
+	if ((Label()) && (fDivider > 0.0))
+	{
 		BPoint	loc;
 		GetFontHeight(&fInfo);
 
@@ -1394,27 +1471,25 @@ void BComboBox::Draw(BRect updateRect)
 				loc.x = bounds.left + TV_MARGIN;
 				break;
 			case B_ALIGN_CENTER:
-				{
-					float width = StringWidth(Label());
-					float center = (bounds.right - bounds.left) / 2;
-					loc.x = center - (width/2);
-					break;
-				}
+			{
+				float width = StringWidth(Label());
+				float center = (bounds.right - bounds.left) / 2;
+				loc.x = center - (width/2);
+				break;
+			}
 			case B_ALIGN_RIGHT:
-				{
-					float width = StringWidth(Label());
-					loc.x = bounds.right - width - TV_MARGIN;
-					break;
-				}
+			{
+				float width = StringWidth(Label());
+				loc.x = bounds.right - width - TV_MARGIN;
+				break;
+			}
 		}
 		
 		uint32 rmode = ResizingMode();
-		if ((rmode & _rule_(0xf, 0, 0xf, 0)) ==
-			_rule_(_VIEW_TOP_, 0, _VIEW_BOTTOM_, 0)) {
-				loc.y = fr.bottom - 2;
-		} else {
+		if ((rmode & _rule_(0xf, 0, 0xf, 0)) == _rule_(_VIEW_TOP_, 0, _VIEW_BOTTOM_, 0))
+			loc.y = fr.bottom - 2;
+		else
 			loc.y = bounds.bottom - (2 + ceil(fInfo.descent));
-		}
 		
 		MovePenTo(loc);
 		SetHighColor(black);
@@ -1423,38 +1498,42 @@ void BComboBox::Draw(BRect updateRect)
 	}
 }
 
+
 void BComboBox::MessageReceived(BMessage *msg)
 {
-	switch (msg->what) {
-	case kTextInputModifyMessage:
-		TryAutoComplete();
-		break;
-	case kPopupButtonInvokeMessage:
-		if (fChoiceList && fChoiceList->CountChoices())
-		if (!fPopupWindow) {
-			fPopupWindow = CreatePopupWindow();
-		}
-		if (fPopupWindow->Lock()) {
-			if (fPopupWindow->IsHidden()) {
-				ShowPopupWindow();
-			} else {
-				HidePopupWindow();
+	switch (msg->what)
+	{
+		case kTextInputModifyMessage:
+			TryAutoComplete();
+			break;
+		case kPopupButtonInvokeMessage:
+			if (fChoiceList && fChoiceList->CountChoices() && !fPopupWindow)
+				fPopupWindow = CreatePopupWindow();
+
+			if (fPopupWindow->Lock())
+			{
+				if (fPopupWindow->IsHidden())
+					ShowPopupWindow();
+				else
+					HidePopupWindow();
+
+				fPopupWindow->Unlock();
 			}
-			fPopupWindow->Unlock();
-		}
-		break;
-	case kWindowMovedMessage:
-		if (fPopupWindow && fPopupWindow->Lock()) {
-			if (!fPopupWindow->IsHidden()) {
-				HidePopupWindow();
+			break;
+		case kWindowMovedMessage:
+			if (fPopupWindow && fPopupWindow->Lock())
+			{
+				if (!fPopupWindow->IsHidden())
+					HidePopupWindow();
+
+				fPopupWindow->Unlock();
 			}
-			fPopupWindow->Unlock();
-		}
-		break;
-	default:
-		BControl::MessageReceived(msg);
+			break;
+		default:
+			BControl::MessageReceived(msg);
 	}
 }
+
 
 void BComboBox::MouseDown(BPoint where)
 {
@@ -1470,51 +1549,51 @@ void BComboBox::MouseDown(BPoint where)
 	BControl::MouseDown(where);
 }
 
-void BComboBox::MouseUp(BPoint where)
+
+void BComboBox::MouseUp(BPoint /*where*/)
 {
-	// eliminate unused parameter warning
-	(void)where;
-	
-	if (fTrackingButtonDown) {
+	if (fTrackingButtonDown)
+	{
 		// send an invoke message when the button changes state
-		if (fButtonDepressed != fDepressedWhenClicked) {
+		if (fButtonDepressed != fDepressedWhenClicked)
+		{
 			BMessage *msg;
-			Window()->PostMessage(msg = new BMessage(kPopupButtonInvokeMessage),
-				this);
+			Window()->PostMessage(msg = new BMessage(kPopupButtonInvokeMessage),this);
 			delete msg;
 		}
 		fTrackingButtonDown = false;
 	}
 }
 
-void BComboBox::MouseMoved(BPoint where, uint32 transit,
-	const BMessage *dragMessage)
+
+void BComboBox::MouseMoved(BPoint where, uint32 /*transit*/,const BMessage */*dragMessage*/)
 {
-	// eliminate unused parameter warnings
-	(void)transit;
-	(void)dragMessage;
-	
-	if (fTrackingButtonDown) {
+	if (fTrackingButtonDown)
+	{
 		BRect sloppyRect = fButtonRect;
 		sloppyRect.InsetBy(-3, -3);
+
 		bool oldState = fButtonDepressed;
-		fButtonDepressed = (sloppyRect.Contains(where)) ? !fDepressedWhenClicked
-			: fDepressedWhenClicked;
-		if (oldState != fButtonDepressed) {
+		fButtonDepressed = sloppyRect.Contains(where) ? !fDepressedWhenClicked
+				: fDepressedWhenClicked;
+
+		if (oldState != fButtonDepressed)
 			Invalidate(fButtonRect);
-		}
 	}
 }
+
 
 status_t BComboBox::Invoke(BMessage *msg)
 {
 	return BControl::Invoke(msg);
 }
 
+
 void BComboBox::AttachedToWindow()
 {
 	Window()->AddFilter(fWinMovedFilter);
-	if (Parent()) {
+	if (Parent())
+	{
 		SetViewColor(Parent()->ViewColor());
 		SetLowColor(ViewColor());
 	}
@@ -1524,13 +1603,14 @@ void BComboBox::AttachedToWindow()
 	rgb_color	base;
 	BFont		textFont;
 
-	if (mc.red == 255 && mc.green == 255 && mc.blue == 255) //----mc used to be base in this line
+	// mc used to be base in this line
+	if (mc.red == 255 && mc.green == 255 && mc.blue == 255)
 		base = ViewColor();
 	else
 		base = LowColor();
 
 	fText->GetFontAndColor(0, &textFont);
-	mc = (enabled) ? mc : disable_color(base);
+	mc = enabled ? mc : disable_color(base);
 
 	fText->SetFontAndColor(&textFont, B_FONT_ALL, &mc);
 
@@ -1538,11 +1618,13 @@ void BComboBox::AttachedToWindow()
 		base = tint_color(base, B_DISABLED_MARK_TINT);
 	else
 		base.red = base.green = base.blue = 255;
+
 	fText->SetLowColor(base);
 	fText->SetViewColor(base);
 
 	fText->MakeEditable(enabled);
 }
+
 
 void BComboBox::DetachedFromWindow()
 {
@@ -1552,7 +1634,8 @@ void BComboBox::DetachedFromWindow()
 
 void BComboBox::SetFlags(uint32 flags)
 {
-	if (!fSkipSetFlags) {
+	if (!fSkipSetFlags)
+	{
 		uint32	te_flags = fText->Flags();
 		bool	te_nav = ((te_flags & B_NAVIGABLE) != 0);
 		bool	wants_nav = ((flags & B_NAVIGABLE) != 0);
@@ -1560,11 +1643,14 @@ void BComboBox::SetFlags(uint32 flags)
 		// the ComboBox should never be navigable
 		ASSERT((Flags() & B_NAVIGABLE) == 0);
 
-		if (!te_nav && wants_nav) {
+		if (!te_nav && wants_nav)
+		{
 			// The combo box wants to be navigable. Pass that along to
 			// the text view
 			fText->SetFlags(te_flags | B_NAVIGABLE);
-		} else if (te_nav && !wants_nav) {
+		}
+		else if (te_nav && !wants_nav)
+		{
 			// Caller wants to end NAV on the text view;
 			fText->SetFlags(te_flags & ~B_NAVIGABLE);
 		}
@@ -1574,13 +1660,14 @@ void BComboBox::SetFlags(uint32 flags)
 	BControl::SetFlags(flags);
 }
 
+
 void BComboBox::SetEnabled(bool enabled)
 {
-	if (enabled == IsEnabled()) {
+	if (enabled == IsEnabled())
 		return;
-	}
 	
-	if (Window()) {
+	if (Window())
+	{
 		fText->MakeEditable(enabled);
 		rgb_color	mc = HighColor();
 		rgb_color	base = ViewColor();
@@ -1590,11 +1677,11 @@ void BComboBox::SetEnabled(bool enabled)
 		fText->GetFontAndColor(0, &textFont);
 		fText->SetFontAndColor(&textFont, B_FONT_ALL, &mc);
 
-		if (!enabled) {
+		if (!enabled)
 			base = tint_color(base, B_DISABLED_MARK_TINT);
-		} else {
+		else
 			base.red = base.green = base.blue = 255;
-		}
+
 		fText->SetLowColor(base);
 		fText->SetViewColor(base);
 
@@ -1617,55 +1704,66 @@ void BComboBox::SetEnabled(bool enabled)
 //{
 //}
 
+
 BComboBox::ComboBoxWindow *BComboBox::CreatePopupWindow()
 {
 	ComboBoxWindow *win = new ComboBoxWindow(this);
 	return win;
 }
 
+
 void BComboBox::CommitValue()
 {
 	Invoke();
 }
 
+
 void BComboBox::TryAutoComplete()
 {
 	int32 from, to;
 	fText->GetSelection(&from, &to);
-	if (fAutoComplete && (from == to)) {
+	if (fAutoComplete && from == to)
+	{
 		bool autoCompleted = false;
 		const char *ptr = fText->Text();
-		if ((to > fTextEnd) && (from == fText->TextLength())) {
+		if (to > fTextEnd && from == fText->TextLength())
+		{
 			const char *completion;
 			// find the first matching choice and do auto-completion
 			
 			// Find last comma
 			const char *end;
 			for (end = fText->Text()+fText->TextLength()-1; end>ptr; end--)
-				if (*end == ',') {
+			{
+				if (*end == ',')
+				{
 					// Find end of whitespace
 					for (end++; isspace(*end); end++) {}
 					if (*end == 0)
 						return;
 					break;
 				}
-			if (fChoiceList->GetMatch(end, 0, &fCompletionIndex,
-					&completion) == B_OK) {
+			}
+			if (fChoiceList->GetMatch(end,0,&fCompletionIndex,&completion) == B_OK)
+			{
 				fText->Insert(completion);
 				fText->Select(to, to + strlen(completion));
 				Select(fCompletionIndex);
 				autoCompleted = true;
-			} else {
-				fCompletionIndex = -1;
 			}
+			else
+				fCompletionIndex = -1;
 		}
 		fTextEnd = to;
 
-		if (!autoCompleted) {
+		if (!autoCompleted)
+		{
 			int32 sel = CurrentSelection();
-			if (sel >= 0) {
+			if (sel >= 0)
+			{
 				const char *selText = fChoiceList->ChoiceAt(sel);
-				if (selText && !strcmp(ptr, selText)) {
+				if (selText && !strcmp(ptr, selText))
+				{
 					// don't Deselect() if the text input matches the selection
 					return;
 				}
@@ -1675,6 +1773,7 @@ void BComboBox::TryAutoComplete()
 		}
 	}
 }
+
 
 // fPopupWindow must exist and already be locked & hidden when this function
 // is called
@@ -1686,6 +1785,7 @@ void BComboBox::ShowPopupWindow()
 	fPopupWindow->Show();
 	fPopupWindow->ListView()->MakeFocus(true);
 }
+
 
 // fPopupWindow must exist and already be locked & shown when this function
 // is called
@@ -1705,8 +1805,8 @@ BComboBox::MovedMessageFilter::MovedMessageFilter(BHandler *target)
 	fTarget = target;
 }
 
-filter_result BComboBox::MovedMessageFilter::Filter(BMessage *message,
-	BHandler **target)
+
+filter_result BComboBox::MovedMessageFilter::Filter(BMessage *message,BHandler **target)
 {
 	// eliminate unused parameter warning
 	(void)target;
@@ -1720,6 +1820,7 @@ filter_result BComboBox::MovedMessageFilter::Filter(BMessage *message,
 	return B_DISPATCH_MESSAGE;
 }
 
+
 void BComboBox::MakeFocus(bool state)
 {
 	fText->MakeFocus(state);
@@ -1727,8 +1828,10 @@ void BComboBox::MakeFocus(bool state)
 		fText->SelectAll();
 }
 
+
 // ----------------------------------------------------------------------------
 //	#pragma mark -
+
 
 BDefaultChoiceList::BDefaultChoiceList(BComboBox *owner = NULL)
 {
@@ -1736,24 +1839,26 @@ BDefaultChoiceList::BDefaultChoiceList(BComboBox *owner = NULL)
 	fList = new StringObjectList();
 }
 
+
 BDefaultChoiceList::~BDefaultChoiceList()
 {
-	BString *str;
-	while ((str = fList->RemoveItemAt(0)) != NULL) {
-		delete str;
-	}
+	BString *string;
+	while ((string = fList->RemoveItemAt(0)) != NULL)
+		delete string;
+
 	delete fList;
 }
 
+
 const char *BDefaultChoiceList::ChoiceAt(int32 index)
 {
-	BString *str = fList->ItemAt(index);
-	if (str) {
-		return str->String();
-	} else {
-		return NULL;
-	}
+	BString *string = fList->ItemAt(index);
+	if (string)
+		return string->String();
+
+	return NULL;
 }
+
 
 status_t BDefaultChoiceList::GetMatch(const char *prefix, int32 startIndex,
 	int32 *matchIndex, const char **completionText)
@@ -1761,9 +1866,11 @@ status_t BDefaultChoiceList::GetMatch(const char *prefix, int32 startIndex,
 	BString *str;
 	int32 len = strlen(prefix);
 	int32 choices = fList->CountItems();
-	for (int32 i = startIndex; i < choices; i++) {
+	for (int32 i = startIndex; i < choices; i++)
+	{
 		str = fList->ItemAt(i);
-		if (!str->ICompare(prefix, len)) {
+		if (!str->ICompare(prefix, len))
+		{
 			// prefix matches
 			*matchIndex = i;
 			*completionText = str->String() + len;
@@ -1775,71 +1882,81 @@ status_t BDefaultChoiceList::GetMatch(const char *prefix, int32 startIndex,
 	return B_ERROR;
 }
 
+
 int32 BDefaultChoiceList::CountChoices()
 {
 	return fList->CountItems();
 }
 
+
 status_t BDefaultChoiceList::AddChoice(const char *toAdd)
 {
 	BString *str = new BString(toAdd);
 	bool r = fList->AddItem(str);
-	if (fOwner) {
+	if (fOwner)
 		fOwner->ChoiceListUpdated();
-	}
+
 	return (r) ? B_OK : B_ERROR;
 }
+
 
 status_t BDefaultChoiceList::AddChoiceAt(const char *toAdd, int32 index)
 {
 	BString *str = new BString(toAdd);
 	bool r = fList->AddItem(str, index);
-	if (fOwner) {
+	if (fOwner)
 		fOwner->ChoiceListUpdated();
-	}
+
 	return (r) ? B_OK : B_ERROR;
 }
+
 
 //int BStringCompareFunction(const BString *s1, const BString *s2)
 //{
 //	return s1->Compare(s2);
 //}
 
+
 status_t BDefaultChoiceList::RemoveChoice(const char *toRemove)
 {
-	BString *str;
+	BString *string;
 	int32 choices = fList->CountItems();
-	for (int32 i = 0; i < choices; i++) {
-		str = fList->ItemAt(i);
-		if (!str->Compare(toRemove)) {
+	for (int32 i = 0; i < choices; i++)
+	{
+		string = fList->ItemAt(i);
+		if (!string->Compare(toRemove))
+		{
 			fList->RemoveItemAt(i);
-			if (fOwner) {
+			if (fOwner)
 				fOwner->ChoiceListUpdated();
-			}
+
 			return B_OK;
 		}		
 	}
 	return B_ERROR;		
 }
 
+
 status_t BDefaultChoiceList::RemoveChoiceAt(int32 index)
 {
-	BString *str = fList->RemoveItemAt(index);
-	if (str) {
-		delete str;
-		if (fOwner) {
+	BString *string = fList->RemoveItemAt(index);
+	if (string)
+	{
+		delete string;
+		if (fOwner)
 			fOwner->ChoiceListUpdated();
-		}
+
 		return B_OK;
-	} else {
-		return B_ERROR;
 	}
+	return B_ERROR;
 }
+
 
 void BDefaultChoiceList::SetOwner(BComboBox *owner)
 {
 	fOwner = owner;
 }
+
 
 BComboBox *BDefaultChoiceList::Owner()
 {

@@ -94,6 +94,8 @@ class TListView : public BListView
 
 		virtual	void AttachedToWindow();
 		virtual void MakeFocus(bool);
+		virtual void MouseDown(BPoint point);
+		virtual void KeyDown(const char *bytes,int32 numBytes);
 
 	private:
 		TEnclosuresView *fParent;

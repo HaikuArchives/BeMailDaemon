@@ -134,7 +134,10 @@ class TTextControl : public BComboBox
 
 		virtual void AttachedToWindow();
 		virtual void MessageReceived(BMessage*);
-	
+
+		// returns focus for the text view
+		bool HasFocus();
+
 	private:
 		bool fIncoming;
 		bool fResending;
