@@ -257,13 +257,13 @@ The latest version has the following (interesting) features:
  - The status window can be made persistent.
  - Status window remembers its size and position.
  - BeMail
+ - Spam Filter
 
 TODO:
 
 This is a partial list of what we intend to implement. Suggestions are welcome:
 
  - HotMail support.
- - Spam filter
  - Filter description field/attribute
  - Read initial account info from old E-mail prefs
  - "Ask before/Skip downloading messages larger than Xkb"
@@ -282,5 +282,6 @@ Copyright (c)2001 by Dr. Zoidberg Enterprises. All rights reserved.
 
 Dr. Zoidberg Enterprises is a joint-venture between Bruno G. Albuquerque
 (bga@bug-br.org.br), Nathan Whitehorn (nwhitehorn@qwest.net), Peter Folk
-(pfolk@uni.uiuc.edu) and Stephan Assmus (stippi@yellowbites.com), Alan Ellis
-and David Reid.
+(pfolk@uni.uiuc.edu), Stephan Assmus (stippi@yellowbites.com), Alan Ellis, David Reid,
+Axel Dörfler (axeld@pinc-software.de) and Alexander G. M. Smith (agmsmith@rogers.com).
+
