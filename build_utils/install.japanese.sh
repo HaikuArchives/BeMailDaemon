@@ -139,6 +139,11 @@ alert "Mail Daemon Replacementインストール
 　再インストールする際は再度
 　パッケージの解凍から行ってください。"
 
+# Launch prefs if this is a new install of MDR
+if test !  -e "/boot/home/config/settings/Mail/chains";	then
+	/boot/beos/preferences/E-mail &
+fi
+
 # Prevent a second attempt to install since all our source files have been moved / deleted.
 echo "This one use install script will now self destruct..."
 rm install.japanese.sh

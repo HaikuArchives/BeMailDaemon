@@ -115,11 +115,11 @@ sleep 2
 sync
 alert "Installation Complete."
 
-# Prevent a second attempt to install since all our source files have been moved / deleted.
-echo "This one use install script will now self destruct..."
-rm install.sh
-
 # Launch prefs if this is a new install of MDR
 if test !  -e "/boot/home/config/settings/Mail/chains";	then
 	/boot/beos/preferences/E-mail &
 fi
+
+# Prevent a second attempt to install since all our source files have been moved / deleted.
+echo "This one use install script will now self destruct..."
+rm install.sh
