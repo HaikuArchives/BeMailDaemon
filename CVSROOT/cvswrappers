@@ -24,3 +24,6 @@
 #
 # Resource files should be stored in binary mode.
 *.rsrc -k 'b'
+#
+# So should pictures.
+*.png -k 'b'
