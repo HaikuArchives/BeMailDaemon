@@ -124,6 +124,8 @@ void MailMessage::AddComponent(MailComponent *component) {
 	} else {
 		((MIMEMultipartContainer *)(_body))->AddComponent(component);
 	}
+	
+	_num_components++;
 }
 
 MailComponent *MailMessage::GetComponent(int32 i) {

@@ -179,9 +179,11 @@ status_t SimpleMailAttachment::Instantiate(BPositionIO *data, size_t length) {
 }
 
 status_t SimpleMailAttachment::Render(BPositionIO *render_to) {
+	MailComponent::Render(render_to);
+	
 	//---------Massive memory squandering!---ALERT!----------
-	if (_encoding != base64)
-		return B_BAD_TYPE;
+	//if (_encoding != base64)
+	//	return B_BAD_TYPE;
 
 	_data->Seek(0,SEEK_END);
 	size_t size = _data->Position();
@@ -212,6 +214,7 @@ AttributedMailAttachment::AttributedMailAttachment(BFile *file, bool delete_when
 	
 	_attributes_attach = new SimpleMailAttachment;
 	_attributes_attach->AddHeaderField("Content-Type","application/x-be_attribute; name=\"BeOS Attributes\"");
+	AddComponent(_attributes_attach);
 	
 	AddHeaderField("Content-Type","multipart/x-bfile");
 	

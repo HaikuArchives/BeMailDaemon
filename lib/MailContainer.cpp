@@ -25,13 +25,16 @@ MIMEMultipartContainer::MIMEMultipartContainer(const char *boundary, const char 
 	_io_data(NULL) {		
 		AddHeaderField("MIME-Version","1.0");
 		AddHeaderField("Content-Type","multipart/mixed");
+		SetBoundary(boundary);
 	}
 		
 void MIMEMultipartContainer::SetBoundary(const char *boundary) {
 	_boundary = boundary;
 	
-	BString type = "multipart/mixed; ";
-	type << "boundary=\"" << boundary << "\"";
+	BMimeType mime;
+	MIMEType(&mime);
+	BString type;
+	type << mime.Type() << "; boundary=\"" << boundary << "\"";
 	AddHeaderField("Content-Type",type.String());
 }
 
@@ -183,13 +186,17 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length) {
 }
 
 status_t MIMEMultipartContainer::Render(BPositionIO *render_to) {
+	
+	
 	MailComponent::Render(render_to);
 	
 	BString delimiter;
 	delimiter << "\r\n--" << _boundary << "\r\n";
-		
-	render_to->Write(_MIME_message_warning,strlen(_MIME_message_warning));
-	render_to->Write("\r\n",2);
+	
+	if (_MIME_message_warning != NULL) {
+		render_to->Write(_MIME_message_warning,strlen(_MIME_message_warning));
+		render_to->Write("\r\n",2);
+	}
 	
 	
 	for (int32 i = 0; i < _components_in_code.CountItems() /* both have equal length, so pick one at random */; i++) {
