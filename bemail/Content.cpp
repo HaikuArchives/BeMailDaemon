@@ -42,6 +42,7 @@ All rights reserved.
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <assert.h>
 
 #include <Debug.h>
 #include <Alert.h>
