@@ -42,6 +42,8 @@ All rights reserved.
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+
+#include <Debug.h>
 #include <Alert.h>
 #include <Beep.h>
 #include <E-mail.h>
@@ -99,10 +101,40 @@ inline bool IsInitialUTF8Byte(uchar b)
 }
 
 
-// the prototype is obviously needed by mwcc
-bool FilterHTMLTag(char *first,char **t,char *end);
+void Unicode2UTF8(int32 c,char **out)
+{
+	char *s = *out;
 
-bool FilterHTMLTag(char *first,char **t,char *end)
+	ASSERT(c < 0x200000);
+
+	if (c < 0x80)
+		*(s++) = c;
+	else if (c < 0x800)
+	{
+		*(s++) = 0xc0 | (c >> 6);
+		*(s++) = 0x80 | (c & 0x3f);
+	}
+	else if (c < 0x10000)
+	{
+		*(s++) = 0xe0 | (c >> 12);
+		*(s++) = 0x80 | ((c >> 6) & 0x3f);
+		*(s++) = 0x80 | (c & 0x3f);
+	}
+	else if (c < 0x200000)
+	{
+		*(s++) = 0xf0 | (c >> 18);
+		*(s++) = 0x80 | ((c >> 12) & 0x3f);
+		*(s++) = 0x80 | ((c >> 6) & 0x3f);
+		*(s++) = 0x80 | (c & 0x3f);
+	}
+	*out = s;
+}
+
+
+// the prototype is obviously needed by mwcc
+bool FilterHTMLTag(int32 *first,char **t,char *end);
+
+bool FilterHTMLTag(int32 *first,char **t,char *end)
 {
 	const char *newlineTags[] = {
 		"br",
@@ -111,21 +143,85 @@ bool FilterHTMLTag(char *first,char **t,char *end)
 
 	char *a = *t;
 
-	// check for some common entities
+	// check for some common entities (in ISO-Latin-1)
 	if (*first == '&')
 	{
-		const char *entities[] = {"nbsp;","quot;","amp;","lt;","gt;", NULL};
-		const char replace[] =	 {' ',    '"',    '&',   '<',  '>'};
+		// filter out and convert decimal values
+		if (*(a + 1) == '#' && sscanf(a + 1,"%ld;",first) == 1)
+			return false;
 
-		for (int32 i = 0;entities[i];i++)
+		const struct { char *name; int32 code; } entities[] = {
+			// this list is sorted alphabetically to be binary searchable
+			// "name" is the entity name,
+			// "code" is the corresponding unicode
+			{"AElig;",	0x00c6},
+			{"Aacute;",	0x00c1},
+			{"Acirc;",	0x00c2},
+			{"Agrave;",	0x00c0},
+			{"Aring;",	0x00c5},
+			{"Atilde;",	0x00c3},
+			{"Auml;",	0x00c4},
+			{"Ccedil;",	0x00c7},
+			{"Eacute;",	0x00c9},
+			{"Ecirc;",	0x00ca},
+			{"Egrave;",	0x00c8},
+			{"Euml;",	0x00cb},
+			{"Iacute;", 0x00cd},
+			{"Icirc;",	0x00ce},
+			{"Igrave;", 0x00cc},
+			{"Iuml;",	0x00cf},
+			{"Ntilde;",	0x00d1},
+			{"Oacute;", 0x00d3},
+			{"Ocirc;",	0x00d4},
+			{"Ograve;", 0x00d2},
+			{"Ouml;",	0x00d6},
+			{"Uacute;", 0x00da},
+			{"Ucirc;",	0x00db},
+			{"Ugrave;", 0x00d9},
+			{"Uuml;",	0x00dc},
+			{"aacute;", 0x00e1},
+			{"acirc;",	0x00e2},
+			{"aelig;",	0x00e6},
+			{"agrave;", 0x00e0},
+			{"amp;",	'&'},
+			{"aring;",	0x00e5},
+			{"atilde;", 0x00e3},
+			{"auml;",	0x00e4},
+			{"ccedil;",	0x00e7},
+			{"copy;",	0x00a9},
+			{"eacute;",	0x00e9},
+			{"ecirc;",	0x00ea},
+			{"egrave;",	0x00e8},
+			{"euml;",	0x00eb},
+			{"gt;",		'>'},
+			{"iacute;", 0x00ed},
+			{"icirc;",	0x00ee},
+			{"igrave;", 0x00ec},
+			{"iuml;",	0x00ef},
+			{"lt;",		'<'},
+			{"nbsp;",	' '},
+			{"ntilde;",	0x00f1},
+			{"oacute;", 0x00f3},
+			{"ocirc;",	0x00f4},
+			{"ograve;", 0x00f2},
+			{"ouml;",	0x00f6},
+			{"quot;",	'"'},
+			{"szlig;",	0x00f6},
+			{"uacute;", 0x00fa},
+			{"ucirc;",	0x00fb},
+			{"ugrave;", 0x00f9},
+			{"uuml;",	0x00fc},
+			{NULL, 0}
+		};
+
+		for (int32 i = 0;entities[i].name;i++)
 		{
-			// this should be a case-sensitive comparison, but whoever
-			// uses HTML mail may not care about it... ;-)
-			int32 length = strlen(entities[i]);
-			if (!strncasecmp(a + 1,entities[i],length))
+			// entities are case-sensitive
+			int32 length = strlen(entities[i].name);
+			if (!strncmp(a + 1,entities[i].name,length))
 			{
 				*t += length;	// note that the '&' is included here
-				*first = replace[i];
+				*first = entities[i].code;
 				return false;
 			}
 		}
@@ -2309,7 +2405,7 @@ status_t TTextView::Reader::Run(void *_this)
 				
 				for(a = bodyText;*t;t++)
 				{
-					char c = *t;
+					int32 c = *t;
 
 					// compact newlines and spaces
 					bool space = false;
@@ -2326,7 +2422,7 @@ status_t TTextView::Reader::Run(void *_this)
 					else if (FilterHTMLTag(&c,&t,end))	// the tag filter
 						continue;
 
-					*(a++) = c;
+					Unicode2UTF8(c,&a);
 				}
 			
 				*a = 0;
