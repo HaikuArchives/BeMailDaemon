@@ -106,13 +106,22 @@ rm -r /boot/beos/etc/word_index/
 if test -e "/boot/develop/lib/x86/libmail.so";	then
 	echo "/boot/develop/lib/x86/libmail.so already exists, no need to fix.";
 else
-	ln -v -s /boot/beos/system/lib/libmail.so /boot/develop/lib/x86/libmail.so
+	ln -s /boot/beos/system/lib/libmail.so /boot/develop/lib/x86/libmail.so
 fi
 if test -e "/boot/develop/lib/ppc/libmail.so";	then
 	echo "/boot/develop/lib/ppc/libmail.so already exists, no need to fix.";
 else
-	ln -v -s /boot/beos/system/lib/libmail.so /boot/develop/lib/ppc/libmail.so
+	ln -s /boot/beos/system/lib/libmail.so /boot/develop/lib/ppc/libmail.so
 fi
+
+# Force the MIME database to reload the icons and other application info, since
+# it doesn't do it automatically and we sometimes add new icons.
+mimeset -F -apps /system/servers/mail_daemon
+mimeset -F -apps /boot/beos/apps/BeMail
+mimeset -F -apps ~/config/bin/AGMSBayesianSpamServer
+
+# The daemon will reinstall the MIME type correctly if it isn't there.
+rm ~/config/settings/beos_mime/text/x-partial-email
 
 sleep 1
 /system/Deskbar &
