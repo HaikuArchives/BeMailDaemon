@@ -326,7 +326,7 @@ status_t IMAP4Client::AddMessage(const char *mailbox, BPositionIO *data, BString
 	off_t size;
 	data->Seek(0,SEEK_END);
 	size = data->Position();
-	command << ((struct mailbox_info *)(box_info.ItemAt(box_index)))->server_mb_name << "\" {" << size << '}';
+	command << ((struct mailbox_info *)(box_info.ItemAt(box_index)))->server_mb_name << "\" (\Seen) {" << size << '}';
 	SendCommand(command.String());
 	ReceiveLine(command);
 	char *buffer = new char[size];
