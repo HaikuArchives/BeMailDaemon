@@ -155,9 +155,11 @@ For IMAP, things are slightly more complicated. The IMAP folder structure is dup
 
 HISTORY:
 
-September 4 2003 - v2.2.3
+September 18 2003 - v2.2.3
 - Fixed crash in POP3 protocol when the mail server was not reachable (was trying to send a QUIT command over a dead connection).
 - Allowed users to drag people files (and other sorts of files) onto the Mail Status window and have them open in the user's preferred mail reader, which, in the case of people files, creates a new message addressed to the person in question.
+- More IMAP bug fixes.
+- Added a command line script which will go through all your People files and make sure that the e-mail addresses contain valid characters.  Useful for bulk e-mailing (the SMTP server will reject the whole batch if one is bad), so look for ValidatePeopleEmails.sh in the Mass Mailing folder.
 
 August 20 2003 - v2.2.2
 - Automatic index creation changed, use an int for the MAIL:flags, not a string!
