@@ -77,9 +77,10 @@ All rights reserved.
 
 using namespace Zoidberg;
 
-const rgb_color kNormalTextColor = { 0, 0, 0, 0};
-const rgb_color kHyperLinkColor = {0, 0, 255, 0};
-const rgb_color kHeaderColor = {72, 72, 72, 0};
+const rgb_color kNormalTextColor = {0, 0, 0, 255};
+const rgb_color kSpellTextColor = {255, 0, 0, 255};
+const rgb_color kHyperLinkColor = {0, 0, 255, 255};
+const rgb_color kHeaderColor = {72, 72, 72, 255};
 
 const rgb_color kQuoteColors[] =
 {
@@ -96,13 +97,15 @@ extern bool		gColoredQuotes;
 
 void Unicode2UTF8(int32 c,char **out);
 
-inline bool IsInitialUTF8Byte(uchar b)	
+inline bool
+IsInitialUTF8Byte(uchar b)	
 {
 	return ((b & 0xC0) != 0x80);
 }
 
 
-void Unicode2UTF8(int32 c,char **out)
+void
+Unicode2UTF8(int32 c,char **out)
 {
 	char *s = *out;
 
@@ -135,7 +138,8 @@ void Unicode2UTF8(int32 c,char **out)
 // the prototype is obviously needed by mwcc
 bool FilterHTMLTag(int32 *first,char **t,char *end);
 
-bool FilterHTMLTag(int32 *first,char **t,char *end)
+bool
+FilterHTMLTag(int32 *first,char **t,char *end)
 {
 	const char *newlineTags[] = {
 		"br",
@@ -290,7 +294,8 @@ bool FilterHTMLTag(int32 *first,char **t,char *end)
 // the prototype is obviously needed by mwcc
 void FillInQouteTextRuns(BTextView *view,const char *line,int32 length,BFont &font,text_run_array *style,int32 maxStyles = 5);
 
-void FillInQouteTextRuns(BTextView *view,const char *line,int32 length,BFont &font,text_run_array *style,int32 maxStyles)
+void
+FillInQouteTextRuns(BTextView *view,const char *line,int32 length,BFont &font,text_run_array *style,int32 maxStyles)
 {
 	text_run *runs = style->runs;
 	int32 index = style->count;
@@ -432,7 +437,8 @@ TContentView::TContentView(BRect rect, bool incoming, Mail::Message *mail, BFont
 }
 
 
-void TContentView::MessageReceived(BMessage *msg)
+void
+TContentView::MessageReceived(BMessage *msg)
 {
 	char		*str;
 	char		*quote;
@@ -595,7 +601,8 @@ void TContentView::MessageReceived(BMessage *msg)
 }
 
 
-void TContentView::FindString(const char *str)
+void
+TContentView::FindString(const char *str)
 {
 	int32	finish;
 	int32	pass = 0;
@@ -660,7 +667,8 @@ void TContentView::FindString(const char *str)
 }
 
 
-void TContentView::Focus(bool focus)
+void
+TContentView::Focus(bool focus)
 {
 	if (fFocus != focus) {
 		fFocus = focus;
@@ -669,7 +677,8 @@ void TContentView::Focus(bool focus)
 }
 
 
-void TContentView::FrameResized(float /* width */, float /* height */)
+void
+TContentView::FrameResized(float /* width */, float /* height */)
 {
 	BFont v_font = *be_plain_font;
 	v_font.SetSize(FONT_SIZE);
@@ -689,7 +698,7 @@ void TContentView::FrameResized(float /* width */, float /* height */)
 
 
 TTextView::TTextView(BRect frame, BRect text, bool incoming, Mail::Message *mail,
-                      TContentView *view, BFont *font)
+	TContentView *view, BFont *font)
 	:	BTextView(frame, "", text, B_FOLLOW_ALL, B_WILL_DRAW | B_NAVIGABLE),
 	fHeader(header_flag),
 	fReady(false),
@@ -714,8 +723,7 @@ TTextView::TTextView(BRect frame, BRect text, bool incoming, Mail::Message *mail
 	menuFont.SetSize(10);
 
 	fStopSem = create_sem(1, "reader_sem");
-	if (fIncoming)
-		SetStylable(true);
+	SetStylable(true);
 
 	fEnclosures = new BList();
 
@@ -2358,7 +2366,7 @@ bool TTextView::Reader::Insert(const char *line, int32 count, bool isHyperLink, 
 	style.count = 0;
 
 	if (gColoredQuotes && !isHeader && !isHyperLink)
-		FillInQouteTextRuns(fView,line,count,font,&style,64);
+		FillInQouteTextRuns(fView, line, count, font, &style, 64);
 	else
 	{
 		style.count = 1;
@@ -2607,22 +2615,34 @@ void TSavePanel::SetEnclosure(hyper_text *enclosure)
 //	#pragma mark -
 
 
-void TTextView::InsertText(const char *text, int32 length, int32 offset,
+void
+TTextView::InsertText(const char *text, int32 length, int32 offset,
 	const text_run_array *runs)
 {
 	ContentChanged();
-	
+
+	struct text_runs : text_run_array { text_run _runs[1]; } style;
+	if (runs == NULL && IsEditable())
+	{
+		style.count = 1;
+		style.runs[0].offset = 0;
+		style.runs[0].font = fFont;
+		style.runs[0].color = kNormalTextColor;
+		runs = &style;
+	}
+
 	if (fSpellCheck && IsEditable())
 	{
-		BTextView::InsertText(text, length, offset, NULL);
+		BTextView::InsertText(text, length, offset, runs);
+
 		rgb_color color;
-		GetFontAndColor(offset-1, NULL, &color);
+		GetFontAndColor(offset - 1, NULL, &color);
 		const char *text = Text();
-		
+
 		if (length > 1
-			|| isalpha(text[offset+1])
+			|| isalpha(text[offset + 1])
 			|| (!isalpha(text[offset]) && text[offset] != '\'')
-			|| color.red != 0)
+			|| color == kSpellTextColor)
 		{
 			int32 start, end;
 			FindSpellBoundry(length, offset, &start, &end);
@@ -2635,7 +2655,8 @@ void TTextView::InsertText(const char *text, int32 length, int32 offset,
 }
 
 
-void TTextView::DeleteText(int32 start, int32 finish)
+void
+TTextView::DeleteText(int32 start, int32 finish)
 {
 	ContentChanged();
 	BTextView::DeleteText(start, finish);
@@ -2648,7 +2669,8 @@ void TTextView::DeleteText(int32 start, int32 finish)
 }
 
 
-void TTextView::ContentChanged(void)
+void
+TTextView::ContentChanged(void)
 {
 	BLooper *looper;
 	if ((looper = Looper()) != NULL)
@@ -2661,29 +2683,26 @@ void TTextView::ContentChanged(void)
 }
 
 
-void TTextView::CheckSpelling(int32 start, int32 end, int32 flags)
+void
+TTextView::CheckSpelling(int32 start, int32 end, int32 flags)
 {
-	//printf("Check spelling\n");
 	const char 	*text = Text();
 	const char 	*next, *endPtr, *word;
 	int32 		wordLength, wordOffset;
 	int32		nextHighlight = start;
-	
-	int32		key = -1; // dummy value -- not used
 	BString 	testWord;
-	rgb_color 	plainColor = { 0, 0, 0, 255 };
-	rgb_color	flagColor = { 255, 0, 0, 255 };
 	bool		isCap = false;
 	bool		isAlpha;
 	bool		isApost;
-	
+
 	for (next = text + start, endPtr = text + end, wordLength = 0, word = NULL;
-			next <= endPtr; next++)
+		next <= endPtr; next++)
 	{
 		//printf("next=%c\n", *next);
+		// ToDo: this has to be refined to other languages...
 		// Alpha signifies the start of a word
 		isAlpha = isalpha(*next);
-		isApost = (*next=='\'');
+		isApost = (*next == '\'');
 		if (!word && isAlpha)
 		{
 			//printf("Found word start\n");
@@ -2693,7 +2712,7 @@ void TTextView::CheckSpelling(int32 start, int32 end, int32 flags)
 		}
 		// Word continues check
 		else if (word && (isAlpha || isApost) && !(isApost && !isalpha(next[1]))
-				&& !(isCap && isApost && (next[1]=='s')))
+			&& !(isCap && isApost && (next[1] == 's')))
 		{
 			wordLength++;
 			//printf("Word continues...\n");
@@ -2706,7 +2725,7 @@ void TTextView::CheckSpelling(int32 start, int32 end, int32 flags)
 			if (wordLength > 1)
 			{
 				bool isUpper = true;
-				
+
 				// Look for all uppercase
 				for (int32 i = 0; i < wordLength; i++)
 				{
@@ -2718,22 +2737,23 @@ void TTextView::CheckSpelling(int32 start, int32 end, int32 flags)
 						break;
 					}
 				}
-				
+
 				// Don't check all uppercase words
 				if (!isUpper)
 				{
 					bool foundMatch = false;
-					wordOffset = word-text;
+					wordOffset = word - text;
 					testWord.SetTo(word, wordLength);
-					
+
 					testWord = testWord.ToLower();
 					//printf("Testing: %s:\n", testWord.String());
-					
+
+					int32 key = -1;
 					if (gDictCount)
 						key = gExactWords[0]->GetKey(testWord.String());
-					
+
 					// Search all dictionaries
-					for (int32 i=0; i<gDictCount; i++)
+					for (int32 i = 0; i < gDictCount; i++)
 					{
 						// printf("Looking for %s in dict %ld\n", testWord.String(),
 						// i); Is it in the words index?
@@ -2743,21 +2763,21 @@ void TTextView::CheckSpelling(int32 start, int32 end, int32 flags)
 							break;
 						}
 					}
-					
+
 					if (!foundMatch)
 					{
 						if (flags & S_CLEAR_ERRORS)
 							SetFontAndColor(nextHighlight, wordOffset, NULL,
-								B_FONT_ALL, &plainColor);
+								B_FONT_ALL, &kNormalTextColor);
 						if (flags & S_SHOW_ERRORS)
-							SetFontAndColor(wordOffset, wordOffset+wordLength, NULL,
-								B_FONT_ALL, &flagColor);
+							SetFontAndColor(wordOffset, wordOffset + wordLength, NULL,
+								B_FONT_ALL, &kSpellTextColor);
 					}
 					else if (flags & S_CLEAR_ERRORS)
-						SetFontAndColor(nextHighlight, wordOffset+wordLength, NULL,
-							B_FONT_ALL, &plainColor);
-					
-					nextHighlight = wordOffset+wordLength;
+						SetFontAndColor(nextHighlight, wordOffset + wordLength, NULL,
+							B_FONT_ALL, &kNormalTextColor);
+
+					nextHighlight = wordOffset + wordLength;
 				}
 			}
 			// Reset state to looking for word
@@ -2765,13 +2785,15 @@ void TTextView::CheckSpelling(int32 start, int32 end, int32 flags)
 			wordLength = 0;
 		}
 	}
-	if ((nextHighlight <= end)&&(flags & S_CLEAR_ERRORS)
-			&& (nextHighlight<TextLength()))
-		SetFontAndColor(nextHighlight, end, NULL, B_FONT_ALL, &plainColor);
+	if (nextHighlight <= end
+		&& (flags & S_CLEAR_ERRORS) != 0
+		&& nextHighlight < TextLength())
+		SetFontAndColor(nextHighlight, end, NULL, B_FONT_ALL, &kNormalTextColor);
 }
 
 
-void TTextView::FindSpellBoundry(int32 length, int32 offset, int32 *s, int32 *e)
+void
+TTextView::FindSpellBoundry(int32 length, int32 offset, int32 *s, int32 *e)
 {
 	int32 start, end, textLength;
 	const char *text = Text();
@@ -2784,7 +2806,8 @@ void TTextView::FindSpellBoundry(int32 length, int32 offset, int32 *s, int32 *e)
 }
 
 
-void TTextView::EnableSpellCheck(bool enable)
+void
+TTextView::EnableSpellCheck(bool enable)
 {
 	if (fSpellCheck != enable)
 	{
@@ -2795,21 +2818,21 @@ void TTextView::EnableSpellCheck(bool enable)
 			// work-around for a bug in the BTextView class
 			// which causes lots of flicker
 			int32 start,end;
-			GetSelection(&start,&end);
+			GetSelection(&start, &end);
 			if (start != end)
-				Select(start,start);
+				Select(start, start);
 
 			SetStylable(true);
 			CheckSpelling(0, textLength);
 
 			if (start != end)
-				Select(start,end);
+				Select(start, end);
 		}
 		else
 		{
-			rgb_color plainColor = {0, 0, 0, 255};
-			SetFontAndColor(0, textLength, NULL, B_FONT_ALL, &plainColor);
-			SetStylable(false);
+			// ToDo: we need to replace all "red" words here manually!
+			SetFontAndColor(0, textLength, NULL, B_FONT_ALL, &kNormalTextColor);
+			SetStylable(true);	// was: false, so it actually doesn't work nicely right now...
 		}
 	}
 }

@@ -125,7 +125,7 @@ class TContentView : public BView
 		void FindString(const char *);
 		void Focus(bool);
 		void FrameResized(float, float);
-		
+
 		TTextView *fTextView;
 
 	private:
@@ -156,7 +156,7 @@ class TTextView : public BTextView
 		virtual void InsertText(const char *text, int32 length, int32 offset,
 			const text_run_array *runs);
 		virtual void  DeleteText(int32 start, int32 finish);
-	            
+
 		void ClearList();
 		void LoadMessage(Mail::Message *mail, bool quoteIt, const char *insertText);
 		void Open(hyper_text*);
@@ -168,20 +168,21 @@ class TTextView : public BTextView
 		void FindSpellBoundry(int32 length, int32 offset, int32 *start,
 			int32 *end);
 		void EnableSpellCheck(bool enable);
-	
+
 		bool fHeader;
 		bool fReady;
-	
+
 	private:
-		void ContentChanged( void );
-	
+		void ContentChanged(void);
+
 		class Reader;
 		friend TTextView::Reader;
-	
+
 		char *fYankBuffer;
 		int32 fLastPosition;
 		BFile *fFile;
-		Zoidberg::Mail::Message *fMail;	// for incoming mails only
+		Zoidberg::Mail::Message *fMail;
+			// for incoming/replied/forwarded mails only
 		BFont fFont;
 		TContentView *fParent;
 		sem_id fStopSem;
@@ -195,15 +196,15 @@ class TTextView : public BTextView
 		bool fSpellCheck;
 		bool fRaw;
 		bool fCursor;
-		
+
 		class Reader
 		{
 			public:
 				Reader(bool header,bool raw,bool quote,bool incoming,bool stripHeaders,bool mime,
 					TTextView *view,Mail::Message *mail,BList *list,sem_id sem);
-	
+
 				static status_t Run(void *);
-	
+
 			private:
 				bool ParseMail(Mail::Container *container,Mail::TextComponent *ignore);
 				bool Process(const char *data, int32 len, bool isHeader = false);
