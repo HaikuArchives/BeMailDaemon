@@ -435,8 +435,11 @@ _EXPORT ssize_t readfoldedline(FILE *file, char **buffer, size_t *buflen)
 				buf[cnt-2] = '\n';
 				--cnt;
 			}
-
-			// if first character on the next line is whitespace, fold lines
+			// If the current line is empty then return it (so that empty lines
+			// don't disappear if the next line starts with a space).
+			if (cnt <= 1)
+				break;
+			// Fold if first character on the next line is whitespace.
 			c = fgetc(file); // Note it's OK to read EOF and ungetc it too.
 			if (c == ' ' || c == '\t')
 				buf[cnt-1] = c; // Replace \n with the white space character.
@@ -518,7 +521,10 @@ _EXPORT ssize_t readfoldedline(BPositionIO &in, char **buffer, size_t *buflen)
 				buf[cnt-2] = '\n';
 				--cnt;
 			}
-
+			// If the current line is empty then return it (so that empty lines
+			// don't disappear if the next line starts with a space).
+			if (cnt <= 1)
+				break;
 			// if first character on the next line is whitespace, fold lines
 			errorCode = in.Read(&c,1);
 			if (errorCode == 1) {
@@ -599,7 +605,10 @@ _EXPORT ssize_t nextfoldedline(const char** header, char **buffer, size_t *bufle
 				buf[cnt-2] = '\n';
 				--cnt;
 			}
-
+			// If the current line is empty then return it (so that empty lines
+			// don't disappear if the next line starts with a space).
+			if (cnt <= 1)
+				break;
 			// if first character on the next line is whitespace, fold lines
 			c = *(*header)++;
 			if (c == ' ' || c == '\t')
