@@ -76,15 +76,11 @@ DeskbarView::DeskbarView(BMessage *message)
 	pop_up->SetFont(be_plain_font);
 	
 	pop_up->AddItem(new BMenuItem("Create New Message",new BMessage(MD_OPEN_NEW)));
+
+	pop_up->AddSeparatorItem();
+
 	pop_up->AddItem(new BMenuItem("Open Inbox",new BMessage(MD_OPEN_MAILBOX)));
 	pop_up->AddItem(new BMenuItem("Open Mail Folder",new BMessage(MD_OPEN_MAIL_FOLDER)));
-	pop_up->AddSeparatorItem();
-	
-	// here should be menus for new and draft messages
-	new_messages_item = new BMenuItem("No new messages",new BMessage(MD_OPEN_NEW_MAIL_QUERY));
-	new_messages_item->SetEnabled(false);
-	pop_up->AddItem(new_messages_item);
-	
 	// From BeMail:
 	QueryMenu *qmenu;
 	qmenu = new QueryMenu( "Open Draft", false );
@@ -92,7 +88,14 @@ DeskbarView::DeskbarView(BMessage *message)
 	fs_create_index( dev_for_path( "/boot/home/mail/draft" ), "MAIL:draft", B_INT32_TYPE, 0 );
 	qmenu->SetPredicate( "MAIL:draft==1" );
 	pop_up->AddItem( qmenu );
+
+	pop_up->AddSeparatorItem();
 	
+	// here should be the menu for new messages
+	new_messages_item = new BMenuItem("No new messages",new BMessage(MD_OPEN_NEW_MAIL_QUERY));
+	new_messages_item->SetEnabled(false);
+	pop_up->AddItem(new_messages_item);
+		
 	pop_up->AddSeparatorItem();
 	
 	pop_up->AddItem(new BMenuItem("Check Mail Now",new BMessage(MD_CHECK_SEND_NOW)));
