@@ -276,7 +276,9 @@ void POP3Protocol::Delete(int32 num) {
 	if (SendCommand(cmd.String()) != B_OK) {
 		// Error
 	}
-	puts(fLog.String());
+	#if DEBUG
+	 puts(fLog.String());
+	#endif
 }
 
 size_t POP3Protocol::MessageSize(int32 index) {

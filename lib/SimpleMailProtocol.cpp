@@ -80,7 +80,9 @@ status_t SimpleMailProtocol::GetNextNewUid
 			return B_NAME_NOT_FOUND;
 	} while (manifest->HasItem(unique_ids->ItemAt(last_message)));
 	
-	puts(unique_ids->ItemAt(last_message));
+	#if DEBUG
+	 puts(unique_ids->ItemAt(last_message));
+	#endif
 		
 	out_uid->SetTo(unique_ids->ItemAt(last_message));
 	
@@ -105,7 +107,9 @@ status_t SimpleMailProtocol::GetMessage(
 }
 
 status_t SimpleMailProtocol::DeleteMessage(const char* uid) {
-	printf("ID is %d\n", (int)unique_ids->IndexOf(uid)); // What should we use for int32 instead of %d?
+	#if DEBUG
+	 printf("ID is %d\n", (int)unique_ids->IndexOf(uid)); // What should we use for int32 instead of %d?
+	#endif
 	Delete(unique_ids->IndexOf(uid));
 	return B_OK;
 }

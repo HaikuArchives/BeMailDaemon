@@ -153,6 +153,8 @@ MessageDeletion::MessageDeletion(MailProtocol *home, BString *uid) :
 	message_id(uid) {}
 
 void MessageDeletion::Callback(MDStatus /*result*/) {
-	printf("Deleting %s\n",message_id->String());
+	#if DEBUG
+	 printf("Deleting %s\n",message_id->String());
+	#endif
 	us->DeleteMessage(message_id->String());
 }
