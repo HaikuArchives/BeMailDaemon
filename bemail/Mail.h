@@ -171,6 +171,13 @@ class ButtonBar;
 class BMenuBar;
 class Words;
 
+namespace Zoidberg {
+namespace Mail {
+	class Message;
+}
+}
+using namespace Zoidberg;
+
 //====================================================================
 
 class TMailApp : public BApplication
@@ -224,35 +231,38 @@ class TMailWindow : public BWindow
 		virtual void Show();
 		virtual void Zoom(BPoint, float, float);
 		virtual	void WindowActivated(bool state);
-	
+
 		void SetTo(const char *mailTo, const char *subject, const char *ccTo = NULL,
 			const char *bccTo = NULL, const BString *body = NULL, BMessage *enclosures = NULL);
-		void AddSignature(BMailMessage*);
-		void Forward(entry_ref*);
+		void AddSignature(BMailMessage *);
+		void Forward(entry_ref *);
 		void Print();
 		void PrintSetup();
-		void Reply(entry_ref*, TMailWindow*, uint32);
+		void Reply(entry_ref *, TMailWindow *, uint32);
 		void CopyMessage(entry_ref *ref, TMailWindow *src);
 		status_t Send(bool);
 		status_t SaveAsDraft( void );
-		status_t OpenMessage(entry_ref*);
-	
-		entry_ref* GetMailFile() const;
+		status_t OpenMessage(entry_ref *);
+
+		entry_ref *GetMailFile() const;
+		Mail::Message *Mail() const { return fMail; }
+
 		bool GetTrackerWindowFile(entry_ref *, bool dir) const;
 		void SaveTrackerPosition(entry_ref *);
 		void SetOriginatingWindow(BWindow *window);
-	
+
 		void SetCurrentMessageRead();
 		void SetTrackerSelectionToCurrent();
 		TMailWindow* FrontmostWindow();
 		void UpdateViews();
-		
+
 	protected:
 		void SetTitleForMessage();
 		void AddEnclosure(BMessage *msg);
 		void BuildButtonBar();
-	
+
 	private:
+		Mail::Message	*fMail;
 		entry_ref *fRef;			// Reference to currently displayed file
 		int32 fFieldState;
 		BFile *fFile;
