@@ -74,6 +74,11 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
+ * Revision 1.74  2002/12/13 23:53:12  agmsmith
+ * Minimize the window before opening it so that it doesn't flash on the
+ * screen in server mode.  Also load the database when the window is
+ * displayed so that the user can see the words.
+ *
  * Revision 1.73  2002/12/13 20:55:57  agmsmith
  * Documentation.
  *
@@ -424,6 +429,7 @@ static const char *g_AttributeNameClassification = "MAIL:classification";
 static const char *g_AttributeNameSpamRatio = "MAIL:ratio_spam";
 static const char *g_BeepGenuine = "AGMSBayes-Genuine";
 static const char *g_BeepSpam = "AGMSBayes-Spam";
+static const char *g_BeepUncertain = "AGMSBayes-Uncertain";
 static const char *g_ClassifiedSpam = "Spam";
 static const char *g_ClassifiedGenuine = "Genuine";
 static const char *g_DataName = "data";
@@ -2828,6 +2834,7 @@ status_t ABSApp::InstallThings (char *ErrorMessage)
 
   add_system_beep_event (g_BeepGenuine);
   add_system_beep_event (g_BeepSpam);
+  add_system_beep_event (g_BeepUncertain);
 
   return B_OK;
 }
