@@ -222,7 +222,15 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 			auto_check->SetInterval(settings_file.AutoCheckInterval());
 			status->SetShowCriterion(settings_file.ShowStatusWindow());
 			break;
-		case 'lkch':
+		case 'shst':	// when to show the status window
+		{
+			int32 mode;
+			if (msg->FindInt32("ShowStatusWindow",&mode) == B_OK)
+				status->SetShowCriterion(mode);
+			break;
+		}
+		case 'lkch':	// status window look changed
+		case 'wsch':	// workspace changed
 			status->PostMessage(msg);
 			break;
 		case 'stwg': //---StaT Window Gone

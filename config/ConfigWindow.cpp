@@ -51,7 +51,10 @@ const uint32 kMsgAddAccount = 'adac';
 const uint32 kMsgRemoveAccount = 'rmac';
 
 const uint32 kMsgIntervalUnitChanged = 'iuch';
+
+const uint32 kMsgShowStatusWindowChanged = 'shst';
 const uint32 kMsgStatusLookChanged = 'lkch';
+const uint32 kMsgStatusWorkspaceChanged = 'wsch';
 
 const uint32 kMsgSaveSettings = 'svst';
 const uint32 kMsgRevertSettings = 'rvst';
@@ -292,16 +295,18 @@ ConfigWindow::ConfigWindow()
 	fPPPActiveCheckBox = new BCheckBox(rect,"ppp active","only when PPP is active", NULL);
 	box->AddChild(fPPPActiveCheckBox);
 
-	rect = box->Frame();//  rect.bottom = rect.top + 3*height + 15;
+	rect = box->Frame();  rect.bottom = rect.top + 4*height + 20;
 	box = new BBox(rect);
 	box->SetLabel("Status Window");
 	view->AddChild(box);
 
 	BPopUpMenu *statusPopUp = new BPopUpMenu(B_EMPTY_STRING);
 	const char *statusModes[] = {"Never","While Sending / Fetching","Always"};
+	BMessage *msg;
 	for (int32 i = 0;i < 3;i++)
 	{
-		statusPopUp->AddItem(item = new BMenuItem(statusModes[i], NULL));
+		statusPopUp->AddItem(item = new BMenuItem(statusModes[i],msg = new BMessage(kMsgShowStatusWindowChanged)));
+		msg->AddInt32("ShowStatusWindow",i);
 		if (i == 0)
 			item->SetMarked(true);
 	}
@@ -313,7 +318,6 @@ ConfigWindow::ConfigWindow()
 	box->AddChild(fStatusModeField);
 
 	BPopUpMenu *lookPopUp = new BPopUpMenu(B_EMPTY_STRING);
-	BMessage *msg;
 	const char *windowLookStrings[] = {"Normal, With Tab","Normal, Border Only","Floating","Thin Border","No Border"};
 	for (int32 i = 0;i < 5;i++)
 	{
@@ -326,6 +330,17 @@ ConfigWindow::ConfigWindow()
 	fStatusLookField = new BMenuField(rect,"status look","Window Look:",lookPopUp);
 	fStatusLookField->SetDivider(labelWidth);
 	box->AddChild(fStatusLookField);
+
+	BPopUpMenu *workspacesPopUp = new BPopUpMenu(B_EMPTY_STRING);
+	workspacesPopUp->AddItem(item = new BMenuItem("Current Workspace",msg = new BMessage(kMsgStatusWorkspaceChanged)));
+	msg->AddInt32("StatusWindowWorkSpace",0);
+	workspacesPopUp->AddItem(item = new BMenuItem("All Workspaces",msg = new BMessage(kMsgStatusWorkspaceChanged)));
+	msg->AddInt32("StatusWindowWorkSpace",-1);
+
+	rect.OffsetBy(0,height + 6);
+	fStatusWorkspaceField = new BMenuField(rect,"status workspace","Window visible on:",workspacesPopUp);
+	fStatusWorkspaceField->SetDivider(labelWidth);
+	box->AddChild(fStatusWorkspaceField);
 
 	rect = box->Frame();  rect.bottom = rect.top + 2*height + 6;
 	box = new BBox(rect);
@@ -431,20 +446,6 @@ void ConfigWindow::LoadSettings()
 {
 	Accounts::Delete();
 	Accounts::Create(fAccountsListView,fConfigView);
-
-	// load in accounts
-//	Account *account;
-//	bool first = true;
-//	BList accountList = Account::List();
-//	for (int32 i = 0; (account = (Account*)accountList.ItemAt(i)); i++)
-//	{
-//		fAccountsListView->AddItem(account);
-//		if (first)
-//		{
-//			SetToAccount(account);
-//			first = false;
-//		}
-//	}
 
 	// load in general settings
 	MailSettings *settings = new MailSettings();
@@ -582,9 +583,12 @@ void ConfigWindow::MessageReceived(BMessage *msg)
 				fIntervalControl->SetEnabled(index != 0);
 			break;
 		}
+
+		case kMsgShowStatusWindowChanged:
 		case kMsgStatusLookChanged:
+		case kMsgStatusWorkspaceChanged:
 		{
-			// the status window look is the only "live" setting
+			// the status window stuff is the only "live" setting
 			BMessenger messenger("application/x-vnd.Be-POST");
 			if (messenger.IsValid())
 				messenger.SendMessage(msg);
@@ -653,6 +657,8 @@ status_t ConfigWindow::SetToGeneralSettings(MailSettings *settings)
 	if (BMenuItem *item = fStatusModeField->Menu()->ItemAt(settings->ShowStatusWindow()))
 		item->SetMarked(true);
 	if (BMenuItem *item = fStatusLookField->Menu()->ItemAt(settings->StatusWindowLook()))
+		item->SetMarked(true);
+	if (BMenuItem *item = fStatusWorkspaceField->Menu()->ItemAt(settings->StatusWindowWorkspaces() != B_ALL_WORKSPACES ? 0 : 1))
 		item->SetMarked(true);
 
 	BMessenger messenger("application/x-vnd.Be-POST");

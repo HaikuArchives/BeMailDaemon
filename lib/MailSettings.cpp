@@ -254,14 +254,18 @@ void MailSettings::SetStatusWindowFrame(BRect frame)
 		data.AddRect("StatusWindowFrame",frame);
 }
 
-int32 MailSettings::StatusWindowWorkSpace()
+int32 MailSettings::StatusWindowWorkspaces()
 {
 	return data.FindInt32("StatusWindowWorkSpace");
 }
-void MailSettings::SetStatusWindowWorkSpace(int32 workspace)
+void MailSettings::SetStatusWindowWorkspaces(int32 workspace)
 {
 	if (data.ReplaceInt32("StatusWindowWorkSpace",workspace))
 		data.AddInt32("StatusWindowWorkSpace",workspace);
+
+	BMessage msg('wsch');
+	msg.AddInt32("StatusWindowWorkSpace",workspace);
+	BMessenger("application/x-vnd.Be-POST").SendMessage(&msg);
 }
 
 int32 MailSettings::StatusWindowLook()

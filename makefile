@@ -11,7 +11,7 @@ SUBDIRS = \
 	system_filters
 
 default .DEFAULT :
-	cp makefile-engine.MailD $(BUILDHOME)/etc/makefile-engine.MailD
+#	cp makefile-engine.MailD $(BUILDHOME)/etc/makefile-engine.MailD
 	-@for f in $(SUBDIRS) ; do \
 		$(MAKE) -C $$f -f makefile $@; \
 	done

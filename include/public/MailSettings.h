@@ -116,8 +116,8 @@ class MailSettings
 	void SetStatusWindowFrame(BRect frame);
 	BRect StatusWindowFrame();
 
-	int32 StatusWindowWorkSpace();
-	void SetStatusWindowWorkSpace(int32 workspace);
+	int32 StatusWindowWorkspaces();
+	void SetStatusWindowWorkspaces(int32 workspaces);
 
 	int32 StatusWindowLook();
 	void SetStatusWindowLook(int32 look);

@@ -80,7 +80,7 @@ StatusWindow::StatusWindow(BRect rect, const char *name, uint32 s)
 				message_view->ResizeBy(x_off_set, y_off_set);
 			}
 		}
-		int32 workspace = general.StatusWindowWorkSpace();
+		int32 workspace = general.StatusWindowWorkspaces();
 		int32 workspace_count = count_workspaces();
 		uint32 max_workspace = 0;
 		while (workspace_count > 0)
@@ -111,7 +111,8 @@ StatusWindow::~StatusWindow()
 	if (general.InitCheck() == B_OK)
 	{
 		general.SetStatusWindowFrame(Frame());
-		general.SetStatusWindowWorkSpace((int32)Workspaces());
+		printf("workspace: %ld\n",Workspaces());
+		general.SetStatusWindowWorkspaces((int32)Workspaces());
 		general.Save();
 	}
 }
@@ -124,8 +125,16 @@ void StatusWindow::MessageReceived(BMessage *msg)
 		case 'lkch':
 		{
 			int32 look;
-			if (msg->FindInt32("StatusWindowLook", &look) == B_OK)
+			if (msg->FindInt32("StatusWindowLook",&look) == B_OK)
 				SetBorderStyle(look);
+			break;
+		}
+		case 'wsch':
+		{
+			int32 workspaces;
+			if (msg->FindInt32("StatusWindowWorkSpace",&workspaces) == B_OK)
+				SetWorkspaces(workspaces);
+			break;
 		}
 		default:
 			BWindow::MessageReceived(msg);
