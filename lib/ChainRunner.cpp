@@ -579,7 +579,18 @@ void
 ChainRunner::ShowError(const char *error)
 {
 	if (win == NULL)
-		win = new ErrorLogWindow(BRect(200,200,500,250),"Mail Daemon Error Log",B_TITLED_WINDOW);
+		win = new ErrorLogWindow(BRect(200,200,500,250),"Mail Daemon Status Log",B_TITLED_WINDOW);
+	
+	BString tag = Chain()->Name();
+	tag << ": ";
+	win->AddError(B_WARNING_ALERT,error,tag.String());
+}
+
+void
+ChainRunner::ShowMessage(const char *error)
+{
+	if (win == NULL)
+		win = new ErrorLogWindow(BRect(200,200,500,250),"Mail Daemon Status Log",B_TITLED_WINDOW);
 	
 	BString tag = Chain()->Name();
 	tag << ": ";

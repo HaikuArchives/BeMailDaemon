@@ -24,12 +24,12 @@ class NotifyFilter;
 
 class NotifyCallback : public Mail::ChainCallback {
 	public:
-		NotifyCallback (int32 notification_method, Mail::Chain *us,NotifyFilter *ref2);
+		NotifyCallback (int32 notification_method, Mail::ChainRunner *us,NotifyFilter *ref2);
 		virtual void Callback(status_t result);
 		
 		uint32 num_messages;
 	private:
-		Mail::Chain *chain;
+		Mail::ChainRunner *chainrunner;
 		int32 strategy;
 		NotifyFilter *parent;
 };
@@ -68,7 +68,7 @@ status_t NotifyFilter::InitCheck(BString* err)
 status_t NotifyFilter::ProcessMailMessage(BPositionIO**, BEntry*, BMessage*headers, BPath*, const char*)
 {
 	if (callback == NULL) {
-		callback = new NotifyCallback(strategy,_runner->Chain(),this);
+		callback = new NotifyCallback(strategy,_runner,this);
 		_runner->RegisterProcessCallback(callback);
 	}
 	
@@ -78,9 +78,9 @@ status_t NotifyFilter::ProcessMailMessage(BPositionIO**, BEntry*, BMessage*heade
 	return B_OK;
 }
 
-NotifyCallback::NotifyCallback (int32 notification_method, Mail::Chain *us,NotifyFilter *ref2) : 
+NotifyCallback::NotifyCallback (int32 notification_method, Mail::ChainRunner *us,NotifyFilter *ref2) : 
 	strategy(notification_method),
-	chain(us),
+	chainrunner(us),
 	num_messages(0), parent(ref2)
 {
 }
@@ -98,9 +98,9 @@ void NotifyCallback::Callback(status_t result) {
 		BString text;
 		MDR_DIALECT_CHOICE (
 		text << "You have " << num_messages << " new message" << ((num_messages != 1) ? "s" : "")
-		<< " for " << chain->Name() << ".",
+		<< " for " << chainrunner->Chain()->Name() << ".",
 
-		text << chain->Name() << "より\n" << num_messages << " 通のメッセージが届きました");
+		text << chainrunner->Chain()->Name() << "より\n" << num_messages << " 通のメッセージが届きました");
 
 		Mail::ShowAlert(
 			MDR_DIALECT_CHOICE ("New Messages","新着メッセージ"),
@@ -116,10 +116,16 @@ void NotifyCallback::Callback(status_t result) {
 	if (strategy & big_doozy_alert) {
 		BMessage msg('numg');
 		msg.AddInt32("num_messages",num_messages);
-		msg.AddString("chain_name",chain->Name());
-		msg.AddInt32("chain_id",chain->ID());
+		msg.AddString("chain_name",chainrunner->Chain()->Name());
+		msg.AddInt32("chain_id",chainrunner->Chain()->ID());
 		
 		be_app->PostMessage(&msg);
+	}
+	
+	if (strategy & log_window) {
+		BString message;
+		message << num_messages << " new message" << ((num_messages != 1) ? "s" : "");
+		chainrunner->ShowMessage(message.String());
 	}
 }
 

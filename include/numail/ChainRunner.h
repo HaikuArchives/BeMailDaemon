@@ -66,6 +66,7 @@ class ChainRunner : public BLooper {
 		bool QuitRequested();
 		
 		void ShowError(const char *error);
+		void ShowMessage(const char *message);
 
 		Mail::Chain *Chain();
 		
