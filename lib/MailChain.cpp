@@ -28,8 +28,8 @@ namespace Mail {
 #include <status.h>
 
 
-namespace Zoidberg {
-namespace Mail {
+using namespace Zoidberg;
+using namespace Zoidberg::Mail;
 
 Chain::Chain(uint32 i)
 	: id(i), meta_data(NULL), _err(B_OK), direction(inbound), settings_ct(0), addons_ct(0) 
@@ -436,6 +436,3 @@ status_t Chain::RemoveFilter(int32 index)
 void Chain::RunChain(StatusWindow *window, bool async, bool save_when_done, bool delete_when_done) {
 	(new ChainRunner(this,window,true,save_when_done,delete_when_done))->RunChain(async);
 }
-
-}	// namespace Mail
-}	// namespace Zoidberg

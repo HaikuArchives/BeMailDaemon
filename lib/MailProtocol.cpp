@@ -124,7 +124,7 @@ class TrashMonitor : public BHandler {
 
 Protocol::Protocol(BMessage *settings, ChainRunner *run)
 	: Filter(settings),
-	runner(run), trash_monitor(NULL)
+	runner(run), trash_monitor(NULL), uids_on_disk(NULL)
 {
 	unique_ids = new StringList;
 	Protocol::settings = settings;
