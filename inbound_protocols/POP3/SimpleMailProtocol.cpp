@@ -103,7 +103,10 @@ SimpleProtocol::GetMessage(const char *uid, BPositionIO **out_file, BMessage *ou
 
 	if (out_folder_location != NULL)
 		out_folder_location->SetTo("");
-
+	
+	if((*out_file)->ReadAt(0,&to_retrieve,1) < B_OK)
+		return B_MAIL_END_CHAIN;
+	
 	return B_OK;
 }
 
