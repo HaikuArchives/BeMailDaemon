@@ -154,6 +154,7 @@ HISTORY:
 July 26 2003 - v2.2.0b1
 - Starting a new version for Nathan's second overhaul of the architecture: adding a fancy RemoteStorageProtocol for better IMAP (and others in the future) local vs remote mail folder synchronization.
 - Fixed recently added bug in AGMSBayesianSpamServer which wouldn't let you double classify a message, even if the IgnorePreviousClassification option was on.
+- Added hack to wait for spell checking dictionaries to load when you start up BeMail with the command line options to create a new message.  Avoids the warning about not finding the dictionaries.
 
 July 15 2003 - v2.1.0rc3
 - Added Mark Heeren's alternate new mail deskbar icons to the mail daemon resource.  They're a blue and red envelope, rather than the empty and full mailbox icon.  Use QuickRes to copy them over the existing icons in /boot/beos/system/servers/mail_daemon if you want to use them.
