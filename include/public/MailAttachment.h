@@ -1,6 +1,8 @@
 #ifndef ZOIDBERG_NUMAIL_MAILATTACHMENT_H
 #define ZOIDBERG_NUMAIL_MAILATTACHMENT_H
 
+#include <Node.h>
+
 #include <MailContainer.h>
 #include <MailComponent.h>
 
