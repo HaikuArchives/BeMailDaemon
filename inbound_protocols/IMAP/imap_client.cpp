@@ -411,7 +411,7 @@ void IMAP4Client::SyncAllBoxes() {
 			return;
 		}
 		
-		if ((num_messages - mailbox->exists) == (next_uid - mailbox->next_uid) && next_uid >= 0 && num_messages > 0) {
+		if ((num_messages - mailbox->exists) == (next_uid - mailbox->next_uid) && mailbox->next_uid >= 0 && mailbox->exists > 0) {
 			while (mailbox->next_uid < next_uid) {
 				uid = boxes[i];
 				uid << '/' << mailbox->next_uid;
@@ -438,6 +438,8 @@ void IMAP4Client::SyncAllBoxes() {
 				if (tag == expected)
 					break;
 				
+				//response.PrintToStream();
+				
 				uid = boxes[i];
 				uid << '/' << response[2][1]();
 				if (!unique_ids->HasItem(uid.String()))
@@ -451,6 +453,8 @@ void IMAP4Client::SyncAllBoxes() {
 			WasCommandOkay(uid);
 		}
 	}
+	
+	dump_stringlist(unique_ids);
 	
 	StringList to_dl;
 	unique_ids->NotThere(*manifest,&to_dl);
@@ -685,8 +689,17 @@ class IMAP4PartialReader : public BPositionIO {
 			NestedString response;
 			if (us->GetResponse(command,&response) != NOT_COMMAND_RESPONSE && command == cmd)
 				return;
+			
+			//response.PrintToStream();
+			
 			us->WasCommandOkay(command);
-			slave->Write(response[2][3](),strlen(response[2][3]()));
+			for (int32 i = 0; i < response[2].CountItems(); i++) {
+				if (strcmp(response[2][i](),part) == 0) {
+					slave->Write(response[2][i+1](),strlen(response[2][i+1]()));
+					break;
+				}
+			}
+			
 		}
 			
 		IMAP4Client *us;
@@ -745,6 +758,9 @@ status_t IMAP4Client::GetMessage(
 				NestedString response;
 				if (GetResponse(command,&response) != NOT_COMMAND_RESPONSE && command == cmd)
 					return B_ERROR;
+				
+				//response.PrintToStream();
+				
 				WasCommandOkay(command);
 				out_headers->AddInt32("SIZE",atoi(response[2][3]()));
 
