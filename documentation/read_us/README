@@ -153,6 +153,7 @@ December 6 2002 - v2.0.0b7
 - Removed old word wrap menu code from BeMail.
 - Added a preferences option to attach files in BeMail without the attributes, so that users of other operating systems don't get confused by the extra attachment.
 - Fixed some bugs with reading (garbage appended bug) and forwarding text attachments (didn't copy text so it sometimes crashed).
+- Include preamble text when making a reply from selected text in a message.
 
 December 1 2002 - v2.0.0b6
 - Fixed Reply-All bug where it would get stuck in an infinite loop when it tried to remove the sender's address from the list of addresses.
