@@ -92,6 +92,8 @@ status_t MailComponent::Instantiate(BPositionIO *data, size_t length) {
 	}
 		
 	free(buf);
+
+	length = 0; // Remove the warning. Is length necessary at all?
 	
 	return B_OK;
 }
@@ -144,6 +146,8 @@ status_t MailComponent::MIMEType(BMimeType *mime) {
 	
 	return B_OK;
 }
+
+MailComponent::~MailComponent() {}
 
 PlainTextBodyComponent::PlainTextBodyComponent(const char *text) 
 	: MailComponent(),
@@ -248,7 +252,7 @@ status_t PlainTextBodyComponent::Render(BPositionIO *render_to) {
 	BString content_type;
 	content_type << "text/plain; ";
 	
-	for (int32 i = 0; i < sizeof(charsets); i++) {
+	for (uint32 i = 0; i < sizeof(charsets); i++) {
 		if (charsets[i].flavor == charset) {
 			content_type << "charset=\"" << charsets[i].charset << "\"";
 			break;
@@ -327,3 +331,5 @@ status_t PlainTextBodyComponent::Render(BPositionIO *render_to) {
 	
 	return B_OK;
 }
+
+PlainTextBodyComponent::~PlainTextBodyComponent() {}

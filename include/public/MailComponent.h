@@ -6,6 +6,7 @@ class BMimeType;
 class MailComponent {
 	public:
 		MailComponent();
+		virtual ~MailComponent();
 		
 		void AddHeaderField(const char *key, const char *value, uint32 charset = B_ISO1_CONVERSION, char encoding = 'q', bool replace_existing = true);
 		const char *HeaderField(const char *key, int32 index = 0);
@@ -22,7 +23,8 @@ class MailComponent {
 class PlainTextBodyComponent : public MailComponent {
 	public:
 		PlainTextBodyComponent(const char *text = NULL);
-		
+		virtual ~PlainTextBodyComponent();		
+
 		void SetEncoding(char encoding, int32 charset);
 			//------encoding: q for quoted-printable (default), b for base64 (very much not reccomended)
 			//------charset: use Conversion flavor constants from UTF8.h
@@ -40,5 +42,5 @@ class PlainTextBodyComponent : public MailComponent {
 		BString text;
 		
 		char encoding;
-		int32 charset;
+		uint32 charset;
 };
