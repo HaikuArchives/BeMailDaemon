@@ -36,7 +36,7 @@ ifeq ($(TARGET_DIR), )
 endif
 
 #	the target goes in the TARGET_DIR
-TARGET	:= "$(TARGET_DIR)/$(NAME)"
+TARGET	:= $(TARGET_DIR)/$(NAME)
 
 #	specify the mimeset tool
 	MIMESET		:= mimeset
@@ -364,7 +364,7 @@ ifeq ($(INSTALL_DIR), )
 else
 	mkdir -p "$(INSTALL_DIR)"
 endif
-	copyattr --data $(TARGET) "$(INSTALL_DIR)/$(NAME)"
+	copyattr --data $(TARGET) $(INSTALL_DIR)/$(NAME)
 	rm $(TARGET)
 	
 # special case libmail.so, fix this to be generic in the future I guess

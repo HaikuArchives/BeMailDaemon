@@ -42,7 +42,7 @@ static const mail_header_field gDefaultFields[] =
 	{ "Subject",      	B_MAIL_ATTR_SUBJECT,  B_STRING_TYPE },
 	{ "Priority",     	B_MAIL_ATTR_PRIORITY, B_STRING_TYPE },
 	{ "Mime-Version", 	B_MAIL_ATTR_MIME,     B_STRING_TYPE },
-	{ "Status",       	B_MAIL_ATTR_STATUS,   B_STRING_TYPE },
+	{ "STATUS",       	B_MAIL_ATTR_STATUS,   B_STRING_TYPE },
 	{ "THREAD",       	"MAIL:thread", 		  B_STRING_TYPE }, //---Not supposed to be used for this (we add it in Parser), but why not?
 	{ "NAME",       	B_MAIL_ATTR_NAME,	  B_STRING_TYPE },
 	{ NULL,              NULL,                 0 }
