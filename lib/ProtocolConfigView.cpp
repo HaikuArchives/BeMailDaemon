@@ -165,8 +165,10 @@ void ProtocolConfigView::SetTo(BMessage *archive) {
 	
 	if (archive->HasInt32("flavor")) {
 		BMenuField *menu = (BMenuField *)(FindView("flavor"));
-		if (menu != NULL)
-			menu->Menu()->ItemAt(archive->FindInt32("flavor"))->SetMarked(true);
+		if (menu != NULL) {
+			if (BMenuItem *item = menu->Menu()->ItemAt(archive->FindInt32("flavor")))
+				item->SetMarked(true);
+		}
 	}
 	
 	if (archive->HasInt32("auth_method")) {

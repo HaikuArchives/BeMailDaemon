@@ -51,7 +51,7 @@ RSRCS=
 #		naming scheme you need to specify the path to the library
 #		and it's name
 #		library: my_lib.a entry: my_lib.a or path/my_lib.a
-LIBS= be mail
+LIBS= be mail ssl crypto
 
 #	specify additional paths to directories following the standard
 #	libXXX.so or libXXX.a naming scheme.  You can specify full paths
@@ -59,12 +59,12 @@ LIBS= be mail
 #	be recursive, so include all of the paths where libraries can
 #	be found.  Directories where source files are found are
 #	automatically included.
-LIBPATHS= ../../lib
+LIBPATHS= ../../lib /boot/home/config/lib
 
 #	additional paths to look for system headers
 #	thes use the form: #include <header>
 #	source file directories are NOT auto-included here
-SYSTEM_INCLUDE_PATHS = ../../include ../../include/numail ../../include/public ../../include/support
+SYSTEM_INCLUDE_PATHS = ../../include ../../include/numail ../../include/public ../../include/support /boot/home/config/include
 
 #	additional paths to look for local headers
 #	thes use the form: #include "header"
@@ -80,7 +80,7 @@ OPTIMIZE= SOME
 #	to use.  For example, setting DEFINES to "DEBUG=1" will cause the
 #	compiler option "-DDEBUG=1" to be used.  Setting DEFINES to "DEBUG"
 #	would pass "-DDEBUG" on the compiler's command line.
-DEFINES=
+DEFINES=IMAPSSL
 
 #	specify special warning levels
 #	if unspecified default warnings will be used

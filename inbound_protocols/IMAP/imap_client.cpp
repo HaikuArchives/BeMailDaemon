@@ -25,6 +25,10 @@
 	#include <socket.h>
 #endif
 
+#ifdef IMAPSSL
+	#include <openssl/ssl.h>
+#endif
+
 #include "NestedString.h"
 
 using namespace Zoidberg;
@@ -57,7 +61,8 @@ class IMAP4Client : public Mail::RemoteStorageProtocol {
 		
 		void GetUniqueIDs();
 		
-		status_t ReceiveLine(BString &out);
+		status_t ReceiveLine(BString &out, bigtime_t timeout = kIMAP4ClientTimeout,
+							 bool care_about_timeouts = true);
 		status_t SendCommand(const char *command);
 		
 		status_t Select(const char *mb, bool force_reselect = false, bool queue_new_messages = true, bool noop = true, bool no_command = false, bool ignore_forced_reselect = false);
@@ -82,6 +87,14 @@ class IMAP4Client : public Mail::RemoteStorageProtocol {
 		BString selected_mb, inbox_name, hierarchy_delimiter, mb_root;
 		BList box_info;
 		status_t err;
+		
+		#ifdef IMAPSSL
+			SSL_CTX *ctx;
+			SSL *ssl;
+			BIO *sbio;
+			
+			bool use_ssl;
+		#endif
 		
 		bool force_reselect;
 };
@@ -108,10 +121,13 @@ IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Rem
 	err = B_OK;
 	
 	mb_root = settings->FindString("root");
+	#ifdef IMAPSSL
+		use_ssl = (settings->FindInt32("flavor") == 1);
+	#endif
 	
 	int port = settings->FindInt32("port");
 	if (port <= 0)
-		port = 143;
+		port = use_ssl ? 993 : 143;
 
 //-----Open TCP link	
 	runner->ReportProgress(0,0,MDR_DIALECT_CHOICE ("Opening connection...","接続中..."));
@@ -125,7 +141,7 @@ IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Rem
 	if (hostIP == 0) {
 		BString error;
 		error << "Could not connect to IMAP server " << settings->FindString("server");
-		if (port != 143)
+		if ((port != 143) && (port != 993))
 			error << ":" << port;
 		error << ": Host not found.";
 		runner->ShowError(error.String());
@@ -151,7 +167,7 @@ IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Rem
 			net = -1;
 			BString error;
 			error << "Could not connect to IMAP server " << settings->FindString("server");
-			if (port != 143)
+			if ((port != 143) && (port != 993))
 				error << ":" << port;
 			error << '.';
 			runner->ShowError(error.String());
@@ -161,7 +177,7 @@ IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Rem
 	} else {
 		BString error;
 		error << "Could not connect to IMAP server " << settings->FindString("server");
-		if (port != 143)
+		if ((port != 143) && (port != 993))
 			error << ":" << port;
 		error << ". (" << strerror(errno) << ')';
 		runner->ShowError(error.String());
@@ -169,7 +185,37 @@ IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Rem
 		runner->Stop();
 		return;
 	}
-
+	
+#ifdef IMAPSSL
+	if (use_ssl) {
+		SSL_library_init();
+    	SSL_load_error_strings();
+    	
+    	ctx = SSL_CTX_new(SSLv23_method());
+    	ssl = SSL_new(ctx);
+    	sbio=BIO_new_socket(net,BIO_NOCLOSE);
+    	SSL_set_bio(ssl,sbio,sbio);
+    	
+    	if (SSL_connect(ssl) <= 0) {
+    		BString error;
+			error << "Could not connect to IMAP server " << settings->FindString("server");
+			if (port != 993)
+				error << ":" << port;
+			error << ". (SSL Connection Error)";
+			runner->ShowError(error.String());
+			SSL_CTX_free(ctx);
+			#ifdef BONE
+				close(net);
+			#else
+				closesocket(net);
+			#endif
+			runner->Stop();
+			return;
+		}
+	}
+	
+	#endif
+	
 //-----Wait for welcome message
 	BString response;
 	ReceiveLine(response);
@@ -222,6 +268,12 @@ IMAP4Client::~IMAP4Client() {
 		delete (struct mailbox_info *)(box_info.ItemAt(i));
 	
 	delete noop;
+	
+	if (use_ssl) {
+		SSL_shutdown(ssl);
+		SSL_CTX_free(ctx);
+	}
+	
 #ifdef BONE
 	close(net);
 #else
@@ -357,8 +409,13 @@ status_t IMAP4Client::AddMessage(const char *mailbox, BPositionIO *data, BString
 		
 	char *buffer = new char[size];
 	data->ReadAt(0,buffer,size);
-	send(net,buffer,size,0);
-	send(net,"\r\n",2,0);
+	if (use_ssl) {
+		SSL_write(ssl,buffer,size);
+		SSL_write(ssl,"\r\n",2);
+	} else {
+		send(net,buffer,size,0);
+		send(net,"\r\n",2,0);
+	}
 	Select(mailbox,false,false,false,true);
 	
 	if (((struct mailbox_info *)(box_info.ItemAt(box_index)))->next_uid <= 0) {
@@ -809,15 +866,18 @@ IMAP4Client::SendCommand(const char* command)
 		
 	static char cmd[255];
 	::sprintf(cmd,"a%.7ld %s"CRLF,++commandCount,command);
-	send(net,cmd,strlen(cmd),0);
-	
+	if (use_ssl)
+		SSL_write(ssl,cmd,strlen(cmd));
+	else
+		send(net,cmd,strlen(cmd),0);
+
 	PRINT(("C: %s",cmd));
 	
 	return B_OK;
 }
 
 int32
-IMAP4Client::ReceiveLine(BString &out)
+IMAP4Client::ReceiveLine(BString &out, bigtime_t timeout, bool care)
 {
 	if (net < 0)
 		return net;
@@ -829,15 +889,19 @@ IMAP4Client::ReceiveLine(BString &out)
 	struct timeval tv;
 	struct fd_set fds; 
 
-	tv.tv_sec = long(kIMAP4ClientTimeout / 1e6); 
-	tv.tv_usec = long(kIMAP4ClientTimeout-(tv.tv_sec * 1e6)); 
+	tv.tv_sec = long(timeout / 1e6); 
+	tv.tv_usec = long(timeout-(tv.tv_sec * 1e6)); 
 	
 	/* Initialize (clear) the socket mask. */ 
 	FD_ZERO(&fds);
 	
 	/* Set the socket in the mask. */ 
-	FD_SET(net, &fds); 
-	int result = select(32, &fds, NULL, NULL, &tv);
+	FD_SET(net, &fds);
+	int result;
+	if (use_ssl)
+		result = 1;
+	else
+		result = select(32, &fds, NULL, NULL, &tv);
 	
 	if (result < 0)
 		return errno;
@@ -846,7 +910,10 @@ IMAP4Client::ReceiveLine(BString &out)
 	{
 		while(c != '\n' && c != xEOF)
 		{
-			r = recv(net,&c,1,0);
+			if (use_ssl)
+				r = SSL_read(ssl,&c,1);
+			else
+				r = recv(net,&c,1,0);
 			if(r <= 0) {
 				BString error;
 					error << "Connection to " << settings->FindString("server") << " lost.";
@@ -855,14 +922,15 @@ IMAP4Client::ReceiveLine(BString &out)
 				runner->ShowError(error.String());
 				return -1;
 			}
-				
+	
 			out += (char)c;
 			len += r;
 		}
 	}else{
 		// Log an error somewhere instead
-		runner->ShowError("IMAP Timeout.");
-		len = -1;		
+		if (care)
+			runner->ShowError("IMAP Timeout.");
+		len = B_TIMED_OUT;		
 	}
 	PRINT(("S:%s\n",out.String()));
 	return len;
@@ -892,8 +960,10 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 		FD_ZERO(&fds);
 		
 		/* Set the socket in the mask. */ 
-		FD_SET(net, &fds); 
-		result = select(32, &fds, NULL, NULL, &tv);
+		if (use_ssl)
+			result = 1;
+		else
+			result = select(32, &fds, NULL, NULL, &tv);
 	}
 	
 	if (result < 0)
@@ -903,7 +973,10 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 	{
 		while(c != '\n' && c != xEOF)
 		{
-			r = recv(net,&c,1,0);
+			if (use_ssl)
+				r = SSL_read(ssl,&c,1);
+			else
+				r = recv(net,&c,1,0);
 			if(r <= 0) {
 				BString error;
 				error << "Connection to " << settings->FindString("server") << " lost.";
@@ -958,7 +1031,10 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 						int read_octets = 0;
 						int nibble_size;
 						while (read_octets < octets_to_read) {
-							nibble_size = recv(net,buffer + read_octets,octets_to_read - read_octets,0);
+							if (use_ssl)
+								nibble_size = SSL_read(ssl,buffer + read_octets,octets_to_read - read_octets);
+							else
+								nibble_size = recv(net,buffer + read_octets,octets_to_read - read_octets,0);
 							read_octets += nibble_size;
 							if (report_literals)
 								runner->ReportProgress(nibble_size,0);
