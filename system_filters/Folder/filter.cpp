@@ -361,10 +361,10 @@ class FolderConfig : public BView {
 			*width += 10;
 		}
 		status_t Archive(BMessage *into, bool) const {
+			into->MakeEmpty();
 			view->Archive(into);
 			if (partial_box->Value())
 				into->AddInt32("size_limit",atoi(size->Text()) * 1024);
-				
 			return B_OK;
 		}
 			
