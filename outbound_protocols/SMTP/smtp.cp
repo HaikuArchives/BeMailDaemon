@@ -425,7 +425,6 @@ SMTPProtocol::Login(const char *_login, const char *password)
 void
 SMTPProtocol::Close()
 {
-	runner->ReportProgress(0,0,MDR_DIALECT_CHOICE ("Closing connection...","切断中..."));
 
 	BString cmd = "QUIT";
 	cmd += CRLF;
