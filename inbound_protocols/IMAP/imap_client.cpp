@@ -5,6 +5,9 @@
 #include <MDRLanguage.h>
 #include <Debug.h>
 #include <StringList.h>
+#include <Entry.h>
+#include <Directory.h>
+#include <File.h>
 #include <MessageRunner.h>
 #include <Path.h>
 #include <crypt.h>
@@ -22,7 +25,7 @@ const bigtime_t kIMAP4ClientTimeout = 1000000*60; // 60 sec
 
 #define DEBUG 1
 
-enum { OK,BAD,NO,NOT_COMMAND_RESPONSE };
+enum { OK,BAD,NO,CONTINUE, NOT_COMMAND_RESPONSE };
 
 class IMAP4Client : public Mail::Protocol {
 	public:
@@ -38,6 +41,8 @@ class IMAP4Client : public Mail::Protocol {
 		
 		status_t ReceiveLine(BString &out);
 		status_t SendCommand(const char *command);
+		
+		status_t Select(const char *mb);
 		
 		virtual status_t InitCheck(BString *) { return B_OK; }
 		
@@ -169,7 +174,7 @@ class NoopWorker : public BHandler {
 		IMAP4Client *us;
 };
 
-IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Protocol(settings,run), commandCount(1), net(NULL), selected_mb("") {
+IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Protocol(settings,run), commandCount(0), net(NULL), selected_mb("") {
 	err = B_OK;
 		
 	net = new BNetEndpoint;
@@ -217,7 +222,9 @@ IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Pro
 	runner->ReportProgress(0,0,"Logged in");
 	
 	InitializeMailboxes();
-	SyncAllBoxes();
+	StringList fake;
+	fake += "//!newmsgcheck";
+	runner->GetMessages(&fake,-1);
 	
 	sync = new SyncHandler(this);
 	runner->AddHandler(sync);
@@ -241,6 +248,8 @@ void IMAP4Client::InitializeMailboxes() {
 	BString tag;
 	char expected[255];
 	::sprintf(expected,"a%.7ld",commandCount);
+	BDirectory dir(runner->Chain()->MetaData()->FindString("path"));
+	BDirectory trash;
 	int val;
 	do {
 		NestedString response;
@@ -255,6 +264,8 @@ void IMAP4Client::InitializeMailboxes() {
 			boxes += response[3]();
 			if (strcasecmp(response[3](),"INBOX") == 0)
 				inbox_name = response[3]();
+				
+			dir.CreateDirectory(response[3](),&trash);
 		}
 	} while (1);
 	
@@ -268,16 +279,63 @@ void IMAP4Client::InitializeMailboxes() {
 								puts(a->ItemAt(i)); \
 							puts("Done\n");
 
+void GetSubFolders(BDirectory *of, StringList *folders, const char *prepend);
+
+void GetSubFolders(BDirectory *of, StringList *folders, const char *prepend) {
+	of->Rewind();
+	BEntry ent;
+	BString crud;
+	BDirectory sub;
+	char buf[255];
+	while (of->GetNextEntry(&ent) == B_OK) {
+		if (ent.IsDirectory()) {
+			sub.SetTo(&ent);
+			ent.GetName(buf);
+			crud = prepend;
+			crud << buf << '/';
+			GetSubFolders(&sub,folders,crud.String());
+			crud = prepend;
+			crud << buf;
+			(*folders) += crud.String();
+		}
+	}
+}
+	
+	
 void IMAP4Client::SyncAllBoxes() {
+	runner->ReportProgress(0,0,"Synchronizing Mailboxes");
 	BString command;
 	char expected[255];
 	StringList *list = new StringList;
 	BString uid,tag;
+	
 	if (selected_mb != "") {
 		SendCommand("CLOSE");
 		WasCommandOkay(command);
 		selected_mb = "";
 	}
+	
+	StringList folders;
+	BEntry entry;
+	BDirectory dir(runner->Chain()->MetaData()->FindString("path"));
+	GetSubFolders(&dir,&folders,"");
+	StringList temp;
+	folders.NotThere(boxes,&temp);
+
+	for (int32 i = 0; i < temp.CountItems(); i++) {
+		command = "";
+		command << "CREATE \"" << temp[i] << '\"';
+		
+		boxes += temp[i];
+		
+		SendCommand(command.String());
+		if (!WasCommandOkay(command)) {
+			command = "Error creating mailbox ";
+			command << temp[i] << '.';
+			runner->ShowError(command.String());
+		}
+	}		
+			
 	for (int32 i = 0; i < boxes.CountItems(); i++) {
 		int32 num_messages = -1;
 		
@@ -338,6 +396,155 @@ void IMAP4Client::SyncAllBoxes() {
 	unique_ids->NotThere(*manifest,&to_dl);
 	
 	runner->GetMessages(&to_dl,-1);
+	
+	folders.MakeEmpty();
+	temp.MakeEmpty();
+	GetSubFolders(&dir,&folders,"");
+	folders.NotHere(boxes,&temp);
+	for (int32 i = 0; i < temp.CountItems(); i++) {
+		command = "";
+		command << "DELETE \"" << temp[i] << '\"';
+		
+		boxes -= temp[i];
+		
+		SendCommand(command.String());
+		if (!WasCommandOkay(command)) {
+			command = "Error creating mailbox ";
+			command << temp[i] << '.';
+			runner->ShowError(command.String());
+		}
+	}
+	
+	BDirectory folder;
+	BString string;
+	BFile snoodle;
+	int32 chain;
+	bool append;
+	for (int32 i = 0; i < boxes.CountItems(); i++) {
+		dir.FindEntry(boxes[i],&entry);
+		folder.SetTo(&entry);
+		folder.Rewind();
+		while (folder.GetNextEntry(&entry) == B_OK) {
+			if (!entry.IsFile())
+				continue;
+			snoodle.SetTo(&entry,B_READ_WRITE);
+			append = false;
+			if (snoodle.ReadAttr("MAIL:chain",B_INT32_TYPE,0,&chain,sizeof(chain)) < B_OK)
+				append = true;
+			if (chain != runner->Chain()->ID())
+				append = true;
+			if (snoodle.ReadAttrString("MAIL:unique_id",&string) < B_OK)
+				append = true;
+			if (strncmp(string.String(),boxes[i],strlen(boxes[i])) == 0)
+				continue;
+			
+			if (!append) {
+				BString mb(string), id;
+				mb.Truncate(string.FindLast('/'));
+				string.CopyInto(id,string.FindLast('/') + 1,string.Length());
+								
+				Select(mb.String());
+				
+				command = "UID COPY ";
+				command << id << " \"" << boxes[i] << '\"';
+				SendCommand(command.String());
+				WasCommandOkay(command);
+			} else {
+				if (selected_mb != "") {
+					BString trash;
+					SendCommand("CLOSE");
+					WasCommandOkay(trash);
+					selected_mb = "";
+				}
+				command = "APPEND \"";
+				off_t size;
+				snoodle.GetSize(&size);
+				command << boxes[i] << "\" {" << size << '}';
+				SendCommand(command.String());
+				ReceiveLine(command);
+				char *buffer = new char[size];
+				snoodle.ReadAt(0,buffer,size);
+				net->Send(buffer,size);
+				net->Send("\r\n",2);
+				WasCommandOkay(command);
+			}
+			
+			if (selected_mb != boxes[i]) {
+				if (selected_mb != "") {
+					BString trash;
+					SendCommand("CLOSE");
+					WasCommandOkay(trash);
+					selected_mb = "";
+				}
+				BString cmd = "SELECT \"";
+				cmd << boxes[i] << '\"';
+				SendCommand(cmd.String());
+			} else {
+				SendCommand("NOOP");
+			}
+			
+			::sprintf(expected,"a%.7ld",commandCount);
+			
+			//----This is a race condition, but we've got no choice
+			int32 exists;
+			
+			while(1) {
+				NestedString response;
+				GetResponse(tag,&response);
+				
+				if (tag == expected)
+					break;
+				
+				if (strcasecmp(response[1](),"EXISTS") == 0)
+					exists = atoi(response[0]());
+			}
+				
+			BString command;
+			command = "FETCH ";
+			command << exists << " UID";
+			SendCommand(command.String());
+			::sprintf(expected,"a%.7ld",commandCount);
+			BString uid;
+			while (1) {
+				NestedString response;
+				GetResponse(tag,&response);
+							
+				if (tag == expected)
+					break;
+				
+				uid = boxes[i];
+				uid << '/' << response[2][1]();
+			}
+			
+			snoodle.WriteAttrString("MAIL:unique_id",&uid);
+			(*manifest) += uid.String();
+			chain = runner->Chain()->ID();
+			snoodle.WriteAttr("MAIL:chain",B_INT32_TYPE,0,&chain,sizeof(chain));
+		}
+	}
+}
+
+status_t IMAP4Client::Select(const char *mb) {
+	if (selected_mb != mb) {
+		if (selected_mb != "") {
+			BString trash;
+			SendCommand("CLOSE");
+			WasCommandOkay(trash);
+			selected_mb = "";
+		}
+		BString cmd = "SELECT \"";
+		cmd << mb << '\"';
+		SendCommand(cmd.String());
+		
+		if (!WasCommandOkay(cmd)) {
+			runner->ShowError(cmd.String());
+			return B_ERROR;
+		}
+		
+		selected_mb = mb;
+	}
+		
+	return B_OK;
 }
 
 class IMAP4PartialReader : public BPositionIO {
@@ -426,24 +633,7 @@ status_t IMAP4Client::GetMessage(
 			
 			*out_folder_location = folder.String();
 				
-			if (selected_mb != folder) {
-				if (selected_mb != "") {
-					BString trash;
-					SendCommand("CLOSE");
-					WasCommandOkay(trash);
-					selected_mb = "";
-				}
-				BString cmd = "SELECT \"";
-				cmd << folder << '\"';
-				SendCommand(cmd.String());
-				
-				if (!WasCommandOkay(cmd)) {
-					runner->ShowError(cmd.String());
-					return B_ERROR;
-				}
-				
-				selected_mb = folder;
-			}
+			Select(folder.String());
 				
 			if (out_headers->FindBool("ENTIRE_MESSAGE")) {				
 				command = "UID FETCH ";
@@ -489,8 +679,6 @@ status_t IMAP4Client::GetMessage(
 		}
 
 status_t IMAP4Client::DeleteMessage(const char* uid) {
-	printf("Deleting %s\n",uid);
-	
 	BString command(uid), folder(uid), id;
 	folder.Truncate(command.FindLast('/'));
 	command.CopyInto(id,command.FindLast('/') + 1,command.Length());
@@ -498,23 +686,7 @@ status_t IMAP4Client::DeleteMessage(const char* uid) {
 	command = "UID STORE ";
 	command << id << " +FLAGS.SILENT (\\Deleted)";
 	
-	if (selected_mb != folder) {
-		if (selected_mb != "") {
-			BString trash;
-			SendCommand("CLOSE");
-			WasCommandOkay(trash);
-			selected_mb = "";
-		}
-		BString cmd = "SELECT \"";
-		cmd << folder << '\"';
-		SendCommand(cmd.String());
-		if (!WasCommandOkay(cmd)) {
-			runner->ShowError(cmd.String());
-			return B_ERROR;
-		}
-		
-		selected_mb = folder;
-	}
+	Select(folder.String());
 	
 	SendCommand(command.String());
 	if (!WasCommandOkay(command)) {
@@ -620,7 +792,6 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 						out = "";
 						char *buffer = new char[octets_to_read+1];
 						buffer[octets_to_read] = 0;
-						printf("Reading a %d byte string literal...\n",octets_to_read);
 						int read_octets = 0;
 						int nibble_size;
 						while (read_octets < octets_to_read) {
