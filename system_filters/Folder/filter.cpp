@@ -16,6 +16,7 @@ class FolderFilter: public MailFilter
 {
 	BString dest_string;
 	BDirectory destination;
+	int32 chain_id;
 	
   public:
 	FolderFilter(BMessage*);
@@ -30,6 +31,7 @@ class FolderFilter: public MailFilter
 FolderFilter::FolderFilter(BMessage* msg)
 : MailFilter(msg),
   dest_string(msg->FindString("destination_path")),
+  chain_id(msg->FindInt32("chain")),
   destination(dest_string.String())
 {}
 
@@ -78,6 +80,7 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		
 		out_headers->AddString("MAIL:unique_id",io_uid->String());
 		out_headers->AddString("MAIL:status","New");
+		out_headers->AddInt32("MAIL:chain",chain_id);
 		
 		size_t length = (*io)->Position();
 		length -= out_headers->FindInt32(B_MAIL_ATTR_HEADER);

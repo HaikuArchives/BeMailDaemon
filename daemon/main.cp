@@ -55,7 +55,7 @@ void makeIndices()
 {
 	const char *stringIndices[] = {	"MAIL:account","MAIL:cc","MAIL:draft","MAIL:flags",
 									"MAIL:from","MAIL:name","MAIL:priority","MAIL:reply",
-									"MAIL:status","MAIL:subject","MAIL:to",NULL};
+									"MAIL:status","MAIL:subject","MAIL:to","MAIL:to",NULL};
 
 	// add mail indices for all devices capable of querying
 
@@ -72,6 +72,7 @@ void makeIndices()
 			fs_create_index(device,stringIndices[i],B_STRING_TYPE,0);
 
 		fs_create_index(device,"MAIL:when",B_INT32_TYPE,0);
+		fs_create_index(device,"MAIL:chain",B_INT32_TYPE,0);
 	}
 }
 

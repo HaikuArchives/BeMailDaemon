@@ -104,6 +104,11 @@ DeletePass::DeletePass(MailProtocol *home) : us(home) {
 	//--do nothing, and do it well
 }
 
+#define dump_stringlist(a) printf("StringList %s:\n",#a); \
+							for (int32 i = 0; i < a.CountItems(); i++)\
+								puts(a.ItemAt(i)); \
+							puts("Done\n");
+
 void DeletePass::Callback(MDStatus status) {
 	StringList query_contents;
 	BQuery fido;
@@ -123,8 +128,12 @@ void DeletePass::Callback(MDStatus status) {
 		query_contents.AddItem(uid.String());
 	}
 
+	dump_stringlist(query_contents);
+	dump_stringlist((*(us->manifest)));
+	
 	StringList to_delete;
 	query_contents.NotHere(*(us->manifest),&to_delete);
+	dump_stringlist(to_delete);
 	
 	for (int32 i = 0; i < to_delete.CountItems(); i++)
 		us->DeleteMessage(to_delete[i]);
