@@ -6,6 +6,7 @@
 #include <E-mail.h>
 #include <Message.h>
 
+class BPath;
 class StatusWindow;
 
 typedef enum {

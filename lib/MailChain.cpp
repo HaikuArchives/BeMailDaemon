@@ -173,7 +173,7 @@ status_t MailChain::Path(BPath *path) const
 	return B_OK;
 }
 
-status_t MailChain::Save(bigtime_t timeout)
+status_t MailChain::Save(bigtime_t /*timeout*/)
 {
 	status_t ret;
 	

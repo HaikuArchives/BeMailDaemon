@@ -57,7 +57,7 @@ MailProtocol::~MailProtocol() {
 
 MDStatus MailProtocol::ProcessMailMessage
 	(
-		BPositionIO** io_message, BEntry* io_entry,
+		BPositionIO** io_message, BEntry* /*io_entry*/,
 		BMessage* io_headers, BPath* io_folder, BString* io_uid
 	) {
 		status_t error;
@@ -108,7 +108,7 @@ DeletePass::DeletePass(MailProtocol *home) : us(home) {
 								puts(a.ItemAt(i)); \
 							puts("Done\n");
 
-void DeletePass::Callback(MDStatus status) {
+void DeletePass::Callback(MDStatus /*status*/) {
 	if (us->settings->FindBool("delete_remote_when_local")) {
 		StringList query_contents;
 		BQuery fido;
@@ -150,7 +150,7 @@ MessageDeletion::MessageDeletion(MailProtocol *home, BString *uid) :
 	us(home),
 	message_id(uid) {}
 
-void MessageDeletion::Callback(MDStatus result) {
+void MessageDeletion::Callback(MDStatus /*result*/) {
 	printf("Deleting %s\n",message_id->String());
 	us->DeleteMessage(message_id->String());
 }

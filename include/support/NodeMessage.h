@@ -15,6 +15,10 @@
    item is the one writen to the node.
 */
 
+#ifndef _IMPEXP_MAIL
+#define _IMPEXP_MAIL
+#endif
+
 #include <Node.h>
 #include <Message.h>
 

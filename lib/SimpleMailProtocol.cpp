@@ -66,7 +66,7 @@ status_t SimpleMailProtocol::GetNextNewUid
 (
 	BString* out_uid,
 	StringList *manifest,
-	time_t timeout
+	time_t /*timeout*/
 ) {
 	
 	do {
@@ -85,7 +85,7 @@ status_t SimpleMailProtocol::GetNextNewUid
 
 status_t SimpleMailProtocol::GetMessage(
 	const char* uid,
-	BPositionIO** out_file, BMessage* out_headers,
+	BPositionIO** out_file, BMessage* /*out_headers*/,
 	BPath* out_folder_location
 ) {
 	int32 to_retrieve = unique_ids->IndexOf(uid);
@@ -106,6 +106,6 @@ status_t SimpleMailProtocol::DeleteMessage(const char* uid) {
 	return B_OK;
 }
 
-status_t SimpleMailProtocol::InitCheck(BString* out_message) {
+status_t SimpleMailProtocol::InitCheck(BString* /*out_message*/) {
 	return error;
 }
