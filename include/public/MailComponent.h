@@ -14,17 +14,21 @@ typedef enum {
 	no_encoding			= -1
 } mail_encoding;
 
-MailComponent *WhatIsThis(MailComponent *headers);
-// Takes any generic MailComponent, and returns an instance
-// of a MailComponent subclass that applies to this case,
-// ready for instantiation. Note that you still have to
-// Instantiate() it yourself.
-
 class MailComponent {
 	public:
 		MailComponent();
 		virtual ~MailComponent();
 		
+		//------Info on this component
+		MailComponent *WhatIsThis();
+			// Takes any generic MailComponent, and returns an instance
+			// of a MailComponent subclass that applies to this case,
+			// ready for instantiation. Note that you still have to
+			// Instantiate() it yourself.
+		bool IsAttachment();
+			// Returns true if this component is an attachment, false
+			// otherwise
+			
 		void AddHeaderField(
 			const char *key, const char *value,
 			uint32 charset = B_ISO1_CONVERSION,

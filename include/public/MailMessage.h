@@ -24,6 +24,13 @@ class MailMessage {
 		
 		void AddComponent(MailComponent *component);
 		MailComponent *GetComponent(int32 i);
+		int32 CountComponents();
+		
+		void Attach(entry_ref *ref, bool include_attachments = true);
+		bool IsComponentAttachment(int32 i);
+		
+		void SetBodyTextTo(const char *text);
+		const char *BodyText();
 		
 		void RenderTo(BFile *file);
 		void RenderTo(BDirectory *dir);
@@ -36,4 +43,5 @@ class MailMessage {
 	
 		int32 _num_components;
 		MailComponent *_body;
+		PlainTextBodyComponent *_text_body;
 };

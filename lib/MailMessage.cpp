@@ -3,6 +3,7 @@
 #include <Directory.h>
 #include <File.h>
 #include <E-mail.h>
+#include <Entry.h>
 #include <netdb.h>
 
 #include <malloc.h>
@@ -12,6 +13,7 @@
 class _EXPORT MailMessage;
 
 #include <MailMessage.h>
+#include <MailAttachment.h>
 #include <MailSettings.h>
 #include <MailDaemon.h>
 
@@ -19,7 +21,7 @@ class _EXPORT MailMessage;
 #define mime_boundary "----------Zoidberg-BeMail-temp--------"
 #define mime_warning "This is a multipart message in MIME format."
 
-MailMessage::MailMessage(BPositionIO *mail_file) : _num_components(0), _body(NULL), _bcc(NULL) {
+MailMessage::MailMessage(BPositionIO *mail_file) : _num_components(0), _body(NULL), _bcc(NULL), _text_body(NULL) {
 	MailSettings settings;
 	_chain_id = settings.DefaultOutboundChainID();
 	
@@ -32,7 +34,7 @@ MailMessage::MailMessage(BPositionIO *mail_file) : _num_components(0), _body(NUL
 	mail_file->Seek(0,SEEK_SET);
 	
 	headers.Instantiate(mail_file,length);
-	_body = WhatIsThis(&headers);
+	_body = headers.WhatIsThis();
 	
 	mail_file->Seek(0,SEEK_SET);
 	_body->Instantiate(mail_file,length);
@@ -40,6 +42,22 @@ MailMessage::MailMessage(BPositionIO *mail_file) : _num_components(0), _body(NUL
 	MIMEMultipartContainer *cont = dynamic_cast<MIMEMultipartContainer *> (_body);
 	
 	_num_components = (cont == NULL) ? 1 : cont->CountComponents();
+	
+	_text_body = dynamic_cast<PlainTextBodyComponent *> (_body);
+	
+	if ((_text_body == NULL) && (cont != NULL)) {
+		MailComponent component, *it_is;
+		for (int32 i = 0; i < cont->CountComponents(); i++) {
+			cont->ManualGetComponent(&component,i);
+			it_is = component.WhatIsThis();
+			_text_body = dynamic_cast<PlainTextBodyComponent *> (it_is);
+			
+			if (_text_body != NULL)
+				break;
+			else
+				delete it_is;
+		}
+	}
 }
 
 const char *MailMessage::To() {
@@ -138,6 +156,52 @@ MailComponent *MailMessage::GetComponent(int32 i) {
 	}
 	
 	return NULL;
+}
+
+int32 MailMessage::CountComponents() {
+	return _num_components;
+}
+
+void MailMessage::Attach(entry_ref *ref, bool include_attachments) {
+	if (include_attachments) {
+		AddComponent(new AttributedMailAttachment(ref));
+	} else {
+		SimpleMailAttachment *attach = new SimpleMailAttachment;
+		attach->SetFileName(ref->name);
+		
+		BFile *file = new BFile(ref,B_READ_ONLY);
+		attach->SetDecodedDataAndDeleteWhenDone(file);
+		
+		AddComponent(attach);
+	}
+}
+		
+bool MailMessage::IsComponentAttachment(int32 i) {
+	if ((i >= _num_components) || (_num_components == 0))
+		return false;
+		
+	if (_num_components == 1)
+		return _body->IsAttachment();
+		
+	MailComponent component;
+	((MIMEMultipartContainer *)(_body))->ManualGetComponent(&component,i);
+	return component.IsAttachment();
+}
+
+void MailMessage::SetBodyTextTo(const char *text) {
+	if (_text_body == NULL) {
+		_text_body = new PlainTextBodyComponent;
+		AddComponent(_text_body);
+	}
+	
+	_text_body->SetText(text);
+}	
+	
+const char *MailMessage::BodyText() {
+	if (_text_body == NULL)
+		return NULL;
+		
+	return _text_body->Text();
 }
 
 void MailMessage::RenderTo(BFile *file) {

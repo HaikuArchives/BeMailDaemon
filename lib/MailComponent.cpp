@@ -46,9 +46,11 @@ static const CharsetConversionEntry charsets[] =
 	{"x-mac-roman", B_MAC_ROMAN_CONVERSION}
 };
 
-_EXPORT MailComponent *WhatIsThis(MailComponent *headers) {
+MailComponent::MailComponent() {}
+		
+MailComponent *MailComponent::WhatIsThis() {
 	BMimeType type, super;
-	headers->MIMEType(&type);
+	MIMEType(&type);
 	type.GetSupertype(&super);
 	
 	puts(type.Type());
@@ -61,8 +63,7 @@ _EXPORT MailComponent *WhatIsThis(MailComponent *headers) {
 		else
 			piece = new MIMEMultipartContainer;
 	} else {
-		const char *disposition = headers->HeaderField("Content-Disposition");
-		if ((disposition == NULL) || (strncasecmp(disposition,"Attachment",strlen("Attachment")) != 0))
+		if (IsAttachment())
 			piece = new PlainTextBodyComponent;
 		else
 			piece = new SimpleMailAttachment;
@@ -71,8 +72,23 @@ _EXPORT MailComponent *WhatIsThis(MailComponent *headers) {
 	return piece;
 }
 
-MailComponent::MailComponent() {}
+bool MailComponent::IsAttachment() {
+	const char *disposition = HeaderField("Content-Disposition");
+	if ((disposition != NULL) && (strncasecmp(disposition,"Attachment",strlen("Attachment")) == 0))
+		return true;
+	
+	BString header = HeaderField("Content-Type");
+	if (header.FindFirst("name=") && (header.FindFirst(";") > 0) && (header.FindFirst("name=") > header.FindFirst(";")))
+		return true;
 		
+	BMimeType type;
+	MIMEType(&type);
+	if (type == "multipart/x-bfile")
+		return true;
+	
+	return false;
+}
+
 void MailComponent::AddHeaderField(const char *key, const char *value, uint32 charset, mail_encoding encoding, bool replace_existing) {
 	if (replace_existing)
 		headers.RemoveName(key);

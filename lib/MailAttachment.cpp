@@ -217,6 +217,7 @@ AttributedMailAttachment::AttributedMailAttachment(BFile *file, bool delete_when
 	AddComponent(_attributes_attach);
 	
 	AddHeaderField("Content-Type","multipart/x-bfile");
+	AddHeaderField("Content-Disposition","Attachment");
 	
 	if (file != NULL)
 		SetTo(file,delete_when_done);
@@ -230,6 +231,7 @@ AttributedMailAttachment::AttributedMailAttachment(entry_ref *ref) {
 	_attributes_attach->AddHeaderField("Content-Type","application/x-be_attribute; name=\"BeOS Attributes\"");
 	
 	AddHeaderField("Content-Type","multipart/x-bfile");
+	AddHeaderField("Content-Disposition","Attachment");
 	
 	if (ref != NULL)
 		SetTo(ref);
@@ -259,7 +261,8 @@ void AttributedMailAttachment::SetTo(entry_ref *ref) {
 	_data->SetDecodedDataAndDeleteWhenDone(file);
 	BNodeInfo(file).GetType(buffer);
 	_data->AddHeaderField("Content-Type",buffer);
-	_data->SetFileName(ref->name);
+	
+	SetFileName(ref->name);
 }
 
 void AttributedMailAttachment::SaveToDisk(BEntry *entry) {

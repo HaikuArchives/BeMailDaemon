@@ -60,7 +60,7 @@ MailComponent *MIMEMultipartContainer::GetComponent(int32 index) {
 	MailComponent component;
 	component.Instantiate(_io_data,part->end - part->start);
 	
-	MailComponent *piece = WhatIsThis(&component);
+	MailComponent *piece = component.WhatIsThis();
 	
 	/* Debug code 
 	_io_data->Seek(part->start,SEEK_SET);
