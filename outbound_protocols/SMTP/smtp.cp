@@ -133,17 +133,21 @@ status_t SMTPProtocol::Open(const char *server, int port, bool esmtp) {
 		
 	if (esmtp) 
 	{
-		const char* res = fLog.String();
-		char* p;
-		if((p = ::strstr(res,"250-AUTH")))
+		int32 start;
+		if ((start = fLog.FindFirst("250-AUTH")) >= 0)
 		{
-			if(::strstr(p,"LOGIN"))
+			int32 end = fLog.FindFirst('\n');
+			if (end == B_ERROR)
+				end = fLog.Length();
+			BString auth(fLog.String() + start,end - start);
+			
+			if (auth.FindFirst("LOGIN"))
 				fAuthType |= LOGIN;
-			if(::strstr(p,"PLAIN"))
+			if (auth.FindFirst("PLAIN"))
 				fAuthType |= PLAIN;	
-			if(::strstr(p,"CRAM-MD5"))
+			if (auth.FindFirst("CRAM-MD5"))
 				fAuthType |= CRAM_MD5;
-			if(::strstr(p,"DIGEST-MD5"))
+			if (auth.FindFirst("DIGEST-MD5"))
 				fAuthType |= DIGEST_MD5;
 		}
 	}
