@@ -1,6 +1,7 @@
 #include <UTF8.h>
 #include <String.h>
 #include <DataIO.h>
+#include <List.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -10,7 +11,7 @@
 #include <base64.h>
 #include <qp.h>
 
-#include "mail_util.h"
+#include <mail_util.h>
 
 struct CharsetConversionEntry
 {
@@ -43,7 +44,7 @@ static const CharsetConversionEntry charsets[] =
 	{"x-mac-roman", B_MAC_ROMAN_CONVERSION}
 };
 
-ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
+_EXPORT ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 {
 	char *string = *bufp;
 	char *head, *tail;
@@ -61,14 +62,10 @@ ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 	
 	//---------Handle *&&^%*&^ non-RFC compliant, 8bit mail
 	{
-	int32 new_len = strLen * 2;
 	int32 state = 0;
 	int32 len = strLen;
-	char *new_bufp = (char *)malloc(new_len);
 	//-----Just try
 	convert_to_utf8(B_ISO1_CONVERSION,*bufp,&len,*bufp,&len,&state);
-	//free(*bufp);
-	//*bufp = new_bufp;
 	strLen = len;
 	}
 	
@@ -209,9 +206,115 @@ ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 	return ret<B_OK? ret:string-head;
 }
 
+_EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, char encoding) {
+	struct word {
+		const char *begin;
+		size_t length;
+	
+		bool has_8bit;
+	};
+	
+	{
+	int32 state = 0;
+	int32 len = length*2;
+	char *result = (char *)malloc(len);
+	//-----Just try
+	convert_from_utf8(charset,*bufp,&length,result,&len,&state);
+	length = len;
+	free(*bufp);
+	*bufp = result;
+	}
+	
+	BList words;
+	struct word *current;
+	
+	for (const char *start = *bufp; start < (*bufp+length); start++) {
+		current = new struct word;
+		current->begin = start;
+		current->has_8bit = false;
+		
+		for (current->length = 0; start[current->length] != 0; current->length++) {
+			if (isspace(start[current->length]))
+				break;
+			if (start[current->length] & (1 << 7))
+				current->has_8bit = true;
+		}
+		
+		start += current->length;
+		
+		words.AddItem(current);
+	}
+	
+	BString rfc2047;
+	
+	const char *charset_dec = NULL;
+	for (int32 i = 0; i < 21; i++) {
+		if (charsets[i].flavor == charset) {
+			charset_dec = charsets[i].charset;
+			break;
+		}
+	}
+	
+	struct word *run;
+	for (int32 i = 0; current = (struct word *)words.ItemAt(i); i++) {
+		for (int32 g = i+1; run = (struct word *)words.ItemAt(g); g++) {
+			if (run->has_8bit && current->has_8bit) {
+				current->length += run->length+1;
+				delete words.RemoveItem(g);
+				g--;
+			} else {
+				//i = g;
+				break;
+			}
+		}
+	}
+	
+	while (current = (struct word *)words.RemoveItem(0L)) {
+		if (!current->has_8bit) {
+			rfc2047.Append(current->begin, current->length + 1);
+			delete current;
+		} else {
+			char *encoded;
+			ssize_t encoded_len;
+			
+			switch (encoding) {
+				case -1:
+					encoded = (char *)current->begin;
+					encoded_len = current->length;
+					break;
+				case 'q':
+					encoded = (char *)malloc(current->length * 3);
+					encoded_len = encode_qp(encoded,(char *)current->begin,current->length);
+					break;
+				case 'b':
+					encoded = (char *)malloc(current->length * 2);
+					encoded_len = encode_base64(encoded,(char *)current->begin,current->length);
+					break;
+			}
+			
+			printf("String: %s, len: %d\n",current->begin,current->length);
+			
+			rfc2047 << "=?" << charset_dec << '?' << encoding << '?';
+			rfc2047.Append(encoded,encoded_len);
+			rfc2047 << "?=" << current->begin[current->length];
+			
+			if (encoding > 0)
+				free(encoded);
+		}
+	}
+	
+	free(*bufp);
+	
+	*bufp = (char *)(malloc(rfc2047.Length() + 1));
+	strcpy(*bufp,rfc2047.String());
+	
+	return rfc2047.Length();
+}
+	
+
 //====================================================================
 
-ssize_t readfoldedline(FILE *file, char **buffer, size_t *buflen)
+_EXPORT ssize_t readfoldedline(FILE *file, char **buffer, size_t *buflen)
 {
 	ssize_t len = buflen && *buflen? *buflen-1:0; // space for \0
 	char * buf = buffer && *buffer? *buffer:NULL;
@@ -269,7 +372,7 @@ ssize_t readfoldedline(FILE *file, char **buffer, size_t *buflen)
 
 //====================================================================
 
-ssize_t readfoldedline(BPositionIO &in, char **buffer, size_t *buflen)
+_EXPORT ssize_t readfoldedline(BPositionIO &in, char **buffer, size_t *buflen)
 {
 	ssize_t len = buflen && *buflen? *buflen-1:0; // space for \0
 	char * buf = buffer && *buffer? *buffer:NULL;
@@ -326,7 +429,7 @@ ssize_t readfoldedline(BPositionIO &in, char **buffer, size_t *buflen)
 	return cnt;
 }
 
-ssize_t nextfoldedline(const char** header, char **buffer, size_t *buflen)
+_EXPORT ssize_t nextfoldedline(const char** header, char **buffer, size_t *buflen)
 {
 	ssize_t len = buflen && *buflen? *buflen-1:0; // space for \0
 	char * buf = buffer && *buffer? *buffer:NULL;
@@ -384,7 +487,7 @@ ssize_t nextfoldedline(const char** header, char **buffer, size_t *buflen)
 
 
 
-void StripGook(BString* header)
+_EXPORT void StripGook(BString* header)
 {
 	//
 	// return human-readable name from From: or To: header

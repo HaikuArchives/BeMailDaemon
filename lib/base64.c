@@ -1,5 +1,7 @@
 #include "base64.h"
 
+#include <stdio.h>
+
 char base64_alphabet[64] = { //----Fast lookup table
   'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
   'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
@@ -15,19 +17,19 @@ _EXPORT ssize_t	encode_base64(char *out, char *in, register off_t length) {
 	register int curr_linelength = 4; //--4 is a safety extension, designed to cause retirement *before* it actually gets too long
 	
 	while ( i < length ) {
-		concat = (in[i] << 16);
+		concat = ((in[i] & 0xff) << 16);
 		
 		if ((i+1) < length)
-			concat |= (in[i+1] << 8);
+			concat |= ((in[i+1] & 0xff) << 8);
 		if ((i+2) < length)
-			concat |= in[i+2];
+			concat |= (in[i+2] & 0xff);
 			
 		i += 3;
-		
-		out[k++] = base64_alphabet[(concat >> 18) & 0x3f];
-		out[k++] = base64_alphabet[(concat >> 12) & 0x3f];
-		out[k++] = base64_alphabet[(concat >> 6) & 0x3f];
-		out[k++] = base64_alphabet[concat & 0x3f];
+				
+		out[k++] = base64_alphabet[(concat >> 18) & 63];
+		out[k++] = base64_alphabet[(concat >> 12) & 63];
+		out[k++] = base64_alphabet[(concat >> 6) & 63];
+		out[k++] = base64_alphabet[concat & 63];
 
 		if (i >= length) {
 			int v;

@@ -12,6 +12,7 @@ void StripGook(BString* header);
 // longest human-readable phrase.
 
 ssize_t rfc2047_to_utf8(char **buffer, size_t *bufLen, size_t strLen = 0);
+ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, char encoding);
 // convert (in place) RFC 2047-style escape sequences ("=?...?.?...?=")
 // in the first strLen characters of *buffer into UTF-8, and return the
 // length of the converted string or an error code less than 0 on error.

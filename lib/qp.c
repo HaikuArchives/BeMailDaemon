@@ -2,6 +2,10 @@
 
 #include <qp.h>
 
+#include <stdio.h>
+
+const char hex_alphabet[16] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+
 _EXPORT ssize_t	decode_qp(char *out, char *in, off_t length)
 {
 	// decode Quoted Printable
@@ -43,4 +47,22 @@ _EXPORT ssize_t	decode_qp(char *out, char *in, off_t length)
 	
 	*dataout = '\0';
 	return dataout-out;	
+}
+
+_EXPORT ssize_t	encode_qp(register char *out, register char *in, register off_t length) {
+	register int g = 0, i = 0;
+	
+	for (; i < length; i++) {
+		if ((in[i] & (1 << 7)) || (in[i] == '?') || (in[i] == '=') || (in[i] == '_')) {
+			out[g++] = '=';
+			out[g++] = hex_alphabet[(in[i] >> 4) & 0x0f];
+			out[g++] = hex_alphabet[in[i] & 0x0f];
+		}
+		else if ((in[i] == ' ')  || (in[i] == '\t'))
+			out[g++] = '_';
+		else
+			out[g++] = in[i];
+	}
+
+	return g;
 }
