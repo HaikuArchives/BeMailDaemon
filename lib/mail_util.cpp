@@ -383,62 +383,67 @@ _EXPORT ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 	return ret < B_OK ? ret : string-head;
 }
 
+
 _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, char encoding) {
 	struct word {
+		BString	originalWord;
 		BString	convertedWord;
-		bool	unprintable;
-		bool	priorSpaces;
-		bool	splitAsianSentenceFollows;
-		bool	isQuote;
-		bool	hasTrailingQuote;
+		bool	needsEncoding;
+
+		// Convert the word from UTF-8 to the desired character set.  The
+		// converted version also includes the escape codes to return to ASCII
+		// mode, if relevant.  Also note if it uses unprintable characters,
+		// which means it will need that special encoding treatment later.
+		void ConvertWordToCharset (uint32 charset) {
+			int32 state = 0;
+			int32 originalLength = originalWord.Length();
+			int32 convertedLength = originalLength * 5 + 1;
+			char *convertedBuffer = convertedWord.LockBuffer (convertedLength);
+			MDR_convert_from_utf8 (charset, originalWord.String(),
+				&originalLength, convertedBuffer, &convertedLength, &state);
+			for (int i = 0; i < convertedLength; i++) {
+				if ((convertedBuffer[i] & (1 << 7)) ||
+					(convertedBuffer[i] >= 0 && convertedBuffer[i] < 32)) {
+					needsEncoding = true;
+					break;
+				}
+			}
+			convertedWord.UnlockBuffer (convertedLength);
+		};
 	};
 	struct word *currentWord;
 	BList words;
 
 	// Break the header into words.  White space characters (including tabs and
-	// newlines) separate the words, as do double quote marks.  That sometimes
-	// means no space between words, when you get things like name="blort" in
-	// the MIME headers (we treat it as the two words: name= and "blort" with
-	// no space before the "blort" word).  The reader is supposed to ignore the
-	// white space between encoded words, which can be inserted so that older
-	// mail parsers don't have overly long line length problems.  Quoted
-	// strings get special treatment - the whole quote is one "word" so that
-	// the spaces don't get lost, but we put the quote marks outside the
-	// encoded part of the word so that MIME headers are still parsed
-	// correctly.
+	// newlines) separate the words.  Each word includes any space before it as
+	// part of the word.  Actually, quotes are treated as separate words of
+	// their own so that they don't get encoded (because MIME headers get the
+	// quotes parsed before character set unconversion is done).  The reader is
+	// supposed to ignore all white space between encoded words, which can be
+	// inserted so that older mail parsers don't have overly long line length
+	// problems.
 
 	const char *source = *bufp;
 	const char *bufEnd = *bufp + length;
-	bool quoted = false;
-	bool spacesBefore = false;
 
 	while (source < bufEnd) {
-		if (isspace (*source)) {
-			// Skip leading spaces, spaces between words.
-			source++;
-			spacesBefore = true;
-			continue;
-		}
-		quoted = (*source == '"');
-		if (quoted)
-			source++; // Won't include starting quote in the converted text.
-
 		currentWord = new struct word;
-		currentWord->unprintable = false;
-		currentWord->splitAsianSentenceFollows = false;
-		currentWord->priorSpaces = spacesBefore;
-		currentWord->isQuote = quoted;
+		currentWord->needsEncoding = false;
 
-		// Find the end of the word.  Leave wordEnd pointing just after the
-		// last character in the word.
+		int wordEnd = 0;
 
-		int wordEnd;
-		for (wordEnd = 0; source + wordEnd < bufEnd; wordEnd++) {
-			if (quoted) {
-				if (source[wordEnd] == '"')
-					break;
-			} else {
-				if (isspace(source[wordEnd]) || source[wordEnd] == '"')
+		// Include leading spaces as part of the word.
+		while (source + wordEnd < bufEnd && isspace (source[wordEnd]))
+			wordEnd++;
+
+		if (source + wordEnd < bufEnd && source[wordEnd] == '"') {
+			// Got a quote mark, which is treated as a word in itself.
+			wordEnd++;
+		} else {
+			// Find the end of the word.  Leave wordEnd pointing just after the
+			// last character in the word.
+			while (source + wordEnd < bufEnd) {
+				if (isspace(source[wordEnd]) || (source[wordEnd] == '"'))
 					break;
 				if (wordEnd > 51 /* Makes Base64 ISO-2022-JP "word" a multiple of 4 bytes */ &&
 					0xC0 == (0xC0 & (unsigned int) source[wordEnd])) {
@@ -448,44 +453,18 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 					// two bits are both ones).  Note that two encoded words in
 					// a row get joined together, even if there is a space
 					// between them in the final output text, according to the
-					// standard.
-					currentWord->splitAsianSentenceFollows = true;
-					currentWord->unprintable = true;
+					// standard.  Next word will also be conveniently get
+					// encoded due to the 0xC0 test.
+					currentWord->needsEncoding = true;
 					break;
 				}
+				wordEnd++;
 			}
 		}
-		bool trailingQuote = (quoted && source[wordEnd] == '"');
-		currentWord->hasTrailingQuote = trailingQuote;
-
-		// Convert the word from UTF-8 to the desired character set.  The
-		// converted version also includes the escape codes to return to ASCII
-		// mode, if relevant.  Also note if it uses unprintable characters,
-		// which means it will need special treatment later.
-
-		int32 state = 0;
-		int32 originalLength = wordEnd; // Can be zero for quote followed by quote.
-		int32 convertedLength = originalLength * 5 + 1; // Some character sets bloat up quite a bit, even 5 times.
-		char *convertedBuffer = currentWord->convertedWord.LockBuffer (convertedLength);
-
-		MDR_convert_from_utf8 (charset, source, &originalLength,
-			convertedBuffer, &convertedLength, &state);
-
-		for (int i = 0; i < convertedLength; i++) {
-			if ((convertedBuffer[i] & (1 << 7)) ||
-				(convertedBuffer[i] >= 0 && convertedBuffer[i] < 32)) {
-				currentWord->unprintable = true;
-				break;
-			}
-		}
-
-		currentWord->convertedWord.UnlockBuffer (convertedLength);
-
+		currentWord->originalWord.SetTo (source, wordEnd);
+		currentWord->ConvertWordToCharset (charset);
 		words.AddItem(currentWord);
 		source += wordEnd;
-		if (trailingQuote)
-			source++;
-		spacesBefore = false;
 	}
 
 	// Combine adjacent words which contain unprintable text so that the
@@ -497,24 +476,30 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 	struct word *run;
 
 	for (int32 i = 0; (currentWord = (struct word *) words.ItemAt (i)) != NULL; i++) {
-		if (currentWord->isQuote)
-			continue; // Don't combine quoted words, their quotes need to be outside.
+		if (!currentWord->needsEncoding)
+			continue; // No need to combine unencoded words.
 		for (int32 g = i+1; (run = (struct word *) words.ItemAt (g)) != NULL; g++) {
-			if (!run->isQuote && run->unprintable && currentWord->unprintable &&
-				!currentWord->splitAsianSentenceFollows &&
-				(currentWord->convertedWord.Length() + run->convertedWord.Length() <= 53)) {
-				if (run->priorSpaces)
-					currentWord->convertedWord.Append (" ");
-				currentWord->convertedWord.Append (run->convertedWord);
-				if (run->splitAsianSentenceFollows)
-					currentWord->splitAsianSentenceFollows = true;
+			if (!run->needsEncoding)
+				break; // Don't want to combine encoded and unencoded words.
+			if ((currentWord->convertedWord.Length() + run->convertedWord.Length() <= 53)) {
+				currentWord->originalWord.Append (run->originalWord);
+				currentWord->ConvertWordToCharset (charset);
 				words.RemoveItem(g);
 				delete run;
 				g--;
-			} else // Can't merge this word.  On to the next...
+			} else // Can't merge this word, result would be too long.
 				break;
 		}
 	}
+
+	// Combine the encoded and unencoded words into one line, doing the
+	// quoted-printable or base64 encoding.  Insert an extra space between
+	// words which are both encoded to make word wrapping easier, since there
+	// is normally none, and you're allowed to insert space (the receiver
+	// throws it away if it is between encoded words).
+
+	BString rfc2047;
+	bool	previousWordNeededEncoding = false;
 
 	const char *charset_dec = "none-bug";
 	for (int32 i = 0; charsets[i].charset != NULL; i++) {
@@ -524,21 +509,29 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 		}
 	}
 
-	// Do special encoding for words which aren't plain ASCII.  Only quoted
-	// printable and base64 are allowed for header encoding, according to the
-	// standards.
-
-	BString rfc2047;
-
 	while ((currentWord = (struct word *)words.RemoveItem(0L)) != NULL) {
-		if (currentWord->priorSpaces)
-			rfc2047 << " ";
-		if (currentWord->isQuote)
-			rfc2047 << "\"";
 		if ((encoding != quoted_printable && encoding != base64) ||
-		!currentWord->unprintable) {
+		!currentWord->needsEncoding) {
 			rfc2047.Append (currentWord->convertedWord);
 		} else {
+			// This word needs encoding.  Try to insert a space between it and
+			// the previous word.
+			if (previousWordNeededEncoding)
+				rfc2047 << ' '; // Can insert as many spaces as you want between encoded words.
+			else {
+				// Previous word is not encoded, spaces are significant.  Try
+				// to move a space from the start of this word to be outside of
+				// the encoded text, so that there is a bit of space between
+				// this word and the previous one to enhance word wrapping
+				// chances later on.
+				if (currentWord->originalWord.Length() > 1 &&
+					isspace (currentWord->originalWord[0])) {
+					rfc2047 << ' ';
+					currentWord->originalWord.Remove (0 /* offset */, 1 /* length */);
+					currentWord->ConvertWordToCharset (charset);
+				}
+			}
+
 			char *encoded = NULL;
 			ssize_t encoded_len = 0;
 			int32 convertedLength = currentWord->convertedWord.Length ();
@@ -566,10 +559,7 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 			if (encoding == quoted_printable || encoding == base64)
 				free(encoded);
 		}
-		if (currentWord->hasTrailingQuote)
-			rfc2047.Append ("\"");
-		if (currentWord->splitAsianSentenceFollows)
-			rfc2047.Append (" ");
+		previousWordNeededEncoding = currentWord->needsEncoding;
 		delete currentWord;
 	}
 
