@@ -21,8 +21,11 @@
 #include "md5.h"
 
 #define CRLF "\r\n"
+#define SMTP_RESPONSE_SIZE 8192
 #define smtp_errlert(string) (new BAlert("SMTP Error",string,"OK",NULL,NULL,B_WIDTH_AS_USUAL,B_WARNING_ALERT))->Go();
 
+
+// Authentication types recognized. Not all methods are implemented.
 enum AuthType{
 	LOGIN=1,
 	PLAIN=1<<2,
@@ -30,135 +33,136 @@ enum AuthType{
 	DIGEST_MD5=1<<4
 };
 
+
+// Constructor. Sets up everything and call other methods.
 SMTPProtocol::SMTPProtocol(BMessage *message, StatusView *view) :
 	MailFilter(message),
 	_settings(message),
 	status_view(view),
 	fAuthType(0),
-	err(B_OK) {
-		BString error_msg;
-		message->PrintToStream();
-		bool esmtp = (_settings->FindInt32("auth_method") == 1);
+	err(B_OK) 
+{
+	BString error_msg;
+	message->PrintToStream();
+	bool esmtp = (_settings->FindInt32("auth_method") == 1);
 		
-		err = Open(_settings->FindString("server"),_settings->FindInt32("port"),esmtp);
-		if (err < B_OK) {
-			error_msg << "Error while opening connection to " << _settings->FindString("server");
+	err = Open(_settings->FindString("server"),_settings->FindInt32("port"),esmtp);
+	if (err < B_OK) {
+		error_msg << "Error while opening connection to " << _settings->FindString("server");
 			
-			if (_settings->FindInt32("port") > 0)
-				error_msg << ":" << _settings->FindInt32("port");
+		if (_settings->FindInt32("port") > 0)
+			error_msg << ":" << _settings->FindInt32("port");
 				
-			// << strerror(err) - BNetEndpoint sucks, we can't use this;
-			if (fLog.Length() > 0)
-				error_msg << ". The server says:\n" << fLog;
-			else
-				error_msg << ": Connection refused or host not found.";
+		// << strerror(err) - BNetEndpoint sucks, we can't use this;
+		if (fLog.Length() > 0)
+			error_msg << ". The server says:\n" << fLog;
+		else
+			error_msg << ": Connection refused or host not found.";
 			
-			smtp_errlert(error_msg.String());
-			return;
-		}
-			
-		const char *password = _settings->FindString("password");
-		char *passwd = get_passwd(_settings,"cpasswd");
-		if (passwd)
-			password = passwd;
-
-		err = Login(_settings->FindString("username"),password);
-		delete passwd;
-
-		if (err < B_OK) {
-			//-----This is a really cool kind of error message. How can we make it work for POP3?
-			error_msg << "Error while logging in to " << _settings->FindString("server") << ". The server said:\n" << fLog;
-			smtp_errlert(error_msg.String());
-		}
-			
+		smtp_errlert(error_msg.String());
+		return;
 	}
-		
+			
+	const char *password = _settings->FindString("password");
+	char *passwd = get_passwd(_settings,"cpasswd");
+	if (passwd)
+		password = passwd;
+
+	err = Login(_settings->FindString("username"),password);
+	delete passwd;
+
+	if (err < B_OK) {
+		//-----This is a really cool kind of error message. How can we make it work for POP3?
+		error_msg << "Error while logging in to " << _settings->FindString("server") << ". The server said:\n" << fLog;
+		smtp_errlert(error_msg.String());
+	}			
+}
+
+// Check for errors? 
 status_t SMTPProtocol::InitCheck(BString *verbose) {
 	if (verbose != NULL)
 		*verbose << "Error while fetching mail from " << _settings->FindString("server") << ": " << strerror(err);
 	return err;
 }
 
+
+// Process EMail to be sent
 MDStatus SMTPProtocol::ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* /*io_entry*/,
 		BMessage* io_headers, BPath* /*io_folder*/, BString* /*io_uid*/
-	) {
-		const char *from = io_headers->FindString("MAIL:from");
-		const char *to = io_headers->FindString("MAIL:recipients");
-		if (!to)
-			to = io_headers->FindString("MAIL:to");
+	) 
+{
+	const char *from = io_headers->FindString("MAIL:from");
+	const char *to = io_headers->FindString("MAIL:recipients");
+	if (!to)
+		to = io_headers->FindString("MAIL:to");
 
-		if (to && from && Send(to,from,*io_message) == B_OK) {
-			status_view->AddItem();
-			return MD_HANDLED;
-		} else {
-			BString error;
-			error << "An error occurred while sending the message " << io_headers->FindString("MAIL:subject") << " to " << to << ":\n" << fLog;
-			smtp_errlert(error.String());
-			status_view->AddItem();
-			return MD_ERROR;
-		}
+	if (to && from && Send(to,from,*io_message) == B_OK) {
+		status_view->AddItem();
+		return MD_HANDLED;
+	} else {
+		BString error;
+		error << "An error occurred while sending the message " << io_headers->FindString("MAIL:subject") << " to " << to << ":\n" << fLog;
+		smtp_errlert(error.String());
+		status_view->AddItem();
+		return MD_ERROR;
 	}
+}
 
-status_t SMTPProtocol::Open(const char *server, int port, bool esmtp) {
+// Opens connection to server
+status_t SMTPProtocol::Open(const char* address, int port, bool esmtp)
+{
 	status_view->SetMessage("Connecting to server...");
-
+	
 	if (port <= 0)
 		port = 25;
+
+	status_t err;
+	err = conn.Connect(address, port);
 		
-	fLog = "";
-		
-	status_t err;	
-	err = conn.Connect(server, port);
-		
-	if (err != B_OK)
-		return err;
-				
+	if(err != B_OK)
+		return err;	
+	
 	BString line;
+	ReceiveResponse(line);
 	
-	if (ReceiveLine(line) <= 0)
-		return conn.Error();
-	
-	BString cmd;
-	
-	if (!esmtp)
-		cmd = "HELO ";
+	char *cmd = new char[::strlen(address)+8];
+	if(!esmtp)
+		::sprintf(cmd,"HELO %s"CRLF, address);
 	else
-		cmd = "EHLO ";
-		 
-	cmd << server << CRLF;
-	if (SendCommand(cmd.String()) != B_OK)
+		::sprintf(cmd,"EHLO %s"CRLF, address);
+				
+	if (SendCommand(cmd) != B_OK) {
+		delete[] cmd;
 		return B_ERROR;
+	}
 	
-	if (esmtp) 
+	delete[] cmd;
+
+	// Check auth type
+	if(esmtp)
 	{
-		int32 start;
-		if ((start = fLog.FindFirst("250-AUTH")) >= 0)
+		const char* res = fLog.String();
+		char* p;
+		if((p=::strstr(res,"250-AUTH")))
 		{
-			int32 end = fLog.FindFirst('\n');
-			if (end == B_ERROR)
-				end = fLog.Length();
-			BString auth(fLog.String() + start,end - start);
-			printf("Authentification string: \"%s\"\n",auth.String());
-			
-			if (auth.FindFirst("LOGIN"))
+			if(::strstr(p,"LOGIN"))
 				fAuthType |= LOGIN;
-			if (auth.FindFirst("PLAIN"))
+			if(::strstr(p,"PLAIN"))
 				fAuthType |= PLAIN;	
-			if (auth.FindFirst("CRAM-MD5"))
+			if(::strstr(p,"CRAM-MD5"))
 				fAuthType |= CRAM_MD5;
-			if (auth.FindFirst("DIGEST-MD5"))
+			if(::strstr(p,"DIGEST-MD5"))
 				fAuthType |= DIGEST_MD5;
 		}
 	}
-	
 	return B_OK;
-
 }
 
-status_t SMTPProtocol::Login(const char * _login, const char * password) {
-	if (fAuthType == 0) {
+status_t SMTPProtocol::Login(const char* _login, const char* password)
+{
+	if(fAuthType == 0) {
 		if (_settings->FindInt32("auth_method") == 2) {
 
 			//*** POP3 authentification ***
@@ -214,8 +218,6 @@ status_t SMTPProtocol::Login(const char * _login, const char * password) {
 								unload_add_on(image);
 							}
 						}
-						//else
-						//	fLog = "POP3 protocol is not used";
 					}
 					else
 						fLog = "Could not get inbound protocol";
@@ -247,7 +249,7 @@ status_t SMTPProtocol::Login(const char * _login, const char * password) {
 	if(fAuthType&CRAM_MD5)
 	{
 		//******* CRAM-MD5 Authentication ( not tested yet.)
-		SendCommand("AUTH CRAM-MD5");
+		SendCommand("AUTH CRAM-MD5"CRLF);
 		const char* res = fLog.String();
 		
 		if(strncmp(res,"334",3)!=0)
@@ -265,9 +267,9 @@ status_t SMTPProtocol::Login(const char * _login, const char * password) {
 		printf("%s\n%s\n",base,hex_digest);
 		delete[] base;
 		
-		char *resp = new char[(strlen(hex_digest)+loginlen)*2+3];
+		char *resp = new char[(strlen(hex_digest)+loginlen)*2+3+2];
 		
-		::sprintf(resp,"%s %s",login,hex_digest);
+		::sprintf(resp,"%s %s"CRLF, login, hex_digest);
 		baselen = ::encode_base64(resp,resp,strlen(resp));
 		resp[baselen]='\0';
 		SendCommand(resp);
@@ -280,13 +282,13 @@ status_t SMTPProtocol::Login(const char * _login, const char * password) {
 		
 	}
 	if(fAuthType&DIGEST_MD5){
-	//******* DIGEST-MD5 Authentication ( Not written yet..)
+	//******* DIGEST-MD5 Authentication ( not written yet..)
 		fLog = "DIGEST-MD5 Authentication is not supported";
 		return B_ERROR;
 	}
 	if(fAuthType&LOGIN){
-	//******* LOGIN Authentication ( Tested. Should work fine)
-		SendCommand("AUTH LOGIN");
+	//******* LOGIN Authentication ( tested. work fine)
+		SendCommand("AUTH LOGIN"CRLF);
 		const char* res = fLog.String();
 		
 		if(strncmp(res,"334",3)!=0)
@@ -294,7 +296,11 @@ status_t SMTPProtocol::Login(const char * _login, const char * password) {
 		// Send login name as base64
 		char* login64 = new char[loginlen*3+3];
 		::encode_base64(login64,(char*)login,loginlen);
-		SendCommand(login64);
+		// Hack! I'm sure there is a better way to do this
+		BString t1_login64(login64);
+		t1_login64.Append(CRLF);
+		
+		SendCommand(t1_login64.String());
 		delete [] login64;
 		
 		res = fLog.String();
@@ -303,7 +309,11 @@ status_t SMTPProtocol::Login(const char * _login, const char * password) {
 		// Send password as base64
 		login64 = new char[passlen*3+3];
 		::encode_base64(login64,(char*)password,passlen);
-		SendCommand(login64);
+		// Hack! I'm sure there is a better way to do this
+		BString t2_login64(login64);
+		t2_login64.Append(CRLF);
+
+		SendCommand(t2_login64.String());
 		delete[] login64;
 		res = fLog.String();
 		if(atol(res)<500)
@@ -320,7 +330,7 @@ status_t SMTPProtocol::Login(const char * _login, const char * password) {
 		::encode_base64(login64,login64,((loginlen+1)*2+passlen));
 		
 		char *cmd = new char[strlen(login64)+12];
-		::sprintf(cmd,"AUTH PLAIN %s",login64);
+		::sprintf(cmd,"AUTH PLAIN %s"CRLF,login64);
 		delete[] login64;
 		
 		SendCommand(cmd);
@@ -330,9 +340,10 @@ status_t SMTPProtocol::Login(const char * _login, const char * password) {
 			return B_OK;
 	}
 		
-	return B_ERROR;	
+	return B_ERROR;
 }
 
+// Closes SMTP connection
 void SMTPProtocol::Close() {
 	status_view->SetMessage("Closing connection...");
 	
@@ -346,9 +357,10 @@ void SMTPProtocol::Close() {
 	conn.Close();
 }
 
+// Send mail
 status_t SMTPProtocol::Send(const char *to, const char *from, BPositionIO *message) {
 	BString cmd = from;
-	cmd.Remove(0,cmd.FindFirst("\" <") + 2);
+	cmd.Remove(0, cmd.FindFirst("\" <") + 2);
 	cmd.Prepend("MAIL FROM: ");
 	cmd += CRLF;
 	if (SendCommand(cmd.String()) != B_OK)
@@ -404,75 +416,70 @@ status_t SMTPProtocol::Send(const char *to, const char *from, BPositionIO *messa
 	return B_OK;
 } 
 
-int32 SMTPProtocol::ReceiveLine(BString &line,bool concat) {
-	int32 len = 0,rcv;
-	int8 c = 0;
-	bool flag = false;
-
-	if (concat) {
-		if (line != "")
-			line += "\n";
-	} else
-		line = "";
+// Receives response from server.
+int32 SMTPProtocol::ReceiveResponse(BString &out)
+{
+	out = "";
+	int32 len = 0,r;
+	char buf[SMTP_RESPONSE_SIZE];
+	bigtime_t timeout = 1000000*180; //timeout 180 secs
 	
-	if (conn.IsDataPending(60000000)) {	
-		while (true) {
-			rcv = conn.Receive(&c,1);
-			if((rcv <=0) || (c == '\n') || (c == EOF))
+	if(conn.IsDataPending(timeout))
+	{	
+		while(1)
+		{
+			r = conn.Receive(buf,SMTP_RESPONSE_SIZE-1);
+			if(r <= 0)
 				break;
-
-			if (c == '\r') {
-				flag = true;
-			} else {
-				if (flag) {
-					len++;
-					line += '\r';
-					flag = false;
-				}
-				len += rcv;
-				line += (char)c;
-			}
+			len += r;
+			out.Append(buf,r);
+			if(strstr(buf,"\r\n"))
+				break;
 		}
-	} else {
+	}else{
 		fLog = "SMTP socket timeout.";
 	}
+	printf("S:%s\n",out.String());
 	return len;
 }
 
-status_t SMTPProtocol::SendCommand(const char* cmd) {
+// Sends SMTP command. Result kept in fLog
+status_t SMTPProtocol::SendCommand(const char* cmd)
+{
 	int32 len;
-	printf("> %s\n",cmd);
-	
- 	if (conn.Send(cmd, ::strlen(cmd)) == B_ERROR)
+	printf("C:%s\n",cmd);
+	if (conn.Send(cmd, ::strlen(cmd)) == B_ERROR)
 		return B_ERROR;
-		
+	
 	fLog = "";
 
-	while(true) {
-		len = ReceiveLine(fLog,true);
+	// Receive
+	while(1)
+	{
+		len = ReceiveResponse(fLog);
 		
 		if(len <= 0)
 			return B_ERROR;
-
-		int32 pos = fLog.FindLast('\n') + 1;
-		if(fLog.Length() > pos + 4 && (fLog[pos + 3] == ' ' || fLog[pos + 3] == '-')) {
+		if(fLog.Length() > 4 && (fLog[3] == ' '||fLog[3] == '-'))
+		{
 			const char* top = fLog.String();
-			int32 num = atol (top);
-
+			int32 num = atol( top );
+			printf("ReplyNumber: %ld\n", num);
 			if(num >= 500)
 				return B_ERROR;
-			else if (fLog[pos + 3] == ' ')
+			else
 				break;
 		}
 	}
-	printf("< %s\n",fLog.String());
 	return B_OK;
 }
 
+// Instantiate hook
 MailFilter* instantiate_mailfilter(BMessage *settings,StatusView *status) {
 	return new SMTPProtocol(settings,status);
 }
 
+// Configuration interface
 BView* instantiate_config_panel(BMessage *settings,BMessage *) {
 	ProtocolConfigView *view = new ProtocolConfigView(Z_HAS_AUTH_METHODS | Z_HAS_USERNAME | Z_HAS_PASSWORD | Z_HAS_HOSTNAME);
 	

@@ -19,7 +19,7 @@ public:
 	void Close();
 	status_t Send(const char *to, const char *from, BPositionIO *message);
 	
-	int32 ReceiveLine(BString &line,bool concatenate = false);
+	int32 ReceiveResponse(BString &line);
 	status_t SendCommand(const char* cmd);
 	
 private:
