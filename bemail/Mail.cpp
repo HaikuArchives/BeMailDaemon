@@ -1267,22 +1267,20 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 	BMenuBar	*menu_bar;
 	BMenuItem	*item;
 	BMessage	*msg;
-	BRect		r;
 	attr_info	info;
+	BFile file(ref, B_READ_ONLY);
 
 	if (ref) {
 		fRef = new entry_ref(*ref);
-		fFile = new BFile(fRef, O_RDONLY);
 		fMail = new Mail::Message(fRef);
 		fIncoming = true;
 	} else {
 		fRef = NULL;
-		fFile = NULL;
 		fMail = NULL;
 		fIncoming = false;
 	}
 
-	r.Set(0, 0, RIGHT_BOUNDARY, 15);
+	BRect r(0, 0, RIGHT_BOUNDARY, 15);
 
 	// Create real menu bar
 	fMenuBar = menu_bar = new BMenuBar(r, "");
@@ -1298,27 +1296,26 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 		"New Mail Message", "N) 新規メッセージ作成"), msg, 'N'));
 	item->SetTarget(be_app);
 
-	QueryMenu *qmenu;
-	qmenu = new QueryMenu(MDR_DIALECT_CHOICE ("Open Draft", "O) ドラフトを開く"), false);
-	qmenu->SetTargetForItems(be_app);
+	QueryMenu *queryMenu;
+	queryMenu = new QueryMenu(MDR_DIALECT_CHOICE ("Open Draft", "O) ドラフトを開く"), false);
+	queryMenu->SetTargetForItems(be_app);
 
-	qmenu->SetPredicate("MAIL:draft==1");
-	menu->AddItem(qmenu);
+	queryMenu->SetPredicate("MAIL:draft==1");
+	menu->AddItem(queryMenu);
 
 	menu->AddSeparatorItem();
 
-	if (!resending && fIncoming)
-	{
+	if (!resending && fIncoming) {
 		subMenu = new BMenu(MDR_DIALECT_CHOICE ("Close","C) 閉じる"));
-		if (fFile->GetAttrInfo(B_MAIL_ATTR_STATUS, &info) == B_NO_ERROR)
-			fFile->ReadAttr(B_MAIL_ATTR_STATUS, B_STRING_TYPE, 0, str, info.size);
+		if (file.GetAttrInfo(B_MAIL_ATTR_STATUS, &info) == B_NO_ERROR)
+			file.ReadAttr(B_MAIL_ATTR_STATUS, B_STRING_TYPE, 0, str, info.size);
 		else
 			str[0] = 0;
 
 		//if( (strcmp(str, "Pending")==0)||(strcmp(str, "Sent")==0) )
 		//	canResend = true;
-		if (!strcmp(str, "New"))
-		{
+
+		if (!strcmp(str, "New")) {
 			subMenu->AddItem(item = new BMenuItem(
 				MDR_DIALECT_CHOICE ("Leave as 'New'", "N) 新規<New>のままにする"),
 				new BMessage(M_CLOSE_SAME), 'W', B_SHIFT_KEY));
@@ -1326,9 +1323,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 				MDR_DIALECT_CHOICE ("Set to 'Read'", "R) 開封済<Read>に設定"),
 				new BMessage(M_CLOSE_READ), 'W'));
 			message = M_CLOSE_READ;
-		}
-		else
-		{
+		} else {
 			if (strlen(str))
 				sprintf(status, MDR_DIALECT_CHOICE ("Leave as '%s'","W) 属性を<%s>にする"), str);
 			else
@@ -1338,6 +1333,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 			message = M_CLOSE_SAME;
 			AddShortcut('W', B_COMMAND_KEY | B_SHIFT_KEY, new BMessage(M_CLOSE_SAME));
 		}
+
 		subMenu->AddItem(new BMenuItem(
 			MDR_DIALECT_CHOICE ("Set to 'Saved'", "S) 属性を<Saved>に設定"),
 			new BMessage(M_CLOSE_SAVED), 'W', B_CONTROL_KEY));
@@ -1754,7 +1750,6 @@ void TMailWindow::UpdateViews( void )
 TMailWindow::~TMailWindow()
 {
 	delete fMail;
-	delete fFile;
 	last_window = Frame();
 	delete fPanel;
 	delete fOriginatingWindow;
@@ -1767,10 +1762,11 @@ TMailWindow::~TMailWindow()
 status_t
 TMailWindow::GetMailNodeRef(node_ref &nodeRef) const
 {
-	if (fFile == NULL)
+	if (fRef == NULL)
 		return B_ERROR;
 
-	return fFile->GetNodeRef(&nodeRef);
+	BNode node(fRef);
+	return node.GetNodeRef(&nodeRef);
 }
 
 
@@ -2280,8 +2276,11 @@ TMailWindow::MessageReceived(BMessage *msg)
 				r.top += 40;
 				r.bottom = r.top + STATUS_HEIGHT;
 
-				BString string;
-				ReadAttrString(fFile, B_MAIL_ATTR_STATUS, &string);
+				BString string = "could not read";
+				BNode node(fRef);
+				if (node.InitCheck() == B_OK)
+					ReadAttrString(&node, B_MAIL_ATTR_STATUS, &string);
+
 				new TStatusWindow(r, this, string.String());
 			}
 			break;
@@ -2491,8 +2490,8 @@ TMailWindow::MessageReceived(BMessage *msg)
 
 				entry_ref fileRef = *fRef;
 				int32 characterSet;
-				msg->FindInt32 ("charset", &characterSet);
-				OpenMessage (&fileRef, characterSet);
+				msg->FindInt32("charset", &characterSet);
+				OpenMessage(&fileRef, characterSet);
 			}
 			break;
 
@@ -2606,7 +2605,8 @@ TMailWindow::MessageReceived(BMessage *msg)
 }
 
 
-void TMailWindow::AddEnclosure(BMessage *msg)
+void
+TMailWindow::AddEnclosure(BMessage *msg)
 {
 	if (fEnclosuresView == NULL && !fIncoming)
 	{
@@ -2641,7 +2641,8 @@ void TMailWindow::AddEnclosure(BMessage *msg)
 }
 
 
-bool TMailWindow::QuitRequested()
+bool
+TMailWindow::QuitRequested()
 {
 	int32 result;
 
@@ -2653,8 +2654,7 @@ bool TMailWindow::QuitRequested()
 			|| (strlen(fContentView->fTextView->Text()) && (!fStartingText || fStartingText && strcmp(fContentView->fTextView->Text(), fStartingText)))
 			|| (fEnclosuresView != NULL && fEnclosuresView->fList->CountItems())))
 	{
-		if (fResending)
-		{
+		if (fResending) {
 			result = (new BAlert("",
 				MDR_DIALECT_CHOICE (
 				"Do you wish to send this message before closing?",
@@ -2665,8 +2665,7 @@ bool TMailWindow::QuitRequested()
 				B_WIDTH_AS_USUAL, B_OFFSET_SPACING,
 				B_WARNING_ALERT))->Go();
 
-			switch (result)
-			{
+			switch (result) {
 				case 0:	// Discard
 					break;
 				case 1:	// Cancel
@@ -2675,9 +2674,7 @@ bool TMailWindow::QuitRequested()
 					Send(true);
 					break;
 			}
-		}
-		else
-		{
+		} else {
 			result = (new BAlert("",
 				MDR_DIALECT_CHOICE (
 				"Do you wish to save this message as a draft before closing?",
@@ -2687,8 +2684,7 @@ bool TMailWindow::QuitRequested()
 				MDR_DIALECT_CHOICE ("Save","保存"),
 				B_WIDTH_AS_USUAL, B_OFFSET_SPACING,
 				B_WARNING_ALERT))->Go();
-			switch (result)
-			{
+			switch (result) {
 				case 0:	// Don't Save
 					break;
 				case 1:	// Cancel
@@ -2705,27 +2701,21 @@ bool TMailWindow::QuitRequested()
 	message.AddPointer( "window", this );
 	be_app->PostMessage(&message);
 
-	if ((CurrentMessage()) && (CurrentMessage()->HasString("status")))
-	{
+	if ((CurrentMessage()) && (CurrentMessage()->HasString("status"))) {
 		//
 		//	User explicitly requests a status to set this message to.
 		//
-		if (!CurrentMessage()->HasString("same"))
-		{
+		if (!CurrentMessage()->HasString("same")) {
 			const char *status = CurrentMessage()->FindString("status");
-			if (status != NULL)
-			{
+			if (status != NULL) {
 				BNode node(fRef);
-				if (node.InitCheck() == B_NO_ERROR)
-				{
+				if (node.InitCheck() == B_NO_ERROR) {
 					node.RemoveAttr(B_MAIL_ATTR_STATUS);
 					WriteAttrString(&node, B_MAIL_ATTR_STATUS, status);
 				}
 			}
 		}
-	}
-	else if (fFile)
-	{
+	} else if (fRef) {
 		//
 		//	...Otherwise just set the message read
 		//
@@ -2736,10 +2726,10 @@ bool TMailWindow::QuitRequested()
 }
 
 
-void TMailWindow::Show()
+void
+TMailWindow::Show()
 {
-	if (Lock())
-	{
+	if (Lock()) {
 		if (!fResending && (fIncoming || fReplying))
 			fContentView->fTextView->MakeFocus(true);
 		else
@@ -3054,17 +3044,19 @@ TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 	fHeaderView->fTo->SetText(fMail->To());
 	fHeaderView->fCc->SetText(fMail->CC());
 	fHeaderView->fSubject->SetText(fMail->Subject());
-	int32 chain_id;
-	if (window->fFile->ReadAttr("MAIL:reply_with",B_INT32_TYPE,0,&chain_id,4) < B_OK)
-		chain_id = -1;
+
+	int32 chainID;	
+	BFile file(window->fRef, B_READ_ONLY);
+	if (file.ReadAttr("MAIL:reply_with", B_INT32_TYPE, 0, &chainID, 4) < B_OK)
+		chainID = -1;
 
 	// set mail account
 
-	if ((gUseAccountFrom == ACCOUNT_FROM_MAIL) || (chain_id > -1)) {
+	if ((gUseAccountFrom == ACCOUNT_FROM_MAIL) || (chainID > -1)) {
 		if (gUseAccountFrom == ACCOUNT_FROM_MAIL)
 			fHeaderView->fChain = fMail->Account();
 		else
-			fHeaderView->fChain = chain_id;
+			fHeaderView->fChain = chainID;
 
 		BMenu *menu = fHeaderView->fAccountMenu;
 		for (int32 i = menu->CountItems(); i-- > 0;) {
@@ -3760,16 +3752,13 @@ TMailWindow::OpenMessage(entry_ref *ref, uint32 characterSetForDecoding)
 	fContentView->fTextView->StopLoad();
 	delete fMail;
 
-	delete fFile;
-	fFile = new BFile(fRef, O_RDONLY);
-	status_t err = fFile->InitCheck();
+	BFile file(fRef, B_READ_ONLY);
+	status_t err = file.InitCheck();
 	if (err != B_OK)
-	{
-		delete fFile;
 		return err;
-	}
+
 	char mimeType[256];
-	BNodeInfo fileInfo(fFile);
+	BNodeInfo fileInfo(&file);
 	fileInfo.GetType(mimeType);
 
 	// Check if it's a draft file, which contains only the text, and has the
@@ -3783,8 +3772,8 @@ TMailWindow::OpenMessage(entry_ref *ref, uint32 characterSetForDecoding)
 		fMail = new Mail::Message; // Not really used much, but still needed.
 
 		// Load the raw UTF-8 text from the file.
-		fFile->GetSize(&size);
-		fContentView->fTextView->SetText(fFile, 0, size);
+		file.GetSize(&size);
+		fContentView->fTextView->SetText(&file, 0, size);
 
 		// Restore Fields from attributes
 		if (ReadAttrString(&node, B_MAIL_ATTR_TO, &string) == B_OK)

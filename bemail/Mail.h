@@ -269,7 +269,6 @@ class TMailWindow : public BWindow {
 		Mail::Message	*fMail;
 		entry_ref *fRef;			// Reference to currently displayed file
 		int32 fFieldState;
-		BFile *fFile;
 		BFilePanel *fPanel;
 		BMenuBar *fMenuBar;
 		BMenuItem *fAdd;
