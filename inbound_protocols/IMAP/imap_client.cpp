@@ -122,7 +122,8 @@ class NoopWorker : public BHandler {
 			::sprintf(expected,"a%.7ld",us->commandCount);
 			while(1) {
 				NestedString response;
-				us->GetResponse(tag,&response);
+				if (us->GetResponse(tag,&response) < 0)
+					return;
 				
 				if (tag == expected)
 					break;
@@ -159,7 +160,8 @@ class NoopWorker : public BHandler {
 			BString uid;
 			while(1) {
 				NestedString response;
-				us->GetResponse(tag,&response);
+				if (us->GetResponse(tag,&response) < 0)
+					return;
 							
 				if (tag == expected)
 					break;
@@ -179,7 +181,8 @@ class NoopWorker : public BHandler {
 			if (strcasecmp(us->selected_mb.String(),"INBOX") && (us->selected_mb != "")) {
 				us->SendCommand("CLOSE");
 				BString blork;
-				us->WasCommandOkay(blork);
+				if (!us->WasCommandOkay(blork))
+					return;
 				us->selected_mb = "";
 			}
 			
@@ -209,11 +212,12 @@ IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Pro
 	err = net->Connect(settings->FindString("server"),port);
 	if (err < B_OK) {
 		BString error;
-		error << "IMAP Server " << settings->FindString("server");
+		error << "Could not connect to IMAP server " << settings->FindString("server");
 		if (port != 143)
 			error << ":" << port;
-		error << " Unreachable";
+		error << '.';
 		runner->ShowError(error.String());
+		runner->Stop();
 		return;
 	}
 
@@ -240,6 +244,7 @@ IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Pro
 		response << ')';
 		runner->ShowError(response.String());
 		err = B_ERROR;
+		runner->Stop();
 		return;
 	}
 	
@@ -370,7 +375,8 @@ void IMAP4Client::SyncAllBoxes() {
 	if (selected_mb != "") {
 		SendCommand("CLOSE");
 		selected_mb = "";
-		WasCommandOkay(command);
+		if (!WasCommandOkay(command))
+			return;
 	}
 	
 	StringList folders;
@@ -675,6 +681,7 @@ class IMAP4PartialReader : public BPositionIO {
 		}
 		off_t Seek(off_t position, uint32 seek_mode) {			
 			if (seek_mode == SEEK_END) {
+				puts("-----------SEEK_END");
 				if (!done) {
 					slave->Seek(0,SEEK_END);
 					FetchMessage("RFC822.TEXT");
@@ -838,8 +845,13 @@ IMAP4Client::ReceiveLine(BString &out)
 		while(c != '\n' && c != xEOF)
 		{
 			r = net->Receive(&c,1);
-			if(r <= 0)
-				break;
+			if(r <= 0) {
+				BString error;
+				error << "Connection to " << settings->FindString("server") << " lost.";
+				runner->ShowError(error.String());
+				runner->Stop();
+				return -1;
+			}
 				
 			out += (char)c;
 			len += r;
@@ -866,8 +878,13 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 		while(c != '\n' && c != xEOF)
 		{
 			r = net->Receive(&c,1);
-			if(r <= 0)
-				break;
+			if(r <= 0) {
+				BString error;
+				error << "Connection to " << settings->FindString("server") << " lost.";
+				runner->ShowError(error.String());
+				runner->Stop();
+				return -1;
+			}
 			
 			//putchar(c);
 			
@@ -931,7 +948,7 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 				if (internal_flag && (c == ')' || c == ']')) {
 					if (parsed_response != NULL && out != "")
 						(*parsed_response) += out;
-					return answer;
+					break;
 				}
 				
 				was_cr = false;
@@ -968,8 +985,10 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 bool IMAP4Client::WasCommandOkay(BString &response) {
 	do {
 		response = "";
-		if (ReceiveLine(response) < B_OK)
+		if (ReceiveLine(response) < B_OK) {
 			runner->ShowError("No response from server");
+			return false;
+		}
 	} while (response[0] == '*');
 		
 	bool to_ret = false;

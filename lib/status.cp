@@ -443,8 +443,10 @@ void StatusView::Reset(bool hide) {
 	if (LockLooper())
 	{
 		char old[255];
-		if (pre_text[0] == 0)
+		if ((pre_text[0] == 0) && !hide)
 			strcpy(pre_text,status->TrailingText());
+		if (hide)
+			pre_text[0] = 0;
 			
 		strcpy(old,status->Label());
 		status->Reset(old);

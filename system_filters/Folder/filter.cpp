@@ -89,7 +89,7 @@ FolderFilter::FolderFilter(BMessage* msg,Mail::ChainRunner *runner)
 	destination = dest_string.String();
 	
 	if (msg->FindInt32("size_limit",(long *)&size_limit) != B_OK)
-		size_limit = 0;
+		size_limit = -1;
 }
 
 
@@ -155,7 +155,8 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	// message and now it should be fully read, and then displayed to the user.
 	if ((out_headers->FindBool("ENTIRE_MESSAGE", &tempBool) == B_OK && tempBool)
 		|| !out_headers->HasInt32("SIZE")
-		|| (size_limit == 0 || size_limit >= out_headers->FindInt32("SIZE"))) {
+		|| (size_limit < 0 || size_limit >= out_headers->FindInt32("SIZE"))) {
+		puts("Getting whole message!");
 		err = (*io)->Seek(0,SEEK_END); // Force protocol to read the whole message.
 		if (err < 0)
 		{

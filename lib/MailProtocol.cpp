@@ -95,7 +95,8 @@ class DeleteCallback : public Mail::ChainCallback {
 
 		void Callback(status_t)
 		{
-			us->ProcessMailMessage(NULL, NULL, NULL, NULL, NULL);
+			if (us->InitCheck() == B_OK)
+				us->ProcessMailMessage(NULL, NULL, NULL, NULL, NULL);
 		}
 
 	private:
