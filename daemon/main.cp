@@ -22,6 +22,7 @@
 #include <status.h>
 
 #include "deskbarview.h"
+#include "LEDAnimation.h"
 
 #ifdef BONE
 	#ifdef _KERNEL_MODE
@@ -42,6 +43,7 @@ class MailDaemonApp : public BApplication {
 		void MessageReceived(BMessage *msg);
 		void InstallDeskbarIcon();
 		void RemoveDeskbarIcon();
+		void Pulse();
 		bool QuitRequested();
 		
 		void SendPendingMessages();
@@ -56,6 +58,7 @@ class MailDaemonApp : public BApplication {
 		BList fetch_done_respondents;
 		
 		BQuery *query;
+		LEDAnimation *led;
 };
 
 
@@ -190,12 +193,16 @@ MailDaemonApp::MailDaemonApp(void)
 	string << " new messages.";
 	
 	status->SetDefaultMessage(string);
+	
+	led = new LEDAnimation;
+	SetPulseRate(1000000);
 }
 
 MailDaemonApp::~MailDaemonApp()
 {
 	delete auto_check;
 	delete query;
+	delete led;
 }
 
 
@@ -294,6 +301,7 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 			switch (what) {
 				case B_ENTRY_CREATED:
 					new_messages++;
+					led->Start();
 					break;
 				case B_ENTRY_REMOVED:
 					new_messages--;
@@ -312,9 +320,8 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 			
 			}
 			break;
-		default:
-			BApplication::MessageReceived(msg);
 	}
+	BApplication::MessageReceived(msg);
 }
 
 void MailDaemonApp::InstallDeskbarIcon() {
@@ -362,7 +369,7 @@ void MailDaemonApp::GetNewMessages() {
 		chain = (MailChain *)(list->ItemAt(i));
 		
 		chain->RunChain(status,true,true,true);
-	}
+	}	
 }
 
 void MailDaemonApp::SendPendingMessages() {
@@ -374,5 +381,12 @@ void MailDaemonApp::SendPendingMessages() {
 		chain = (MailChain *)(list->ItemAt(i));
 		
 		chain->RunChain(status,true,true,true);
+	}
+}
+
+void MailDaemonApp::Pulse() {
+	if (led->IsRunning() && (idle_time() < 100000)) {		
+		led->Stop();
+		printf("LED Stopped\n");	
 	}
 }
