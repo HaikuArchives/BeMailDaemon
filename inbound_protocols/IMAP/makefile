@@ -116,6 +116,12 @@ APP_VERSION =
 #	/dev/video/usb when loaded. Default is "misc".
 DRIVER_PATH = 
 
+#	Detect BONE
+ifeq ($(shell ls 2>/dev/null -1 /boot/develop/headers/be/bone/bone_api.h), /boot/develop/headers/be/bone/bone_api.h)
+	SYSTEM_INCLUDE_PATHS += /boot/develop/headers/be/bone
+	LIBS = be bnetapi ../../lib/libnumail.so  
+endif
+
 ## include the makefile-engine
 include $(BUILDHOME)/etc/makefile-engine
 
