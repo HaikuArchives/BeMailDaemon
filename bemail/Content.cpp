@@ -75,6 +75,13 @@ All rights reserved.
 #include "Words.h"
 
 
+#define DEBUG_SPELLCHECK 0
+#if DEBUG_SPELLCHECK
+#	define DSPELL(x) x
+#else
+#	define DSPELL(x) ;
+#endif
+
 using namespace Zoidberg;
 
 const rgb_color kNormalTextColor = {0, 0, 0, 255};
@@ -714,7 +721,8 @@ TTextView::TTextView(BRect frame, BRect text, bool incoming, Mail::Message *mail
 	fIncoming(incoming),
 	fSpellCheck(false),
 	fRaw(false),
-	fCursor(false)
+	fCursor(false),
+	fFirstSpellMark(NULL)
 {
 //	if (file)
 //		fFile = new BFile(*file);
@@ -1966,11 +1974,9 @@ TTextView::AddAsContent(Mail::Message *mail, bool wrap)
 		if (hScroller != NULL)
 			hScroller->SetTarget((BView *)NULL);
 
-		// temporarily set the font to be_fixed_font 				
-		bool wasStylable = IsStylable();
-		SetStylable(true);
+		// temporarily set the font to be_fixed_font
 		SetFontAndColor(0, textLen, be_fixed_font);
-		
+
 		if (gMailEncoding == B_JIS_CONVERSION)
 		{
 			// this is truly evil...  I'm ashamed of myself (Hiroshi)
@@ -1978,7 +1984,7 @@ TTextView::AddAsContent(Mail::Message *mail, bool wrap)
 			bool 	inKanji = false;
 			BFont	kanjiFont(be_fixed_font);
 			kanjiFont.SetSize(kanjiFont.Size() * 2);
-		
+
 			for (int32 i = 0; i < textLen; i++)
 			{
 				if (ByteAt(i) > 0x7F)
@@ -2000,15 +2006,14 @@ TTextView::AddAsContent(Mail::Message *mail, bool wrap)
 					}
 				}	
 			}
-		
+
 			if (inKanji)
 				SetFontAndColor(lastMarker, textLen, &kanjiFont, B_FONT_SIZE);
 		}
 
 		// calculate a text rect that is 72 columns wide
 		BRect newTextRect = saveTextRect;
-		newTextRect.right = newTextRect.left
-			+ (be_fixed_font->StringWidth("m") * 72);	
+		newTextRect.right = newTextRect.left + (be_fixed_font->StringWidth("m") * 72);
 		SetTextRect(newTextRect);
 
 		// hard-wrap, based on TextView's soft-wrapping
@@ -2066,7 +2071,6 @@ TTextView::AddAsContent(Mail::Message *mail, bool wrap)
 		// reset the text rect and font			
 		SetTextRect(saveTextRect);	
 		SetFontAndColor(0, textLen, &fFont);
-		SetStylable(wasStylable);
 
 		// should be OK to hook these back up now
 		if (vScroller != NULL)
@@ -2616,7 +2620,7 @@ void TSavePanel::SetEnclosure(hyper_text *enclosure)
 
 
 void
-TTextView::InsertText(const char *text, int32 length, int32 offset,
+TTextView::InsertText(const char *insertText, int32 length, int32 offset,
 	const text_run_array *runs)
 {
 	ContentChanged();
@@ -2631,9 +2635,11 @@ TTextView::InsertText(const char *text, int32 length, int32 offset,
 		runs = &style;
 	}
 
+	BTextView::InsertText(insertText, length, offset, runs);
+
 	if (fSpellCheck && IsEditable())
 	{
-		BTextView::InsertText(text, length, offset, runs);
+		UpdateSpellMarks(offset, length);
 
 		rgb_color color;
 		GetFontAndColor(offset - 1, NULL, &color);
@@ -2648,12 +2654,13 @@ TTextView::InsertText(const char *text, int32 length, int32 offset,
 		{
 			int32 start, end;
 			FindSpellBoundry(length, offset, &start, &end);
-			//printf("Offset %ld, start %ld, end %ld\n", offset, start, end);
+
+			DSPELL(printf("Offset %ld, start %ld, end %ld\n", offset, start, end));
+			DSPELL(printf("\t\"%10.10s...\"\n", text + start));
+
 			CheckSpelling(start, end);
 		}
 	}
-	else
-		BTextView::InsertText(text, length, offset, runs);
 }
 
 
@@ -2664,6 +2671,8 @@ TTextView::DeleteText(int32 start, int32 finish)
 	BTextView::DeleteText(start, finish);
 	if (fSpellCheck && IsEditable())
 	{
+		UpdateSpellMarks(start, start - finish);
+
 		int32 s, e;
 		FindSpellBoundry(1, start, &s, &e);
 		CheckSpelling(s, e);
@@ -2748,7 +2757,7 @@ TTextView::CheckSpelling(int32 start, int32 end, int32 flags)
 					testWord.SetTo(word, wordLength);
 
 					testWord = testWord.ToLower();
-					//printf("Testing: %s:\n", testWord.String());
+					DSPELL(printf("Testing: \"%s\"\n", testWord.String()));
 
 					int32 key = -1;
 					if (gDictCount)
@@ -2757,8 +2766,6 @@ TTextView::CheckSpelling(int32 start, int32 end, int32 flags)
 					// Search all dictionaries
 					for (int32 i = 0; i < gDictCount; i++)
 					{
-						// printf("Looking for %s in dict %ld\n", testWord.String(),
-						// i); Is it in the words index?
 						if (gExactWords[i]->Lookup(key) >= 0)
 						{
 							foundMatch = true;
@@ -2769,15 +2776,13 @@ TTextView::CheckSpelling(int32 start, int32 end, int32 flags)
 					if (!foundMatch)
 					{
 						if (flags & S_CLEAR_ERRORS)
-							SetFontAndColor(nextHighlight, wordOffset, NULL,
-								B_FONT_ALL, &kNormalTextColor);
+							RemoveSpellMark(nextHighlight, wordOffset);
+
 						if (flags & S_SHOW_ERRORS)
-							SetFontAndColor(wordOffset, wordOffset + wordLength, NULL,
-								B_FONT_ALL, &kSpellTextColor);
+							AddSpellMark(wordOffset, wordOffset + wordLength);
 					}
 					else if (flags & S_CLEAR_ERRORS)
-						SetFontAndColor(nextHighlight, wordOffset + wordLength, NULL,
-							B_FONT_ALL, &kNormalTextColor);
+						RemoveSpellMark(nextHighlight, wordOffset + wordLength);
 
 					nextHighlight = wordOffset + wordLength;
 				}
@@ -2795,47 +2800,185 @@ TTextView::CheckSpelling(int32 start, int32 end, int32 flags)
 
 
 void
-TTextView::FindSpellBoundry(int32 length, int32 offset, int32 *s, int32 *e)
+TTextView::FindSpellBoundry(int32 length, int32 offset, int32 *_start, int32 *_end)
 {
 	int32 start, end, textLength;
 	const char *text = Text();
 	textLength = TextLength();
-	for (start = offset-1; start >= 0 && (isalpha(text[start])||(text[start]=='\'')); start--) {} start++;
-	for (end = offset+length; end < textLength && (isalpha(text[end])
-		|| (text[end]=='\'')); end++) {}
-	*s = start;
-	*e = end;
+
+	for (start = offset - 1; start >= 0
+		&& (isalpha(text[start]) || text[start] == '\''); start--) {}
+	start++;
+	for (end = offset + length; end < textLength
+		&& (isalpha(text[end]) || text[end] == '\''); end++) {}
+
+	*_start = start;
+	*_end = end;
+}
+
+
+TTextView::spell_mark *
+TTextView::FindSpellMark(int32 start, int32 end, spell_mark **_previousMark)
+{
+	spell_mark *lastMark = NULL;
+	for (spell_mark *spellMark = fFirstSpellMark; spellMark; spellMark = spellMark->next)
+	{
+		if (spellMark->start < end && spellMark->end > start)
+		{
+			if (_previousMark)
+				*_previousMark = lastMark;
+			return spellMark;
+		}
+
+		lastMark = spellMark;
+	}
+	return NULL;
+}
+
+
+void
+TTextView::UpdateSpellMarks(int32 offset, int32 length)
+{
+	DSPELL(printf("UpdateSpellMarks: offset = %ld, length = %ld\n", offset, length));
+
+	spell_mark *spellMark;
+	for (spellMark = fFirstSpellMark; spellMark; spellMark = spellMark->next)
+	{
+		DSPELL(printf("\tfound: %ld - %ld\n", spellMark->start, spellMark->end));
+
+		if (spellMark->end < offset)
+			continue;
+
+		if (spellMark->start > offset)
+			spellMark->start += length;
+
+		spellMark->end += length;
+
+		DSPELL(printf("\t-> reset: %ld - %ld\n", spellMark->start, spellMark->end));
+	}
+}
+
+
+status_t
+TTextView::AddSpellMark(int32 start, int32 end)
+{
+	DSPELL(printf("AddSpellMark: start = %ld, end = %ld\n", start, end));
+
+	// check if there is already a mark for this passage
+	spell_mark *spellMark = FindSpellMark(start, end);
+	if (spellMark)
+	{
+		if (spellMark->start == start && spellMark->end == end)
+		{
+			DSPELL(printf("\tfound one\n"));
+			return B_OK;
+		}
+
+		DSPELL(printf("\tremove old one\n"));
+		RemoveSpellMark(start, end);
+	}
+
+	spellMark = (spell_mark *)malloc(sizeof(spell_mark));
+	if (spellMark == NULL)
+		return B_NO_MEMORY;
+
+	spellMark->start = start;
+	spellMark->end = end;
+	spellMark->style = RunArray(start, end);
+
+	// set the spell marks appearance
+	BFont font(fFont);
+	font.SetFace(B_BOLD_FACE | B_ITALIC_FACE);
+	SetFontAndColor(start, end, &font, B_FONT_ALL, &kSpellTextColor);
+
+	// add it to the queue
+	spellMark->next = fFirstSpellMark;
+	fFirstSpellMark = spellMark;
+
+	return B_OK;
+}
+
+
+bool
+TTextView::RemoveSpellMark(int32 start, int32 end)
+{
+	DSPELL(printf("RemoveSpellMark: start = %ld, end = %ld\n", start, end));
+
+	// find spell mark
+	spell_mark *lastMark = NULL;
+	spell_mark *spellMark = FindSpellMark(start, end, &lastMark);
+	if (spellMark == NULL)
+	{
+		DSPELL(printf("\tnot found!\n"));
+		return false;
+	}
+
+	DSPELL(printf("\tfound: %ld - %ld\n", spellMark->start, spellMark->end));
+
+	// dequeue the spell mark
+	if (lastMark)
+		lastMark->next = spellMark->next;
+	else
+		fFirstSpellMark = spellMark->next;
+
+	if (spellMark->start < start)
+		start = spellMark->start;
+	if (spellMark->end > end)
+		end = spellMark->end;
+
+	// reset old text run array
+	SetRunArray(start, end, spellMark->style);
+
+	free(spellMark->style);
+	free(spellMark);
+
+	return true;
+}
+
+
+void
+TTextView::RemoveSpellMarks()
+{
+	spell_mark *spellMark, *nextMark;
+
+	for (spellMark = fFirstSpellMark; spellMark; spellMark = nextMark)
+	{
+		nextMark = spellMark->next;
+
+		// reset old text run array
+		SetRunArray(spellMark->start, spellMark->end, spellMark->style);
+
+		free(spellMark->style);
+		free(spellMark);
+	}
+
+	fFirstSpellMark = NULL;
 }
 
 
 void
 TTextView::EnableSpellCheck(bool enable)
 {
-	if (fSpellCheck != enable)
+	if (fSpellCheck == enable)
+		return;
+
+	fSpellCheck = enable;
+	int32 textLength = TextLength();
+	if (fSpellCheck)
 	{
-		fSpellCheck = enable;
-		int32 textLength = TextLength();
-		if (fSpellCheck)
-		{
-			// work-around for a bug in the BTextView class
-			// which causes lots of flicker
-			int32 start,end;
-			GetSelection(&start, &end);
-			if (start != end)
-				Select(start, start);
+		// work-around for a bug in the BTextView class
+		// which causes lots of flicker
+		int32 start,end;
+		GetSelection(&start, &end);
+		if (start != end)
+			Select(start, start);
 
-			SetStylable(true);
-			CheckSpelling(0, textLength);
+		CheckSpelling(0, textLength);
 
-			if (start != end)
-				Select(start, end);
-		}
-		else
-		{
-			// ToDo: we need to replace all "red" words here manually!
-			SetFontAndColor(0, textLength, NULL, B_FONT_ALL, &kNormalTextColor);
-			SetStylable(true);	// was: false, so it actually doesn't work nicely right now...
-		}
+		if (start != end)
+			Select(start, end);
 	}
+	else
+		RemoveSpellMarks();
 }
 

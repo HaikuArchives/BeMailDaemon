@@ -173,6 +173,14 @@ class TTextView : public BTextView
 		bool fReady;
 
 	private:
+		struct spell_mark;
+
+		spell_mark *FindSpellMark(int32 start, int32 end, spell_mark **_previousMark = NULL);
+		void UpdateSpellMarks(int32 offset, int32 length);
+		status_t AddSpellMark(int32 start, int32 end);
+		bool RemoveSpellMark(int32 start, int32 end);
+		void RemoveSpellMarks();
+
 		void ContentChanged(void);
 
 		class Reader;
@@ -196,6 +204,16 @@ class TTextView : public BTextView
 		bool fSpellCheck;
 		bool fRaw;
 		bool fCursor;
+
+		struct spell_mark
+		{
+			spell_mark *next;
+			int32	start;
+			int32	end;
+			struct text_run_array *style;
+		};
+
+		spell_mark *fFirstSpellMark;
 
 		class Reader
 		{
