@@ -46,6 +46,13 @@ BLocker list_lock("mdr_chainrunner_lock");
 BList running_chains, running_chain_pointers;
 
 #if USE_NASTY_SYNC_THREAD_HACK
+	/* There is a memory leak in gethostbyname() that causes structures it
+	   allocates not to be freed if they were allocated from a BLooper. So
+	   we have this awful hack to ensure that gethostbyname() is not, in
+	   fact, called from a BLooper. It works fairly well, too. Hopefully,
+	   the OpenBeOS net stack will rectify this problem and then I can
+	   turn it off. That will be nice. */
+
 	int32 ChainRunner::thread_sync_func(void *arg) {
 		ChainRunner *us = ((ChainRunner *)(arg));
 		us->Lock();
