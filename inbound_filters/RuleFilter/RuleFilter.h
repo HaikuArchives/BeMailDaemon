@@ -6,8 +6,8 @@
 
 typedef enum {
 	Z_MOVE_TO,
-	Z_TRASH,
-	Z_FLAG
+	Z_FLAG,
+	Z_TRASH
 } z_mail_action_flags;
 
 class RuleFilter : public MailFilter {
