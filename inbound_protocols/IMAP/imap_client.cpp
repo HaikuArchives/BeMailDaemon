@@ -848,8 +848,8 @@ IMAP4Client::ReceiveLine(BString &out)
 			if(r <= 0) {
 				BString error;
 				error << "Connection to " << settings->FindString("server") << " lost.";
-				runner->ShowError(error.String());
 				runner->Stop();
+				runner->ShowError(error.String());
 				return -1;
 			}
 				
@@ -881,8 +881,8 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 			if(r <= 0) {
 				BString error;
 				error << "Connection to " << settings->FindString("server") << " lost.";
-				runner->ShowError(error.String());
 				runner->Stop();
+				runner->ShowError(error.String());
 				return -1;
 			}
 			
