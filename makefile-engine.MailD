@@ -51,7 +51,7 @@ TARGET	:= "$(TARGET_DIR)/$(NAME)"
 #	x86 Settings
 ifeq ($(CPU), x86)
 #	set the compiler and compiler flags
-	CC		=	gcc
+	CC		:=	/boot/develop/bin/gcc 
 
 #	SETTING: set the CFLAGS for each binary type	
 	ifeq ($(TYPE), DRIVER)
@@ -62,16 +62,16 @@ ifeq ($(CPU), x86)
 
 #	SETTING: set the proper optimization level
 	ifeq ($(OPTIMIZE), FULL)
-		OPTIMIZER	= -O3
+		OPTIMIZER	:= -O3
 	else
 	ifeq ($(OPTIMIZE), SOME)
-		OPTIMIZER	= -O1
+		OPTIMIZER	:= -O1
 	else
 	ifeq ($(OPTIMIZE), NONE)
-		OPTIMIZER	= -O0
+		OPTIMIZER	:= -O0
 	else
 #		OPTIMIZE not set so set to full
-		OPTIMIZER	= -O3
+		OPTIMIZER	:= -O3
 	endif
 	endif
 	endif
@@ -81,7 +81,7 @@ ifeq ($(CPU), x86)
 #	SETTING: set proper debugger flags
 	ifeq ($(DEBUGGER), TRUE)
 		DEBUG += -g
-		OPTIMIZER = -O0
+		OPTIMIZER := -O0
 	endif	
 	
 	CFLAGS += $(OPTIMIZER) $(DEBUG)
@@ -96,7 +96,7 @@ ifeq ($(CPU), x86)
 	endif
 
 #	set the linker and linker flags
-	LD			= gcc
+	LD			:= gcc
 	LDFLAGS		+= $(DEBUG)
 
 #	SETTING: set linker flags for each binary type

@@ -21,7 +21,7 @@
 using namespace Zoidberg;
 
 
-#define CRLF "\r\n";
+#define CRLF "\r\n"
 
 #define xEOF    236
 
@@ -49,9 +49,20 @@ IMAP4Client::IMAP4Client(BMessage *settings,Mail::StatusView *status)
 	if (passwd)
 		password = passwd;
 
-	error = Login(settings->FindString("username"),password,settings->FindInt32("auth_method"));
+	BString uname = "\"";
+	uname << settings->FindString("username") << "\"";
+	error = Login(uname.String(), password, settings->FindInt32("auth_method"));
 
-	num_messages = Select(settings->FindString("folder"));
+	if( B_ERROR == error )
+	{
+		PRINT(("Error from Login()\n"));
+		_status->SetMessage("Error Logging in");
+	}
+	else
+	{
+		num_messages = Select(settings->FindString("folder"));
+		_status->SetMessage("Logged in");
+	}
 }
 
 
@@ -70,8 +81,9 @@ status_t IMAP4Client::InitCheck(BString* out_message) {
  ***********************************************************/
 IMAP4Client::~IMAP4Client()
 {
-	if (to_fetch)
-		delete to_fetch;
+	// Deleting a NULL pointer is legal.
+	delete to_fetch;
+
 	Logout();
 }
 
@@ -128,6 +140,7 @@ IMAP4Client::Reconnect()
 status_t
 IMAP4Client::Login(const char* login,const char* password,int)
 {
+	status_t result = B_ERROR;
 	_status->SetMessage("Authenticating...");
 	// for re-connect
 	fLogin = login; fPassword = password;
@@ -137,26 +150,52 @@ IMAP4Client::Login(const char* login,const char* password,int)
 	cmd += " ";
 	cmd += password;
 
-	if( SendCommand(cmd.String()) != B_OK)
-		return B_ERROR;
-		
+	result = SendCommand(cmd.String());
+
+	if( result != B_OK)
+	{
+		PRINT(("SendCommand() returns not B_OK\n"));
+	}
+	
 	int32 cmdNumber = fCommandCount;
 	int32 state,r;
-	while( 1 )
+	while( 1 && (B_OK == result) )
 	{
 		r = ReceiveLine(out);
 		if(r <= 0)
+		{
+			PRINT(("ReceiveLine returns <= 0\n"));
+			result = B_ERROR;
 			break;
+		}
+		
 		state = CheckSessionEnd(out.String(),cmdNumber);		
 		switch(state)
 		{
-		case IMAP_SESSION_OK:
-			return B_OK;
-		case IMAP_SESSION_BAD:
-			return B_ERROR;
+			case IMAP_SESSION_OK:
+				result = B_OK;
+				// lame, but this logic is whack;
+				goto finish;
+
+			case IMAP_SESSION_BAD:
+				printf("CheckSessionEnd returns IMAP_SESSION_BAD\n");
+				PRINT(("S: %s", out.String()));
+				result = B_ERROR;
+				break;
+	
+			case IMAP_SESSION_CONTINUED:
+				// keep going
+				break;
+						
+			default:
+				printf("CheckSessionEnd returns %d, bad programmers!\n", (int)state);
+				result = B_ERROR; 
+				break;
 		}
-	}	
-	return B_ERROR;
+	}
+	
+finish:	
+	return result;
 }
 
 /***********************************************************
@@ -184,12 +223,14 @@ IMAP4Client::UniqueIDs()
 	{
 		ReceiveLine(out);
 		state = CheckSessionEnd(out.String(),cmdNumber);		
+
 		switch(state)
 		{
-		case IMAP_SESSION_OK:
-			return message_count;
-		case IMAP_SESSION_BAD:
-			return B_ERROR;
+			case IMAP_SESSION_OK:
+				return message_count;
+
+			case IMAP_SESSION_BAD:
+				return B_ERROR;
 		}
 		
 		pos = out.FindFirst("(UID ") + 5;
@@ -198,8 +239,8 @@ IMAP4Client::UniqueIDs()
 		temp = "";
 		out.CopyInto(temp,pos,i-pos);
 		unique_ids->AddItem(temp.String());
-		
 	}
+		
 	return B_ERROR;
 }
 
@@ -472,9 +513,12 @@ IMAP4Client::Logout()
 {
 	BString out;
 
-	SendCommand("CLOSE");
-	ReceiveLine(out);
-	
+	if( B_OK == error )
+	{
+		SendCommand("CLOSE");
+		ReceiveLine(out);
+	}
+
 	SendCommand("LOGOUT");
 	ReceiveLine(out);
 	
@@ -487,7 +531,7 @@ IMAP4Client::Logout()
 status_t
 IMAP4Client::SendCommand(const char* command)
 {
-	printf("C: %s\n",command);
+	printf("C: '%s'\n",command);
 	BString out("");
 	status_t err = B_ERROR;
 	char *cmd = new char[strlen(command) + 15];
@@ -500,8 +544,9 @@ IMAP4Client::SendCommand(const char* command)
 	// reset command number.
 	if(fCommandCount > 9999999)
 		fCommandCount = 0;
-
-	::sprintf(cmd,"%.7ld %s\r\n",++fCommandCount,command);
+// \r\n
+	::sprintf(cmd,"%.7ld %s" CRLF,++fCommandCount,command);
+	PRINT(("FULL C: '%s'\n", cmd));
 	int32 cmd_len = strlen(cmd);
 	if(!strstr(cmd,"LOGIN"))
 		PRINT(("C:%s",cmd));
@@ -548,19 +593,22 @@ IMAP4Client::ReceiveLine(BString &out)
 int32
 IMAP4Client::CheckSessionEnd(const char* str,int32 session)
 {
+	int32 result = IMAP_SESSION_CONTINUED;
 	char session_end[9];
+
 	::sprintf(session_end,"%.7ld ",session);
 	
 	if( ::strncmp(session_end,str,8) == 0)
 	{
 		if( str[8] == 'O' && str[9] == 'K')
-			return IMAP_SESSION_OK;
-		if( str[8] == 'B' && str[9] == 'A' && str[10] == 'D')
-			return IMAP_SESSION_BAD;
-		if( str[8] == 'N' && str[9] == 'O')
-			return IMAP_SESSION_BAD;
-	}	
-	return IMAP_SESSION_CONTINUED;
+			result = IMAP_SESSION_OK;
+		else if( str[8] == 'B' && str[9] == 'A' && str[10] == 'D')
+			result = IMAP_SESSION_BAD;
+		else if( str[8] == 'N' && str[9] == 'O')
+			result = IMAP_SESSION_BAD;
+	}
+	
+	return result;
 }
 
 status_t IMAP4Client::GetNextNewUid
@@ -589,6 +637,8 @@ status_t IMAP4Client::GetMessage(
 	if (seq_id < 0)
 		return B_NAME_NOT_FOUND;
 		
+	_status->SetMessage((BString("Retrieving message id") << seq_id).String());
+	
 	*out_file = new IMAP4Reader(this,*out_file,uid);
 	out_folder_location->SetTo(_settings->FindString("folder"));
 	

@@ -87,7 +87,7 @@ LOCAL_INCLUDE_PATHS =
 
 #	specify the level of optimization that you desire
 #	NONE, SOME, FULL
-OPTIMIZE= 
+OPTIMIZE= SOME
 
 #	specify any preprocessor symbols to be defined.  The symbols will not
 #	have their values set automatically; you must supply the value (if any)
