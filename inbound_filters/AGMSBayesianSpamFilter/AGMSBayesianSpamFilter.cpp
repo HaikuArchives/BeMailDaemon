@@ -11,6 +11,9 @@
  * Public Domain 2002, by Alexander G. M. Smith, no warranty.
  *
  * $Log$
+ * Revision 1.6  2002/11/03 02:21:02  agmsmith
+ * Never mind, just use the SourceForge version numbers.  Ugh.
+ *
  * Revision 1.8  2002/10/21 16:12:09  agmsmith
  * Added option for spam if no words found, use new method of saving
  * the attribute which avoids hacking the rest of the mail system.
@@ -68,9 +71,9 @@ AGMSBayesianSpamFilter::AGMSBayesianSpamFilter (BMessage *settings)
 		fAddSpamToSubject (false),
 		fBeepGenuine (false),
 		fBeepSpam (false),
+		fLaunchAttemptCount (0),
 		fNoWordsMeansSpam (false),
 		fQuitServerWhenFinished (true),
-		fServerSearchDone (false),
 		fSpamCutoffRatio (0.56f)
 {
 	bool		tempBool;
@@ -135,31 +138,13 @@ AGMSBayesianSpamFilter::ProcessMailMessage (
 	float		 spamRatio;
 	char		*stringBuffer = NULL;
 
-	// Make sure the spam database server is running.  Launch if needed.
-	// This code used to be in InitCheck, but apparently that isn't called.
-
-	if (!fServerSearchDone) {
-		fServerSearchDone = true;
-		if (!be_roster->IsRunning (kServerSignature)) {
-			errorCode = be_roster->Launch (kServerSignature);
-			if (errorCode != B_OK)
-				goto ErrorExit;
-		}
-
-		// Set up the messenger to the database server.
-		serverTeam = be_roster->TeamFor (kServerSignature);
-		if (serverTeam < 0)
-			goto ErrorExit;
-		fMessengerToServer =
-			BMessenger (kServerSignature, serverTeam, &errorCode);
-	}
-	if (!fMessengerToServer.IsValid ())
-		goto ErrorExit;
-
-	// Copy the message to a string so that we can pass it to the spam
-	// database (the even messier alternative is a temporary file). Do it
-	// in a fashion which allows NUL bytes in the string.  This method of
-	// course limits the message size to a few hundred megabytes.
+	// Copy the message to a string so that we can pass it to the spam database
+	// (the even messier alternative is a temporary file).  Do it in a fashion
+	// which allows NUL bytes in the string.  This method of course limits the
+	// message size to a few hundred megabytes.  This may take a while to
+	// execute, so do it before firing up the spam database server to reduce
+	// the risk of someone else closing off the server while the message
+	// downloads.
 
 	dataSize = dataStreamPntr->Seek (0, SEEK_END);
 	if (dataSize <= 0)
@@ -174,10 +159,40 @@ AGMSBayesianSpamFilter::ProcessMailMessage (
 	if (amountRead != dataSize)
 		goto ErrorExit;
 	stringBuffer[dataSize] = 0; // Add an end of string NUL, just in case.
+
+	scriptingMessage.what = B_SET_PROPERTY;
+	scriptingMessage.AddSpecifier ("EvaluateString");
 	errorCode = scriptingMessage.AddData ("data", B_STRING_TYPE,
 		stringBuffer, dataSize + 1, false /* fixed size */);
 	if (errorCode != B_OK)
 		goto ErrorExit;
+
+	// Get a connection to the spam database server.  Launch if needed, should
+	// only need it once, unless another e-mail thread shuts down the server
+	// inbetween messages.  This code used to be in InitCheck, but apparently
+	// that isn't called.
+
+	if (fLaunchAttemptCount == 0 || !fMessengerToServer.IsValid ()) {
+		if (fLaunchAttemptCount > 3)
+			goto ErrorExit; // Don't try to start the server too many times.
+		fLaunchAttemptCount++;
+
+		// Make sure the server is running.
+		if (!be_roster->IsRunning (kServerSignature)) {
+			errorCode = be_roster->Launch (kServerSignature);
+			if (errorCode != B_OK)
+				goto ErrorExit;
+		}
+
+		// Set up the messenger to the database server.
+		serverTeam = be_roster->TeamFor (kServerSignature);
+		if (serverTeam < 0)
+			goto ErrorExit;
+		fMessengerToServer =
+			BMessenger (kServerSignature, serverTeam, &errorCode);
+		if (!fMessengerToServer.IsValid ())
+			goto ErrorExit;
+	}
 
 	// Send off a scripting command to the database server, asking it to
 	// evaluate the string for spaminess.  Note that it can return ENOMSG
@@ -185,8 +200,6 @@ AGMSBayesianSpamFilter::ProcessMailMessage (
 	// if you are using plain text only tokenization), so we could use that
 	// as a spam marker too.
 
-	scriptingMessage.what = B_SET_PROPERTY;
-	scriptingMessage.AddSpecifier ("EvaluateString");
 	errorCode = fMessengerToServer.SendMessage (&scriptingMessage,
 		&replyMessage);
 	if (errorCode != B_OK

@@ -13,6 +13,9 @@
  * Public Domain 2002, by Alexander G. M. Smith, no warranty.
  *
  * $Log$
+ * Revision 1.1  2002/11/03 02:06:15  agmsmith
+ * Added initial version.
+ *
  * Revision 1.5  2002/10/21 16:13:59  agmsmith
  * Added option to have no words mean spam.
  *
@@ -53,10 +56,10 @@ class AGMSBayesianSpamFilter : public Zoidberg::Mail::Filter {
 		bool fAddSpamToSubject;
 		bool fBeepGenuine;
 		bool fBeepSpam;
+		int fLaunchAttemptCount;
 		BMessenger fMessengerToServer;
 		bool fNoWordsMeansSpam;
 		bool fQuitServerWhenFinished;
-		bool fServerSearchDone;
 		float fSpamCutoffRatio;
 };
 
