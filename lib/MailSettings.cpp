@@ -1,4 +1,4 @@
-/* Settings - the mail daemon's settings
+/* BMailSettings - the mail daemon's settings
 **
 ** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
 */
@@ -17,36 +17,30 @@
 #include <string.h>
 #include <stdlib.h>
 
-namespace Zoidberg {
-namespace Mail {
-	class _EXPORT Settings;
+class BMailSettings;
 
+namespace MailInternal {
 	status_t WriteMessageFile(const BMessage& archive, const BPath& path, const char* name);
-}
 }
 
 #include <MailSettings.h>
 
-
-namespace Zoidberg {
-namespace Mail {
-
-Settings::Settings()
+BMailSettings::BMailSettings()
 {
 	Reload();
 }
 
-Settings::~Settings()
+BMailSettings::~BMailSettings()
 {
 }
 
-status_t Settings::InitCheck() const
+status_t BMailSettings::InitCheck() const
 {
 	return B_OK;
 }
 
 
-status_t Settings::Save(bigtime_t /*timeout*/)
+status_t BMailSettings::Save(bigtime_t /*timeout*/)
 {
 	status_t ret;
 	//
@@ -64,7 +58,7 @@ status_t Settings::Save(bigtime_t /*timeout*/)
 	
 	path.Append("Mail");
 	
-	status_t result = WriteMessageFile(data,path,"new_mail_daemon");
+	status_t result = MailInternal::WriteMessageFile(data,path,"new_mail_daemon");
 	if (result < B_OK)
 		return result;
 		
@@ -73,7 +67,7 @@ status_t Settings::Save(bigtime_t /*timeout*/)
 	return B_OK;
 }
 
-status_t Settings::Reload()
+status_t BMailSettings::Reload()
 {
 	status_t ret;
 	
@@ -119,7 +113,7 @@ status_t Settings::Reload()
 //
 // To do
 //
-_EXPORT Mail::Chain* Mail::NewChain()
+_EXPORT BMailChain* NewMailChain()
 {
 	// attempted solution: use time(NULL) and hope it's unique. Is there a better idea?
 	// note that two chains in two second is quite possible. how to fix this?
@@ -152,18 +146,18 @@ _EXPORT Mail::Chain* Mail::NewChain()
 	
 	chain_dir.WriteAttr("last_issued_chain_id",B_INT32_TYPE,0,&id,sizeof(id));
 	
-	return new Mail::Chain(id);
+	return new BMailChain(id);
 }
 //
 // Done
 //
 
-_EXPORT Mail::Chain* Mail::GetChain(uint32 id)
+_EXPORT BMailChain* GetMailChain(uint32 id)
 {
-	return new Mail::Chain(id);
+	return new BMailChain(id);
 }
 
-_EXPORT status_t Mail::InboundChains(BList *list)
+_EXPORT status_t GetInboundMailChains(BList *list)
 {
 	BPath path;
 	status_t ret = B_OK;
@@ -186,13 +180,13 @@ _EXPORT status_t Mail::InboundChains(BList *list)
 		uint32 id = strtoul(ref.name, &end, 10);
 		
 		if (!end || *end == '\0')
-			list->AddItem((void*)new Mail::Chain(id));
+			list->AddItem((void*)new BMailChain(id));
 	}
 	
 	return ret;
 }
 
-_EXPORT status_t Mail::OutboundChains(BList *list)
+_EXPORT status_t GetOutboundMailChains(BList *list)
 {
 	BPath path;
 	status_t ret = B_OK;
@@ -214,7 +208,7 @@ _EXPORT status_t Mail::OutboundChains(BList *list)
 		char *end;
 		uint32 id = strtoul(ref.name, &end, 10);
 		if (!end || *end == '\0')
-			list->AddItem((void*)new Mail::Chain(id));
+			list->AddItem((void*)new BMailChain(id));
 	}
 	
 	return ret;
@@ -222,61 +216,61 @@ _EXPORT status_t Mail::OutboundChains(BList *list)
 
 
 // Global settings
-int32 Settings::WindowFollowsCorner()
+int32 BMailSettings::WindowFollowsCorner()
 {
 	return data.FindInt32("WindowFollowsCorner");
 }
-void Settings::SetWindowFollowsCorner(int32 which_corner)
+void BMailSettings::SetWindowFollowsCorner(int32 which_corner)
 {
 	if (data.ReplaceInt32("WindowFollowsCorner",which_corner))
 		data.AddInt32("WindowFollowsCorner",which_corner);
 }
 
-uint32 Settings::ShowStatusWindow()
+uint32 BMailSettings::ShowStatusWindow()
 {
 	return data.FindInt32("ShowStatusWindow");
 }
-void Settings::SetShowStatusWindow(uint32 mode)
+void BMailSettings::SetShowStatusWindow(uint32 mode)
 {
 	if (data.ReplaceInt32("ShowStatusWindow",mode))
 		data.AddInt32("ShowStatusWindow",mode);
 }
 
-bool Settings::DaemonAutoStarts()
+bool BMailSettings::DaemonAutoStarts()
 {
 	return data.FindBool("DaemonAutoStarts");
 }
-void Settings::SetDaemonAutoStarts(bool does_it)
+void BMailSettings::SetDaemonAutoStarts(bool does_it)
 {
 	if (data.ReplaceBool("DaemonAutoStarts",does_it))
 		data.AddBool("DaemonAutoStarts",does_it);
 }
 
-BRect Settings::ConfigWindowFrame()
+BRect BMailSettings::ConfigWindowFrame()
 {
 	return data.FindRect("ConfigWindowFrame");
 }
-void Settings::SetConfigWindowFrame(BRect frame)
+void BMailSettings::SetConfigWindowFrame(BRect frame)
 {
 	if (data.ReplaceRect("ConfigWindowFrame",frame))
 		data.AddRect("ConfigWindowFrame",frame);
 }
 
-BRect Settings::StatusWindowFrame()
+BRect BMailSettings::StatusWindowFrame()
 {
 	return data.FindRect("StatusWindowFrame");
 }
-void Settings::SetStatusWindowFrame(BRect frame)
+void BMailSettings::SetStatusWindowFrame(BRect frame)
 {
 	if (data.ReplaceRect("StatusWindowFrame",frame))
 		data.AddRect("StatusWindowFrame",frame);
 }
 
-int32 Settings::StatusWindowWorkspaces()
+int32 BMailSettings::StatusWindowWorkspaces()
 {
 	return data.FindInt32("StatusWindowWorkSpace");
 }
-void Settings::SetStatusWindowWorkspaces(int32 workspace)
+void BMailSettings::SetStatusWindowWorkspaces(int32 workspace)
 {
 	if (data.ReplaceInt32("StatusWindowWorkSpace",workspace))
 		data.AddInt32("StatusWindowWorkSpace",workspace);
@@ -286,11 +280,11 @@ void Settings::SetStatusWindowWorkspaces(int32 workspace)
 	BMessenger("application/x-vnd.Be-POST").SendMessage(&msg);
 }
 
-int32 Settings::StatusWindowLook()
+int32 BMailSettings::StatusWindowLook()
 {
 	return data.FindInt32("StatusWindowLook");
 }
-void Settings::SetStatusWindowLook(int32 look)
+void BMailSettings::SetStatusWindowLook(int32 look)
 {
 	if (data.ReplaceInt32("StatusWindowLook",look))
 		data.AddInt32("StatusWindowLook",look);
@@ -300,43 +294,40 @@ void Settings::SetStatusWindowLook(int32 look)
 	BMessenger("application/x-vnd.Be-POST").SendMessage(&msg);
 }
 
-bigtime_t Settings::AutoCheckInterval() {
+bigtime_t BMailSettings::AutoCheckInterval() {
 	bigtime_t value = B_INFINITE_TIMEOUT;
 	data.FindInt64("AutoCheckInterval",&value);
 	return value;
 }
 
-void Settings::SetAutoCheckInterval(bigtime_t interval) {
+void BMailSettings::SetAutoCheckInterval(bigtime_t interval) {
 	if (data.ReplaceInt64("AutoCheckInterval",interval))
 		data.AddInt64("AutoCheckInterval",interval);
 }
 
-bool Settings::CheckOnlyIfPPPUp() {
+bool BMailSettings::CheckOnlyIfPPPUp() {
 	return data.FindBool("CheckOnlyIfPPPUp");
 }
 
-void Settings::SetCheckOnlyIfPPPUp(bool yes) {
+void BMailSettings::SetCheckOnlyIfPPPUp(bool yes) {
 	if (data.ReplaceBool("CheckOnlyIfPPPUp",yes))
 		data.AddBool("CheckOnlyIfPPPUp",yes);
 }
 
-bool Settings::SendOnlyIfPPPUp() {
+bool BMailSettings::SendOnlyIfPPPUp() {
 	return data.FindBool("SendOnlyIfPPPUp");
 }
 
-void Settings::SetSendOnlyIfPPPUp(bool yes) {
+void BMailSettings::SetSendOnlyIfPPPUp(bool yes) {
 	if (data.ReplaceBool("SendOnlyIfPPPUp",yes))
 		data.AddBool("SendOnlyIfPPPUp",yes);
 }
 
-uint32 Settings::DefaultOutboundChainID() {
+uint32 BMailSettings::DefaultOutboundChainID() {
 	return data.FindInt32("DefaultOutboundChainID");
 }
 
-void Settings::SetDefaultOutboundChainID(uint32 to) {
+void BMailSettings::SetDefaultOutboundChainID(uint32 to) {
 	if (data.ReplaceInt32("DefaultOutboundChainID",to))
 		data.AddInt32("DefaultOutboundChainID",to);
 }
-
-}	// namespace Mail
-}	// namespace Zoidberg

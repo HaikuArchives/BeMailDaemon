@@ -8,25 +8,18 @@
 
 #include <map>
 
-namespace Zoidberg {
-	namespace Mail {
-		class _EXPORT RemoteStorageProtocol;
-	}
-}
+class _EXPORT BMailRemoteStorageProtocol;
 
 #include <RemoteStorageProtocol.h>
 #include <ChainRunner.h>
 
-using namespace Zoidberg;
-using Mail::RemoteStorageProtocol; 
-
 namespace {
 
-void GetSubFolders(BDirectory *of, StringList *folders, const char *prepend = "");
+void GetSubFolders(BDirectory *of, BStringList *folders, const char *prepend = "");
 
 class UpdateHandler : public BHandler {
 	public:
-		UpdateHandler(RemoteStorageProtocol *prot, const char *dest) : _prot(prot), _dest(dest) {
+		UpdateHandler(BMailRemoteStorageProtocol *prot, const char *dest) : _prot(prot), _dest(dest) {
 			node_ref ref;
 			_dest.GetNodeRef(&ref);
 			dest_node = ref.node;
@@ -40,12 +33,12 @@ class UpdateHandler : public BHandler {
 					if (_prot->InitCheck() < B_OK)
 						return;
 					
-					((Mail::ChainRunner *)(Looper()))->ReportProgress(0,0,"Synchronizing Mailboxes");
+					((BMailChainRunner *)(Looper()))->ReportProgress(0,0,"Synchronizing Mailboxes");
 					
-					StringList subdirs;
+					BStringList subdirs;
 					GetSubFolders(&_dest,&subdirs);
-					StringList to_delete;
-					StringList to_add;
+					BStringList to_delete;
+					BStringList to_add;
 					subdirs.NotThere(_prot->mailboxes,&to_add);
 					if (subdirs.CountItems() != 0) // --- If it's a virgin mailfolder, the user probably just configured his machineand probably *doesn't* want all his mail folders deleted :)
 						subdirs.NotHere(_prot->mailboxes,&to_delete);
@@ -87,7 +80,7 @@ class UpdateHandler : public BHandler {
 						watch_node(&watcher,B_WATCH_DIRECTORY,this);
 						_prot->SyncMailbox(_prot->mailboxes[i]);
 					}
-					((Mail::ChainRunner *)(Looper()))->ResetProgress();
+					((BMailChainRunner *)(Looper()))->ResetProgress();
 				} break;
 			
 			case B_NODE_MONITOR: {
@@ -238,14 +231,14 @@ class UpdateHandler : public BHandler {
 						
 
 	private:
-		RemoteStorageProtocol *_prot;
+		BMailRemoteStorageProtocol *_prot;
 		BDirectory _dest;
 		
 		map<int64, const char *> nodes;
 		ino_t dest_node;
 };
 
-void GetSubFolders(BDirectory *of, StringList *folders, const char *prepend) {
+void GetSubFolders(BDirectory *of, BStringList *folders, const char *prepend) {
 	of->Rewind();
 	BEntry ent;
 	BString crud;
@@ -265,19 +258,19 @@ void GetSubFolders(BDirectory *of, StringList *folders, const char *prepend) {
 	}
 }
 
-RemoteStorageProtocol::RemoteStorageProtocol(BMessage *settings, Mail::ChainRunner *runner) : Mail::Protocol(settings,runner) {
+BMailRemoteStorageProtocol::BMailRemoteStorageProtocol(BMessage *settings, BMailChainRunner *runner) : BMailProtocol(settings,runner) {
 	handler = new UpdateHandler(this,runner->Chain()->MetaData()->FindString("path"));
 	runner->AddHandler(handler);
 	runner->PostMessage('INIT',handler);
 }
 
-RemoteStorageProtocol::~RemoteStorageProtocol() {
+BMailRemoteStorageProtocol::~BMailRemoteStorageProtocol() {
 	delete handler;
 }
 }
 
-//----Mail::Protocol stuff
-status_t RemoteStorageProtocol::GetMessage(
+//----BMailProtocol stuff
+status_t BMailRemoteStorageProtocol::GetMessage(
 	const char* uid,
 	BPositionIO** out_file, BMessage* out_headers,
 	BPath* out_folder_location) {
@@ -292,7 +285,7 @@ status_t RemoteStorageProtocol::GetMessage(
 		return GetMessage(folder.String(),id.String(),out_file,out_headers);
 	}
 	
-status_t RemoteStorageProtocol::DeleteMessage(const char* uid) {
+status_t BMailRemoteStorageProtocol::DeleteMessage(const char* uid) {
 	BString folder(uid), id;
 	{
 		BString raw(uid);
@@ -309,7 +302,7 @@ status_t RemoteStorageProtocol::DeleteMessage(const char* uid) {
 	return B_OK;
 }
 
-void RemoteStorageProtocol::SyncMailbox(const char *mailbox) {
+void BMailRemoteStorageProtocol::SyncMailbox(const char *mailbox) {
 	BPath path(runner->Chain()->MetaData()->FindString("path"));
 	path.Append(mailbox);
 	
@@ -367,7 +360,7 @@ void RemoteStorageProtocol::SyncMailbox(const char *mailbox) {
 	}
 }
 
-/*status_t RemoteStorageProtocol::MoveMessage(const char *mailbox, const char *to_mailbox, BString *message) {
+/*status_t BMailRemoteStorageProtocol::MoveMessage(const char *mailbox, const char *to_mailbox, BString *message) {
 	BString new_id(*message);
 	status_t err;
 	if ((err = CopyMessage(mailbox,to_mailbox,&new_id)) < B_OK)

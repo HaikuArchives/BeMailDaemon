@@ -173,13 +173,7 @@ class BFilePanel;
 class ButtonBar;
 class BMenuBar;
 class Words;
-
-namespace Zoidberg {
-namespace Mail {
-	class Message;
-}
-}
-using namespace Zoidberg;
+class BEmailMessage;
 
 //====================================================================
 
@@ -245,10 +239,10 @@ class TMailWindow : public BWindow {
 		void CopyMessage(entry_ref *ref, TMailWindow *src);
 		status_t Send(bool);
 		status_t SaveAsDraft( void );
-		status_t OpenMessage(entry_ref *ref, uint32 characterSetForDecoding = MDR_NULL_CONVERSION);
+		status_t OpenMessage(entry_ref *ref, uint32 characterSetForDecoding = B_MAIL_NULL_CONVERSION);
 
 		status_t GetMailNodeRef(node_ref &nodeRef) const;
-		Mail::Message *Mail() const { return fMail; }
+		BEmailMessage *Mail() const { return fMail; }
 
 		bool GetTrackerWindowFile(entry_ref *, bool dir) const;
 		void SaveTrackerPosition(entry_ref *);
@@ -266,7 +260,7 @@ class TMailWindow : public BWindow {
 		status_t TrainMessageAs (const char *CommandWord);
 
 	private:
-		Mail::Message	*fMail;
+		BEmailMessage	*fMail;
 		entry_ref *fRef;			// Reference to currently displayed file
 		int32 fFieldState;
 		BFilePanel *fPanel;

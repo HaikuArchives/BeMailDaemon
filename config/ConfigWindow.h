@@ -15,12 +15,8 @@ class BCheckBox;
 class BListView;
 class BButton;
 class BMenuField;
+class BMailSettings;
 
-namespace Zoidberg {
-namespace Mail {
-	class Settings;
-}
-}
 class Account;
 
 
@@ -39,7 +35,7 @@ class ConfigWindow : public BWindow
 		void			LoadSettings();
 		void			SaveSettings();
 
-		status_t		SetToGeneralSettings(Zoidberg::Mail::Settings *general);
+		status_t		SetToGeneralSettings(BMailSettings *general);
 		void			RevertToLastSettings();
 
 	private:

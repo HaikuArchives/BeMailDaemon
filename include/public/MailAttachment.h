@@ -11,11 +11,7 @@
 #include <MailContainer.h>
 #include <MailComponent.h>
 
-
-namespace Zoidberg {
-namespace Mail {
-
-class Attachment : public Component {
+class BMailAttachment : public BMailComponent {
 	public:
 		virtual void SetFileName(const char *name) = 0;
 		virtual status_t FileName(char *name) = 0;
@@ -32,16 +28,16 @@ class Attachment : public Component {
 		virtual void _ReservedAttachment4();
 };
 
-class SimpleAttachment : public Attachment {
+class BSimpleMailAttachment : public BMailAttachment {
 	public:
-		SimpleAttachment(BPositionIO *dataToAttach, mail_encoding encoding = base64);
-		SimpleAttachment(const void *dataToAttach, size_t lengthOfData, mail_encoding encoding = base64);
+		BSimpleMailAttachment(BPositionIO *dataToAttach, mail_encoding encoding = base64);
+		BSimpleMailAttachment(const void *dataToAttach, size_t lengthOfData, mail_encoding encoding = base64);
 
-		SimpleAttachment(BFile *file, bool delete_when_done);
-		SimpleAttachment(entry_ref *ref);
+		BSimpleMailAttachment(BFile *file, bool delete_when_done);
+		BSimpleMailAttachment(entry_ref *ref);
 
-		SimpleAttachment();
-		virtual ~SimpleAttachment();
+		BSimpleMailAttachment();
+		virtual ~BSimpleMailAttachment();
 
 		virtual status_t SetTo(BFile *file, bool delete_file_when_done = false);
 		virtual status_t SetTo(entry_ref *ref);
@@ -82,13 +78,13 @@ class SimpleAttachment : public Attachment {
 		uint32 _reserved[5];
 };
 
-class AttributedAttachment : public Attachment {
+class BAttributedMailAttachment : public BMailAttachment {
 	public:
-		AttributedAttachment(BFile *file, bool delete_when_done);
-		AttributedAttachment(entry_ref *ref);
+		BAttributedMailAttachment(BFile *file, bool delete_when_done);
+		BAttributedMailAttachment(entry_ref *ref);
 		
-		AttributedAttachment();
-		virtual ~AttributedAttachment();
+		BAttributedMailAttachment();
+		virtual ~BAttributedMailAttachment();
 		
 		virtual status_t SetTo(BFile *file, bool delete_file_when_done = false);
 		virtual status_t SetTo(entry_ref *ref);
@@ -119,16 +115,13 @@ class AttributedAttachment : public Attachment {
 		virtual void _ReservedAttributed2();
 		virtual void _ReservedAttributed3();
 
-		MIMEMultipartContainer *fContainer;
+		BMIMEMultipartMailContainer *fContainer;
 		status_t fStatus;
 
-		SimpleAttachment *_data, *_attributes_attach;
+		BSimpleMailAttachment *_data, *_attributes_attach;
 		BMessage _attributes;
 
 		uint32 _reserved[5];
 };
-
-}	// namespace Mail
-}	// namespace Zoidberg
 
 #endif	/* ZOIDBERG_MAIL_ATTACHMENT_H */

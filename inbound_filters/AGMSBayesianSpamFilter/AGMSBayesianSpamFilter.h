@@ -13,6 +13,13 @@
  * Public Domain 2002, by Alexander G. M. Smith, no warranty.
  *
  * $Log$
+ * Revision 1.7  2003/05/27 17:12:59  nwhitehorn
+ * Massive refactoring of the Protocol/ChainRunner/Filter system. You can probably
+ * examine its scope by examining the number of files changed. Regardless, this is
+ * preparation for lots of new features, and REAL WORKING IMAP. Yes, you heard me.
+ * Enjoy, and prepare for bugs (although I've fixed all the ones I've found, I susp
+ * ect there are some memory leaks in ChainRunner).
+ *
  * Revision 1.6  2003/02/08 21:54:17  agmsmith
  * Updated the AGMSBayesianSpamServer documentation to match the current
  * version.  Also removed the Beep options from the spam filter, now they
@@ -58,7 +65,7 @@
 #include <MailAddon.h>
 
 
-class AGMSBayesianSpamFilter : public Zoidberg::Mail::Filter {
+class AGMSBayesianSpamFilter : public BMailFilter {
 	public:
 		AGMSBayesianSpamFilter (BMessage *settings);
 		virtual ~AGMSBayesianSpamFilter ();

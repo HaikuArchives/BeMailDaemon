@@ -17,16 +17,14 @@
 
 #define timeout 5e5
 
-namespace Zoidberg {
-namespace Mail {
+namespace MailInternal {
 
 status_t WriteMessageFile(const BMessage& archive, const BPath& path, const char* name);
 
-}	// namespace Mail
-}	// namespace Zoidberg
+}
 
 
-status_t Zoidberg::Mail::WriteMessageFile(const BMessage& archive, const BPath& path, const char* name)
+status_t MailInternal::WriteMessageFile(const BMessage& archive, const BPath& path, const char* name)
 {
 	status_t ret = B_OK;
 	BString leaf = name;

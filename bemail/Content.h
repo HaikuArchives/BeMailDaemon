@@ -70,12 +70,6 @@ class BFile;
 class BList;
 class BPopupMenu;
 
-namespace Zoidberg {
-namespace Mail {
-	class Message;
-}
-}
-
 struct text_run_array;
 
 typedef struct
@@ -87,7 +81,7 @@ typedef struct
 	bool close;
 	bool mime;
 	TTextView *view;
-	Mail::Message *mail;
+	BEmailMessage *mail;
 	BList *enclosures;
 	sem_id *stop_sem;
 } reader_info;
@@ -107,7 +101,7 @@ struct hyper_text {
 	char *encoding;
 	int32 text_start;
 	int32 text_end;
-	Zoidberg::Mail::Component *component;
+	BMailComponent *component;
 	bool saved;
 	bool have_ref;
 	entry_ref ref;
@@ -122,7 +116,7 @@ class TSavePanel;
 class TContentView : public BView
 {
 	public:
-		TContentView(BRect, bool incoming, Mail::Message *mail, BFont *); 
+		TContentView(BRect, bool incoming, BEmailMessage *mail, BFont *); 
 		virtual void MessageReceived(BMessage *);
 		void FindString(const char *);
 		void Focus(bool);
@@ -146,7 +140,7 @@ enum {
 class TTextView : public BTextView
 {
 	public:
-		TTextView(BRect, BRect, bool incoming, Mail::Message *mail, TContentView *,BFont *);
+		TTextView(BRect, BRect, bool incoming, BEmailMessage *mail, TContentView *,BFont *);
 		~TTextView();
 
 		virtual	void AttachedToWindow();
@@ -160,11 +154,11 @@ class TTextView : public BTextView
 		virtual void  DeleteText(int32 start, int32 finish);
 
 		void ClearList();
-		void LoadMessage(Mail::Message *mail, bool quoteIt, const char *insertText);
+		void LoadMessage(BEmailMessage *mail, bool quoteIt, const char *insertText);
 		void Open(hyper_text*);
 		status_t Save(BMessage *, bool makeNewFile = true);
 		void StopLoad();
-		void AddAsContent(Zoidberg::Mail::Message *mail, bool wrap, uint32 charset, mail_encoding encoding);
+		void AddAsContent(BEmailMessage *mail, bool wrap, uint32 charset, mail_encoding encoding);
 		void CheckSpelling(int32 start, int32 end,
 			int32 flags = S_CLEAR_ERRORS | S_SHOW_ERRORS);
 		void FindSpellBoundry(int32 length, int32 offset, int32 *start,
@@ -207,7 +201,7 @@ class TTextView : public BTextView
 		char *fYankBuffer;
 		int32 fLastPosition;
 		BFile *fFile;
-		Zoidberg::Mail::Message *fMail;
+		BEmailMessage *fMail;
 			// for incoming/replied/forwarded mails only
 		BFont fFont;
 		TContentView *fParent;
@@ -237,12 +231,12 @@ class TTextView : public BTextView
 		{
 			public:
 				Reader(bool header,bool raw,bool quote,bool incoming,bool stripHeaders,bool mime,
-					TTextView *view,Mail::Message *mail,BList *list,sem_id sem);
+					TTextView *view,BEmailMessage *mail,BList *list,sem_id sem);
 
 				static status_t Run(void *);
 
 			private:
-				bool ParseMail(Mail::Container *container,Mail::TextComponent *ignore);
+				bool ParseMail(BMailContainer *container,BTextMailComponent *ignore);
 				bool Process(const char *data, int32 len, bool isHeader = false);
 				bool Insert(const char *line, int32 count, bool isHyperLink, bool isHeader = false);
 
@@ -256,7 +250,7 @@ class TTextView : public BTextView
 				bool fStripHeader;
 				bool fMime;
 				TTextView *fView;
-				Mail::Message *fMail;
+				BEmailMessage *fMail;
 				BList *fEnclosures;
 				sem_id fStopSem;
 		};

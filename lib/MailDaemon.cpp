@@ -13,10 +13,8 @@
 
 #include <string.h>
 
-namespace Zoidberg {
-
 _EXPORT status_t
-Mail::CheckMail(bool send_queued_mail,const char *account)
+BMailDaemon::CheckMail(bool send_queued_mail,const char *account)
 {
 	BMessenger daemon("application/x-vnd.Be-POST");
 	if (!daemon.IsValid())
@@ -26,9 +24,9 @@ Mail::CheckMail(bool send_queued_mail,const char *account)
 	if (account != NULL) {
 		BList list;
 
-		InboundChains(&list);
+		GetInboundMailChains(&list);
 		for (int32 i = list.CountItems();i-- > 0;) {
-			Mail::Chain *chain = (Mail::Chain *)list.ItemAt(i);
+			BMailChain *chain = (BMailChain *)list.ItemAt(i);
 			
 			if (!strcmp(chain->Name(),account))
 				message.AddInt32("chain",chain->ID());
@@ -38,9 +36,9 @@ Mail::CheckMail(bool send_queued_mail,const char *account)
 		
 		if (send_queued_mail) {
 			list.MakeEmpty();
-			OutboundChains(&list);
+			GetOutboundMailChains(&list);
 			for (int32 i = list.CountItems();i-- > 0;) {
-				Mail::Chain *chain = (Mail::Chain *)list.ItemAt(i);
+				BMailChain *chain = (BMailChain *)list.ItemAt(i);
 				
 				if (!strcmp(chain->Name(),account))
 					message.AddInt32("chain",chain->ID());
@@ -55,7 +53,7 @@ Mail::CheckMail(bool send_queued_mail,const char *account)
 }
 
 
-_EXPORT status_t Mail::SendQueuedMail() {
+_EXPORT status_t BMailDaemon::SendQueuedMail() {
 	BMessenger daemon("application/x-vnd.Be-POST");
 	if (!daemon.IsValid())
 		return B_MAIL_NO_DAEMON;
@@ -65,7 +63,7 @@ _EXPORT status_t Mail::SendQueuedMail() {
 	return B_OK;
 }
 
-_EXPORT int32 Mail::CountNewMessages(bool wait_for_fetch_completion) {
+_EXPORT int32 BMailDaemon::CountNewMessages(bool wait_for_fetch_completion) {
 	BMessenger daemon("application/x-vnd.Be-POST");
 	if (!daemon.IsValid())
 		return B_MAIL_NO_DAEMON;
@@ -81,7 +79,7 @@ _EXPORT int32 Mail::CountNewMessages(bool wait_for_fetch_completion) {
 	return reply.FindInt32("num_new_messages");
 }
 
-_EXPORT status_t Mail::QuitDaemon() {
+_EXPORT status_t BMailDaemon::Quit() {
 	BMessenger daemon("application/x-vnd.Be-POST");
 	if (!daemon.IsValid())
 		return B_MAIL_NO_DAEMON;
@@ -91,4 +89,3 @@ _EXPORT status_t Mail::QuitDaemon() {
 	return B_OK;
 }
 
-}	// namespace Zoidberg

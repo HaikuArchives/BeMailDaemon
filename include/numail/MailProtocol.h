@@ -12,20 +12,13 @@
 
 
 class BHandler;
+class BStringList;
+class BMailChainRunner;
 
-
-namespace Zoidberg {
-
-class StringList;
-
-namespace Mail {
-
-class ChainRunner;
-
-class Protocol : public Filter
+class BMailProtocol : public BMailFilter
 {
   public:
-	Protocol(BMessage* settings, ChainRunner *runner);
+	BMailProtocol(BMessage* settings, BMailChainRunner *runner);
 	// Open a connection based on 'settings'.  'settings' will
 	// contain a persistent uint32 ChainID field.  At most one
 	// Protocol per ChainID will exist at a given time.
@@ -34,7 +27,7 @@ class Protocol : public Filter
 	// to keep it updated* in the course of whatever nefarious
 	// things your protocol does.
 	
-	virtual ~Protocol();
+	virtual ~BMailProtocol();
 	// Close the connection and clean up.   This will be cal-
 	// led after FetchMessage() or FetchNewMessage() returns
 	// B_TIMED_OUT or B_ERROR, or when the settings for this
@@ -91,10 +84,10 @@ class Protocol : public Filter
 	);
 	
   protected:
-	StringList *manifest, *unique_ids;
+	BStringList *manifest, *unique_ids;
   	BMessage *settings;
   	
-	Mail::ChainRunner *runner;	
+	BMailChainRunner *runner;	
   private:
   	inline void error_alert(const char *process, status_t error);
 	virtual void _ReservedProtocol1();
@@ -106,12 +99,9 @@ class Protocol : public Filter
 	friend class DeletePass;
 	
 	BHandler *trash_monitor;
-	StringList *uids_on_disk;
+	BStringList *uids_on_disk;
 	
 	uint32 _reserved[3];
 };
-
-}	// namespace Mail
-}	// namespace Zoidberg
 
 #endif // ZOIDBERG_MAIL_PROTOCOL_H

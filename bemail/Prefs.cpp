@@ -53,9 +53,6 @@ All rights reserved.
 #include "Mail.h"
 #include "Prefs.h"
 
-
-using namespace Zoidberg;
-
 #define BUTTON_WIDTH		70
 #define BUTTON_HEIGHT		20
 #define ITEM_SPACE			6
@@ -130,10 +127,10 @@ const EncodingItem kEncodings[] =
 	{"DOS-437 (common)", B_MS_DOS_CONVERSION},
 	{"DOS-866 (rarer)", B_MS_DOS_866_CONVERSION},
 	{"Macintosh Roman", B_MAC_ROMAN_CONVERSION},
-	{"US-ASCII", MDR_US_ASCII_CONVERSION},
-	{"UTF-8 (BeOS)", MDR_UTF8_CONVERSION},
+	{"US-ASCII", B_MAIL_US_ASCII_CONVERSION},
+	{"UTF-8 (BeOS)", B_MAIL_UTF8_CONVERSION},
 
-	{"Automatic", MDR_NULL_CONVERSION /* marks end of list, only visible when decoding */}
+	{"Automatic", B_MAIL_NULL_CONVERSION /* marks end of list, only visible when decoding */}
 };
 
 #define  ATTRIBUTE_ON_TEXT MDR_DIALECT_CHOICE ("Include BeOS Attributes in Attachments", "BeOSの属性を付ける")
@@ -473,7 +470,7 @@ TPrefsWindow::MessageReceived(BMessage *msg)
 				if (item)
 					item->SetMarked(true);
 
-				for (uint32 index = 0; kEncodings[index].flavor != MDR_NULL_CONVERSION; index++)
+				for (uint32 index = 0; kEncodings[index].flavor != B_MAIL_NULL_CONVERSION; index++)
 				{
 					if (kEncodings[index].flavor == *fNewEncoding)
 					{
@@ -694,7 +691,7 @@ TPrefsWindow::BuildAccountMenu(uint32 account)
 
 	//menu->SetRadioMode(true);
 	BList chains;
-	if (Mail::OutboundChains(&chains) < B_OK)
+	if (GetOutboundMailChains(&chains) < B_OK)
 	{
 		menu->AddItem(item = new BMenuItem("<no account found>",NULL));
 		item->SetEnabled(false);
@@ -704,7 +701,7 @@ TPrefsWindow::BuildAccountMenu(uint32 account)
 	BMessage *msg;
 	for (int32 i = 0;i < chains.CountItems();i++)
 	{
-		Mail::Chain *chain = (Mail::Chain *)chains.ItemAt(i);
+		BMailChain *chain = (BMailChain *)chains.ItemAt(i);
 		item = new BMenuItem(chain->Name(),msg = new BMessage(P_ACCOUNT));
 
 		msg->AddInt32("id",chain->ID());
@@ -914,7 +911,7 @@ TPrefsWindow::BuildEncodingMenu(uint32 encoding)
 	BPopUpMenu	*menu;
 
 	menu = new BPopUpMenu("");
-	for (loop = 0; kEncodings[loop].flavor != MDR_NULL_CONVERSION; loop++) {
+	for (loop = 0; kEncodings[loop].flavor != B_MAIL_NULL_CONVERSION; loop++) {
 		msg = new BMessage(P_ENC);
 		msg->AddInt32("encoding", kEncodings[loop].flavor);
 		menu->AddItem(item = new BMenuItem(kEncodings[loop].name, msg));

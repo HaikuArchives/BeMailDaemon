@@ -21,7 +21,7 @@ typedef enum {
 	Z_SET_READ
 } z_mail_action_flags;
 
-class RuleFilter : public Zoidberg::Mail::Filter {
+class RuleFilter : public BMailFilter {
 	public:
 							RuleFilter(BMessage *settings);
 		virtual				~RuleFilter();

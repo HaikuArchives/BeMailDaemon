@@ -1,4 +1,4 @@
-/* SimpleProtocol - the base protocol implementation
+/* SimpleMailProtocol - the base protocol implementation
 **
 ** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
 */
@@ -19,12 +19,8 @@
 #include "SimpleMailProtocol.h"
 #include "MessageIO.h"
 
-
-namespace Zoidberg {
-namespace Mail {
-
-SimpleProtocol::SimpleProtocol(BMessage *settings, Mail::ChainRunner *run) :
-	Mail::Protocol(settings,run),
+SimpleMailProtocol::SimpleMailProtocol(BMessage *settings, BMailChainRunner *run) :
+	BMailProtocol(settings,run),
 	error(B_OK),
 	last_message(-1)
 {
@@ -32,7 +28,7 @@ SimpleProtocol::SimpleProtocol(BMessage *settings, Mail::ChainRunner *run) :
 
 
 status_t
-SimpleProtocol::Init()
+SimpleMailProtocol::Init()
 {
 	error = Open(settings->FindString("server"), settings->FindInt32("port"),
 				settings->FindInt32("flavor"));
@@ -66,7 +62,7 @@ SimpleProtocol::Init()
 	size_t	maildrop_size = 0;
 	int32	num_messages;
 
-	StringList to_dl;
+	BStringList to_dl;
 	manifest->NotHere(*unique_ids, &to_dl);
 
 	num_messages = to_dl.CountItems();
@@ -85,13 +81,13 @@ SimpleProtocol::Init()
 }
 
 
-SimpleProtocol::~SimpleProtocol()
+SimpleMailProtocol::~SimpleMailProtocol()
 {
 }
 	
 
 status_t
-SimpleProtocol::GetMessage(const char *uid, BPositionIO **out_file, BMessage *out_headers,
+SimpleMailProtocol::GetMessage(const char *uid, BPositionIO **out_file, BMessage *out_headers,
 	BPath *out_folder_location)
 {
 	int32 to_retrieve = unique_ids->IndexOf(uid);
@@ -99,7 +95,7 @@ SimpleProtocol::GetMessage(const char *uid, BPositionIO **out_file, BMessage *ou
 		return B_NAME_NOT_FOUND;
 
 	out_headers->AddInt32("SIZE",MessageSize(to_retrieve));
-	*out_file = new Zoidberg::Mail::MessageIO(this,*out_file,to_retrieve);
+	*out_file = new BMailMessageIO(this,*out_file,to_retrieve);
 
 	if (out_folder_location != NULL)
 		out_folder_location->SetTo("");
@@ -112,7 +108,7 @@ SimpleProtocol::GetMessage(const char *uid, BPositionIO **out_file, BMessage *ou
 
 
 status_t
-SimpleProtocol::DeleteMessage(const char *uid)
+SimpleMailProtocol::DeleteMessage(const char *uid)
 {
 #if DEBUG
 	printf("ID is %d\n", (int)unique_ids->IndexOf(uid)); // What should we use for int32 instead of %d?
@@ -123,10 +119,7 @@ SimpleProtocol::DeleteMessage(const char *uid)
 
 
 status_t
-SimpleProtocol::InitCheck(BString* /*out_message*/)
+SimpleMailProtocol::InitCheck(BString* /*out_message*/)
 {
 	return error;
 }
-
-}	// namespace Mail
-}	// namespace Zoidberg

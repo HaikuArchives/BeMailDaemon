@@ -25,16 +25,13 @@
 
 #define CRLF   "\r\n"
 
-namespace Zoidberg {
-namespace Mail {
-
 struct CharsetConversionEntry
 {
 	const char *charset;
 	uint32 flavor;
 };
 
-extern const CharsetConversionEntry charsets [] =
+extern const CharsetConversionEntry mail_charsets [] =
 {
 	// In order of authority, so when searching for the name for a particular
 	// numbered conversion, start at the beginning of the array.
@@ -64,18 +61,18 @@ extern const CharsetConversionEntry charsets [] =
 	{"dos-866",     B_MS_DOS_866_CONVERSION},
 	{"x-mac-roman", B_MAC_ROMAN_CONVERSION},
 	/* {"utf-16",		B_UNICODE_CONVERSION}, Might not work due to NULs in text, needs testing. */
-	{"us-ascii",	MDR_US_ASCII_CONVERSION},
-	{"utf-8",		MDR_UTF8_CONVERSION /* Special code for no conversion */},
+	{"us-ascii",	B_MAIL_US_ASCII_CONVERSION},
+	{"utf-8",		B_MAIL_UTF8_CONVERSION /* Special code for no conversion */},
 	{NULL, (uint32) -1} /* End of list marker, NULL string pointer is the key. */
 };
 
 
 // The next couple of functions are our wrapper around convert_to_utf8 and
 // convert_from_utf8 so that they can also convert from UTF-8 to UTF-8 by
-// specifying the MDR_UTF8_CONVERSION constant as the conversion operation.  It
-// also lets us add new conversions, like MDR_US_ASCII_CONVERSION.
+// specifying the B_MAIL_UTF8_CONVERSION constant as the conversion operation.  It
+// also lets us add new conversions, like B_MAIL_US_ASCII_CONVERSION.
 
-_EXPORT status_t MDR_convert_to_utf8 (
+_EXPORT status_t mail_convert_to_utf8 (
 	uint32 srcEncoding,
 	const char *src,
 	int32 *srcLen,
@@ -88,7 +85,7 @@ _EXPORT status_t MDR_convert_to_utf8 (
 	char    *originalDst = dst;
 	status_t returnCode = -1;
 
-	if (srcEncoding == MDR_UTF8_CONVERSION) {
+	if (srcEncoding == B_MAIL_UTF8_CONVERSION) {
 		copyAmount = *srcLen;
 		if (*dstLen < copyAmount)
 			copyAmount = *dstLen;
@@ -96,7 +93,7 @@ _EXPORT status_t MDR_convert_to_utf8 (
 		*srcLen = copyAmount;
 		*dstLen = copyAmount;
 		returnCode = B_OK;
-	} else if (srcEncoding == MDR_US_ASCII_CONVERSION) {
+	} else if (srcEncoding == B_MAIL_US_ASCII_CONVERSION) {
 		int32 i;
 		unsigned char letter;
 		copyAmount = *srcLen;
@@ -138,7 +135,7 @@ _EXPORT status_t MDR_convert_to_utf8 (
 }
 
 
-_EXPORT status_t MDR_convert_from_utf8 (
+_EXPORT status_t mail_convert_from_utf8 (
 	uint32 dstEncoding,
 	const char *src,
 	int32 *srcLen,
@@ -153,7 +150,7 @@ _EXPORT status_t MDR_convert_from_utf8 (
 	int32		tempDstLen;
 	int32		tempSrcLen;
 
-	if (dstEncoding == MDR_UTF8_CONVERSION)
+	if (dstEncoding == B_MAIL_UTF8_CONVERSION)
 	{
 		copyAmount = *srcLen;
 		if (*dstLen < copyAmount)
@@ -164,7 +161,7 @@ _EXPORT status_t MDR_convert_from_utf8 (
 		return B_OK;
 	}
 
-	if (dstEncoding == MDR_US_ASCII_CONVERSION)
+	if (dstEncoding == B_MAIL_US_ASCII_CONVERSION)
 	{
 		int32			characterLength;
 		int32			dstRemaining = *dstLen;
@@ -373,14 +370,14 @@ _EXPORT ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 		bool		base64encoded = toupper(*encoding) == 'B';
 
 		int i;
-		for (i = 0; charsets[i].charset != NULL; i++)
+		for (i = 0; mail_charsets[i].charset != NULL; i++)
 		{
-			if (strncasecmp(charset, charsets[i].charset, cLen) == 0 &&
-			strlen(charsets[i].charset) == cLen)
+			if (strncasecmp(charset, mail_charsets[i].charset, cLen) == 0 &&
+			strlen(mail_charsets[i].charset) == cLen)
 				break;
 		}
 
-		if (charsets[i].charset == NULL)
+		if (mail_charsets[i].charset == NULL)
 		{
 			// unidentified charset
 			// what to do? doing nothing skips the encoded text;
@@ -409,7 +406,7 @@ _EXPORT ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 		//
 		// do the conversion
 		//
-		ret = MDR_convert_to_utf8(charsets[i].flavor, src, &cvLen, dst, &dstLen, &convState);
+		ret = mail_convert_to_utf8(mail_charsets[i].flavor, src, &cvLen, dst, &dstLen, &convState);
 		if (ret != B_OK)
 		{
 			// what to do? doing nothing skips the encoded text
@@ -497,7 +494,7 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 			int32 originalLength = originalWord.Length();
 			int32 convertedLength = originalLength * 5 + 1;
 			char *convertedBuffer = convertedWord.LockBuffer (convertedLength);
-			MDR_convert_from_utf8 (charset, originalWord.String(),
+			mail_convert_from_utf8 (charset, originalWord.String(),
 				&originalLength, convertedBuffer, &convertedLength, &state);
 			for (int i = 0; i < convertedLength; i++) {
 				if ((convertedBuffer[i] & (1 << 7)) ||
@@ -605,9 +602,9 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 	bool	previousWordNeededEncoding = false;
 
 	const char *charset_dec = "none-bug";
-	for (int32 i = 0; charsets[i].charset != NULL; i++) {
-		if (charsets[i].flavor == charset) {
-			charset_dec = charsets[i].charset;
+	for (int32 i = 0; mail_charsets[i].charset != NULL; i++) {
+		if (mail_charsets[i].flavor == charset) {
+			charset_dec = mail_charsets[i].charset;
 			break;
 		}
 	}
@@ -1440,6 +1437,3 @@ get_address_list(BList &list, const char *string, void (*cleanupFunc)(BString &)
 	}
 }
 
-
-}	// namespace Mail
-}	// namespace Zoidberg

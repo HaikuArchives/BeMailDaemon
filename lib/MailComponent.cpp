@@ -10,21 +10,13 @@
 #include <malloc.h>
 #include <ctype.h>
 
-namespace Zoidberg {
-namespace Mail {
-	class _EXPORT Component;
-	class _EXPORT TextComponent;
-}
-}
+class _EXPORT BMailComponent;
+class _EXPORT BTextMailComponent;
 
 #include <MailComponent.h>
 #include <MailAttachment.h>
 #include <MailContainer.h>
 #include <mail_util.h>
-
-
-namespace Zoidberg {
-namespace Mail {
 
 struct CharsetConversionEntry
 {
@@ -32,7 +24,7 @@ struct CharsetConversionEntry
 	uint32 flavor;
 };
 
-extern const CharsetConversionEntry charsets[];
+extern const CharsetConversionEntry mail_charsets[];
 
 
 extern const char *kHeaderCharsetString = "header-charset";
@@ -43,19 +35,19 @@ extern const char *kHeaderEncodingString = "header-encoding";
 // extra fields won't be output.
 
 
-Component::Component(uint32 defaultCharSet)
+BMailComponent::BMailComponent(uint32 defaultCharSet)
 	: _charSetForTextDecoding (defaultCharSet)
 {
 }
 
-Component::~Component()
+BMailComponent::~BMailComponent()
 {
 }
 
-uint32 Component::ComponentType()
+uint32 BMailComponent::ComponentType()
 {
-	if (NULL != dynamic_cast<AttributedAttachment *> (this))
-		return MC_ATTRIBUTED_ATTACHMENT;
+	if (NULL != dynamic_cast<BAttributedMailAttachment *> (this))
+		return B_MAIL_ATTRIBUTED_ATTACHMENT;
 
 	BMimeType type, super;
 	MIMEType(&type);
@@ -64,31 +56,31 @@ uint32 Component::ComponentType()
 	//---------ATT-This code *desperately* needs to be improved
 	if (super == "multipart") {
 		if (type == "multipart/x-bfile") // Not likely, they have the MIME
-			return MC_ATTRIBUTED_ATTACHMENT; // of their data contents.
+			return B_MAIL_ATTRIBUTED_ATTACHMENT; // of their data contents.
 		else
-			return MC_MULTIPART_CONTAINER;
+			return B_MAIL_MULTIPART_CONTAINER;
 	} else if (!IsAttachment() && (super == "text" || type.Type() == NULL))
-		return MC_PLAIN_TEXT_BODY;
+		return B_MAIL_PLAIN_TEXT_BODY;
 	else
-		return MC_SIMPLE_ATTACHMENT;
+		return B_MAIL_SIMPLE_ATTACHMENT;
 }
 
-Component *Component::WhatIsThis() {
+BMailComponent *BMailComponent::WhatIsThis() {
 	switch (ComponentType())
 	{
-		case MC_SIMPLE_ATTACHMENT:
-			return new Mail::SimpleAttachment;
-		case MC_ATTRIBUTED_ATTACHMENT:
-			return new Mail::AttributedAttachment;
-		case MC_MULTIPART_CONTAINER:
-			return new Mail::MIMEMultipartContainer (NULL, NULL, _charSetForTextDecoding);
-		case MC_PLAIN_TEXT_BODY:
+		case B_MAIL_SIMPLE_ATTACHMENT:
+			return new BSimpleMailAttachment;
+		case B_MAIL_ATTRIBUTED_ATTACHMENT:
+			return new BAttributedMailAttachment;
+		case B_MAIL_MULTIPART_CONTAINER:
+			return new BMIMEMultipartMailContainer (NULL, NULL, _charSetForTextDecoding);
+		case B_MAIL_PLAIN_TEXT_BODY:
 		default:
-			return new TextComponent (NULL, _charSetForTextDecoding);
+			return new BTextMailComponent (NULL, _charSetForTextDecoding);
 	}
 }
 
-bool Component::IsAttachment() {
+bool BMailComponent::IsAttachment() {
 	const char *disposition = HeaderField("Content-Disposition");
 	if ((disposition != NULL) && (strncasecmp(disposition,"Attachment",strlen("Attachment")) == 0))
 		return true;
@@ -110,7 +102,7 @@ bool Component::IsAttachment() {
 }
 
 
-void Component::SetHeaderField(const char *key, const char *value, uint32 charset, mail_encoding encoding, bool replace_existing) {
+void BMailComponent::SetHeaderField(const char *key, const char *value, uint32 charset, mail_encoding encoding, bool replace_existing) {
 	if (replace_existing)
 		headers.RemoveName(key);
 	if (value != NULL && value[0] != 0) // Empty or NULL strings mean delete header.
@@ -120,7 +112,7 @@ void Component::SetHeaderField(const char *key, const char *value, uint32 charse
 	// the headers is the one which affects all the headers.  There used to be
 	// separate settings for each item in the headers, but it never actually
 	// worked (can't store multiple items of different types in a BMessage).
-	if (charset != MDR_NULL_CONVERSION &&
+	if (charset != B_MAIL_NULL_CONVERSION &&
 	headers.ReplaceInt32 (kHeaderCharsetString, charset) != B_OK)
 		headers.AddInt32 (kHeaderCharsetString, charset);
 	if (encoding != null_encoding &&
@@ -129,8 +121,8 @@ void Component::SetHeaderField(const char *key, const char *value, uint32 charse
 }
 
 
-void Component::SetHeaderField(const char *key, BMessage *structure, bool replace_existing) {
-	int32		charset = MDR_NULL_CONVERSION;
+void BMailComponent::SetHeaderField(const char *key, BMessage *structure, bool replace_existing) {
+	int32		charset = B_MAIL_NULL_CONVERSION;
 	int8		encoding = null_encoding;
 	const char *unlabeled = "unlabeled";
 
@@ -170,14 +162,14 @@ void Component::SetHeaderField(const char *key, BMessage *structure, bool replac
 	SetHeaderField(key,value.String(),(uint32) charset, (mail_encoding) encoding);
 }
 
-const char *Component::HeaderField(const char *key, int32 index) {
+const char *BMailComponent::HeaderField(const char *key, int32 index) {
 	const char *string = NULL;
 
 	headers.FindString(key,index,&string);
 	return string;
 }
 
-status_t Component::HeaderField(const char *key, BMessage *structure, int32 index) {
+status_t BMailComponent::HeaderField(const char *key, BMessage *structure, int32 index) {
 	BString string = HeaderField(key,index);
 	if (string == "")
 		return B_NAME_NOT_FOUND;
@@ -234,11 +226,11 @@ status_t Component::HeaderField(const char *key, BMessage *structure, int32 inde
 	return B_OK;
 }
 
-status_t Component::RemoveHeader(const char *key) {
+status_t BMailComponent::RemoveHeader(const char *key) {
 	return headers.RemoveName(key);
 }
 
-const char *Component::HeaderAt(int32 index) {
+const char *BMailComponent::HeaderAt(int32 index) {
 #if B_BEOS_VERSION_DANO
 	const
 #endif
@@ -249,11 +241,11 @@ const char *Component::HeaderAt(int32 index) {
 	return name;
 }
 
-status_t Component::GetDecodedData(BPositionIO *) {return B_OK;}
-status_t Component::SetDecodedData(BPositionIO *) {return B_OK;}
+status_t BMailComponent::GetDecodedData(BPositionIO *) {return B_OK;}
+status_t BMailComponent::SetDecodedData(BPositionIO *) {return B_OK;}
 
 status_t
-Component::SetToRFC822(BPositionIO *data, size_t /*length*/, bool /*parse_now*/)
+BMailComponent::SetToRFC822(BPositionIO *data, size_t /*length*/, bool /*parse_now*/)
 {
 	headers.MakeEmpty();
 
@@ -263,7 +255,7 @@ Component::SetToRFC822(BPositionIO *data, size_t /*length*/, bool /*parse_now*/)
 
 
 status_t
-Component::RenderToRFC822(BPositionIO *render_to) {
+BMailComponent::RenderToRFC822(BPositionIO *render_to) {
 	int32 charset = B_ISO1_CONVERSION;
 	int8 encoding = quoted_printable;
 	const char *key, *value;
@@ -308,7 +300,7 @@ Component::RenderToRFC822(BPositionIO *render_to) {
 }
 
 
-status_t Component::MIMEType(BMimeType *mime) {
+status_t BMailComponent::MIMEType(BMimeType *mime) {
 	bool foundBestHeader;
 	const char *boundaryString;
 	unsigned int i;
@@ -365,19 +357,19 @@ status_t Component::MIMEType(BMimeType *mime) {
 }
 
 
-void Component::_ReservedComponent1() {}
-void Component::_ReservedComponent2() {}
-void Component::_ReservedComponent3() {}
-void Component::_ReservedComponent4() {}
-void Component::_ReservedComponent5() {}
+void BMailComponent::_ReservedComponent1() {}
+void BMailComponent::_ReservedComponent2() {}
+void BMailComponent::_ReservedComponent3() {}
+void BMailComponent::_ReservedComponent4() {}
+void BMailComponent::_ReservedComponent5() {}
 
 
 //-------------------------------------------------------------------------
 //	#pragma mark -
 
 
-TextComponent::TextComponent(const char *text, uint32 defaultCharSet)
-	: Component(defaultCharSet),
+BTextMailComponent::BTextMailComponent(const char *text, uint32 defaultCharSet)
+	: BMailComponent(defaultCharSet),
 	encoding(quoted_printable),
 	charset(B_ISO1_CONVERSION),
 	raw_data(NULL)
@@ -388,40 +380,40 @@ TextComponent::TextComponent(const char *text, uint32 defaultCharSet)
 	SetHeaderField("MIME-Version","1.0");
 }
 
-TextComponent::~TextComponent()
+BTextMailComponent::~BTextMailComponent()
 {
 }
 
-void TextComponent::SetEncoding(mail_encoding encoding, int32 charset) {
+void BTextMailComponent::SetEncoding(mail_encoding encoding, int32 charset) {
 	this->encoding = encoding;
 	this->charset = charset;
 }
 
-void TextComponent::SetText(const char *text) {
+void BTextMailComponent::SetText(const char *text) {
 	this->text.SetTo(text);
 
 	raw_data = NULL;
 }
 
-void TextComponent::AppendText(const char *text) {
+void BTextMailComponent::AppendText(const char *text) {
 	ParseRaw();
 
 	this->text << text;
 }
 
-const char *TextComponent::Text() {
+const char *BTextMailComponent::Text() {
 	ParseRaw();
 
 	return text.String();
 }
 
-BString *TextComponent::BStringText() {
+BString *BTextMailComponent::BStringText() {
 	ParseRaw();
 
 	return &text;
 }
 
-void TextComponent::Quote(const char *message, const char *quote_style) {
+void BTextMailComponent::Quote(const char *message, const char *quote_style) {
 	ParseRaw();
 
 	BString string;
@@ -433,7 +425,7 @@ void TextComponent::Quote(const char *message, const char *quote_style) {
 	text.Prepend(string.String());
 }
 
-status_t TextComponent::GetDecodedData(BPositionIO *data) {
+status_t BTextMailComponent::GetDecodedData(BPositionIO *data) {
 	ParseRaw();
 
 	BMimeType type;
@@ -446,7 +438,7 @@ status_t TextComponent::GetDecodedData(BPositionIO *data) {
 	return written >= 0 ? B_OK : written;
 }
 
-status_t TextComponent::SetDecodedData(BPositionIO *data)  {
+status_t BTextMailComponent::SetDecodedData(BPositionIO *data)  {
 	char buffer[255];
 	size_t buf_len;
 
@@ -462,10 +454,10 @@ status_t TextComponent::SetDecodedData(BPositionIO *data)  {
 
 
 status_t
-TextComponent::SetToRFC822(BPositionIO *data, size_t length, bool parseNow)
+BTextMailComponent::SetToRFC822(BPositionIO *data, size_t length, bool parseNow)
 {
 	off_t position = data->Position();
-	Component::SetToRFC822(data, length);
+	BMailComponent::SetToRFC822(data, length);
 
 	// Some malformed MIME headers can have the header running into the
 	// boundary of the next MIME chunk, resulting in a negative length.
@@ -487,7 +479,7 @@ TextComponent::SetToRFC822(BPositionIO *data, size_t length, bool parseNow)
 
 
 status_t
-TextComponent::ParseRaw()
+BTextMailComponent::ParseRaw()
 {
 	if (raw_data == NULL)
 		return B_OK;
@@ -498,10 +490,10 @@ TextComponent::ParseRaw()
 	HeaderField("Content-Type", &content_type);
 
 	charset = _charSetForTextDecoding;
-	if (charset == MDR_NULL_CONVERSION && content_type.HasString("charset")) {
-		for (int32 i = 0; charsets[i].charset != NULL; i++) {
-			if (strcasecmp(content_type.FindString("charset"), charsets[i].charset) == 0) {
-				charset = charsets[i].flavor;
+	if (charset == B_MAIL_NULL_CONVERSION && content_type.HasString("charset")) {
+		for (int32 i = 0; mail_charsets[i].charset != NULL; i++) {
+			if (strcasecmp(content_type.FindString("charset"), mail_charsets[i].charset) == 0) {
+				charset = mail_charsets[i].flavor;
 				break;
 			}
 		}
@@ -538,7 +530,7 @@ TextComponent::ParseRaw()
 	// Japanese, and ESC ( J to switch to Roman, or sometimes ESC ( B for
 	// ASCII.  We'll just try looking for the two switch to Japanese sequences.
 
-	if (charset == MDR_NULL_CONVERSION) {
+	if (charset == B_MAIL_NULL_CONVERSION) {
 		if (decoded.FindFirst ("\e$B") >= 0 || decoded.FindFirst ("\e$@") >= 0)
 			charset = B_JIS_CONVERSION;
 		else // Just assume the usual Latin-1 character set.
@@ -548,7 +540,7 @@ TextComponent::ParseRaw()
 	int32 state = 0;
 	int32 destLength = bytes * 3 /* in case it grows */ + 1 /* +1 so it isn't zero which crashes */;
 	string = text.LockBuffer(destLength);
-	MDR_convert_to_utf8(charset, decoded.String(), &bytes, string, &destLength, &state);
+	mail_convert_to_utf8(charset, decoded.String(), &bytes, string, &destLength, &state);
 	if (destLength > 0)
 		text.UnlockBuffer(destLength);
 	else {
@@ -562,7 +554,7 @@ TextComponent::ParseRaw()
 
 
 status_t
-TextComponent::RenderToRFC822(BPositionIO *render_to)
+BTextMailComponent::RenderToRFC822(BPositionIO *render_to)
 {
 	status_t status = ParseRaw();
 	if (status < B_OK)
@@ -571,9 +563,9 @@ TextComponent::RenderToRFC822(BPositionIO *render_to)
 	BString content_type;
 	content_type << "text/plain";
 
-	for (uint32 i = 0; charsets[i].charset != NULL; i++) {
-		if (charsets[i].flavor == charset) {
-			content_type << "; charset=\"" << charsets[i].charset << "\"";
+	for (uint32 i = 0; mail_charsets[i].charset != NULL; i++) {
+		if (mail_charsets[i].flavor == charset) {
+			content_type << "; charset=\"" << mail_charsets[i].charset << "\"";
 			break;
 		}
 	}
@@ -599,7 +591,7 @@ TextComponent::RenderToRFC822(BPositionIO *render_to)
 
 	SetHeaderField("Content-Transfer-Encoding",transfer_encoding);
 
-	Component::RenderToRFC822(render_to);
+	BMailComponent::RenderToRFC822(render_to);
 
 	BString modified = this->text;
 	BString alt;
@@ -613,7 +605,7 @@ TextComponent::RenderToRFC822(BPositionIO *render_to)
 		// original text.  Multiplying by 5 should make more than enough space.
 		char *raw = alt.LockBuffer(dest_len);
 		int32 state = 0;
-		MDR_convert_from_utf8(charset,this->text.String(),&len,raw,&dest_len,&state);
+		mail_convert_from_utf8(charset,this->text.String(),&len,raw,&dest_len,&state);
 		alt.UnlockBuffer(dest_len);
 
 		raw = modified.LockBuffer((alt.Length()*3)+1);
@@ -646,7 +638,7 @@ TextComponent::RenderToRFC822(BPositionIO *render_to)
 			if (string[i] != '\0')
 				continue;
 
-			puts("TextComponent::RenderToRFC822: NULL byte in text!!");
+			puts("BTextMailComponent::RenderToRFC822: NULL byte in text!!");
 			string[i] = ' ';
 		}
 		modified.UnlockBuffer();
@@ -684,8 +676,5 @@ TextComponent::RenderToRFC822(BPositionIO *render_to)
 }
 
 
-void TextComponent::_ReservedText1() {}
-void TextComponent::_ReservedText2() {}
-
-}	// namespace Mail
-}	// namespace Zoidberg
+void BTextMailComponent::_ReservedText1() {}
+void BTextMailComponent::_ReservedText2() {}

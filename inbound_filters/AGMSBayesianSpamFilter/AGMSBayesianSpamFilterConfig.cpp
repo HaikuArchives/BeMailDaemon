@@ -3,6 +3,9 @@
  * settings related to the add-on, but not the server.
  *
  * $Log$
+ * Revision 1.8  2003/07/08 21:12:47  agmsmith
+ * Changed other spam filter defaults to values I find useful.
+ *
  * Revision 1.7  2003/07/08 20:56:40  agmsmith
  * Turn on auto-training for the spam filter by default.
  *
@@ -65,8 +68,6 @@
 
 #include <MailAddon.h>
 #include <FileConfigView.h>
-
-using namespace Zoidberg;
 
 static const char *kServerSignature =
 	"application/x-vnd.agmsmith.AGMSBayesianSpamServer";

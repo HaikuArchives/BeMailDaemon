@@ -832,7 +832,7 @@ TMailApp::LoadSavePrefs(bool loadThem)
 	// older binary dump file "Mail_data" in the top level settings directory,
 	// if it can't find the new settings.
 
-	Mail::Settings chainSettings;
+	BMailSettings chainSettings;
 	BDirectory directory;
 	status_t errorCode;
 	const char *fieldName;
@@ -926,7 +926,7 @@ TMailApp::LoadSavePrefs(bool loadThem)
 
 		prefsFile.Read(&gMailCharacterSet, sizeof(int32));
 		for (uint32 index = 0; true; index++) {
-			if (kEncodings[index].flavor == MDR_NULL_CONVERSION) {
+			if (kEncodings[index].flavor == B_MAIL_NULL_CONVERSION) {
 				gMailCharacterSet = B_MS_WINDOWS_CONVERSION;
 				break;
 			}
@@ -1071,7 +1071,7 @@ TMailApp::LoadSavePrefs(bool loadThem)
 		if (settingsMsg.FindInt32(fieldName, &tempInt32) == B_OK)
 			gMailCharacterSet = tempInt32;
 		for (uint32 index = 0; true; index++) {
-			if (kEncodings[index].flavor == MDR_NULL_CONVERSION) {
+			if (kEncodings[index].flavor == B_MAIL_NULL_CONVERSION) {
 				gMailCharacterSet = B_MS_WINDOWS_CONVERSION;
 				break; // Don't use unknown character sets.
 			}
@@ -1270,7 +1270,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 
 	if (ref) {
 		fRef = new entry_ref(*ref);
-		fMail = new Mail::Message(fRef);
+		fMail = new BEmailMessage(fRef);
 		fIncoming = true;
 	} else {
 		fRef = NULL;
@@ -1474,10 +1474,10 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 		// create the list of addresses
 
 		BList addressList;
-		Mail::get_address_list(addressList, fMail->To(), Mail::extract_address);
-		Mail::get_address_list(addressList, fMail->CC(), Mail::extract_address);
-		Mail::get_address_list(addressList, fMail->From(), Mail::extract_address);
-		Mail::get_address_list(addressList, fMail->ReplyTo(), Mail::extract_address);
+		get_address_list(addressList, fMail->To(), extract_address);
+		get_address_list(addressList, fMail->CC(), extract_address);
+		get_address_list(addressList, fMail->From(), extract_address);
+		get_address_list(addressList, fMail->ReplyTo(), extract_address);
 
 		for (int32 i = addressList.CountItems(); i-- > 0;) {
 			char *address = (char *)addressList.RemoveItem(0L);
@@ -1563,7 +1563,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 	fHeaderView = new THeaderView (r, rect, fIncoming, fMail, resending,
 		(resending || !fIncoming)
 		? gMailCharacterSet // Use preferences setting for composing mail.
-		: MDR_NULL_CONVERSION); // Default is automatic selection for reading mail.
+		: B_MAIL_NULL_CONVERSION); // Default is automatic selection for reading mail.
 
 	r = Frame();
 	r.OffsetTo(0, 0);
@@ -2821,7 +2821,7 @@ TMailWindow::WindowActivated(bool status)
 void
 TMailWindow::Forward(entry_ref *ref, TMailWindow *window, bool includeAttachments)
 {
-	Zoidberg::Mail::Message *mail = window->Mail();
+	BEmailMessage *mail = window->Mail();
 	if (mail == NULL)
 		return;
 
@@ -3032,18 +3032,18 @@ TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 	fRepliedMail = *ref;
 	SetOriginatingWindow(window);
 
-	Zoidberg::Mail::Message *mail = window->Mail();
+	BEmailMessage *mail = window->Mail();
 	if (mail == NULL)
 		return;
 
 	if (type == M_REPLY_ALL)
-		type = Mail::MD_REPLY_TO_ALL;
+		type = B_MAIL_REPLY_TO_ALL;
 	else if (type == M_REPLY_TO_SENDER)
-		type = Mail::MD_REPLY_TO_SENDER;
+		type = B_MAIL_REPLY_TO_SENDER;
 	else
-		type = Mail::MD_REPLY_TO;
+		type = B_MAIL_REPLY_TO;
 
-	fMail = mail->ReplyMessage(Mail::reply_to_mode(type),
+	fMail = mail->ReplyMessage(mail_reply_to_mode(type),
 		gUseAccountFrom == ACCOUNT_FROM_MAIL, QUOTE);
 
 	// set header fields
@@ -3089,7 +3089,7 @@ TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 					if (fullName.Length() <= 0)
 						fullName = "No-From-Address-Available";
 
-					Mail::extract_address_name(fullName);
+					extract_address_name(fullName);
 					length = fullName.Length();
 					memcpy(to, fullName.String(), length);
 					to += length;
@@ -3222,7 +3222,7 @@ TMailWindow::Send(bool now)
 		characterSetToUse == B_EUC_CONVERSION)
 		encodingForBody = base64;
 	else if (characterSetToUse == B_JIS_CONVERSION ||
-		characterSetToUse == MDR_US_ASCII_CONVERSION ||
+		characterSetToUse == B_MAIL_US_ASCII_CONVERSION ||
 		characterSetToUse == B_ISO1_CONVERSION ||
 		characterSetToUse == B_EUC_KR_CONVERSION)
 		encodingForBody = eight_bit;
@@ -3251,7 +3251,7 @@ TMailWindow::Send(bool now)
 			6 /* Some character sets bloat up on escape codes */;
 		tempStringPntr = tempString.LockBuffer (tempStringLength);
 		if (tempStringPntr != NULL &&
-			B_OK == Zoidberg::Mail::MDR_convert_from_utf8 (
+			B_OK == mail_convert_from_utf8 (
 			characterSetToUse,
 			fContentView->fTextView->Text(), &originalLength,
 			tempStringPntr, &tempStringLength, &converterState,
@@ -3317,7 +3317,7 @@ TMailWindow::Send(bool now)
 		result = file.InitCheck();
 		if (result == B_OK)
 		{
-			Zoidberg::Mail::Message mail(&file);
+			BEmailMessage mail(&file);
 			mail.SetTo(fHeaderView->fTo->Text(), characterSetToUse, encodingForHeaders);
 
 			if (fHeaderView->fChain != ~0L)
@@ -3328,7 +3328,7 @@ TMailWindow::Send(bool now)
 	} else {
 		if (fMail == NULL)
 			// the mail will be deleted when the window is closed
-			fMail = new Zoidberg::Mail::Message;
+			fMail = new BEmailMessage;
 
 		// Had an embarrassing bug where replying to a message and clearing the
 		// CC field meant that it got sent out anyway, so pass in empty strings
@@ -3443,7 +3443,7 @@ TMailWindow::Send(bool now)
 			if (start == 0) {
 				result = be_roster->Launch("application/x-vnd.Be-POST");
 				if (result == B_OK)
-					Mail::SendQueuedMail();
+					BMailDaemon::SendQueuedMail();
 				else
 					sprintf(errorMessage,"The mail_daemon could not be started:\n  (0x%.8lx) %s",
 							result,strerror(result));
@@ -3749,7 +3749,7 @@ TMailWindow::OpenMessage(entry_ref *ref, uint32 characterSetForDecoding)
 		off_t size;
 		BString string;
 
-		fMail = new Mail::Message; // Not really used much, but still needed.
+		fMail = new BEmailMessage; // Not really used much, but still needed.
 
 		// Load the raw UTF-8 text from the file.
 		file.GetSize(&size);
@@ -3790,7 +3790,7 @@ TMailWindow::OpenMessage(entry_ref *ref, uint32 characterSetForDecoding)
 	}
 	else // A real mail message, parse its headers to get from, to, etc.
 	{
-		fMail = new Mail::Message(fRef, characterSetForDecoding);
+		fMail = new BEmailMessage(fRef, characterSetForDecoding);
 		fIncoming = true;
 		fHeaderView->LoadMessage(fMail);
 	}
@@ -3817,10 +3817,10 @@ TMailWindow::OpenMessage(entry_ref *ref, uint32 characterSetForDecoding)
 		// create the list of addresses
 
 		BList addressList;
-		Mail::get_address_list(addressList, fMail->To(), Mail::extract_address);
-		Mail::get_address_list(addressList, fMail->CC(), Mail::extract_address);
-		Mail::get_address_list(addressList, fMail->From(), Mail::extract_address);
-		Mail::get_address_list(addressList, fMail->ReplyTo(), Mail::extract_address);
+		get_address_list(addressList, fMail->To(), extract_address);
+		get_address_list(addressList, fMail->CC(), extract_address);
+		get_address_list(addressList, fMail->From(), extract_address);
+		get_address_list(addressList, fMail->ReplyTo(), extract_address);
 
 		BMessage *msg;
 

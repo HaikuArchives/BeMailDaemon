@@ -27,8 +27,6 @@
 
 #include <MDRLanguage.h>
 
-using namespace Zoidberg;
-
 static BList gAccounts;
 static BListView *gListView;
 static BView *gConfigView;
@@ -85,7 +83,7 @@ void AccountItem::DrawItem(BView *owner, BRect rect, bool complete)
 //	#pragma mark -
 
 
-Account::Account(Mail::Chain *inbound,Mail::Chain *outbound)
+Account::Account(BMailChain *inbound,BMailChain *outbound)
 	:	fInbound(inbound),
 		fOutbound(outbound),
 
@@ -227,7 +225,7 @@ const char *Account::ReturnAddress() const
 }
 
 
-void Account::CopyMetaData(Mail::Chain *targetChain, Mail::Chain *sourceChain)
+void Account::CopyMetaData(BMailChain *targetChain, BMailChain *sourceChain)
 {
 	BMessage *otherMsg, *thisMsg;
 	if (sourceChain && (otherMsg = sourceChain->MetaData()) != NULL
@@ -253,7 +251,7 @@ void Account::CopyMetaData(Mail::Chain *targetChain, Mail::Chain *sourceChain)
 void Account::CreateInbound()
 {
 
-	if (!(fInbound = Mail::NewChain()))
+	if (!(fInbound = NewMailChain()))
 	{
 		(new BAlert(
 			MDR_DIALECT_CHOICE ("E-mail","メール"),
@@ -261,7 +259,7 @@ void Account::CreateInbound()
 			MDR_DIALECT_CHOICE ("Ok","了解")))->Go();
 		return;
 	}
-	fInbound->SetChainDirection(Mail::inbound);
+	fInbound->SetChainDirection(inbound);
 
 	BPath path,addOnPath;
 	find_directory(B_USER_ADDONS_DIRECTORY,&addOnPath);
@@ -325,7 +323,7 @@ void Account::CreateInbound()
 void Account::CreateOutbound()
 {
 
-	if (!(fOutbound = Mail::NewChain()))
+	if (!(fOutbound = NewMailChain()))
 	{
 		(new BAlert(
 			MDR_DIALECT_CHOICE ("E-mail","メール"),
@@ -333,7 +331,7 @@ void Account::CreateOutbound()
 			MDR_DIALECT_CHOICE ("Ok","了解")))->Go();
 		return;
 	}
-	fOutbound->SetChainDirection(Mail::outbound);
+	fOutbound->SetChainDirection(outbound);
 
 	BPath path,addOnPath;
 	find_directory(B_USER_ADDONS_DIRECTORY,&addOnPath);
@@ -548,13 +546,13 @@ void Account::Remove(int32 type)
 }
 
 
-Mail::Chain *Account::Inbound() const
+BMailChain *Account::Inbound() const
 {
 	return gListView && gListView->HasItem(fInboundItem) ? fInbound : NULL;
 }
 
 
-Mail::Chain *Account::Outbound() const
+BMailChain *Account::Outbound() const
 {
 	return gListView && gListView->HasItem(fOutboundItem) ? fOutbound : NULL;
 }
@@ -606,18 +604,18 @@ void Accounts::Create(BListView *listView, BView *configView)
 
 	BList inbound,outbound;
 
-	Mail::InboundChains(&inbound);
-	Mail::OutboundChains(&outbound);
+	GetInboundMailChains(&inbound);
+	GetOutboundMailChains(&outbound);
 
 	// create inbound accounts and assign matching outbound chains
 
 	for (int32 i = inbound.CountItems();i-- > 0;)
 	{
-		Mail::Chain *inChain = (Mail::Chain *)inbound.ItemAt(i);
-		Mail::Chain *outChain = NULL;
+		BMailChain *inChain = (BMailChain *)inbound.ItemAt(i);
+		BMailChain *outChain = NULL;
 		for (int32 j = outbound.CountItems();j-- > 0;)
 		{
-			outChain = (Mail::Chain *)outbound.ItemAt(j);
+			outChain = (BMailChain *)outbound.ItemAt(j);
 
 			if (!strcmp(inChain->Name(),outChain->Name()))
 				break;
@@ -633,7 +631,7 @@ void Accounts::Create(BListView *listView, BView *configView)
 
 	for (int32 i = outbound.CountItems();i-- > 0;)
 	{
-		Mail::Chain *outChain = (Mail::Chain *)outbound.ItemAt(i);
+		BMailChain *outChain = (BMailChain *)outbound.ItemAt(i);
 
 		gAccounts.AddItem(new Account(NULL,outChain));
 		outbound.RemoveItem(i);

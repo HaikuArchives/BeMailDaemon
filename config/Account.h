@@ -11,12 +11,7 @@
 class BView;
 class BListView;
 class BStringItem;
-
-namespace Zoidberg {
-namespace Mail {
-	class Chain;
-}
-}
+class BMailChain;
 
 class Account;
 class Accounts;
@@ -57,7 +52,7 @@ enum account_types
 class Account
 {
 	public:
-		Account(Zoidberg::Mail::Chain *inbound = NULL,Zoidberg::Mail::Chain *outbound = NULL);
+		Account(BMailChain *inbound = NULL,BMailChain *outbound = NULL);
 		~Account();
 
 		void		SetName(const char *name);
@@ -75,8 +70,8 @@ class Account
 		void		SetType(int32 type);
 		int32		Type() const;
 
-		Zoidberg::Mail::Chain	*Inbound() const;
-		Zoidberg::Mail::Chain	*Outbound() const;
+		BMailChain	*Inbound() const;
+		BMailChain	*Outbound() const;
 
 		void		Save();
 		void		Delete(int32 type = IN_AND_OUTBOUND_TYPE);
@@ -87,10 +82,10 @@ class Account
 	private:
 		void		CreateInbound();
 		void		CreateOutbound();
-		void		CopyMetaData(Zoidberg::Mail::Chain *targetChain,
-						Zoidberg::Mail::Chain *sourceChain);
+		void		CopyMetaData(BMailChain *targetChain,
+						BMailChain *sourceChain);
 
-		Zoidberg::Mail::Chain *fSettings, *fInbound, *fOutbound;
+		BMailChain *fSettings, *fInbound, *fOutbound;
 		AccountItem	*fAccountItem, *fInboundItem, *fOutboundItem, *fFilterItem;
 };
 

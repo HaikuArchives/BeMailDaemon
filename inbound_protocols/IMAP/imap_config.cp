@@ -11,10 +11,7 @@
 
 #include <MDRLanguage.h>
 
-using namespace Zoidberg;
-
-
-class IMAPConfig : public Mail::ProtocolConfigView {
+class IMAPConfig : public BMailProtocolConfigView {
 	public:
 		IMAPConfig(BMessage *archive);
 		virtual ~IMAPConfig();
@@ -23,9 +20,9 @@ class IMAPConfig : public Mail::ProtocolConfigView {
 };
 
 IMAPConfig::IMAPConfig(BMessage *archive)
-	: Mail::ProtocolConfigView(Mail::MP_HAS_USERNAME | Mail::MP_HAS_PASSWORD | Mail::MP_HAS_HOSTNAME | Mail::MP_CAN_LEAVE_MAIL_ON_SERVER
+	: BMailProtocolConfigView(B_MAIL_PROTOCOL_HAS_USERNAME | B_MAIL_PROTOCOL_HAS_PASSWORD | B_MAIL_PROTOCOL_HAS_HOSTNAME | B_MAIL_PROTOCOL_CAN_LEAVE_MAIL_ON_SERVER
 	#ifdef IMAPSSL
-	 | Mail::MP_HAS_FLAVORS)
+	 | B_MAIL_PROTOCOL_HAS_FLAVORS)
 {
 		AddFlavor("Unencrypted");
 		AddFlavor("IMAP-SSL");
@@ -62,7 +59,7 @@ IMAPConfig::IMAPConfig(BMessage *archive)
 IMAPConfig::~IMAPConfig() {}
 
 status_t IMAPConfig::Archive(BMessage *into, bool deep) const {
-	ProtocolConfigView::Archive(into,deep);
+	BMailProtocolConfigView::Archive(into,deep);
 	
 	if (into->ReplaceString("root",((BTextControl *)(FindView("root")))->Text()) != B_OK)
 		into->AddString("root",((BTextControl *)(FindView("root")))->Text());
@@ -73,7 +70,7 @@ status_t IMAPConfig::Archive(BMessage *into, bool deep) const {
 }
 
 void IMAPConfig::GetPreferredSize(float *width, float *height) {
-	ProtocolConfigView::GetPreferredSize(width,height);
+	BMailProtocolConfigView::GetPreferredSize(width,height);
 	*height -= 20;
 }
 

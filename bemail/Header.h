@@ -96,11 +96,11 @@ class	QPopupMenu;
 class THeaderView : public BBox
 {
 	public:
-		THeaderView(BRect, BRect, bool incoming, Mail::Message *mail, bool resending, uint32 defaultCharacterSet);
+		THeaderView(BRect, BRect, bool incoming, BEmailMessage *mail, bool resending, uint32 defaultCharacterSet);
 
 		virtual void	MessageReceived(BMessage *);
 		virtual void	AttachedToWindow(void);
-		status_t		LoadMessage(Mail::Message *);
+		status_t		LoadMessage(BEmailMessage *);
 
 		BPopUpMenu		*fAccountMenu;
 		BPopUpMenu		*fEncodingMenu;

@@ -1,4 +1,4 @@
-/* ChainRunner - runs the mail inbound and outbound chains
+/* BMailChainRunner - runs the mail inbound and outbound chains
 **
 ** Copyright 2001-2003 Dr. Zoidberg Enterprises. All rights reserved.
 */
@@ -23,23 +23,16 @@
 
 #include <MDRLanguage.h>
 
-namespace Zoidberg {
-namespace Mail {
-	class _EXPORT ChainRunner;
-}
-}
+class _EXPORT BMailChainRunner;
 
 #include <ChainRunner.h>
 #include <status.h>
 #include <StringList.h>
 #include "ErrorLogWindow.h"
 
-using namespace Zoidberg;
-using Mail::ChainRunner;
-
 struct filter_image {
 	BMessage		*settings;
-	Mail::Filter	*filter;
+	BMailFilter	*filter;
 	image_id		id;
 };
 
@@ -77,15 +70,15 @@ show_error(alert_type type, const char *message, const char *tag)
 	   the OpenBeOS net stack will rectify this problem and then I can
 	   turn it off. That will be nice. */
 
-	int32 ChainRunner::thread_sync_func(void *arg) {
-		ChainRunner *us = ((ChainRunner *)(arg));
+	int32 BMailChainRunner::thread_sync_func(void *arg) {
+		BMailChainRunner *us = ((BMailChainRunner *)(arg));
 		us->Lock();
 		status_t val = us->Init();
 		us->Unlock();
 		return val;
 	}
 	
-	status_t ChainRunner::init_addons() {
+	status_t BMailChainRunner::init_addons() {
 		thread_id thread = spawn_thread(&thread_sync_func,
 			"ChainRunnerGetHostByNameHack",10,this);
 		Unlock();
@@ -99,18 +92,18 @@ show_error(alert_type type, const char *message, const char *tag)
 	#define init_addons Init
 #endif
 	
-_EXPORT ChainRunner *
-Mail::GetRunner(int32 chain_id, Mail::StatusWindow *status, bool selfDestruct)
+_EXPORT BMailChainRunner *
+GetMailChainRunner(int32 chain_id, BMailStatusWindow *status, bool selfDestruct)
 {
 	list_lock.Lock();
 	if (running_chains.HasItem((void *)(chain_id))) {
-		ChainRunner *runner = (ChainRunner *)running_chain_pointers.ItemAt(running_chains.IndexOf((void *)(chain_id)));
+		BMailChainRunner *runner = (BMailChainRunner *)running_chain_pointers.ItemAt(running_chains.IndexOf((void *)(chain_id)));
 		list_lock.Unlock();
 		return runner;
 	}
 	list_lock.Unlock();
 
-	ChainRunner *runner = new ChainRunner(Mail::GetChain(chain_id), status,
+	BMailChainRunner *runner = new BMailChainRunner(GetMailChain(chain_id), status,
 		selfDestruct, false, selfDestruct);
 
 	runner->RunChain();
@@ -131,7 +124,7 @@ class DeathFilter : public BMessageFilter {
 			
 			list_lock.Lock();
 			for (int32 i = 0; i < running_chain_pointers.CountItems(); i++)
-				((ChainRunner *)(running_chain_pointers.ItemAt(i)))->Stop();
+				((BMailChainRunner *)(running_chain_pointers.ItemAt(i)))->Stop();
 			list_lock.Unlock();
 
 			while(running_chains.CountItems() > 0)
@@ -142,7 +135,7 @@ class DeathFilter : public BMessageFilter {
 };
 
 
-ChainRunner::ChainRunner(Mail::Chain *chain, Mail::StatusWindow *status,
+BMailChainRunner::BMailChainRunner(BMailChain *chain, BMailStatusWindow *status,
 	bool selfDestruct, bool saveChain, bool destructChain)
 	:	BLooper(chain->Name()),
 	_chain(chain),
@@ -167,15 +160,15 @@ ChainRunner::ChainRunner(Mail::Chain *chain, Mail::StatusWindow *status,
 }
 
 
-ChainRunner::~ChainRunner()
+BMailChainRunner::~BMailChainRunner()
 {
 	//--- Delete any remaining callbacks
 	for (int32 i = message_cb.CountItems();i-- > 0;)
-		delete (Mail::ChainCallback *)message_cb.ItemAt(i);
+		delete (BMailChainCallback *)message_cb.ItemAt(i);
 	for (int32 i = process_cb.CountItems();i-- > 0;)
-		delete (Mail::ChainCallback *)process_cb.ItemAt(i);
+		delete (BMailChainCallback *)process_cb.ItemAt(i);
 	for (int32 i = chain_cb.CountItems();i-- > 0;)
-		delete (Mail::ChainCallback *)chain_cb.ItemAt(i);
+		delete (BMailChainCallback *)chain_cb.ItemAt(i);
 	
 	//--- Delete any filter images
 	for (int32 i = 0; i < addons.CountItems(); i++) {
@@ -211,35 +204,35 @@ ChainRunner::~ChainRunner()
 
 
 void
-ChainRunner::RegisterMessageCallback(Mail::ChainCallback *callback)
+BMailChainRunner::RegisterMessageCallback(BMailChainCallback *callback)
 {
 	message_cb.AddItem(callback);
 }
 
 
 void
-ChainRunner::RegisterProcessCallback(Mail::ChainCallback *callback)
+BMailChainRunner::RegisterProcessCallback(BMailChainCallback *callback)
 {
 	process_cb.AddItem(callback);
 }
 
 
 void
-ChainRunner::RegisterChainCallback(Mail::ChainCallback *callback)
+BMailChainRunner::RegisterChainCallback(BMailChainCallback *callback)
 {
 	chain_cb.AddItem(callback);
 }
 
 
-Mail::Chain *
-ChainRunner::Chain()
+BMailChain *
+BMailChainRunner::Chain()
 {
 	return _chain;
 }
 
 
 status_t
-ChainRunner::RunChain(bool asynchronous)
+BMailChainRunner::RunChain(bool asynchronous)
 {
 	if (suicide) {
 		Quit();
@@ -261,10 +254,10 @@ ChainRunner::RunChain(bool asynchronous)
 
 
 void 
-ChainRunner::CallCallbacksFor(BList &list, status_t code)
+BMailChainRunner::CallCallbacksFor(BList &list, status_t code)
 {
 	for (int32 i = 0; i < list.CountItems(); i++) {
-		ChainCallback *callback = static_cast<ChainCallback *>(list.ItemAt(i));
+		BMailChainCallback *callback = static_cast<BMailChainCallback *>(list.ItemAt(i));
 
 		callback->Callback(code);
 		delete callback;
@@ -272,7 +265,7 @@ ChainRunner::CallCallbacksFor(BList &list, status_t code)
 	list.MakeEmpty();
 }
 
-status_t ChainRunner::Init() {
+status_t BMailChainRunner::Init() {
 	status_t big_err = B_OK;
 	BString desc;
 	entry_ref addon;
@@ -290,7 +283,7 @@ status_t ChainRunner::Init() {
 	for (int32 i = 0; _chain->GetFilter(i,&settings,&addon) >= B_OK; i++) {
 		struct filter_image *image = new struct filter_image;
 		BPath path(&addon);
-		Mail::Filter *(* instantiate)(BMessage *,Mail::ChainRunner *);
+		BMailFilter *(* instantiate)(BMessage *,BMailChainRunner *);
 
 		image->id = load_add_on(path.Path());
 
@@ -336,7 +329,7 @@ status_t ChainRunner::Init() {
 }
 
 void
-ChainRunner::MessageReceived(BMessage *msg)
+BMailChainRunner::MessageReceived(BMessage *msg)
 {
 	switch (msg->what) {
 		case 'INIT':
@@ -393,7 +386,7 @@ ChainRunner::MessageReceived(BMessage *msg)
 			break;
 		}
 		case 'GETM': {
-			StringList list;
+			BStringList list;
 			msg->FindFlat("messages",&list);
 			_statview->SetTotalItems(list.CountItems());
 			_statview->SetMaximum(msg->FindInt32("bytes"));
@@ -453,7 +446,7 @@ ChainRunner::MessageReceived(BMessage *msg)
 
 
 bool
-ChainRunner::QuitRequested()
+BMailChainRunner::QuitRequested()
 {
 	Stop();
 	return true;
@@ -461,7 +454,7 @@ ChainRunner::QuitRequested()
 
 
 void
-ChainRunner::get_messages(StringList *list)
+BMailChainRunner::get_messages(BStringList *list)
 {
 	const char *uid;
 
@@ -486,7 +479,7 @@ ChainRunner::get_messages(StringList *list)
 			
 		BEntry *entry = new BEntry(path);
 		free(path);
-		BPositionIO *file = (_chain->ChainDirection() == Mail::inbound) ? new BFile(entry, B_READ_WRITE | B_CREATE_FILE | B_ERASE_FILE) : NULL;
+		BPositionIO *file = (_chain->ChainDirection() == inbound) ? new BFile(entry, B_READ_WRITE | B_CREATE_FILE | B_ERASE_FILE) : NULL;
 		BPath *folder = new BPath;
 		BMessage *headers = new BMessage;
 
@@ -544,14 +537,14 @@ ChainRunner::get_messages(StringList *list)
 
 
 void
-ChainRunner::Stop()
+BMailChainRunner::Stop()
 {
 	PostMessage('STOP');
 }
 
 
 void
-ChainRunner::GetMessages(StringList *list, int32 bytes)
+BMailChainRunner::GetMessages(BStringList *list, int32 bytes)
 {
 	if (list->CountItems() < 1)
 		return;
@@ -564,7 +557,7 @@ ChainRunner::GetMessages(StringList *list, int32 bytes)
 
 
 void
-ChainRunner::GetSingleMessage(const char *uid, int32 length, BPath *into)
+BMailChainRunner::GetSingleMessage(const char *uid, int32 length, BPath *into)
 {
 	BMessage msg('GTSM');
 	msg.AddString("uid",uid);
@@ -575,7 +568,7 @@ ChainRunner::GetSingleMessage(const char *uid, int32 length, BPath *into)
 
 
 void
-ChainRunner::ReportProgress(int bytes, int messages, const char *message)
+BMailChainRunner::ReportProgress(int bytes, int messages, const char *message)
 {
 	if (bytes != 0)
 		_statview->AddProgress(bytes);
@@ -589,7 +582,7 @@ ChainRunner::ReportProgress(int bytes, int messages, const char *message)
 
 
 void
-ChainRunner::ResetProgress(const char *message)
+BMailChainRunner::ResetProgress(const char *message)
 {
 	_statview->Reset();
 	if (message != NULL)
@@ -598,7 +591,7 @@ ChainRunner::ResetProgress(const char *message)
 
 
 void
-ChainRunner::ShowError(const char *error)
+BMailChainRunner::ShowError(const char *error)
 {
 	BString tag = Chain()->Name();
 	tag << ": ";
@@ -607,7 +600,7 @@ ChainRunner::ShowError(const char *error)
 
 
 void
-ChainRunner::ShowMessage(const char *error)
+BMailChainRunner::ShowMessage(const char *error)
 {
 	BString tag = Chain()->Name();
 	tag << ": ";

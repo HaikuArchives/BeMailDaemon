@@ -1,4 +1,4 @@
-/* Chain - the mail account's inbound and outbound chain
+/* BMailChain - the mail account's inbound and outbound chain
 **
 ** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
 */
@@ -15,30 +15,24 @@
 #include <string.h>
 #include <stdio.h>
 
-namespace Zoidberg {
-namespace Mail {
-	class _EXPORT Chain;
+class _EXPORT BMailChain;
 
+namespace MailInternal {
 	status_t WriteMessageFile(const BMessage& archive, const BPath& path, const char* name);
-}
 }
 
 #include <MailSettings.h>
 #include <ChainRunner.h>
 #include <status.h>
 
-
-using namespace Zoidberg;
-using namespace Zoidberg::Mail;
-
-Chain::Chain(uint32 i)
+BMailChain::BMailChain(uint32 i)
 	: id(i), meta_data(NULL), _err(B_OK), direction(inbound), settings_ct(0), addons_ct(0) 
 {
 	name[0] = 0;
 	Reload();
 }
 
-Chain::Chain(BMessage* settings)
+BMailChain::BMailChain(BMessage* settings)
 	: id(settings->FindInt32("id")), meta_data(NULL), _err(B_OK), direction(inbound), settings_ct(0), addons_ct(0) 
 {
 	name[0] = 0;
@@ -46,7 +40,7 @@ Chain::Chain(BMessage* settings)
 }
 
 
-Chain::~Chain() {
+BMailChain::~BMailChain() {
 	if (meta_data != NULL)
 		delete meta_data;
 		
@@ -57,7 +51,7 @@ Chain::~Chain() {
 		delete (entry_ref *)filter_addons.ItemAt(i);
 }
 
-status_t Chain::Load(BMessage* settings)
+status_t BMailChain::Load(BMessage* settings)
 {
 	if (meta_data != NULL)
 		delete meta_data;
@@ -103,7 +97,7 @@ status_t Chain::Load(BMessage* settings)
 		return B_OK;
 }
 
-status_t Chain::InitCheck() const
+status_t BMailChain::InitCheck() const
 {
 	if (settings_ct!=addons_ct)
 		return B_MISMATCHED_VALUES;
@@ -117,7 +111,7 @@ status_t Chain::InitCheck() const
 }
 
 
-status_t Chain::Archive(BMessage* archive, bool deep) const
+status_t BMailChain::Archive(BMessage* archive, bool deep) const
 {
 	status_t ret = B_OK;
 	
@@ -127,7 +121,7 @@ status_t Chain::Archive(BMessage* archive, bool deep) const
 	ret = BArchivable::Archive(archive,deep);
 	if (ret!=B_OK) return ret;
 	
-	ret = archive->AddString("class","Chain");
+	ret = archive->AddString("class","BMailChain");
 	if (ret!=B_OK) return ret;
 	
 	
@@ -168,13 +162,13 @@ status_t Chain::Archive(BMessage* archive, bool deep) const
 	return B_OK;
 }
 
-BArchivable* Chain::Instantiate(BMessage* archive)
+BArchivable* BMailChain::Instantiate(BMessage* archive)
 {
-	return validate_instantiation(archive, "Chain")?
-		new Chain(archive) : NULL;
+	return validate_instantiation(archive, "BMailChain")?
+		new BMailChain(archive) : NULL;
 }
 
-status_t Chain::Path(BPath *path) const
+status_t BMailChain::Path(BPath *path) const
 {
 	status_t status = find_directory(B_USER_SETTINGS_DIRECTORY,path);
 	if (status < B_OK)
@@ -198,7 +192,7 @@ status_t Chain::Path(BPath *path) const
 	return B_OK;
 }
 
-status_t Chain::Save(bigtime_t /*timeout*/)
+status_t BMailChain::Save(bigtime_t /*timeout*/)
 {
 	status_t ret;
 	
@@ -219,10 +213,10 @@ status_t Chain::Save(bigtime_t /*timeout*/)
 	if ((ret = path.GetParent(&directory)) < B_OK)
 		return ret;
 
-	return WriteMessageFile(archive,directory,path.Leaf()/*,timeout*/);
+	return MailInternal::WriteMessageFile(archive,directory,path.Leaf()/*,timeout*/);
 }
 
-status_t Chain::Delete() const
+status_t BMailChain::Delete() const
 {
 	status_t status;
 	BPath path;
@@ -236,15 +230,15 @@ status_t Chain::Delete() const
 	return entry.Remove();
 }
 
-chain_direction Chain::ChainDirection() const {
+b_mail_chain_direction BMailChain::ChainDirection() const {
 	return direction;
 }
 
-void Chain::SetChainDirection(chain_direction dir) {
+void BMailChain::SetChainDirection(b_mail_chain_direction dir) {
 	direction = dir;
 }
 
-status_t Chain::Reload()
+status_t BMailChain::Reload()
 {
 	status_t ret;
 	
@@ -319,10 +313,10 @@ status_t Chain::Reload()
 	return ret;
 }
 
-uint32 Chain::ID() const { return id; }
+uint32 BMailChain::ID() const { return id; }
 
-const char *Chain::Name() const { return name; }
-status_t Chain::SetName(const char* n)
+const char *BMailChain::Name() const { return name; }
+status_t BMailChain::SetName(const char* n)
 {
 	if (n) strncpy(name,n,sizeof(name));
 	else name[0]='\0';
@@ -330,16 +324,16 @@ status_t Chain::SetName(const char* n)
 	return B_OK;
 }
 
-BMessage *Chain::MetaData() const {
+BMessage *BMailChain::MetaData() const {
 	return meta_data;
 }
 
-int32 Chain::CountFilters() const
+int32 BMailChain::CountFilters() const
 {
 	return filter_settings.CountItems();
 }
 
-status_t Chain::GetFilter(int32 index, BMessage* out_settings, entry_ref *addon) const
+status_t BMailChain::GetFilter(int32 index, BMessage* out_settings, entry_ref *addon) const
 {
 	if (index >= filter_settings.CountItems())
 		return B_BAD_INDEX;
@@ -357,7 +351,7 @@ status_t Chain::GetFilter(int32 index, BMessage* out_settings, entry_ref *addon)
 	return B_OK;
 }
 
-status_t Chain::SetFilter(int32 index, const BMessage& s, const entry_ref& addon)
+status_t BMailChain::SetFilter(int32 index, const BMessage& s, const entry_ref& addon)
 {
 	BMessage *settings = (BMessage *)filter_settings.ItemAt(index);
 	if (settings) *settings = s;
@@ -370,7 +364,7 @@ status_t Chain::SetFilter(int32 index, const BMessage& s, const entry_ref& addon
 	return B_OK;
 }
 
-status_t Chain::AddFilter(const BMessage& settings, const entry_ref& addon)
+status_t BMailChain::AddFilter(const BMessage& settings, const entry_ref& addon)
 {
 	BMessage *s = new BMessage(settings);
 	entry_ref*a = new entry_ref(addon);
@@ -395,7 +389,7 @@ status_t Chain::AddFilter(const BMessage& settings, const entry_ref& addon)
 	
 	return B_OK;
 }
-status_t Chain::AddFilter(int32 index, const BMessage& settings, const entry_ref& addon)
+status_t BMailChain::AddFilter(int32 index, const BMessage& settings, const entry_ref& addon)
 {
 	BMessage *s = new BMessage(settings);
 	entry_ref*a = new entry_ref(addon);
@@ -419,7 +413,7 @@ status_t Chain::AddFilter(int32 index, const BMessage& settings, const entry_ref
 	return B_OK;
 }
 
-status_t Chain::RemoveFilter(int32 index)
+status_t BMailChain::RemoveFilter(int32 index)
 {
 	BMessage* s = (BMessage*)filter_settings.RemoveItem(index);
 	delete s;
@@ -433,6 +427,6 @@ status_t Chain::RemoveFilter(int32 index)
 	return s||a?B_OK:B_BAD_INDEX;
 }
 
-void Chain::RunChain(StatusWindow *window, bool async, bool save_when_done, bool delete_when_done) {
-	(new ChainRunner(this,window,true,save_when_done,delete_when_done))->RunChain(async);
+void BMailChain::RunChain(BMailStatusWindow *window, bool async, bool save_when_done, bool delete_when_done) {
+	(new BMailChainRunner(this,window,true,save_when_done,delete_when_done))->RunChain(async);
 }

@@ -11,9 +11,9 @@
 #include <MailAddon.h>
 
 
-class SMTPProtocol : public Zoidberg::Mail::Filter {
+class SMTPProtocol : public BMailFilter {
 	public:
-		SMTPProtocol(BMessage *message, Zoidberg::Mail::ChainRunner *runner);
+		SMTPProtocol(BMessage *message, BMailChainRunner *runner);
 		~SMTPProtocol();
 
 		virtual status_t InitCheck(BString *verbose);
@@ -35,7 +35,7 @@ class SMTPProtocol : public Zoidberg::Mail::Filter {
 		int _fd;
 		BString fLog;
 		BMessage *fSettings;
-		Zoidberg::Mail::ChainRunner *runner;
+		BMailChainRunner *runner;
 		int32 fAuthType;
 
 		status_t fStatus;

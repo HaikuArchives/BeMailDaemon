@@ -12,14 +12,11 @@
 class BTextControl;
 class BButton;
 
-
-namespace Zoidberg {
-
-class FileControl : public BView
+class BFileControl : public BView
 {
 	public:
-		FileControl(BRect rect,const char *name,const char *label,const char *pathOfFile = NULL,uint32 flavors = B_DIRECTORY_NODE);
-		~FileControl();
+		BFileControl(BRect rect,const char *name,const char *label,const char *pathOfFile = NULL,uint32 flavors = B_DIRECTORY_NODE);
+		~BFileControl();
 
 		virtual void AttachedToWindow();
 		virtual void MessageReceived(BMessage *msg);
@@ -40,12 +37,10 @@ class FileControl : public BView
 		uint32			_reserved[5];
 };
 
-namespace Mail { //-----Only this one is part of the Mail Kit, per se
-
-class FileConfigView : public FileControl
+class BMailFileConfigView : public BFileControl
 {
 	public:
-		FileConfigView(const char *label,const char *name,bool useMeta = false,const char *defaultPath = NULL,uint32 flavors = B_DIRECTORY_NODE);
+		BMailFileConfigView(const char *label,const char *name,bool useMeta = false,const char *defaultPath = NULL,uint32 flavors = B_DIRECTORY_NODE);
 
 		void SetTo(BMessage *archive,BMessage *metadata);
 		virtual	status_t Archive(BMessage *into,bool deep = true) const;
@@ -57,8 +52,5 @@ class FileConfigView : public FileControl
 
 		uint32			_reserved[5];
 };
-
-}	// namespace Mail
-}	// namespace Zoidberg
 
 #endif	/* FILE_CONFIG_VIEW */

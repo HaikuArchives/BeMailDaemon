@@ -12,48 +12,43 @@
 
 class BPath;
 
+typedef enum
+{
+	B_MAIL_SHOW_STATUS_WINDOW_NEVER         = 0,
+	B_MAIL_SHOW_STATUS_WINDOW_WHEN_SENDING	= 1,
+	B_MAIL_SHOW_STATUS_WINDOW_WHEN_ACTIVE	= 2,
+	B_MAIL_SHOW_STATUS_WINDOW_ALWAYS        = 3
+} b_mail_status_window_option;
 
 typedef enum
 {
-	MD_SHOW_STATUS_WINDOW_NEVER         = 0,
-	MD_SHOW_STATUS_WINDOW_WHEN_SENDING	= 1,
-	MD_SHOW_STATUS_WINDOW_WHEN_ACTIVE	= 2,
-	MD_SHOW_STATUS_WINDOW_ALWAYS        = 3
-} mail_status_window_option;
-
-typedef enum
-{
-	MD_STATUS_LOOK_TITLED                = 0,
-	MD_STATUS_LOOK_NORMAL_BORDER         = 1,
-	MD_STATUS_LOOK_FLOATING              = 2,
-	MD_STATUS_LOOK_THIN_BORDER           = 3,
-	MD_STATUS_LOOK_NO_BORDER             = 4
-} mail_status_window_look;
-
-
-namespace Zoidberg {
-namespace Mail {
+	B_MAIL_STATUS_LOOK_TITLED                = 0,
+	B_MAIL_STATUS_LOOK_NORMAL_BORDER         = 1,
+	B_MAIL_STATUS_LOOK_FLOATING              = 2,
+	B_MAIL_STATUS_LOOK_THIN_BORDER           = 3,
+	B_MAIL_STATUS_LOOK_NO_BORDER             = 4
+} b_mail_status_window_look;
 
 typedef enum {
 	inbound,
 	outbound
-} chain_direction;
+} b_mail_chain_direction;
 
-class StatusWindow;
-class Chain;
+class BMailStatusWindow;
+class BMailChain;
 
-Chain* NewChain();
-Chain* GetChain(uint32 id);
+BMailChain* NewMailChain();
+BMailChain* GetMailChain(uint32 id);
 
-status_t OutboundChains(BList *list);
-status_t InboundChains(BList *list);
+status_t GetOutboundMailChains(BList *list);
+status_t GetInboundMailChains(BList *list);
 
-class Chain : public BArchivable
+class BMailChain : public BArchivable
 {
   public:
-	Chain(uint32 id);
-	Chain(BMessage*);
-	virtual ~Chain();
+	BMailChain(uint32 id);
+	BMailChain(BMessage*);
+	virtual ~BMailChain();
 	
 	virtual status_t Archive(BMessage*,bool) const;
 	static BArchivable* Instantiate(BMessage*);
@@ -65,8 +60,8 @@ class Chain : public BArchivable
 	
 	uint32 ID() const;
 	
-	chain_direction ChainDirection() const;
-	void SetChainDirection(chain_direction);
+	b_mail_chain_direction ChainDirection() const;
+	void SetChainDirection(b_mail_chain_direction);
 	
 	const char *Name() const;
 	status_t SetName(const char*);
@@ -82,7 +77,7 @@ class Chain : public BArchivable
 	status_t AddFilter(int32 index, const BMessage&, const entry_ref&);
 	status_t RemoveFilter(int32 index);
 	
-	void RunChain(StatusWindow *window,
+	void RunChain(BMailStatusWindow *window,
 		bool async = true,
 		bool save_when_done = true,
 		bool delete_when_done = false);
@@ -97,7 +92,7 @@ class Chain : public BArchivable
 	
 	status_t _err;
 
-  	chain_direction direction;
+  	b_mail_chain_direction direction;
 
 	int32 settings_ct, addons_ct;  
 	BList filter_settings;
@@ -106,11 +101,11 @@ class Chain : public BArchivable
 	uint32 _reserved[5];
 };
 
-class Settings
+class BMailSettings
 {
   public:
-	Settings();
-	~Settings();
+	BMailSettings();
+	~BMailSettings();
 	
 	status_t Save(bigtime_t timeout = B_INFINITE_TIMEOUT);
 	status_t Reload();
@@ -154,8 +149,5 @@ class Settings
 	BMessage data;
 	uint32 _reserved[4];
 };
-
-}	// namespace Mail
-}	// namespace Zoidberg
 
 #endif	/* ZOIDBERG_MAIL_SETTINGS_H */

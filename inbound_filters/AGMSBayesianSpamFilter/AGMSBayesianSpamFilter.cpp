@@ -11,6 +11,9 @@
  * Public Domain 2002, by Alexander G. M. Smith, no warranty.
  *
  * $Log$
+ * Revision 1.18  2003/09/20 12:39:27  agmsmith
+ * Memory leak delete needs [] bug.
+ *
  * Revision 1.17  2003/07/08 21:12:47  agmsmith
  * Changed other spam filter defaults to values I find useful.
  *
@@ -101,8 +104,6 @@
 
 #include "AGMSBayesianSpamFilter.h"
 
-using namespace Zoidberg;
-
 // The names match the ones set up by AGMSBayesianSpamServer for sound effects.
 static const char *kAGMSBayesBeepGenuineName = "AGMSBayes-Genuine";
 static const char *kAGMSBayesBeepSpamName = "AGMSBayes-Spam";
@@ -113,7 +114,7 @@ static const char *kServerSignature =
 
 
 AGMSBayesianSpamFilter::AGMSBayesianSpamFilter (BMessage *settings)
-	:	Mail::Filter (settings),
+	:	BMailFilter (settings),
 		fAddSpamToSubject (false),
 		fAutoTraining (true),
 		fGenuineCutoffRatio (0.01f),
@@ -463,10 +464,10 @@ descriptive_name (
 }
 
 
-Mail::Filter *
+BMailFilter *
 instantiate_mailfilter (
 	BMessage *settings,
-	Mail::ChainRunner *)
+	BMailChainRunner *)
 {
 	return new AGMSBayesianSpamFilter (settings);
 }

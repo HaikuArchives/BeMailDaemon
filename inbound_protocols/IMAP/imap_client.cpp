@@ -32,8 +32,6 @@
 
 #include "NestedString.h"
 
-using namespace Zoidberg;
-
 #define CRLF "\r\n"
 #define xEOF    236
 const bigtime_t kIMAP4ClientTimeout = 1000000*60; // 60 sec
@@ -46,9 +44,9 @@ struct mailbox_info {
 	BString server_mb_name;
 };
 
-class IMAP4Client : public Mail::RemoteStorageProtocol {
+class IMAP4Client : public BMailRemoteStorageProtocol {
 	public:
-		IMAP4Client(BMessage *settings, Mail::ChainRunner *run);
+		IMAP4Client(BMessage *settings, BMailChainRunner *run);
 		virtual ~IMAP4Client();
 		
 		virtual status_t GetMessage(const char *mailbox, const char *message, BPositionIO **, BMessage *headers);
@@ -117,7 +115,7 @@ class NoopWorker : public BHandler {
 		time_t last_run;
 };
 
-IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::RemoteStorageProtocol(settings,run), commandCount(0), net(-1), selected_mb(""), noop(NULL), force_reselect(false) {
+IMAP4Client::IMAP4Client(BMessage *settings, BMailChainRunner *run) : BMailRemoteStorageProtocol(settings,run), commandCount(0), net(-1), selected_mb(""), noop(NULL), force_reselect(false) {
 	err = B_OK;
 	
 	mb_root = settings->FindString("root");
@@ -257,7 +255,7 @@ IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Rem
 	InitializeMailboxes();
 	GetUniqueIDs();
 	
-	StringList to_dl;
+	BStringList to_dl;
 	unique_ids->NotThere(*manifest,&to_dl);
 	
 	noop = new NoopWorker(this);
@@ -377,7 +375,7 @@ void IMAP4Client::InitializeMailboxes() {
 	}
 }
 
-#define dump_stringlist(a) printf("StringList %s:\n",#a); \
+#define dump_stringlist(a) printf("BStringList %s:\n",#a); \
 							for (int32 i = 0; i < a->CountItems(); i++)\
 								puts(a->ItemAt(i)); \
 							puts("Done\n");
@@ -577,7 +575,7 @@ status_t IMAP4Client::DeleteMailbox(const char *mailbox) {
 		return B_ERROR;
 	}
 	
-	delete box_info.RemoveItem(mailboxes.IndexOf(mailbox));
+	delete ((struct mailbox_info *)(box_info.RemoveItem(mailboxes.IndexOf(mailbox))));
 	
 	return B_OK;
 }
@@ -692,7 +690,7 @@ status_t IMAP4Client::Select(const char *mb, bool reselect, bool queue_new_messa
 			command << new_exists - recent + 1 << ':' << new_exists << " UID";
 			SendCommand(command.String());
 			::sprintf(expected,"a%.7ld",commandCount);
-			StringList list;
+			BStringList list;
 			BString uid;
 			while(1) {
 				NestedString response;
@@ -1143,7 +1141,7 @@ bool IMAP4Client::WasCommandOkay(BString &response) {
 	return to_ret;
 }
 
-Mail::Filter *instantiate_mailfilter(BMessage *settings, Mail::ChainRunner *runner)
+BMailFilter *instantiate_mailfilter(BMessage *settings, BMailChainRunner *runner)
 {
 	return new IMAP4Client(settings,runner);
 }

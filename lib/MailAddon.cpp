@@ -6,29 +6,22 @@
 
 #include <String.h>
 
-namespace Zoidberg {
-namespace Mail {
-	class _EXPORT Filter;
-}
-}
+class _EXPORT BMailFilter;
 
-#include "MailAddon.h"
+#include <MailAddon.h>
 
-using Zoidberg::Mail::Filter;
-
-
-Filter::Filter(BMessage *)
+BMailFilter::BMailFilter(BMessage *)
 {
 	//----do nothing-----
 }
 
-Filter::~Filter()
+BMailFilter::~BMailFilter()
 {
 }
 
 
-void Filter::_ReservedFilter1() {}
-void Filter::_ReservedFilter2() {}
-void Filter::_ReservedFilter3() {}
-void Filter::_ReservedFilter4() {}
+void BMailFilter::_ReservedFilter1() {}
+void BMailFilter::_ReservedFilter2() {}
+void BMailFilter::_ReservedFilter3() {}
+void BMailFilter::_ReservedFilter4() {}
 

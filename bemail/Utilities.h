@@ -44,12 +44,7 @@ All rights reserved.
 
 #include <SupportDefs.h>
 
-namespace Zoidberg {
-namespace Mail {
-	class Message;
-}
-}
-using namespace Zoidberg;
+class BEmailMessage;
 
 //====================================================================
 

@@ -36,19 +36,17 @@
 
 #include "pop3.h"
 
-using namespace Zoidberg;
-
 #define POP3_RETRIEVAL_TIMEOUT 60000000
 #define CRLF	"\r\n"
 
 #define pop3_error(string) runner->ShowError(string)
 
-POP3Protocol::POP3Protocol(BMessage *settings, Mail::ChainRunner *status)
-	: Mail::SimpleProtocol(settings,status),
+POP3Protocol::POP3Protocol(BMessage *settings, BMailChainRunner *status)
+	: SimpleMailProtocol(settings,status),
 	fNumMessages(-1),
 	fMailDropSize(0)
 {
-        #ifdef POPSSL
+    #ifdef POPSSL
 		use_ssl = (settings->FindInt32("flavor") == 1);
 	#endif
 	Init();
@@ -706,7 +704,7 @@ void POP3Protocol::MD5Digest (unsigned char *in,char *ascii_digest)
 }
 
 
-Mail::Filter *instantiate_mailfilter(BMessage *settings, Mail::ChainRunner *runner)
+BMailFilter *instantiate_mailfilter(BMessage *settings, BMailChainRunner *runner)
 {
 	return new POP3Protocol(settings,runner);
 }
@@ -714,7 +712,7 @@ Mail::Filter *instantiate_mailfilter(BMessage *settings, Mail::ChainRunner *runn
 
 BView* instantiate_config_panel(BMessage *settings,BMessage *)
 {
-	Mail::ProtocolConfigView *view = new Mail::ProtocolConfigView(Mail::MP_HAS_USERNAME | Mail::MP_HAS_AUTH_METHODS | Mail::MP_HAS_FLAVORS | Mail::MP_HAS_PASSWORD | Mail::MP_HAS_HOSTNAME | Mail::MP_CAN_LEAVE_MAIL_ON_SERVER);
+	BMailProtocolConfigView *view = new BMailProtocolConfigView(B_MAIL_PROTOCOL_HAS_USERNAME | B_MAIL_PROTOCOL_HAS_AUTH_METHODS | B_MAIL_PROTOCOL_HAS_FLAVORS | B_MAIL_PROTOCOL_HAS_PASSWORD | B_MAIL_PROTOCOL_HAS_HOSTNAME | B_MAIL_PROTOCOL_CAN_LEAVE_MAIL_ON_SERVER);
 	view->AddAuthMethod("Plain Text");
 	view->AddAuthMethod("APOP");
         

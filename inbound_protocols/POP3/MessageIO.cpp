@@ -1,4 +1,4 @@
-/* MessageIO - Glue code for reading/writing messages directly from the
+/* BMailMessageIO - Glue code for reading/writing messages directly from the
 ** protocols but present a BPositionIO interface to the caller, while caching
 ** the data read/written in a slave file.
 **
@@ -15,11 +15,7 @@
 #include "MessageIO.h"
 #include "SimpleMailProtocol.h"
 
-
-namespace Zoidberg {
-namespace Mail {
-
-MessageIO::MessageIO(Mail::SimpleProtocol *protocol, BPositionIO *dump_to, int32 seq_id) :
+BMailMessageIO::BMailMessageIO(SimpleMailProtocol *protocol, BPositionIO *dump_to, int32 seq_id) :
 	slave(dump_to),
 	message_id(seq_id),
 	network(protocol),
@@ -29,7 +25,7 @@ MessageIO::MessageIO(Mail::SimpleProtocol *protocol, BPositionIO *dump_to, int32
 	}
 
 
-ssize_t	MessageIO::ReadAt(off_t pos, void *buffer, size_t amountToRead) {
+ssize_t	BMailMessageIO::ReadAt(off_t pos, void *buffer, size_t amountToRead) {
 	status_t errorCode;
 	char     lastBytes [5];
 	off_t    old_pos = slave->Position();
@@ -98,7 +94,7 @@ ssize_t	MessageIO::ReadAt(off_t pos, void *buffer, size_t amountToRead) {
 }
 
 
-ssize_t	MessageIO::WriteAt(off_t pos, const void *buffer, size_t amountToWrite) {
+ssize_t	BMailMessageIO::WriteAt(off_t pos, const void *buffer, size_t amountToWrite) {
 	ssize_t return_val;
 
 	return_val = slave->WriteAt(pos,buffer,amountToWrite);
@@ -107,7 +103,7 @@ ssize_t	MessageIO::WriteAt(off_t pos, const void *buffer, size_t amountToWrite) 
 	return return_val;
 }
 
-off_t MessageIO::Seek(off_t position, uint32 seek_mode) {
+off_t BMailMessageIO::Seek(off_t position, uint32 seek_mode) {
 	ssize_t errorCode;
 	char    tempBuffer [1];
 	
@@ -123,11 +119,11 @@ off_t MessageIO::Seek(off_t position, uint32 seek_mode) {
 	return slave->Seek(position,seek_mode);
 }
 
-off_t MessageIO::Position() const {
+off_t BMailMessageIO::Position() const {
 	return slave->Position();
 }
 
-void MessageIO::ResetSize(void) {
+void BMailMessageIO::ResetSize(void) {
 	off_t old = slave->Position();
 
 	slave->Seek(0,SEEK_END);
@@ -136,9 +132,7 @@ void MessageIO::ResetSize(void) {
 	slave->Seek(old,SEEK_SET);
 }
 
-MessageIO::~MessageIO() {
+BMailMessageIO::~BMailMessageIO() {
 	delete slave;
 }
 
-}	// namespace Mail
-}	// namespace Zoidberg

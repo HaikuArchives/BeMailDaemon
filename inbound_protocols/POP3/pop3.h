@@ -10,9 +10,9 @@
 
 #include "SimpleMailProtocol.h"
 
-class POP3Protocol : public Zoidberg::Mail::SimpleProtocol {
+class POP3Protocol : public SimpleMailProtocol {
   public:
-  	POP3Protocol(BMessage *settings, Zoidberg::Mail::ChainRunner *status);
+  	POP3Protocol(BMessage *settings, BMailChainRunner *status);
   	~POP3Protocol();
   
 	status_t Open(const char *server, int port, int protocol);

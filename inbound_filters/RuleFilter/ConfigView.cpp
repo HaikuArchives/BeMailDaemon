@@ -16,8 +16,6 @@
 
 #include <MDRLanguage.h>
 
-using namespace Zoidberg;
-
 const uint32 kMsgActionMoveTo = 'argm';
 const uint32 kMsgActionDelete = 'argd';
 const uint32 kMsgActionSetTo = 'args';
@@ -35,7 +33,7 @@ class RuleFilterConfig : public BView {
 		virtual	void GetPreferredSize(float *width, float *height);
 	private:
 		BTextControl *attr, *regex;
-		FileControl *arg;
+		BFileControl *arg;
 		BPopUpMenu *menu, *outbound;
 		BMenuField *outbound_field;
 		int staging;
@@ -58,7 +56,7 @@ RuleFilterConfig::RuleFilterConfig(BMessage *settings) : BView(BRect(0,0,260,85)
 		regex->SetText(settings->FindString("regex"));
 	AddChild(regex);
 	
-	arg = new FileControl(BRect(5,55,255,80),"arg",NULL,MDR_DIALECT_CHOICE ("this field is based on the Action","ここは動作によって意味が変わります"));
+	arg = new BFileControl(BRect(5,55,255,80),"arg",NULL,MDR_DIALECT_CHOICE ("this field is based on the Action","ここは動作によって意味が変わります"));
 	if (BControl *control = (BControl *)arg->FindView("select_file"))
 		control->SetEnabled(false);
 	if (settings->HasString("argument"))
@@ -66,7 +64,7 @@ RuleFilterConfig::RuleFilterConfig(BMessage *settings) : BView(BRect(0,0,260,85)
 	
 	outbound = new BPopUpMenu(MDR_DIALECT_CHOICE ("<Choose Account>","<アカウントを選択>"));
 	BList list;
-	Mail::OutboundChains(&list);
+	GetOutboundMailChains(&list);
 	if (settings->HasInt32("do_what"))
 		staging = settings->FindInt32("do_what");
 	else
@@ -77,11 +75,11 @@ RuleFilterConfig::RuleFilterConfig(BMessage *settings) : BView(BRect(0,0,260,85)
 		chain = -1;
 	printf("Chain: %d\n",chain);
 	for (int32 i = 0; i < list.CountItems(); i++) {
-		BMenuItem *item = new BMenuItem(((Mail::Chain *)(list.ItemAt(i)))->Name(), new BMessage(((Mail::Chain *)(list.ItemAt(i)))->ID()));
+		BMenuItem *item = new BMenuItem(((BMailChain *)(list.ItemAt(i)))->Name(), new BMessage(((BMailChain *)(list.ItemAt(i)))->ID()));
 		outbound->AddItem(item);
-		if (((Mail::Chain *)(list.ItemAt(i)))->ID() == chain)
+		if (((BMailChain *)(list.ItemAt(i)))->ID() == chain)
 			item->SetMarked(true);
-		delete (Mail::Chain *)(list.ItemAt(i));
+		delete (BMailChain *)(list.ItemAt(i));
 	}
 		
 }

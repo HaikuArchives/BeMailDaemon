@@ -12,20 +12,16 @@
 
 class BPositionIO;
 
-
-namespace Zoidberg {
-namespace Mail {
-
-class Container : public Component {
+class BMailContainer : public BMailComponent {
 	public:
-		Container (uint32 defaultCharSet = MDR_NULL_CONVERSION) :
-			Component (defaultCharSet) {};
+		BMailContainer (uint32 defaultCharSet = B_MAIL_NULL_CONVERSION) :
+			BMailComponent (defaultCharSet) {};
 
-		virtual status_t AddComponent(Component *component) = 0;
-		virtual status_t RemoveComponent(Component *component) = 0;
+		virtual status_t AddComponent(BMailComponent *component) = 0;
+		virtual status_t RemoveComponent(BMailComponent *component) = 0;
 		virtual status_t RemoveComponent(int32 index) = 0;
 
-		virtual Component *GetComponent(int32 index, bool parse_now = false) = 0;
+		virtual BMailComponent *GetComponent(int32 index, bool parse_now = false) = 0;
 		virtual int32 CountComponents() const = 0;
 	
 	private:
@@ -35,24 +31,24 @@ class Container : public Component {
 		virtual void _ReservedContainer4();
 };
 
-class MIMEMultipartContainer : public Container {
+class BMIMEMultipartMailContainer : public BMailContainer {
 	public:
-		MIMEMultipartContainer(
+		BMIMEMultipartMailContainer(
 			const char *boundary = NULL,
 			const char *this_is_an_MIME_message_text = NULL,
-			uint32 defaultCharSet = MDR_NULL_CONVERSION);
-		MIMEMultipartContainer(MIMEMultipartContainer &copy);
-		virtual ~MIMEMultipartContainer();
+			uint32 defaultCharSet = B_MAIL_NULL_CONVERSION);
+		BMIMEMultipartMailContainer(BMIMEMultipartMailContainer &copy);
+		virtual ~BMIMEMultipartMailContainer();
 
 		void SetBoundary(const char *boundary);
 		void SetThisIsAnMIMEMessageText(const char *text);
 
 		// MailContainer
-		virtual status_t AddComponent(Component *component);
-		virtual status_t RemoveComponent(Component *component);
+		virtual status_t AddComponent(BMailComponent *component);
+		virtual status_t RemoveComponent(BMailComponent *component);
 		virtual status_t RemoveComponent(int32 index);
 
-		virtual Mail::Component *GetComponent(int32 index, bool parse_now = false);
+		virtual BMailComponent *GetComponent(int32 index, bool parse_now = false);
 		virtual int32 CountComponents() const;
 
 		// MailComponent
@@ -78,8 +74,5 @@ class MIMEMultipartContainer : public Container {
 
 		uint32 _reserved[5];
 };
-
-}	// namespace Mail
-}	// namespace Zoidberg
 
 #endif	/* ZOIDBERG_MAIL_CONTAINER_H */

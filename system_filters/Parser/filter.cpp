@@ -13,11 +13,7 @@
 #include <MailAddon.h>
 #include <mail_util.h>
 
-
-using namespace Zoidberg;
-
-
-class ParseFilter : public Mail::Filter {
+class ParseFilter : public BMailFilter {
 	public:
 		ParseFilter(BMessage *msg);
 
@@ -31,7 +27,7 @@ class ParseFilter : public Mail::Filter {
 
 
 ParseFilter::ParseFilter(BMessage *msg)
-	: Mail::Filter(msg),
+	: BMailFilter(msg),
 	fNameField("From")
 {
 	const char *name = msg->FindString("name_field");
@@ -55,7 +51,7 @@ ParseFilter::ProcessMailMessage(BPositionIO **data, BEntry */*entry*/, BMessage 
 	(*data)->ReadAt(0,&byte, 1);
 	(*data)->Seek(SEEK_SET, 0);
 
-	status_t status = Mail::parse_header(*headers, **data);
+	status_t status = parse_header(*headers, **data);
 	if (status < B_OK)
 		return status;
 
@@ -67,12 +63,12 @@ ParseFilter::ProcessMailMessage(BPositionIO **data, BEntry */*entry*/, BMessage 
 	//
 	BString string;
 	string.SetTo(headers->FindString("Subject"));
-	Mail::SubjectToThread(string);
+	SubjectToThread(string);
 	headers->AddString("THREAD", string.String());
 
 	// name
 	if (headers->FindString(fNameField.String(), 0, &string) == B_OK) {
-		Mail::extract_address_name(string);
+		extract_address_name(string);
 		headers->AddString("NAME", string);
 	}
 
@@ -87,8 +83,8 @@ ParseFilter::ProcessMailMessage(BPositionIO **data, BEntry */*entry*/, BMessage 
 }
 
 
-Mail::Filter *
-instantiate_mailfilter(BMessage *settings, Mail::ChainRunner *)
+BMailFilter *
+instantiate_mailfilter(BMessage *settings, BMailChainRunner *)
 {
 	return new ParseFilter(settings);
 }

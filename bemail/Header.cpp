@@ -65,8 +65,6 @@ All rights reserved.
 
 #include <MDRLanguage.h>
 
-using namespace Zoidberg;
-
 extern uint32 gDefaultChain;
 
 const char	*kDateLabel = "Date:";
@@ -106,7 +104,7 @@ THeaderView::THeaderView (
 	BRect rect,
 	BRect windowRect,
 	bool incoming,
-	Mail::Message *mail,
+	BEmailMessage *mail,
 	bool resending,
 	uint32 defaultCharacterSet
 	) :	BBox(rect, "m_header", B_FOLLOW_LEFT_RIGHT, B_WILL_DRAW, B_NO_BORDER),
@@ -163,7 +161,7 @@ THeaderView::THeaderView (
 	marked = false;
 	widestCharacterSet = 0;
 	for (int32 i = 0; true; i++) {
-		if (kEncodings[i].flavor == MDR_NULL_CONVERSION && (resending || !fIncoming))
+		if (kEncodings[i].flavor == B_MAIL_NULL_CONVERSION && (resending || !fIncoming))
 			break; // Composing a new message, don't display last "Automatic" item.
 		msg = new BMessage(kMsgEncoding);
 		msg->AddInt32 ("charset", kEncodings[i].flavor);
@@ -175,7 +173,7 @@ THeaderView::THeaderView (
 		fEncodingMenu->AddItem (item);
 		if (font.StringWidth (kEncodings[i].name) > widestCharacterSet)
 			widestCharacterSet = font.StringWidth (kEncodings[i].name);
-		if (kEncodings[i].flavor == MDR_NULL_CONVERSION)
+		if (kEncodings[i].flavor == B_MAIL_NULL_CONVERSION)
 			break; // No more character set choices after this one, stop.
 	}
 
@@ -254,12 +252,12 @@ THeaderView::THeaderView (
 		fAccountMenu = new BPopUpMenu(B_EMPTY_STRING);
 
 		BList chains;
-		if (Mail::OutboundChains(&chains) >= B_OK)
+		if (GetOutboundMailChains(&chains) >= B_OK)
 		{
 			marked = false;
 			for (int32 i = 0;i < chains.CountItems();i++)
 			{
-				Mail::Chain *chain = (Mail::Chain *)chains.ItemAt(i);
+				BMailChain *chain = (BMailChain *)chains.ItemAt(i);
 				BString name = chain->Name();
 				if ((msg = chain->MetaData()) != NULL)
 				{
@@ -635,7 +633,7 @@ THeaderView::AttachedToWindow(void)
 
 
 status_t
-THeaderView::LoadMessage(Mail::Message *mail)
+THeaderView::LoadMessage(BEmailMessage *mail)
 {
 	//
 	//	Set the date on this message

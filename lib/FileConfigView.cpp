@@ -1,18 +1,12 @@
-/* FileConfigView - a file configuration view for filters
+/* BMailFileConfigView - a file configuration view for filters
 **
 ** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
 */
 
 #include <BeBuild.h>
 
-namespace Zoidberg {
-	class _EXPORT FileControl;
-
-	namespace Mail {
-		class _EXPORT FileConfigView;
-	
-	}
-}
+class _EXPORT BFileControl;
+class _EXPORT BMailFileConfigView;
 
 #include <TextControl.h>
 #include <Button.h>
@@ -28,12 +22,7 @@ namespace Zoidberg {
 
 const uint32 kMsgSelectButton = 'fsel';
 
-
-using Zoidberg::FileControl;
-using namespace Zoidberg::Mail;
-
-
-FileControl::FileControl(BRect rect,const char *name,const char *label,const char *pathOfFile,uint32 flavors)
+BFileControl::BFileControl(BRect rect,const char *name,const char *label,const char *pathOfFile,uint32 flavors)
 		:	BView(rect,name,B_FOLLOW_LEFT | B_FOLLOW_TOP,0)
 {
 	SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
@@ -63,13 +52,13 @@ FileControl::FileControl(BRect rect,const char *name,const char *label,const cha
 }
 
 
-FileControl::~FileControl()
+BFileControl::~BFileControl()
 {
 	delete fPanel;
 }
 
 
-void FileControl::AttachedToWindow()
+void BFileControl::AttachedToWindow()
 {
 	fButton->SetTarget(this);
 
@@ -79,7 +68,7 @@ void FileControl::AttachedToWindow()
 }
 
 
-void FileControl::MessageReceived(BMessage *msg)
+void BFileControl::MessageReceived(BMessage *msg)
 {
 	switch (msg->what)
 	{
@@ -119,26 +108,26 @@ void FileControl::MessageReceived(BMessage *msg)
 }
 
 
-void FileControl::SetText(const char *pathOfFile)
+void BFileControl::SetText(const char *pathOfFile)
 {
 	fText->SetText(pathOfFile);
 }
 
 
-const char *FileControl::Text() const
+const char *BFileControl::Text() const
 {
 	return fText->Text();
 }
 
 
-void FileControl::SetEnabled(bool enabled)
+void BFileControl::SetEnabled(bool enabled)
 {
 	fText->SetEnabled(enabled);
 	fButton->SetEnabled(enabled);
 }
 
 
-void FileControl::GetPreferredSize(float *width, float *height)
+void BFileControl::GetPreferredSize(float *width, float *height)
 {
 	*width = fButton->Frame().right + 5;
 	*height = fText->Bounds().Height() + 8;
@@ -148,15 +137,15 @@ void FileControl::GetPreferredSize(float *width, float *height)
 //--------------------------------------------------------------------------
 //	#pragma mark -
 
-FileConfigView::FileConfigView(const char *label,const char *name,bool useMeta,const char *defaultPath,uint32 flavors)
-		:	FileControl(BRect(5,0,255,10),name,label,defaultPath,flavors),
+BMailFileConfigView::BMailFileConfigView(const char *label,const char *name,bool useMeta,const char *defaultPath,uint32 flavors)
+		:	BFileControl(BRect(5,0,255,10),name,label,defaultPath,flavors),
 		fUseMeta(useMeta),
 		fName(name)
 {
 }
 
 
-void FileConfigView::SetTo(BMessage *archive, BMessage *meta)
+void BMailFileConfigView::SetTo(BMessage *archive, BMessage *meta)
 {
 	fMeta = meta;
 	BString path = (fUseMeta ? meta : archive)->FindString(fName);
@@ -166,7 +155,7 @@ void FileConfigView::SetTo(BMessage *archive, BMessage *meta)
 }
 
 
-status_t FileConfigView::Archive(BMessage *into, bool /*deep*/) const
+status_t BMailFileConfigView::Archive(BMessage *into, bool /*deep*/) const
 {
 	const char *path = Text();
 	BMessage *archive = fUseMeta ? fMeta : into;

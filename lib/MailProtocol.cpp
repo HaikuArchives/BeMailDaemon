@@ -1,4 +1,4 @@
-/* Protocol - the base class for protocol filters
+/* BMailProtocol - the base class for protocol filters
 **
 ** Copyright 2001-2003 Dr. Zoidberg Enterprises. All rights reserved.
 */
@@ -22,25 +22,17 @@
 
 #include <MDRLanguage.h>
 
-namespace Zoidberg {
-namespace Mail {
-	class _EXPORT Protocol;
-}
-}
+class BMailProtocol;
 
 #include <MailProtocol.h>
 #include <ChainRunner.h>
 #include <status.h>
 
-using namespace Zoidberg;
-using Zoidberg::Mail::Protocol;
+namespace {
 
-namespace Zoidberg {
-namespace Mail {
-
-class ManifestAdder : public Mail::ChainCallback {
+class ManifestAdder : public BMailChainCallback {
 	public:
-		ManifestAdder(StringList *list,StringList **list2, const char *id) : manifest(list), uids_on_disk(list2), uid(id) {}
+		ManifestAdder(BStringList *list,BStringList **list2, const char *id) : manifest(list), uids_on_disk(list2), uid(id) {}
 		virtual void Callback(status_t result) {
 			if (result == B_OK) {
 				(*manifest) += uid;
@@ -50,28 +42,25 @@ class ManifestAdder : public Mail::ChainCallback {
 		}
 		
 	private:
-		StringList *manifest,**uids_on_disk;
+		BStringList *manifest,**uids_on_disk;
 		const char *uid;
 };
 
-class MessageDeletion : public Mail::ChainCallback {
+class MessageDeletion : public BMailChainCallback {
 	public:
-		MessageDeletion(Protocol *home, const char *uid, BEntry *io_entry, bool delete_anyway);
+		MessageDeletion(BMailProtocol *home, const char *uid, BEntry *io_entry, bool delete_anyway);
 		virtual void Callback(status_t result);
 		
 	private:
-		Protocol *us;
+		BMailProtocol *us;
 		bool always;
 		const char *message_id;
 		BEntry *entry;
 };
 
-}	// namespace Mail
-}	// namespace Zoidberg
-
 
 inline void
-Protocol::error_alert(const char *process, status_t error)
+BMailProtocol::error_alert(const char *process, status_t error)
 {
 	BString string;
 	MDR_DIALECT_CHOICE (
@@ -86,7 +75,7 @@ Protocol::error_alert(const char *process, status_t error)
 
 class DeleteHandler : public BHandler {
 	public:
-		DeleteHandler(Protocol *a)
+		DeleteHandler(BMailProtocol *a)
 			: us(a)
 		{
 		}
@@ -101,12 +90,12 @@ class DeleteHandler : public BHandler {
 		}
 
 	private:
-		Protocol *us;
+		BMailProtocol *us;
 };
 
 class TrashMonitor : public BHandler {
 	public:
-		TrashMonitor(Protocol *a, int32 chain_id)
+		TrashMonitor(BMailProtocol *a, int32 chain_id)
 			: us(a), trash("/boot/home/Desktop/Trash"), messages_for_us(0), id(chain_id)
 		{
 		}
@@ -155,20 +144,20 @@ class TrashMonitor : public BHandler {
 		}
 
 	private:
-		Protocol *us;
+		BMailProtocol *us;
 		BDirectory trash;
 		int32 messages_for_us;
 		int32 id;
 };
 
-Protocol::Protocol(BMessage *settings, ChainRunner *run)
-	: Filter(settings),
+BMailProtocol::BMailProtocol(BMessage *settings, BMailChainRunner *run)
+	: BMailFilter(settings),
 	runner(run), trash_monitor(NULL), uids_on_disk(NULL)
 {
-	unique_ids = new StringList;
-	Protocol::settings = settings;
+	unique_ids = new BStringList;
+	BMailProtocol::settings = settings;
 
-	manifest = new StringList;
+	manifest = new BStringList;
 	
 	{
 		BString attr_name = "MAIL:";
@@ -193,7 +182,7 @@ Protocol::Protocol(BMessage *settings, ChainRunner *run)
 		} else runner->ShowError("Error while reading account manifest: no destination directory exists.");
 	}
 	
-	uids_on_disk = new StringList;
+	uids_on_disk = new BStringList;
 	BVolumeRoster volumes;
 	BVolume volume;
 	while (volumes.GetNextVolume(&volume) == B_OK) {
@@ -233,7 +222,7 @@ Protocol::Protocol(BMessage *settings, ChainRunner *run)
 }
 
 
-Protocol::~Protocol()
+BMailProtocol::~BMailProtocol()
 {
 	if (manifest != NULL) {
 		BMessage *meta_data = runner->Chain()->MetaData();
@@ -263,13 +252,13 @@ Protocol::~Protocol()
 }
 
 
-#define dump_stringlist(a) printf("StringList %s:\n",#a); \
+#define dump_stringlist(a) printf("BStringList %s:\n",#a); \
 							for (int32 i = 0; i < (a)->CountItems(); i++)\
 								puts((a)->ItemAt(i)); \
 							puts("Done\n");
 							
 status_t
-Protocol::ProcessMailMessage(BPositionIO **io_message, BEntry *io_entry,
+BMailProtocol::ProcessMailMessage(BPositionIO **io_message, BEntry *io_entry,
 	BMessage *io_headers, BPath *io_folder, const char *io_uid)
 {
 	status_t error;
@@ -294,19 +283,19 @@ Protocol::ProcessMailMessage(BPositionIO **io_message, BEntry *io_entry,
 	return B_OK;
 }
 
-void Protocol::CheckForDeletedMessages() {
+void BMailProtocol::CheckForDeletedMessages() {
 	{
 		//---Delete things from the manifest no longer on the server
-		StringList temp;
+		BStringList temp;
 		manifest->NotThere(*unique_ids, &temp);
 		(*manifest) -= temp;
 	}
 
 	if (((settings->FindBool("delete_remote_when_local")) || !(settings->FindBool("leave_mail_on_server"))) && (manifest->CountItems() > 0)) {
-		StringList to_delete;
+		BStringList to_delete;
 		
 		if (uids_on_disk == NULL) {
-			StringList query_contents;
+			BStringList query_contents;
 			BVolumeRoster volumes;
 			BVolume volume;
 			
@@ -344,17 +333,17 @@ void Protocol::CheckForDeletedMessages() {
 	}
 }
 
-void Protocol::_ReservedProtocol1() {}
-void Protocol::_ReservedProtocol2() {}
-void Protocol::_ReservedProtocol3() {}
-void Protocol::_ReservedProtocol4() {}
-void Protocol::_ReservedProtocol5() {}
+void BMailProtocol::_ReservedProtocol1() {}
+void BMailProtocol::_ReservedProtocol2() {}
+void BMailProtocol::_ReservedProtocol3() {}
+void BMailProtocol::_ReservedProtocol4() {}
+void BMailProtocol::_ReservedProtocol5() {}
 
 
 //	#pragma mark -
 
 
-Mail::MessageDeletion::MessageDeletion(Protocol *home, const char *uid,
+MessageDeletion::MessageDeletion(BMailProtocol *home, const char *uid,
 	BEntry *io_entry, bool delete_anyway)
 	:
 	us(home),
@@ -365,7 +354,7 @@ Mail::MessageDeletion::MessageDeletion(Protocol *home, const char *uid,
 
 
 void
-Mail::MessageDeletion::Callback(status_t result)
+MessageDeletion::Callback(status_t result)
 {
 	#if DEBUG
 	 printf("Deleting %s\n", message_id);
@@ -378,3 +367,4 @@ Mail::MessageDeletion::Callback(status_t result)
 		us->DeleteMessage(message_id);
 }
 
+}

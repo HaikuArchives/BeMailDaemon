@@ -85,8 +85,6 @@ All rights reserved.
 #	define DSPELL(x) ;
 #endif
 
-using namespace Zoidberg;
-
 const rgb_color kNormalTextColor = {0, 0, 0, 255};
 const rgb_color kSpellTextColor = {255, 0, 0, 255};
 const rgb_color kHyperLinkColor = {0, 0, 255, 255};
@@ -565,7 +563,7 @@ TextRunArray::~TextRunArray()
 //	#pragma mark -
 
 
-TContentView::TContentView(BRect rect, bool incoming, Mail::Message *mail, BFont *font)
+TContentView::TContentView(BRect rect, bool incoming, BEmailMessage *mail, BFont *font)
 	:	BView(rect, "m_content", B_FOLLOW_ALL, B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE),
 	fFocus(false),
 	fIncoming(incoming)
@@ -777,7 +775,7 @@ TContentView::FrameResized(float /* width */, float /* height */)
 //	#pragma mark -
 
 
-TTextView::TTextView(BRect frame, BRect text, bool incoming, Mail::Message *mail,
+TTextView::TTextView(BRect frame, BRect text, bool incoming, BEmailMessage *mail,
 	TContentView *view, BFont *font)
 	:	BTextView(frame, "", text, B_FOLLOW_ALL, B_WILL_DRAW | B_NAVIGABLE),
 	fHeader(header_flag),
@@ -1743,7 +1741,7 @@ TTextView::ClearList()
 
 
 void
-TTextView::LoadMessage(Mail::Message *mail, bool quoteIt, const char *text)
+TTextView::LoadMessage(BEmailMessage *mail, bool quoteIt, const char *text)
 {
 	StopLoad();
 
@@ -1997,7 +1995,7 @@ TTextView::StopLoad()
 
 
 void
-TTextView::AddAsContent(Mail::Message *mail, bool wrap, uint32 charset, mail_encoding encoding)
+TTextView::AddAsContent(BEmailMessage *mail, bool wrap, uint32 charset, mail_encoding encoding)
 {
 	if (mail == NULL)
 		return;
@@ -2005,9 +2003,9 @@ TTextView::AddAsContent(Mail::Message *mail, bool wrap, uint32 charset, mail_enc
 	int32 textLength = TextLength();
 	const char *text = Text();
 
-	Mail::TextComponent *body = mail->Body();
+	BTextMailComponent *body = mail->Body();
 	if (body == NULL) {
-		if (mail->SetBody(body = new Mail::TextComponent()) < B_OK)
+		if (mail->SetBody(body = new BTextMailComponent()) < B_OK)
 			return;
 	}
 	body->SetEncoding(encoding, charset);
@@ -2178,7 +2176,7 @@ TTextView::AddAsContent(Mail::Message *mail, bool wrap, uint32 charset, mail_enc
 
 
 TTextView::Reader::Reader(bool header, bool raw, bool quote, bool incoming, bool stripHeader,
-	bool mime, TTextView *view, Mail::Message *mail, BList *list, sem_id sem)
+	bool mime, TTextView *view, BEmailMessage *mail, BList *list, sem_id sem)
 	:
 	fHeader(header),
 	fRaw(raw),
@@ -2195,14 +2193,14 @@ TTextView::Reader::Reader(bool header, bool raw, bool quote, bool incoming, bool
 
 
 bool
-TTextView::Reader::ParseMail(Mail::Container *container, Mail::TextComponent *ignore)
+TTextView::Reader::ParseMail(BMailContainer *container, BTextMailComponent *ignore)
 {
 	int32 count = 0;
 	for (int32 i = 0; i < container->CountComponents(); i++) {
 		if (fView->fStopLoading)
 			return false;
 
-		Mail::Component *component;
+		BMailComponent *component;
 		if ((component = container->GetComponent(i)) == NULL) {
 			if (fView->fStopLoading)
 				return false;
@@ -2227,8 +2225,8 @@ TTextView::Reader::ParseMail(Mail::Container *container, Mail::TextComponent *ig
 		if (component == ignore)
 			continue;
 
-		if (component->ComponentType() == Mail::MC_MULTIPART_CONTAINER) {
-			Mail::MIMEMultipartContainer *c = dynamic_cast<Mail::MIMEMultipartContainer *>(container->GetComponent(i));
+		if (component->ComponentType() == B_MAIL_MULTIPART_CONTAINER) {
+			BMIMEMultipartMailContainer *c = dynamic_cast<BMIMEMultipartMailContainer *>(container->GetComponent(i));
 			ASSERT(c != NULL);
 
 			if (!ParseMail(c, ignore))
@@ -2243,7 +2241,7 @@ TTextView::Reader::ParseMail(Mail::Container *container, Mail::TextComponent *ig
 			BString name;
 			char fileName[B_FILE_NAME_LENGTH];
 			strcpy(fileName, "untitled");
-			if (Mail::Attachment *attachment = dynamic_cast <Mail::Attachment *> (component))
+			if (BMailAttachment *attachment = dynamic_cast <BMailAttachment *> (component))
 				attachment->FileName(fileName);
 
 			BPath path(fileName);
@@ -2423,7 +2421,7 @@ TTextView::Reader::Run(void *_this)
 	 		
 		 		memcpy(buffer, header, length);
 
-				length = Mail::rfc2047_to_utf8(&buffer, &length, length);
+				length = rfc2047_to_utf8(&buffer, &length, length);
 
 		 		if (!strncasecmp(header, "Reply-To: ", 10)
 		 			|| !strncasecmp(header, "To: ", 4)
@@ -2447,11 +2445,11 @@ TTextView::Reader::Run(void *_this)
 			goto done;
 	} else {
 		//reader->fFile->Seek(0, 0);
-		//Mail::Message *mail = new Mail::Message(reader->fFile);
-		Mail::Message *mail = reader->fMail;
+		//BEmailMessage *mail = new BEmailMessage(reader->fFile);
+		BEmailMessage *mail = reader->fMail;
 
 		// at first, insert the mail body
-		Mail::TextComponent *body = NULL;
+		BTextMailComponent *body = NULL;
 		if (mail->BodyText() && !view->fStopLoading) {
 			char *bodyText = const_cast<char *>(mail->BodyText());
 			int32 bodyLength = strlen(bodyText);

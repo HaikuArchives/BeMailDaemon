@@ -12,16 +12,12 @@
 #include <Path.h>
 #include <Message.h>
 
+class SimpleMailProtocol;
 
-namespace Zoidberg {
-namespace Mail {
-
-class SimpleProtocol;
-
-class MessageIO : public BPositionIO {
+class BMailMessageIO : public BPositionIO {
 	public:
-		MessageIO(Mail::SimpleProtocol *protocol, BPositionIO *dump_to, int32 seq_id);
-		~MessageIO();
+		BMailMessageIO(SimpleMailProtocol *protocol, BPositionIO *dump_to, int32 seq_id);
+		~BMailMessageIO();
 		
 		//----BPositionIO
 		virtual	ssize_t		ReadAt(off_t pos, void *buffer, size_t amountToRead);
@@ -35,7 +31,7 @@ class MessageIO : public BPositionIO {
 		
 		BPositionIO *slave;
 		int32 message_id;
-		Mail::SimpleProtocol *network;
+		SimpleMailProtocol *network;
 		
 		size_t size;
 		enum MessageIOStateEnum {
@@ -44,8 +40,5 @@ class MessageIO : public BPositionIO {
 			ALL_READING_DONE
 		} state;
 };
-
-}	// namespace Mail
-}	// namespace Zoidberg
 
 #endif	/* ZOIDBERG_MAIL_MESSAGE_IO_H */

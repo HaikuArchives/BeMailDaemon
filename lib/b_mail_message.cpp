@@ -16,43 +16,36 @@ class _EXPORT BMailMessage;
 
 #include <stdio.h>
 
-
-namespace Zoidberg {
-namespace Mail {
-
 struct CharsetConversionEntry
 {
 	const char *charset;
 	uint32 flavor;
 };
 
-extern const CharsetConversionEntry charsets[];
-
-}	// namespace Mail
-}	// namespace Zoidberg
+extern const CharsetConversionEntry mail_charsets[];
 
 
 BMailMessage::BMailMessage(void)
-	:	fFields((BList *)(new Zoidberg::Mail::Message()))
+	:	fFields((BList *)(new BEmailMessage()))
 {
 }
 
 BMailMessage::~BMailMessage(void)
 {
-	delete ((Zoidberg::Mail::Message *)(fFields));
+	delete ((BEmailMessage *)(fFields));
 }
 
 status_t BMailMessage::AddContent(const char *text, int32 length,
 	uint32 encoding, bool /*clobber*/)
 {
-	Zoidberg::Mail::TextComponent *comp = new Zoidberg::Mail::TextComponent;
+	BTextMailComponent *comp = new BTextMailComponent;
 	BMemoryIO io(text,length);
 	comp->SetDecodedData(&io);
 	
 	comp->SetEncoding(quoted_printable,encoding);
 	
 	//if (clobber)
-	((Zoidberg::Mail::Message *)(fFields))->AddComponent(comp);
+	((BEmailMessage *)(fFields))->AddComponent(comp);
 	
 	return B_OK;
 }
@@ -60,7 +53,7 @@ status_t BMailMessage::AddContent(const char *text, int32 length,
 status_t BMailMessage::AddContent(const char *text, int32 length,
 	const char *encoding, bool /*clobber*/)
 {
-	Zoidberg::Mail::TextComponent *comp = new Zoidberg::Mail::TextComponent();
+	BTextMailComponent *comp = new BTextMailComponent();
 	BMemoryIO io(text,length);
 	comp->SetDecodedData(&io);
 	
@@ -68,9 +61,9 @@ status_t BMailMessage::AddContent(const char *text, int32 length,
 	//-----I'm assuming that encoding is one of the RFC charsets
 	//-----there are no docs. Am I right?
 	if (encoding != NULL) {
-		for (int32 i = 0; Zoidberg::Mail::charsets[i].charset != NULL; i++) {
-			if (strcasecmp(encoding,Zoidberg::Mail::charsets[i].charset) == 0) {
-				encode = Zoidberg::Mail::charsets[i].flavor;
+		for (int32 i = 0; mail_charsets[i].charset != NULL; i++) {
+			if (strcasecmp(encoding,mail_charsets[i].charset) == 0) {
+				encode = mail_charsets[i].flavor;
 				break;
 			}
 		}
@@ -79,14 +72,14 @@ status_t BMailMessage::AddContent(const char *text, int32 length,
 	comp->SetEncoding(quoted_printable,encode);
 	
 	//if (clobber)
-	((Zoidberg::Mail::Message *)(fFields))->AddComponent(comp);
+	((BEmailMessage *)(fFields))->AddComponent(comp);
 	
 	return B_OK;
 }
 
 status_t BMailMessage::AddEnclosure(entry_ref *ref, bool /*clobber*/)
 {
-	((Zoidberg::Mail::Message *)(fFields))->Attach(ref);
+	((BEmailMessage *)(fFields))->Attach(ref);
 	return B_OK;
 }
 
@@ -101,18 +94,18 @@ status_t BMailMessage::AddEnclosure(const char *path, bool /*clobber*/)
 	if ((status = entry.GetRef(&ref)) < B_OK)
 		return status;
 
-	((Zoidberg::Mail::Message *)(fFields))->Attach(&ref);
+	((BEmailMessage *)(fFields))->Attach(&ref);
 	return B_OK;
 }
 
 status_t BMailMessage::AddEnclosure(const char *MIME_type, void *data, int32 len,
 	bool /*clobber*/)
 {
-	Zoidberg::Mail::SimpleAttachment *attach = new Zoidberg::Mail::SimpleAttachment;
+	BSimpleMailAttachment *attach = new BSimpleMailAttachment;
 	attach->SetDecodedData(data,len);
 	attach->SetHeaderField("Content-Type",MIME_type);
 	
-	((Zoidberg::Mail::Message *)(fFields))->AddComponent(attach);
+	((BEmailMessage *)(fFields))->AddComponent(attach);
 	return B_OK;
 }
 
@@ -123,7 +116,7 @@ status_t BMailMessage::AddHeaderField(uint32 /*encoding*/, const char *field_nam
 	
 	BString string = field_name;
 	string.Truncate(string.Length() - 2); //----BMailMessage includes the ": "
-	((Zoidberg::Mail::Message *)(fFields))->SetHeaderField(string.String(),str);
+	((BEmailMessage *)(fFields))->SetHeaderField(string.String(),str);
 	return B_OK;
 }
 
@@ -133,13 +126,13 @@ status_t BMailMessage::AddHeaderField(const char *field_name, const char *str,
 	//printf("Second AddHeaderField. Args are %s%s\n",field_name,str);
 	BString string = field_name;
 	string.Truncate(string.Length() - 2); //----BMailMessage includes the ": "
-	((Zoidberg::Mail::Message *)(fFields))->SetHeaderField(string.String(),str);
+	((BEmailMessage *)(fFields))->SetHeaderField(string.String(),str);
 	return B_OK;
 }
 
 status_t BMailMessage::Send(bool send_now,
 	 bool /*remove_when_I_have_completed_sending_this_message_to_your_preferred_SMTP_server*/)
 {
- 	return ((Zoidberg::Mail::Message *)(fFields))->Send(send_now);
+ 	return ((BEmailMessage *)(fFields))->Send(send_now);
 }
 

@@ -16,9 +16,7 @@
 
 #include "NodeMessage.h"
 
-using namespace Zoidberg;
-
-class FortuneFilter : public Mail::Filter
+class FortuneFilter : public BMailFilter
 {
 	BMessage *settings;
   public:
@@ -32,7 +30,7 @@ class FortuneFilter : public Mail::Filter
 };
 
 FortuneFilter::FortuneFilter(BMessage* msg)
-	: Mail::Filter(msg), settings(msg)
+	: BMailFilter(msg), settings(msg)
 {
 }
 
@@ -45,7 +43,7 @@ status_t FortuneFilter::ProcessMailMessage
 (BPositionIO** io, BEntry* io_entry, BMessage* headers, BPath* , const char*)
 {
 	// What we want to do here is to change the message body. To do that we use the
-	// framework we already have by creating a new Mail::Message based on the
+	// framework we already have by creating a new BEmailMessage based on the
 	// BPositionIO, changing the message body and rendering it back to disk. Of course
 	// this method ends up not being super-efficient, but it works. Ideas on how to 
 	// improve this are welcome.
@@ -53,7 +51,7 @@ status_t FortuneFilter::ProcessMailMessage
 	BString	tag_line;
 	BString	fortune;
 	
-	Mail::Message	mail_message(*io);
+	BEmailMessage	mail_message(*io);
 	BString				mail_body(mail_message.BodyText());
 	
 	// Obtain relevant settings
@@ -100,7 +98,7 @@ status_t FortuneFilter::ProcessMailMessage
 	return B_OK;	
 }
 
-Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::ChainRunner*)
+BMailFilter* instantiate_mailfilter(BMessage* settings, BMailChainRunner*)
 {
 	return new FortuneFilter(settings);
 }

@@ -16,28 +16,24 @@
 
 class BDirectory;
 
-
-namespace Zoidberg {
-namespace Mail {
-
-enum reply_to_mode {
-	MD_REPLY_TO = 0,
-	MD_REPLY_TO_ALL,
-	MD_REPLY_TO_SENDER
+enum mail_reply_to_mode {
+	B_MAIL_REPLY_TO = 0,
+	B_MAIL_REPLY_TO_ALL,
+	B_MAIL_REPLY_TO_SENDER
 };
 
-class Message : public Container {
+class BEmailMessage : public BMailContainer {
 	public:
-		Message(BPositionIO *mail_file = NULL, bool own = false, uint32 defaultCharSet = MDR_NULL_CONVERSION);
-		Message(entry_ref *ref, uint32 defaultCharSet = MDR_NULL_CONVERSION);
-		virtual ~Message();
+		BEmailMessage(BPositionIO *mail_file = NULL, bool own = false, uint32 defaultCharSet = B_MAIL_NULL_CONVERSION);
+		BEmailMessage(entry_ref *ref, uint32 defaultCharSet = B_MAIL_NULL_CONVERSION);
+		virtual ~BEmailMessage();
 
 		status_t InitCheck() const;
 		BPositionIO *Data() const { return fData; }
 			// is only set if the message owns the data
 
-		Message *ReplyMessage(reply_to_mode replyTo, bool accountFromMail, const char *quote_style = "> ");
-		Message *ForwardMessage(bool accountFromMail, bool includeAttachments = false);
+		BEmailMessage *ReplyMessage(mail_reply_to_mode replyTo, bool accountFromMail, const char *quote_style = "> ");
+		BEmailMessage *ForwardMessage(bool accountFromMail, bool includeAttachments = false);
 			// These return messages with the body quoted and
 			// ready to send via the appropriate channel. ReplyMessage()
 			// addresses the message appropriately, but ForwardMessage()
@@ -51,29 +47,29 @@ class Message : public Container {
 		const char *Date();
 		int Priority();
 
-		void SetSubject(const char *to, uint32 charset = MDR_NULL_CONVERSION, mail_encoding encoding = null_encoding);
-		void SetReplyTo(const char *to, uint32 charset = MDR_NULL_CONVERSION, mail_encoding encoding = null_encoding);
-		void SetFrom(const char *to, uint32 charset = MDR_NULL_CONVERSION, mail_encoding encoding = null_encoding);
-		void SetTo(const char *to, uint32 charset = MDR_NULL_CONVERSION, mail_encoding encoding = null_encoding);
-		void SetCC(const char *to, uint32 charset = MDR_NULL_CONVERSION, mail_encoding encoding = null_encoding);
+		void SetSubject(const char *to, uint32 charset = B_MAIL_NULL_CONVERSION, mail_encoding encoding = null_encoding);
+		void SetReplyTo(const char *to, uint32 charset = B_MAIL_NULL_CONVERSION, mail_encoding encoding = null_encoding);
+		void SetFrom(const char *to, uint32 charset = B_MAIL_NULL_CONVERSION, mail_encoding encoding = null_encoding);
+		void SetTo(const char *to, uint32 charset = B_MAIL_NULL_CONVERSION, mail_encoding encoding = null_encoding);
+		void SetCC(const char *to, uint32 charset = B_MAIL_NULL_CONVERSION, mail_encoding encoding = null_encoding);
 		void SetBCC(const char *to);
 		void SetPriority(int to);
 
 		status_t GetName(char *name,int32 maxLength) const;
 		status_t GetName(BString *name) const;
 
-		void SendViaAccountFrom(Mail::Message *message);
+		void SendViaAccountFrom(BEmailMessage *message);
 		void SendViaAccount(const char *account_name);
 		void SendViaAccount(int32 chain_id);
 		int32 Account() const;
 		status_t GetAccountName(char *account,int32 maxLength) const;
 		status_t GetAccountName(BString *account) const;
 
-		virtual status_t AddComponent(Mail::Component *component);
-		virtual status_t RemoveComponent(Mail::Component *component);
+		virtual status_t AddComponent(BMailComponent *component);
+		virtual status_t RemoveComponent(BMailComponent *component);
 		virtual status_t RemoveComponent(int32 index);
 
-		virtual Mail::Component *GetComponent(int32 index, bool parse_now = false);
+		virtual BMailComponent *GetComponent(int32 index, bool parse_now = false);
 		virtual int32 CountComponents() const;
 
 		void Attach(entry_ref *ref, bool include_attributes = true);
@@ -82,8 +78,8 @@ class Message : public Container {
 		void SetBodyTextTo(const char *text);
 		const char *BodyText();
 
-		status_t SetBody(Mail::TextComponent *body);
-		Mail::TextComponent *Body();
+		status_t SetBody(BTextMailComponent *body);
+		BTextMailComponent *Body();
 
 		virtual status_t SetToRFC822(BPositionIO *data, size_t length, bool parse_now = false);
 		virtual status_t RenderToRFC822(BPositionIO *render_to);
@@ -94,7 +90,7 @@ class Message : public Container {
 		status_t Send(bool send_now);
 
 	private:
-		Mail::TextComponent *RetrieveTextBody(Component *);
+		BTextMailComponent *RetrieveTextBody(BMailComponent *);
 
 		virtual void _ReservedMessage1();
 		virtual void _ReservedMessage2();
@@ -107,13 +103,10 @@ class Message : public Container {
 		char *_bcc;
 
 		int32 _num_components;
-		Mail::Component *_body;
-		Mail::TextComponent *_text_body;
+		BMailComponent *_body;
+		BTextMailComponent *_text_body;
 
 		uint32 _reserved[5];
 };
-
-}	// namespace Mail
-}	// namespace Zoidberg
 
 #endif	/* ZOIDBERG_MAIL_MESSAGE_H */

@@ -10,17 +10,14 @@
 
 class BList;
 
-
-namespace Zoidberg {
-
-class StringList : public BFlattenable {
+class BStringList : public BFlattenable {
 	public:
-		StringList();
-		StringList(const StringList&);
+		BStringList();
+		BStringList(const BStringList&);
 		
-		~StringList(void);
+		~BStringList(void);
 		
-		StringList	&operator=(const StringList &from);
+		BStringList	&operator=(const BStringList &from);
 		
 /* Flattenable stuff */
 		virtual	bool		IsFixedSize() const; //--false for obvious reasons
@@ -32,7 +29,7 @@ class StringList : public BFlattenable {
 
 /* Adding and removing items. */		
 		void	AddItem(const char *item);
-		void	AddList(const StringList *newItems);
+		void	AddList(const BStringList *newItems);
 		bool	RemoveItem(const char *item);
 		void	MakeEmpty();
 
@@ -46,23 +43,23 @@ class StringList : public BFlattenable {
 		bool	IsEmpty() const;
 
 /* Determining differences between lists */
-		void NotHere(StringList &other_list, StringList *results);
-		void NotThere(StringList &other_list, StringList *results);
+		void NotHere(BStringList &other_list, BStringList *results);
+		void NotThere(BStringList &other_list, BStringList *results);
 		
 /* Useful list logic operators */
-		StringList	&operator += (const char *item);
-		StringList	&operator += (StringList &list);
+		BStringList	&operator += (const char *item);
+		BStringList	&operator += (BStringList &list);
 		
-		StringList	&operator -= (const char *item);
-		StringList	&operator -= (StringList &list);
+		BStringList	&operator -= (const char *item);
+		BStringList	&operator -= (BStringList &list);
 		
-		StringList	operator | (StringList &list);
-		StringList	&operator |= (StringList &list);
+		BStringList	operator | (BStringList &list);
+		BStringList	&operator |= (BStringList &list);
 		
-		StringList	operator ^ (StringList &list);
-		StringList	&operator ^= (StringList &list);
+		BStringList	operator ^ (BStringList &list);
+		BStringList	&operator ^= (BStringList &list);
 		
-		bool		operator == (StringList &list);
+		bool		operator == (BStringList &list);
 		const char *operator [] (int32 index);
 		
 	private:
@@ -72,7 +69,5 @@ class StringList : public BFlattenable {
 		
 		uint32 _reserved[5];
 };
-
-}	// namespace Zoidberg
 
 #endif	/* ZOIDBERG_STRING_LIST_H */

@@ -64,6 +64,10 @@
  * rule chain can delete the message or otherwise manipulate it.
  *
  * $Log$
+ * Revision 1.86  2003/07/26 16:47:46  agmsmith
+ * Bug - wasn't allowing double classification if the user had turned on
+ * the option to ignore the previous classification.
+ *
  * Revision 1.85  2003/07/08 14:52:57  agmsmith
  * Fix bug with classification choices dialog box coming up with weird
  * sizes due to RefsReceived message coming in before ReadyToRun had
@@ -1265,7 +1269,7 @@ private:
     struct property_info *PropInfoPntr);
   status_t PurgeOldWords (char *ErrorMessage);
   status_t RecursivelyTokenizeMailComponent (
-    Zoidberg::Mail::Component *ComponentPntr, const char *OptionalFileName,
+    BMailComponent *ComponentPntr, const char *OptionalFileName,
     set<string> &WordSet, char *ErrorMessage, int RecursionLevel);
   status_t SaveDatabaseIfNeeded (char *ErrorMessage);
   status_t TokenizeParts (BPositionIO *PositionIOPntr,
@@ -4362,16 +4366,16 @@ looking for, just skip it.  For container type components, recursively examine
 their contents. */
 
 status_t ABSApp::RecursivelyTokenizeMailComponent (
-  Zoidberg::Mail::Component *ComponentPntr,
+  BMailComponent *ComponentPntr,
   const char *OptionalFileName,
   set<string> &WordSet,
   char *ErrorMessage,
   int RecursionLevel)
 {
   char                        AttachmentName [B_FILE_NAME_LENGTH];
-  Zoidberg::Mail::Attachment *AttachmentPntr;
+  BMailAttachment *AttachmentPntr;
   BMimeType                   ComponentMIMEType;
-  Zoidberg::Mail::Container  *ContainerPntr;
+  BMailContainer  *ContainerPntr;
   BMallocIO                   ContentsIO;
   const char                 *ContentsBufferPntr;
   size_t                      ContentsBufferSize;
@@ -4429,12 +4433,12 @@ status_t ABSApp::RecursivelyTokenizeMailComponent (
     /* Have to make up a MIME type for things which don't have them, such as
     the main body text, otherwise it would get ignored. */
 
-    if (NULL != dynamic_cast<Zoidberg::Mail::TextComponent *>(ComponentPntr))
+    if (NULL != dynamic_cast<BTextMailComponent *>(ComponentPntr))
       ComponentMIMEType.SetType ("text/plain");
   }
   if (!TextAnyMIMEType.Contains (&ComponentMIMEType) &&
   NULL != (AttachmentPntr =
-  dynamic_cast<Zoidberg::Mail::Attachment *>(ComponentPntr)))
+  dynamic_cast<BMailAttachment *>(ComponentPntr)))
   {
     /* Sometimes spam doesn't give a text MIME type for text when they do an
     attachment (which is often base64 encoded).  Use the file name extension to
@@ -4496,7 +4500,7 @@ status_t ABSApp::RecursivelyTokenizeMailComponent (
   /* Examine any sub-components in the message. */
 
   if (NULL != (ContainerPntr =
-  dynamic_cast<Zoidberg::Mail::Container *>(ComponentPntr)))
+  dynamic_cast<BMailContainer *>(ComponentPntr)))
   {
     NumComponents = ContainerPntr->CountComponents ();
 
@@ -4585,12 +4589,12 @@ status_t ABSApp::TokenizeParts (
   char *ErrorMessage)
 {
   status_t                   ErrorCode = B_OK;
-  Zoidberg::Mail::Component  HeaderComponent;
+  BMailComponent  HeaderComponent;
   const char                *HeaderKeyPntr;
   const char                *HeaderValuePntr;
   int                        i;
   int                        j;
-  Zoidberg::Mail::Message    WholeEMail;
+  BEmailMessage    WholeEMail;
 
   sprintf (ErrorMessage, "ABSApp::TokenizeParts: While getting e-mail "
     "headers, had problems with \"%s\"", OptionalFileName);
@@ -4602,8 +4606,8 @@ status_t ABSApp::TokenizeParts (
   m_TokenizeMode == TM_ALL_PARTS_HEADER ||
   m_TokenizeMode == TM_JUST_HEADER)
   {
-    /* Load the message into a plain Mail::Component so that the headers are
-    decoded but not otherwise modified (the Mail::Message class deletes most
+    /* Load the message into a plain BMailComponent so that the headers are
+    decoded but not otherwise modified (the BEmailMessage class deletes most
     of them so we can't reuse it). */
 
     ErrorCode = PositionIOPntr->Seek (0, SEEK_SET);

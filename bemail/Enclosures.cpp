@@ -353,15 +353,15 @@ TEnclosuresView::Focus(bool focus)
 
 
 void 
-TEnclosuresView::AddEnclosuresFromMail(Mail::Message *mail)
+TEnclosuresView::AddEnclosuresFromMail(BEmailMessage *mail)
 {
 	for (int32 i = 0; i < mail->CountComponents(); i++)
 	{
-		Mail::Component *component = mail->GetComponent(i);
+		BMailComponent *component = mail->GetComponent(i);
 		if (component == mail->Body())
 			continue;
 
-		Mail::Attachment *attachment = dynamic_cast<Mail::Attachment *>(component);
+		BMailAttachment *attachment = dynamic_cast<BMailAttachment *>(component);
 		if (attachment == NULL)
 			continue;
 
@@ -468,7 +468,7 @@ TListItem::TListItem(entry_ref *ref)
 }
 
 
-TListItem::TListItem(Mail::Component *component)
+TListItem::TListItem(BMailComponent *component)
 	:
 	fComponent(component)
 {
@@ -506,7 +506,7 @@ TListItem::DrawItem(BView *owner, BRect r, bool /* complete */)
 	if (fComponent) {
 		// if it's already a mail component, we don't have an icon to
 		// draw, and the entry_ref is invalid
-		Mail::Attachment *attachment = static_cast<Mail::Attachment *>(fComponent);
+		BMailAttachment *attachment = static_cast<BMailAttachment *>(fComponent);
 
 		char name[B_FILE_NAME_LENGTH * 2];
 		if (attachment->FileName(name) < B_OK)

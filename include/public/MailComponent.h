@@ -14,10 +14,6 @@
 
 class BMimeType;
 
-
-namespace Zoidberg {
-namespace Mail {
-
 extern const char *kHeaderCharsetString;
 extern const char *kHeaderEncodingString;
 // Special field names in the headers which specify the character set (int32)
@@ -27,20 +23,20 @@ extern const char *kHeaderEncodingString;
 
 
 enum component_type {
-	MC_PLAIN_TEXT_BODY = 0,
-	MC_SIMPLE_ATTACHMENT,
-	MC_ATTRIBUTED_ATTACHMENT,
-	MC_MULTIPART_CONTAINER
+	B_MAIL_PLAIN_TEXT_BODY = 0,
+	B_MAIL_SIMPLE_ATTACHMENT,
+	B_MAIL_ATTRIBUTED_ATTACHMENT,
+	B_MAIL_MULTIPART_CONTAINER
 };
 
-class Component {
+class BMailComponent {
 	public:
-		Component(uint32 defaultCharSet = MDR_NULL_CONVERSION);
-		virtual ~Component();
+		BMailComponent(uint32 defaultCharSet = B_MAIL_NULL_CONVERSION);
+		virtual ~BMailComponent();
 
 		//------Info on this component
 		uint32 ComponentType();
-		Component *WhatIsThis();
+		BMailComponent *WhatIsThis();
 			// Takes any generic MailComponent, and returns an instance
 			// of a MailComponent subclass that applies to this case,
 			// ready for instantiation. Note that you still have to
@@ -51,7 +47,7 @@ class Component {
 
 		void SetHeaderField(
 			const char *key, const char *value,
-			uint32 charset = MDR_NULL_CONVERSION,
+			uint32 charset = B_MAIL_NULL_CONVERSION,
 			mail_encoding encoding = null_encoding,
 			bool replace_existing = true);
 			// If you want to delete a header, pass in a zero length or NULL
@@ -77,7 +73,7 @@ class Component {
 	protected:
 		uint32 _charSetForTextDecoding;
 			// This is the character set to be used for decoding text
-			// components, or if it is MDR_NULL_CONVERSION then the character
+			// components, or if it is B_MAIL_NULL_CONVERSION then the character
 			// set will be determined automatically.  Since we can't use a
 			// global variable (different messages might have different values
 			// of this), and since sub-components can't find their parents,
@@ -98,10 +94,10 @@ class Component {
 };
 
 
-class TextComponent : public Mail::Component {
+class BTextMailComponent : public BMailComponent {
 	public:
-		TextComponent(const char *text = NULL, uint32 defaultCharSet = MDR_NULL_CONVERSION);
-		virtual ~TextComponent();
+		BTextMailComponent(const char *text = NULL, uint32 defaultCharSet = B_MAIL_NULL_CONVERSION);
+		virtual ~BTextMailComponent();
 
 		void SetEncoding(mail_encoding encoding, int32 charset);
 			// encoding: you should always use quoted_printable, base64 is strongly not
@@ -140,8 +136,5 @@ class TextComponent : public Mail::Component {
 
 		uint32 _reserved[5];
 };
-
-}	// namespace Mail
-}	// namespace Zoidberg
 
 #endif	/* ZOIDBERG_MAIL_COMPONENT_H */

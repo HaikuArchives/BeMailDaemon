@@ -14,8 +14,6 @@
 
 #include <MDRLanguage.h>
 
-using namespace Zoidberg;
-
 
 ConfigView::ConfigView()
 	:	BView(BRect(0,0,20,20),"fortune_filter",B_FOLLOW_LEFT | B_FOLLOW_TOP,0)
@@ -29,7 +27,7 @@ ConfigView::ConfigView()
 
 	BRect rect(5,4,250,25);
 	rect.bottom = rect.top - 2 + itemHeight;
-	Mail::FileConfigView *fview = new Mail::FileConfigView(MDR_DIALECT_CHOICE ("Fortune File:","予言ファイル:"),"fortune_file",false,"/boot/beos/etc/fortunes/default",B_FILE_NODE);
+	BMailFileConfigView *fview = new BMailFileConfigView(MDR_DIALECT_CHOICE ("Fortune File:","予言ファイル:"),"fortune_file",false,"/boot/beos/etc/fortunes/default",B_FILE_NODE);
 	AddChild(fview);
 	
 	rect.top = rect.bottom + 8;
@@ -48,7 +46,7 @@ void ConfigView::SetTo(BMessage *archive)
 	if (path == B_EMPTY_STRING)
 		path = "/boot/beos/etc/fortunes/default";
 	
-	if (Mail::FileConfigView *control = (Mail::FileConfigView *)FindView("fortune_file"))
+	if (BMailFileConfigView *control = (BMailFileConfigView *)FindView("fortune_file"))
 		control->SetTo(archive,NULL);
 		
 	path = archive->FindString("tag_line");
@@ -63,7 +61,7 @@ void ConfigView::SetTo(BMessage *archive)
 
 status_t ConfigView::Archive(BMessage *into,bool) const
 {
-	if (Mail::FileConfigView *control = (Mail::FileConfigView *)FindView("fortune_file"))
+	if (BMailFileConfigView *control = (BMailFileConfigView *)FindView("fortune_file"))
 	{
 		control->Archive(into);
 	}

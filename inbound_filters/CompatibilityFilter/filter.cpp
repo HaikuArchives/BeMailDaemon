@@ -18,10 +18,7 @@
 
 #include "NodeMessage.h"
 
-using namespace Zoidberg;
-
-
-class CompatibilityFilter : public Mail::Filter
+class CompatibilityFilter : public BMailFilter
 {
 	bool enabled;
 	BPath path;
@@ -39,7 +36,7 @@ class CompatibilityFilter : public Mail::Filter
 };
 
 CompatibilityFilter::CompatibilityFilter(BMessage* msg)
-	: Mail::Filter(msg), enabled(msg->FindBool("enabled")), status(B_OK)
+	: BMailFilter(msg), enabled(msg->FindBool("enabled")), status(B_OK)
 {
 	if (find_directory(B_USER_ADDONS_DIRECTORY, &path) != B_OK) {
 		status = B_NAME_NOT_FOUND;
@@ -84,7 +81,7 @@ status_t CompatibilityFilter::ProcessMailMessage
 	return B_OK;
 }
 
-Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::ChainRunner*)
+BMailFilter* instantiate_mailfilter(BMessage* settings, BMailChainRunner*)
 {
 	return new CompatibilityFilter(settings);
 }

@@ -12,12 +12,9 @@
 
 #include "RuleFilter.h"
 
-using namespace Zoidberg;
-
-
 //class StatusView;
 
-RuleFilter::RuleFilter(BMessage *settings) : Mail::Filter(settings) {
+RuleFilter::RuleFilter(BMessage *settings) : BMailFilter(settings) {
 	// attribute is adapted to our "capitalize-each-word-in-the-header" policy
 	BString attr;
 	settings->FindString("attribute",&attr);
@@ -116,7 +113,7 @@ status_t descriptive_name(BMessage *settings, char *buffer) {
 	return B_OK;
 }
 
-Mail::Filter* instantiate_mailfilter(BMessage* settings,Mail::ChainRunner *)
+BMailFilter* instantiate_mailfilter(BMessage* settings,BMailChainRunner *)
 {
 	return new RuleFilter(settings);
 }

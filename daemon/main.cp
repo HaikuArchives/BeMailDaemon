@@ -47,13 +47,10 @@
 	
 typedef struct glorbal {
 	size_t bytes;
-	Zoidberg::StringList msgs;
+	BStringList msgs;
 } snuzzwut;
 
-namespace Zoidberg {
-namespace Mail {
-
-StatusWindow *status;
+BMailStatusWindow *status;
 
 class MailDaemonApp : public BApplication {
 	public:
@@ -78,7 +75,7 @@ class MailDaemonApp : public BApplication {
 		void UpdateAutoCheck(bigtime_t interval);
 
 		BMessageRunner *auto_check;
-		Settings settings_file;
+		BMailSettings settings_file;
 		
 		int32 new_messages;
 		bool central_beep;
@@ -99,7 +96,7 @@ class MailDaemonApp : public BApplication {
 MailDaemonApp::MailDaemonApp(void)
 	: BApplication("application/x-vnd.Be-POST")
 {	
-	status = new StatusWindow(BRect(40, 400, 360, 400), "Mail Status",
+	status = new BMailStatusWindow(BRect(40, 400, 360, 400), "Mail Status",
 					settings_file.ShowStatusWindow());
 	auto_check = NULL;
 }
@@ -201,7 +198,7 @@ MailDaemonApp::RefsReceived(BMessage *message)
 			size = -1;
 
 		BPath path(&ref);
-		Mail::ChainRunner *runner = Mail::GetRunner(id, status);
+		BMailChainRunner *runner = GetMailChainRunner(id, status);
 		runner->GetSingleMessage(uid.String(), size, &path);
 	}
 }
@@ -424,12 +421,12 @@ MailDaemonApp::QuitRequested()
 void
 MailDaemonApp::RunChains(BList &list, BMessage *msg)
 {
-	Chain *chain;
+	BMailChain *chain;
 
 	int32 index = 0, id;
 	for (; msg->FindInt32("chain", index, &id) == B_OK; index++) {
 		for (int32 i = 0; i < list.CountItems(); i++) {
-			chain = (Chain *)list.ItemAt(i);
+			chain = (BMailChain *)list.ItemAt(i);
 
 			if (chain->ID() == id) {
 				chain->RunChain(status, true, false, true);
@@ -442,14 +439,14 @@ MailDaemonApp::RunChains(BList &list, BMessage *msg)
 	if (index == 0) {
 		// invoke all chains
 		for (int32 i = 0; i < list.CountItems(); i++) {
-			chain = (Chain *)list.ItemAt(i);
+			chain = (BMailChain *)list.ItemAt(i);
 
 			chain->RunChain(status, true, false, true);
 		}
 	} else {
 		// delete unused chains
 		for (int32 i = list.CountItems(); i-- > 0;)
-			delete (Chain *)list.RemoveItem(i);
+			delete (BMailChain *)list.RemoveItem(i);
 	}
 }
 
@@ -458,7 +455,7 @@ void
 MailDaemonApp::GetNewMessages(BMessage *msg)
 {
 	BList list;
-	InboundChains(&list);
+	GetInboundMailChains(&list);
 
 	RunChains(list,msg);	
 }
@@ -502,7 +499,7 @@ MailDaemonApp::SendPendingMessages(BMessage *msg)
 				BEntry entry;
 				BPath path;
 				BNode node;
-				int32 chain, default_chain(Mail::Settings().DefaultOutboundChainID());
+				int32 chain, default_chain(BMailSettings().DefaultOutboundChainID());
 				off_t size;
 
 				while (query.GetNextEntry(&entry) == B_OK) {
@@ -523,8 +520,8 @@ MailDaemonApp::SendPendingMessages(BMessage *msg)
 				map<int32,snuzzwut *>::iterator iter = messages.begin();
 				map<int32,snuzzwut *>::iterator end = messages.end();
 				while (iter != end) {
-					if ((iter->first > 0) && (Mail::Chain(iter->first).ChainDirection() == outbound)) {
-						Mail::ChainRunner *runner = Mail::GetRunner(iter->first,status);
+					if ((iter->first > 0) && (BMailChain(iter->first).ChainDirection() == outbound)) {
+						BMailChainRunner *runner = GetMailChainRunner(iter->first,status);
 						runner->GetMessages(&messages[iter->first]->msgs,messages[iter->first]->bytes);
 						delete messages[iter->first];
 						runner->Stop();
@@ -533,7 +530,7 @@ MailDaemonApp::SendPendingMessages(BMessage *msg)
 					iter++;
 				}
 			} else {
-				StringList ids;
+				BStringList ids;
 				size_t bytes = 0;
 
 				query.Fetch();
@@ -550,18 +547,18 @@ MailDaemonApp::SendPendingMessages(BMessage *msg)
 					bytes += size;
 				}
 
-				Mail::ChainRunner *runner = Mail::GetRunner(chain_id,status);
+				BMailChainRunner *runner = GetMailChainRunner(chain_id,status);
 				runner->GetMessages(&ids,bytes);
 				runner->Stop();
 			}	
 		} else {
 			const char *path;
 			msg->FindString("message_path",&path);
-			StringList ids;
+			BStringList ids;
 			ids += path;
 			off_t size;
 			BNode(path).GetSize(&size);
-			Mail::ChainRunner *runner = Mail::GetRunner(chain_id,status);
+			BMailChainRunner *runner = GetMailChainRunner(chain_id,status);
 			runner->GetMessages(&ids,size);
 			runner->Stop();
 		}
@@ -576,9 +573,6 @@ MailDaemonApp::Pulse()
 	if (led->IsRunning() && (idle < 100000))
 		led->Stop();
 }
-
-}	// namespace Mail
-}	// namespace Zoidberg
 
 //	#pragma mark -
 
@@ -719,7 +713,7 @@ main(int argc, const char **argv)
 
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "-E") == 0) {
-			if (!Zoidberg::Mail::Settings().DaemonAutoStarts())
+			if (!BMailSettings().DaemonAutoStarts())
 				return 0;
 		}
 		if (strcmp(argv[i], "-M") == 0) {
@@ -727,7 +721,7 @@ main(int argc, const char **argv)
 		}
 	}
 
-	Zoidberg::Mail::MailDaemonApp app;
+	MailDaemonApp app;
 
 	// install MimeTypes, attributes, indices, and the
 	// system beep add startup

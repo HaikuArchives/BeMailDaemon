@@ -13,24 +13,19 @@
 
 class BStatusBar;
 class BStringView;
+class BMailStatusView;
 
-
-namespace Zoidberg {
-namespace Mail {
-
-class StatusView;
-
-class StatusWindow : public BWindow {
+class BMailStatusWindow : public BWindow {
 	public:
-		StatusWindow(BRect rect, const char *name, uint32 show_when);
-		~StatusWindow();
+		BMailStatusWindow(BRect rect, const char *name, uint32 show_when);
+		~BMailStatusWindow();
 
 		virtual	void FrameMoved(BPoint origin);
 		virtual void WorkspaceActivated(int32 workspace, bool active);
 		virtual void MessageReceived(BMessage *msg);
 
-		StatusView *NewStatusView(const char *description, bool upstream);
-		void	RemoveView(StatusView *view);
+		BMailStatusView *NewStatusView(const char *description, bool upstream);
+		void	RemoveView(BMailStatusView *view);
 		int32	CountVisibleItems();
 
 		bool	HasItems(void);
@@ -38,10 +33,10 @@ class StatusWindow : public BWindow {
 		void	SetDefaultMessage(const BString &message);
 
 	private:
-		friend class Mail::StatusView;
+		friend class BMailStatusView;
 
 		void	SetBorderStyle(int32 look);
-		void	ActuallyAddStatusView(StatusView *status);
+		void	ActuallyAddStatusView(BMailStatusView *status);
 
 		BList		fStatusViews;
 		uint32		fShowMode;
@@ -56,7 +51,7 @@ class StatusWindow : public BWindow {
 		uint32		_reserved[5];
 };
 
-class StatusView : public BBox {
+class BMailStatusView : public BBox {
 	public:
 				void	AddProgress(int32 how_much);
 				void	SetMessage(const char *msg);
@@ -66,16 +61,16 @@ class StatusView : public BBox {
 				void	AddItem(void);
 				void	Reset(bool hide = true);
 		
-		virtual			~StatusView();
+		virtual			~BMailStatusView();
 
 	private:
-		friend class	Mail::StatusWindow;
+		friend class	BMailStatusWindow;
 		
-						StatusView(BRect rect,const char *description,bool upstream);
+						BMailStatusView(BRect rect,const char *description,bool upstream);
 				void	AddSelfToWindow();
 		
 		BStatusBar		*status;
-		Mail::StatusWindow	*window;
+		BMailStatusWindow	*window;
 		int32			items_now;
 		int32			total_items;
 		bool			is_upstream;
@@ -84,8 +79,5 @@ class StatusView : public BBox {
 
 		uint32			_reserved[5];
 };
-
-}	// namespace Mail
-}	// namespace Zoidberg
 
 #endif	/* ZOIDBERG_STATUS_WINDOW_H */

@@ -31,8 +31,6 @@
 
 #include <MDRLanguage.h>
 
-using namespace Zoidberg;
-
 struct mail_header_field
 {
 	const char *rfc_name;
@@ -61,17 +59,17 @@ static const mail_header_field gDefaultFields[] =
 };
 
 
-class FolderFilter : public Mail::Filter
+class FolderFilter : public BMailFilter
 {
 	BString dest_string;
 	BDirectory destination;
 	int32 chain_id;
-	Mail::ChainRunner *runner;
+	BMailChainRunner *runner;
 	int fNumberOfFilesSaved;
 	int size_limit; // Messages larger than this many bytes get partially downloaded.  -1 for always do full download.
 
   public:
-	FolderFilter(BMessage*,Mail::ChainRunner *);
+	FolderFilter(BMessage*,BMailChainRunner *);
 	virtual ~FolderFilter();
 	virtual status_t InitCheck(BString *err);
 	virtual status_t ProcessMailMessage
@@ -82,8 +80,8 @@ class FolderFilter : public Mail::Filter
 };
 
 
-FolderFilter::FolderFilter(BMessage* msg,Mail::ChainRunner *therunner)
-	: Mail::Filter(msg),
+FolderFilter::FolderFilter(BMessage* msg,BMailChainRunner *therunner)
+	: BMailFilter(msg),
 	runner(therunner), chain_id(msg->FindInt32("chain")), size_limit(-1)
 {
 	fNumberOfFilesSaved = 0;
@@ -199,7 +197,7 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	BMessage attributes;
 
 	attributes.AddString("MAIL:unique_id",io_uid);
-	attributes.AddString("MAIL:account",Mail::Chain(chain_id).Name());
+	attributes.AddString("MAIL:account",BMailChain(chain_id).Name());
 	attributes.AddInt32("MAIL:chain",chain_id);
 
 	size_t length = (*io)->Position();
@@ -221,7 +219,7 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 			break;
 
 		case B_TIME_TYPE:
-			when = Mail::ParseDateWithTimeZone (buf);
+			when = ParseDateWithTimeZone (buf);
 			if (when == -1)
 				when = time (NULL); // Use current time if it's undecodable.
 			attributes.AddData(B_MAIL_ATTR_WHEN, B_TIME_TYPE, &when, sizeof(when));
@@ -267,7 +265,7 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	// Message::RenderTo which does a similar thing for outgoing messages.
 
 	BString name = attributes.FindString("MAIL:subject");
-	Mail::SubjectToThread (name); // Extract the core subject words.
+	SubjectToThread (name); // Extract the core subject words.
 	if (name.Length() <= 0)
 		name = "No Subject";
 	if (name[0] == '.')
@@ -291,7 +289,7 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	name << " " << numericDateString;
 
 	worker = attributes.FindString("MAIL:from");
-	Mail::extract_address_name(worker);
+	extract_address_name(worker);
 	name << " " << worker;
 
 	name.Truncate(222);	// reserve space for the uniquer
@@ -331,7 +329,7 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 }
 
 
-Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::ChainRunner *run)
+BMailFilter* instantiate_mailfilter(BMessage* settings, BMailChainRunner *run)
 {
 	return new FolderFilter(settings,run);
 }
@@ -344,7 +342,7 @@ class FolderConfig : public BView {
 				"Partially download messages larger than",
 				"部分ダウンロードする");
 
-			view = new Mail::FileConfigView(
+			view = new BMailFileConfigView(
 				MDR_DIALECT_CHOICE ("Destination Folder:","受信箱："),
 				"path",true,"/boot/home/mail/in");
 			view->SetTo(settings,meta_data);
@@ -399,7 +397,7 @@ class FolderConfig : public BView {
 			
 			
 	private:
-		Mail::FileConfigView *view;
+		BMailFileConfigView *view;
 		BTextControl *size;
 		BCheckBox *partial_box;
 };

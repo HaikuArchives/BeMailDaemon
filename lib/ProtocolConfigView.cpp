@@ -1,4 +1,4 @@
-/* ProtocolConfigView - the standard config view for all protocols
+/* BMailProtocolConfigView - the standard config view for all protocols
 **
 ** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
 */
@@ -17,19 +17,14 @@
 
 #include <MDRLanguage.h>
 
-namespace Zoidberg {
-namespace Mail {
-	class _EXPORT ProtocolConfigView;
-}
-}
+class _EXPORT BMailProtocolConfigView;
 
 #include <crypt.h>
 
 #include "ProtocolConfigView.h"
 
 
-namespace Zoidberg {
-namespace Mail {
+namespace {
 
 //--------------------Support functions and #defines---------------
 #define enable_control(name) if (FindView(name) != NULL) ((BControl *)(FindView(name)))->SetEnabled(true)
@@ -91,7 +86,7 @@ float FindWidestLabel(BView *view)
 
 
 //----------------Real code----------------------
-ProtocolConfigView::ProtocolConfigView(uint32 options_mask) : BView (BRect(0,0,100,20), "protocol_config_view", B_FOLLOW_LEFT | B_FOLLOW_TOP, B_WILL_DRAW) {
+BMailProtocolConfigView::BMailProtocolConfigView(uint32 options_mask) : BView (BRect(0,0,100,20), "protocol_config_view", B_FOLLOW_LEFT | B_FOLLOW_TOP, B_WILL_DRAW) {
 	BRect rect(5,5,245,25);
 	SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
 
@@ -101,22 +96,22 @@ ProtocolConfigView::ProtocolConfigView(uint32 options_mask) : BView (BRect(0,0,1
 	gItemHeight = (int32)(fontHeight.ascent + fontHeight.descent + fontHeight.leading) + 13;
 	rect.bottom = rect.top - 2 + gItemHeight;
 
-	if (options_mask & MP_HAS_HOSTNAME)
+	if (options_mask & B_MAIL_PROTOCOL_HAS_HOSTNAME)
 		AddChild(AddTextField(rect,"host",MDR_DIALECT_CHOICE ("Mail Host:","サーバ名　：")));
 	
-	if (options_mask & MP_HAS_USERNAME)
+	if (options_mask & B_MAIL_PROTOCOL_HAS_USERNAME)
 		AddChild(AddTextField(rect,"user",MDR_DIALECT_CHOICE ("User Name:","ユーザーID：")));
 	
-	if (options_mask & MP_HAS_PASSWORD) {
+	if (options_mask & B_MAIL_PROTOCOL_HAS_PASSWORD) {
 		BTextControl *control = AddTextField(rect,"pass",MDR_DIALECT_CHOICE ("Password:","パスワード："));
 		control->TextView()->HideTyping(true);
 		AddChild(control);
 	}
 	
-	if (options_mask & MP_HAS_FLAVORS)
+	if (options_mask & B_MAIL_PROTOCOL_HAS_FLAVORS)
 		AddChild(AddMenuField(rect,"flavor","Connection Type:"));
 	
-	if (options_mask & MP_HAS_AUTH_METHODS)
+	if (options_mask & B_MAIL_PROTOCOL_HAS_AUTH_METHODS)
 		AddChild(AddMenuField(rect,"auth_method",MDR_DIALECT_CHOICE ("Authentication Method:","認証方法　：")));
 
 	// set divider
@@ -126,7 +121,7 @@ ProtocolConfigView::ProtocolConfigView(uint32 options_mask) : BView (BRect(0,0,1
 			text->SetDivider(width + 6);
 	}
 
-	if (options_mask & MP_CAN_LEAVE_MAIL_ON_SERVER) {
+	if (options_mask & B_MAIL_PROTOCOL_CAN_LEAVE_MAIL_ON_SERVER) {
 		AddChild(AddCheckBox(rect,"leave_mail_remote",MDR_DIALECT_CHOICE ("Leave Mail On Server","受信後にサーバ内のメールを削除しない"),new BMessage('lmos')));
 		BCheckBox *box = AddCheckBox(rect,"delete_remote_when_local",MDR_DIALECT_CHOICE ("Delete Mail From Server When Deleted Locally","端末で削除されたらサーバ保存分も削除"));
 		box->SetEnabled(false);
@@ -144,9 +139,9 @@ ProtocolConfigView::ProtocolConfigView(uint32 options_mask) : BView (BRect(0,0,1
 	}
 }		
 
-ProtocolConfigView::~ProtocolConfigView() {}
+BMailProtocolConfigView::~BMailProtocolConfigView() {}
 
-void ProtocolConfigView::SetTo(BMessage *archive) {
+void BMailProtocolConfigView::SetTo(BMessage *archive) {
 	BString host = archive->FindString("server");
 	if (archive->HasInt32("port"))
 		host << ':' << archive->FindInt32("port");
@@ -201,7 +196,7 @@ void ProtocolConfigView::SetTo(BMessage *archive) {
 	}
 }
 
-void ProtocolConfigView::AddFlavor(const char *label) {
+void BMailProtocolConfigView::AddFlavor(const char *label) {
 	BMenuField *menu = (BMenuField *)(FindView("flavor"));
 	if (menu != NULL) {
 		menu->Menu()->AddItem(new BMenuItem(label,NULL));
@@ -210,7 +205,7 @@ void ProtocolConfigView::AddFlavor(const char *label) {
 	}
 }
 
-void ProtocolConfigView::AddAuthMethod(const char *label,bool needUserPassword) {
+void BMailProtocolConfigView::AddAuthMethod(const char *label,bool needUserPassword) {
 	BMenuField *menu = (BMenuField *)(FindView("auth_method"));
 	if (menu != NULL) {
 		BMenuItem *item = new BMenuItem(label,new BMessage(needUserPassword ? 'some' : 'none'));
@@ -224,7 +219,7 @@ void ProtocolConfigView::AddAuthMethod(const char *label,bool needUserPassword) 
 	}
 }
 
-void ProtocolConfigView::AttachedToWindow() {
+void BMailProtocolConfigView::AttachedToWindow() {
 	BMenuField *menu = (BMenuField *)(FindView("auth_method"));
 	if (menu != NULL)
 		menu->Menu()->SetTargetForItems(this);
@@ -234,7 +229,7 @@ void ProtocolConfigView::AttachedToWindow() {
 		box->SetTarget(this);
 }
 
-void ProtocolConfigView::MessageReceived(BMessage *msg) {
+void BMailProtocolConfigView::MessageReceived(BMessage *msg) {
 	switch (msg->what) {
 		case 'some':
 			enable_control("user");
@@ -255,7 +250,7 @@ void ProtocolConfigView::MessageReceived(BMessage *msg) {
 	}
 }
 
-status_t ProtocolConfigView::Archive(BMessage *into, bool) const {
+status_t BMailProtocolConfigView::Archive(BMessage *into, bool) const {
 	const char *host = TextControl((BView *)this,"host");
 	int32 port = -1;
 	BString host_name = host;
@@ -320,7 +315,7 @@ status_t ProtocolConfigView::Archive(BMessage *into, bool) const {
 	return B_OK;
 }
 	
-void ProtocolConfigView::GetPreferredSize(float *width, float *height) {
+void BMailProtocolConfigView::GetPreferredSize(float *width, float *height) {
 	float minWidth;
 	if (BView *view = FindView("delete_remote_when_local")) {
 		float ignore;
@@ -332,5 +327,4 @@ void ProtocolConfigView::GetPreferredSize(float *width, float *height) {
 	*height = (CountChildren() * gItemHeight) + 5;
 }
 
-}	// namespace Mail
-}	// namespace Zoidberg
+}	// namespace

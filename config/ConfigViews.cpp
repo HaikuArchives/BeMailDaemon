@@ -29,8 +29,6 @@
 
 #include <MDRLanguage.h>
 
-using namespace Zoidberg;
-
 // AccountConfigView
 const uint32 kMsgAccountTypeChanged = 'atch';
 const uint32 kMsgAccountNameChanged = 'anmc';
@@ -52,7 +50,7 @@ AccountConfigView::AccountConfigView(BRect rect,Account *account)
 		fAccount(account)
 {
 	SetLabel(MDR_DIALECT_CHOICE ("Account Configuration","アカウント設定"));
-	Mail::Chain *settings = account->Inbound() ? account->Inbound() : account->Outbound();
+	BMailChain *settings = account->Inbound() ? account->Inbound() : account->Outbound();
 
 	rect = Bounds().InsetByCopy(8,8);
 	rect.top += 10;
@@ -171,7 +169,7 @@ void AccountConfigView::UpdateViews()
 //	#pragma mark -
 
 #include <stdio.h>
-FilterConfigView::FilterConfigView(Mail::Chain *chain,int32 index,BMessage *msg,entry_ref *ref)
+FilterConfigView::FilterConfigView(BMailChain *chain,int32 index,BMessage *msg,entry_ref *ref)
 	:	BBox(BRect(0,0,100,100)),
 		fConfigView(NULL),
 		fChain(chain),
@@ -264,7 +262,7 @@ void FilterConfigView::AttachedToWindow()
 //	#pragma mark -
 
 
-ProtocolsConfigView::ProtocolsConfigView(Mail::Chain *chain,int32 index,BMessage *msg,entry_ref *ref)
+ProtocolsConfigView::ProtocolsConfigView(BMailChain *chain,int32 index,BMessage *msg,entry_ref *ref)
 	:	FilterConfigView(chain,index,msg,ref)
 {
 	BPopUpMenu *menu = new BPopUpMenu("<choose protocol>");
@@ -280,7 +278,7 @@ ProtocolsConfigView::ProtocolsConfigView(Mail::Chain *chain,int32 index,BMessage
 	
 		path.Append("mail_daemon");
 		
-		if (chain->ChainDirection() == Mail::inbound)
+		if (chain->ChainDirection() == inbound)
 			path.Append("inbound_protocols");
 		else
 			path.Append("outbound_protocols");
@@ -546,7 +544,7 @@ FiltersConfigView::FiltersConfigView(BRect rect,Account *account)
 		msg->AddPointer("chain",fChain);
 		item->SetMarked(true);
 	}
-	if (Mail::Chain *chain = fAccount->Outbound())
+	if (BMailChain *chain = fAccount->Outbound())
 	{
 		menu->AddItem(item = new BMenuItem(MDR_DIALECT_CHOICE ("Outgoing E-mail Filters","送信フィルタ"),msg = new BMessage(kMsgChainSelected)));
 		msg->AddPointer("chain",chain);
@@ -655,7 +653,7 @@ void FiltersConfigView::SelectFilter(int32 index)
 }
 
 
-void FiltersConfigView::SetTo(Mail::Chain *chain)
+void FiltersConfigView::SetTo(BMailChain *chain)
 {
 	// remove the filter config view
 	SelectFilter(-1);
@@ -666,7 +664,7 @@ void FiltersConfigView::SetTo(Mail::Chain *chain)
 		delete item;
 	}
 
-	if (chain->ChainDirection() == Mail::inbound)
+	if (chain->ChainDirection() == inbound)
 	{
 		fFirst = 2;		// skip protocol (e.g. POP3), and Parser
 		fLast = 2;		// skip Notifier, and Folder
@@ -710,7 +708,7 @@ void FiltersConfigView::SetTo(Mail::Chain *chain)
 	
 		path.Append("mail_daemon");
 		
-		if (fChain->ChainDirection() == Mail::inbound)
+		if (fChain->ChainDirection() == inbound)
 			path.Append("inbound_filters");
 		else
 			path.Append("outbound_filters");
@@ -748,7 +746,7 @@ void FiltersConfigView::MessageReceived(BMessage *msg)
 	{
 		case kMsgChainSelected:
 		{
-			Mail::Chain *chain;
+			BMailChain *chain;
 			if (msg->FindPointer("chain",(void **)&chain) < B_OK)
 				break;
 

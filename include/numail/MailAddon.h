@@ -26,22 +26,19 @@ enum {
 	//--- This is for yikes errors, like an unreachable server.
 };
 
-namespace Zoidberg {
-namespace Mail {
+class BMailStatusView;
+class BMailChainRunner;
 
-class StatusView;
-class ChainRunner;
-
-class Filter
+class BMailFilter
 {
   public:
-	Filter(BMessage* settings);
+	BMailFilter(BMessage* settings);
 	// How to support queueing messages until a time of the
 	// day/week/month/year?  The settings will contain a
 	// persistent ChainID field, the same for all Filters
 	// on the same "chain".
 	
-	virtual ~Filter();
+	virtual ~BMailFilter();
 	// This will be called when the settings for this Filter
 	// are changed, or there are no new messages to consume
 	// after settings->FindInt32("timeout") seconds.
@@ -88,9 +85,6 @@ class Filter
 	virtual void _ReservedFilter4();
 };
 
-}	// namespace Mail
-}	// namespace Zoidberg
-
 //
 // The addon interface: export instantiate_mailfilter()
 // and instantiate_mailconfig() to create a Filter addon
@@ -109,8 +103,8 @@ extern "C" _EXPORT BView* instantiate_config_panel(BMessage *settings,BMessage *
 // you must cache this pointer yourself! You will never get it again.
 // Also note that it is possible for it to be NULL. 
 
-extern "C" _EXPORT Zoidberg::Mail::Filter* instantiate_mailfilter(BMessage *settings,
-	Zoidberg::Mail::ChainRunner *runner);
+extern "C" _EXPORT BMailFilter* instantiate_mailfilter(BMessage *settings,
+	BMailChainRunner *runner);
 // Return a MailProtocol or MailFilter ready to do its thing,
 // based on settings produced by archiving your config panel.
 // Note that a Mail::Protocol is a Mail::Filter, so use

@@ -42,8 +42,6 @@
 
 #include <MDRLanguage.h>
 
-using namespace Zoidberg;
-
 // define if you want to have an apply button
 //#define HAVE_APPLY_BUTTON
 
@@ -586,7 +584,7 @@ ConfigWindow::LoadSettings()
 	Accounts::Create(fAccountsListView,fConfigView);
 
 	// load in general settings
-	Mail::Settings *settings = new Mail::Settings();
+	BMailSettings *settings = new BMailSettings();
 	status_t status = SetToGeneralSettings(settings);
 	if (status == B_OK)
 	{
@@ -636,7 +634,7 @@ ConfigWindow::SaveSettings()
 	time_t time = (time_t)(multiplier * interval);
 
 	// apply and save general settings
-	Mail::Settings settings;
+	BMailSettings settings;
 	if (fSaveSettings) {
 		settings.SetAutoCheckInterval(time * 1e6);
 		settings.SetCheckOnlyIfPPPUp(fPPPActiveCheckBox->Value() == B_CONTROL_ON);
@@ -776,7 +774,7 @@ ConfigWindow::MessageReceived(BMessage *msg)
 
 
 status_t
-ConfigWindow::SetToGeneralSettings(Mail::Settings *settings)
+ConfigWindow::SetToGeneralSettings(BMailSettings *settings)
 {
 	if (!settings)
 		return B_BAD_VALUE;
@@ -837,7 +835,7 @@ void
 ConfigWindow::RevertToLastSettings()
 {
 	// revert general settings
-	Mail::Settings settings;
+	BMailSettings settings;
 
 	// restore status window look
 	settings.SetStatusWindowLook(settings.StatusWindowLook());

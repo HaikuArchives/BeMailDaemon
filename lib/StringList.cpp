@@ -1,4 +1,4 @@
-/* StringList - a string list implementation
+/* BStringList - a string list implementation
 **
 ** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
 */
@@ -10,14 +10,9 @@
 #include <malloc.h>
 #include <assert.h>
 
-namespace Zoidberg {
-	class _EXPORT StringList;
-}
+class _EXPORT BStringList;
 
 #include "StringList.h"
-
-
-using namespace Zoidberg;
 
 static uint8 string_hash(const char *string);
 
@@ -39,14 +34,14 @@ struct string_bucket {
 	struct string_bucket *next;
 };
 
-StringList::StringList()
+BStringList::BStringList()
 	: BFlattenable(), _items(0), _indexed(new BList)
 {
 	for (int32 i = 0; i < 256; i++)
 		_buckets[i] = NULL;
 }
 	
-StringList::StringList(const StringList& from)
+BStringList::BStringList(const BStringList& from)
 	: BFlattenable(), _items(0), _indexed(new BList)
 {
 	for (int32 i = 0; i < 256; i++)
@@ -55,22 +50,22 @@ StringList::StringList(const StringList& from)
 	AddList(&from);
 }
 
-StringList	&StringList::operator=(const StringList &from) {
+BStringList	&BStringList::operator=(const BStringList &from) {
 	MakeEmpty();
 	
 	AddList(&from);
 	return *this;
 }
 
-bool		StringList::IsFixedSize() const {
+bool		BStringList::IsFixedSize() const {
 	return false;
 }
 
-type_code	StringList::TypeCode() const {
+type_code	BStringList::TypeCode() const {
 	return 'STRL';
 }
 
-ssize_t		StringList::FlattenedSize() const {
+ssize_t		BStringList::FlattenedSize() const {
 	ssize_t size = 0;
 	struct string_bucket *bkt;
 	for (int32 i = 0; i < 256; i++) {
@@ -83,7 +78,7 @@ ssize_t		StringList::FlattenedSize() const {
 	return size;
 }
 
-status_t	StringList::Flatten(void *buffer, ssize_t size) const {
+status_t	BStringList::Flatten(void *buffer, ssize_t size) const {
 	if (size < FlattenedSize())
 		return B_NO_MEMORY;
 		
@@ -95,11 +90,11 @@ status_t	StringList::Flatten(void *buffer, ssize_t size) const {
 	return B_OK;
 }
 
-bool		StringList::AllowsTypeCode(type_code code) const {
+bool		BStringList::AllowsTypeCode(type_code code) const {
 	return (code == 'STRL');
 }
 
-status_t	StringList::Unflatten(type_code c, const void *buf, ssize_t size) {
+status_t	BStringList::Unflatten(type_code c, const void *buf, ssize_t size) {
 	if (c != 'STRL')
 		return B_ERROR;
 		
@@ -115,7 +110,7 @@ status_t	StringList::Unflatten(type_code c, const void *buf, ssize_t size) {
 	return B_OK;
 }	
 
-void	StringList::AddItem(const char *item) {
+void	BStringList::AddItem(const char *item) {
 	struct string_bucket *new_bkt;
 	
 	new_bkt = (struct string_bucket *)_buckets[string_hash(item)];
@@ -141,7 +136,7 @@ void	StringList::AddItem(const char *item) {
 	_items++;
 }
 
-void	StringList::AddList(const StringList *newItems) {
+void	BStringList::AddList(const BStringList *newItems) {
 	for (int32 i = 0; i < newItems->CountItems(); i++)
 		AddItem((const char *)(newItems->ItemAt(i)));
 	
@@ -173,7 +168,7 @@ void	StringList::AddList(const StringList *newItems) {
 	}*/
 }
 
-bool	StringList::RemoveItem(const char *item) {
+bool	BStringList::RemoveItem(const char *item) {
 	struct string_bucket *bkt = (struct string_bucket *)_buckets[string_hash(item)];
 	
 	if (bkt == NULL)
@@ -207,7 +202,7 @@ bool	StringList::RemoveItem(const char *item) {
 	return false;
 }
 
-void	StringList::MakeEmpty() {
+void	BStringList::MakeEmpty() {
 	struct string_bucket *bkt, *next_bkt;
 	
 	for (int i = 0; i < 256; i++) {
@@ -227,11 +222,11 @@ void	StringList::MakeEmpty() {
 	_items = 0;
 }
 
-const char *StringList::ItemAt(int32 index) const {
+const char *BStringList::ItemAt(int32 index) const {
 	return (const char *)(_indexed->ItemAt(index));
 }
 
-int32 StringList::IndexOf(const char *item) const {
+int32 BStringList::IndexOf(const char *item) const {
 	for (int32 i = 0; i < _indexed->CountItems(); i++) {
 		if (strcmp(item,(const char *)_indexed->ItemAt(i)) == 0)
 			return i;
@@ -240,7 +235,7 @@ int32 StringList::IndexOf(const char *item) const {
 	return -1;
 }
 
-bool	StringList::HasItem(const char *item) const {
+bool	BStringList::HasItem(const char *item) const {
 	struct string_bucket *bkt = (struct string_bucket *)_buckets[string_hash(item)];
 	
 	while (bkt != NULL) {
@@ -253,15 +248,15 @@ bool	StringList::HasItem(const char *item) const {
 	return false;
 }
 
-int32	StringList::CountItems() const {
+int32	BStringList::CountItems() const {
 	return _items;
 }
 
-bool	StringList::IsEmpty() const {
+bool	BStringList::IsEmpty() const {
 	return (_items == 0);
 }
 
-void StringList::NotHere(StringList &other_list, StringList *results) {
+void BStringList::NotHere(BStringList &other_list, BStringList *results) {
 	#if DEBUG
 	 assert(_items == _indexed->CountItems());
 	 assert(other_list._items == other_list._indexed->CountItems());
@@ -273,34 +268,34 @@ void StringList::NotHere(StringList &other_list, StringList *results) {
 	}
 }
 	
-void StringList::NotThere(StringList &other_list, StringList *results) {
+void BStringList::NotThere(BStringList &other_list, BStringList *results) {
 	other_list.NotHere(*this,results);
 }
 
-StringList	&StringList::operator += (const char *item) {
+BStringList	&BStringList::operator += (const char *item) {
 	AddItem(item);
 	return *this;
 }
 
-StringList	&StringList::operator += (StringList &list) {
+BStringList	&BStringList::operator += (BStringList &list) {
 	AddList(&list);
 	return *this;
 }
 
-StringList	&StringList::operator -= (const char *item) {
+BStringList	&BStringList::operator -= (const char *item) {
 	RemoveItem(item);
 	return *this;
 }
 
-StringList	&StringList::operator -= (StringList &list) {
+BStringList	&BStringList::operator -= (BStringList &list) {
 	for (int32 i = 0; i < list.CountItems(); i++)
 		RemoveItem(list[i]);
 		
 	return *this;
 }
 
-StringList	StringList::operator | (StringList &list2) {
-	StringList list(*this);
+BStringList	BStringList::operator | (BStringList &list2) {
+	BStringList list(*this);
 	for (int32 i = 0; i < list2.CountItems(); i++) {
 		if (!list.HasItem(list2.ItemAt(i)))
 			list += list2.ItemAt(i);
@@ -309,7 +304,7 @@ StringList	StringList::operator | (StringList &list2) {
 	return list;
 }
 
-StringList	&StringList::operator |= (StringList &list2) {
+BStringList	&BStringList::operator |= (BStringList &list2) {
 	for (int32 i = 0; i < list2.CountItems(); i++) {
 		if (!HasItem(list2.ItemAt(i)))
 			AddItem(list2.ItemAt(i));
@@ -318,8 +313,8 @@ StringList	&StringList::operator |= (StringList &list2) {
 	return *this;
 }
 
-StringList StringList::operator ^ (StringList &list2) {
-	StringList list;
+BStringList BStringList::operator ^ (BStringList &list2) {
+	BStringList list;
 	for (int32 i = 0; i < CountItems(); i++) {
 		if (!list2.HasItem(ItemAt(i)))
 			list += ItemAt(i);
@@ -331,11 +326,11 @@ StringList StringList::operator ^ (StringList &list2) {
 	return list;
 }
 
-StringList &StringList::operator ^= (StringList &list) {
+BStringList &BStringList::operator ^= (BStringList &list) {
 	return (*this = *this ^ list);
 }
 
-bool StringList::operator == (StringList &list) {
+bool BStringList::operator == (BStringList &list) {
 	if (list.CountItems() != CountItems())
 		return false;
 		
@@ -347,11 +342,11 @@ bool StringList::operator == (StringList &list) {
 	return true;
 }
 
-const char *StringList::operator [] (int32 index) {
+const char *BStringList::operator [] (int32 index) {
 	return ItemAt(index);
 }
 
-StringList::~StringList() {
+BStringList::~BStringList() {
 	MakeEmpty();
 	
 	delete _indexed;

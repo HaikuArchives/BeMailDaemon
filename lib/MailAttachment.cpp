@@ -1,4 +1,4 @@
-/* Attachment - classes which handle mail attachments
+/* BMailAttachment - classes which handle mail attachments
 **
 ** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
 */
@@ -14,28 +14,18 @@
 
 #include <malloc.h>
 
-namespace Zoidberg {
-namespace Mail {
-	class _EXPORT SimpleAttachment;
-	class _EXPORT AttributedAttachment;
-	class _EXPORT Attachment;
-}
-}
+class _EXPORT BSimpleMailAttachment;
+class _EXPORT BAttributedMailAttachment;
+class _EXPORT BMailAttachment;
 
 #include <MailAttachment.h>
 #include <mail_encoding.h>
 #include <NodeMessage.h>
 
+//--------------BSimpleMailAttachment-No attributes or awareness of the file system at large-----
 
-using namespace Zoidberg;
-using Mail::Attachment;
-using Mail::SimpleAttachment;
-using Mail::AttributedAttachment;
-
-//--------------SimpleAttachment-No attributes or awareness of the file system at large-----
-
-SimpleAttachment::SimpleAttachment()
-	: Attachment(),
+BSimpleMailAttachment::BSimpleMailAttachment()
+	: BMailAttachment(),
 	fStatus(B_NO_INIT),
 	_data(NULL),
 	_raw_data(NULL),
@@ -44,8 +34,8 @@ SimpleAttachment::SimpleAttachment()
 	Initialize(base64);
 }
 
-SimpleAttachment::SimpleAttachment(BPositionIO *data, mail_encoding encoding)
-	: Attachment(),
+BSimpleMailAttachment::BSimpleMailAttachment(BPositionIO *data, mail_encoding encoding)
+	: BMailAttachment(),
 	_data(data),
 	_raw_data(NULL),
 	_we_own_data(false)
@@ -55,8 +45,8 @@ SimpleAttachment::SimpleAttachment(BPositionIO *data, mail_encoding encoding)
 	Initialize(encoding);
 }
 
-SimpleAttachment::SimpleAttachment(const void *data, size_t length, mail_encoding encoding)
-	: Attachment(),
+BSimpleMailAttachment::BSimpleMailAttachment(const void *data, size_t length, mail_encoding encoding)
+	: BMailAttachment(),
 	_data(new BMemoryIO(data,length)),
 	_raw_data(NULL),
 	_we_own_data(true)
@@ -66,8 +56,8 @@ SimpleAttachment::SimpleAttachment(const void *data, size_t length, mail_encodin
 	Initialize(encoding);
 }
 
-SimpleAttachment::SimpleAttachment(BFile *file, bool delete_when_done)
-	: Attachment(),
+BSimpleMailAttachment::BSimpleMailAttachment(BFile *file, bool delete_when_done)
+	: BMailAttachment(),
 	_data(NULL),
 	_raw_data(NULL),
 	_we_own_data(false)
@@ -76,8 +66,8 @@ SimpleAttachment::SimpleAttachment(BFile *file, bool delete_when_done)
 	SetTo(file,delete_when_done);
 }
 
-SimpleAttachment::SimpleAttachment(entry_ref *ref)
-	: Attachment(),
+BSimpleMailAttachment::BSimpleMailAttachment(entry_ref *ref)
+	: BMailAttachment(),
 	_data(NULL),
 	_raw_data(NULL),
 	_we_own_data(false)
@@ -86,19 +76,19 @@ SimpleAttachment::SimpleAttachment(entry_ref *ref)
 	SetTo(ref);
 }
 
-SimpleAttachment::~SimpleAttachment()
+BSimpleMailAttachment::~BSimpleMailAttachment()
 {
 	if (_we_own_data)
 		delete _data;
 }
 
-void SimpleAttachment::Initialize(mail_encoding encoding)
+void BSimpleMailAttachment::Initialize(mail_encoding encoding)
 {
 	SetEncoding(encoding);
-	SetHeaderField("Content-Disposition","Attachment");
+	SetHeaderField("Content-Disposition","BMailAttachment");
 }
 
-status_t SimpleAttachment::SetTo(BFile *file, bool delete_file_when_done)
+status_t BSimpleMailAttachment::SetTo(BFile *file, bool delete_file_when_done)
 {
 	char type[B_MIME_TYPE_LENGTH] = "application/octet-stream";
 
@@ -118,7 +108,7 @@ status_t SimpleAttachment::SetTo(BFile *file, bool delete_file_when_done)
 	return fStatus = B_OK;
 }
 
-status_t SimpleAttachment::SetTo(entry_ref *ref)
+status_t BSimpleMailAttachment::SetTo(entry_ref *ref)
 {
 	BFile *file = new BFile(ref,B_READ_ONLY);
 
@@ -135,12 +125,12 @@ status_t SimpleAttachment::SetTo(entry_ref *ref)
 	return fStatus = B_OK;
 }
 
-status_t SimpleAttachment::InitCheck()
+status_t BSimpleMailAttachment::InitCheck()
 {
 	return fStatus;
 }
 
-status_t SimpleAttachment::FileName(char *text) {
+status_t BSimpleMailAttachment::FileName(char *text) {
 	BMessage content_type;
 	HeaderField("Content-Type",&content_type);
 
@@ -169,7 +159,7 @@ status_t SimpleAttachment::FileName(char *text) {
 }
 
 
-void SimpleAttachment::SetFileName(const char *name) {
+void BSimpleMailAttachment::SetFileName(const char *name) {
 	BMessage content_type;
 
 	HeaderField("Content-Type",&content_type);
@@ -179,15 +169,15 @@ void SimpleAttachment::SetFileName(const char *name) {
 
 	// Request that the file name header be encoded in UTF-8 if it has weird
 	// characters.  If it is just a plain name, the header will appear normal.
-	if (content_type.ReplaceInt32(kHeaderCharsetString, MDR_UTF8_CONVERSION) != B_OK)
-		content_type.AddInt32(kHeaderCharsetString, MDR_UTF8_CONVERSION);
+	if (content_type.ReplaceInt32(kHeaderCharsetString, B_MAIL_UTF8_CONVERSION) != B_OK)
+		content_type.AddInt32(kHeaderCharsetString, B_MAIL_UTF8_CONVERSION);
 
 	SetHeaderField ("Content-Type", &content_type);
 }
 
 
 status_t
-SimpleAttachment::GetDecodedData(BPositionIO *data)
+BSimpleMailAttachment::GetDecodedData(BPositionIO *data)
 {
 	ParseNow();
 
@@ -208,14 +198,14 @@ SimpleAttachment::GetDecodedData(BPositionIO *data)
 
 
 BPositionIO *
-SimpleAttachment::GetDecodedData()
+BSimpleMailAttachment::GetDecodedData()
 {
 	ParseNow();
 
 	return _data;
 }
 
-status_t SimpleAttachment::SetDecodedDataAndDeleteWhenDone(BPositionIO *data) {
+status_t BSimpleMailAttachment::SetDecodedDataAndDeleteWhenDone(BPositionIO *data) {
 	_raw_data = NULL;
 
 	if (_we_own_data)
@@ -227,7 +217,7 @@ status_t SimpleAttachment::SetDecodedDataAndDeleteWhenDone(BPositionIO *data) {
 	return B_OK;
 }
 
-status_t SimpleAttachment::SetDecodedData(BPositionIO *data) {
+status_t BSimpleMailAttachment::SetDecodedData(BPositionIO *data) {
 	_raw_data = NULL;
 
 	if (_we_own_data)
@@ -239,7 +229,7 @@ status_t SimpleAttachment::SetDecodedData(BPositionIO *data) {
 	return B_OK;
 }
 
-status_t SimpleAttachment::SetDecodedData(const void *data, size_t length) {
+status_t BSimpleMailAttachment::SetDecodedData(const void *data, size_t length) {
 	_raw_data = NULL;
 
 	if (_we_own_data)
@@ -251,7 +241,7 @@ status_t SimpleAttachment::SetDecodedData(const void *data, size_t length) {
 	return B_OK;
 }
 
-void SimpleAttachment::SetEncoding(mail_encoding encoding) {
+void BSimpleMailAttachment::SetEncoding(mail_encoding encoding) {
 	_encoding = encoding;
 
 	char *cte = NULL; //--Content Transfer Encoding
@@ -280,17 +270,17 @@ void SimpleAttachment::SetEncoding(mail_encoding encoding) {
 	SetHeaderField("Content-Transfer-Encoding",cte);
 }
 
-mail_encoding SimpleAttachment::Encoding() {
+mail_encoding BSimpleMailAttachment::Encoding() {
 	return _encoding;
 }
 
-status_t SimpleAttachment::SetToRFC822(BPositionIO *data, size_t length, bool parse_now) {
+status_t BSimpleMailAttachment::SetToRFC822(BPositionIO *data, size_t length, bool parse_now) {
 	//---------Massive memory squandering!---ALERT!----------
 	if (_we_own_data)
 		delete _data;
 
 	off_t position = data->Position();
-	Mail::Component::SetToRFC822(data,length,parse_now);
+	BMailComponent::SetToRFC822(data,length,parse_now);
 
 	// this actually happens...
 	if (data->Position() - position > length)
@@ -322,7 +312,7 @@ status_t SimpleAttachment::SetToRFC822(BPositionIO *data, size_t length, bool pa
 	return B_OK;
 }
 
-void SimpleAttachment::ParseNow() {
+void BSimpleMailAttachment::ParseNow() {
 	if (_raw_data == NULL || _raw_length == 0)
 		return;
 
@@ -349,8 +339,8 @@ void SimpleAttachment::ParseNow() {
 	return;
 }
 
-status_t SimpleAttachment::RenderToRFC822(BPositionIO *render_to) {
-	Mail::Component::RenderToRFC822(render_to);
+status_t BSimpleMailAttachment::RenderToRFC822(BPositionIO *render_to) {
+	BMailComponent::RenderToRFC822(render_to);
 	//---------Massive memory squandering!---ALERT!----------
 	//	now with error checks, dumb :-) -- axeld.
 
@@ -387,12 +377,12 @@ status_t SimpleAttachment::RenderToRFC822(BPositionIO *render_to) {
 }
 
 
-//-------AttributedAttachment--Awareness of bfs, sends attributes--
+//-------BAttributedMailAttachment--Awareness of bfs, sends attributes--
 //	#pragma mark -
 
 
-AttributedAttachment::AttributedAttachment()
-	: Attachment(),
+BAttributedMailAttachment::BAttributedMailAttachment()
+	: BMailAttachment(),
 	fContainer(NULL),
 	fStatus(B_NO_INIT),
 	_data(NULL),
@@ -400,8 +390,8 @@ AttributedAttachment::AttributedAttachment()
 {
 }
 
-AttributedAttachment::AttributedAttachment(BFile *file, bool delete_when_done)
-	: Attachment(),
+BAttributedMailAttachment::BAttributedMailAttachment(BFile *file, bool delete_when_done)
+	: BMailAttachment(),
 	fContainer(NULL),
 	_data(NULL),
 	_attributes_attach(NULL)
@@ -409,8 +399,8 @@ AttributedAttachment::AttributedAttachment(BFile *file, bool delete_when_done)
 	SetTo(file,delete_when_done);
 }
 
-AttributedAttachment::AttributedAttachment(entry_ref *ref)
-	: Attachment(),
+BAttributedMailAttachment::BAttributedMailAttachment(entry_ref *ref)
+	: BMailAttachment(),
 	fContainer(NULL),
 	_data(NULL),
 	_attributes_attach(NULL)
@@ -418,40 +408,40 @@ AttributedAttachment::AttributedAttachment(entry_ref *ref)
 	SetTo(ref);
 }
 
-AttributedAttachment::~AttributedAttachment() {
+BAttributedMailAttachment::~BAttributedMailAttachment() {
 	// Our SimpleAttachments are deleted by fContainer
 	delete fContainer;
 }
 
 
-status_t AttributedAttachment::Initialize()
+status_t BAttributedMailAttachment::Initialize()
 {
 	// _data & _attributes_attach will be deleted by the container
 	if (fContainer != NULL)
 		delete fContainer;
 
-	fContainer = new MIMEMultipartContainer("++++++BFile++++++");
+	fContainer = new BMIMEMultipartMailContainer("++++++BFile++++++");
 
-	_data = new SimpleAttachment();
+	_data = new BSimpleMailAttachment();
 	fContainer->AddComponent(_data);
 
-	_attributes_attach = new SimpleAttachment();
+	_attributes_attach = new BSimpleMailAttachment();
 	_attributes.MakeEmpty();
 	_attributes_attach->SetHeaderField("Content-Type","application/x-be_attribute; name=\"BeOS Attributes\"");
 	fContainer->AddComponent(_attributes_attach);
 
 	fContainer->SetHeaderField("Content-Type","multipart/x-bfile");
-	fContainer->SetHeaderField("Content-Disposition","Attachment");
+	fContainer->SetHeaderField("Content-Disposition","BMailAttachment");
 
 	// also set the header fields of this component, in case someone asks
 	SetHeaderField("Content-Type","multipart/x-bfile");
-	SetHeaderField("Content-Disposition","Attachment");
+	SetHeaderField("Content-Disposition","BMailAttachment");
 
 	return B_OK;
 }
 
 
-status_t AttributedAttachment::SetTo(BFile *file, bool delete_file_when_done)
+status_t BAttributedMailAttachment::SetTo(BFile *file, bool delete_file_when_done)
 {
 	if (file == NULL)
 		return fStatus = B_BAD_VALUE;
@@ -475,7 +465,7 @@ status_t AttributedAttachment::SetTo(BFile *file, bool delete_file_when_done)
 	return fStatus = B_OK;
 }
 
-status_t AttributedAttachment::SetTo(entry_ref *ref)
+status_t BAttributedMailAttachment::SetTo(entry_ref *ref)
 {
 	if (ref == NULL)
 		return fStatus = B_BAD_VALUE;
@@ -512,12 +502,12 @@ status_t AttributedAttachment::SetTo(entry_ref *ref)
 	return fStatus = B_OK;
 }
 
-status_t AttributedAttachment::InitCheck()
+status_t BAttributedMailAttachment::InitCheck()
 {
 	return fStatus;
 }
 
-void AttributedAttachment::SaveToDisk(BEntry *entry) {
+void BAttributedMailAttachment::SaveToDisk(BEntry *entry) {
 	BString path = "/tmp/";
 	char name[255] = "";
 	_data->FileName(name);
@@ -531,25 +521,25 @@ void AttributedAttachment::SaveToDisk(BEntry *entry) {
 	entry->SetTo(path.String());
 }
 
-void AttributedAttachment::SetEncoding(mail_encoding encoding) {
+void BAttributedMailAttachment::SetEncoding(mail_encoding encoding) {
 	_data->SetEncoding(encoding);
 	if (_attributes_attach != NULL)
 		_attributes_attach->SetEncoding(encoding);
 }
 
-mail_encoding AttributedAttachment::Encoding() {
+mail_encoding BAttributedMailAttachment::Encoding() {
 	return _data->Encoding();
 }
 
-status_t AttributedAttachment::FileName(char *name) {
+status_t BAttributedMailAttachment::FileName(char *name) {
 	return _data->FileName(name);
 }
 
-void AttributedAttachment::SetFileName(const char *name) {
+void BAttributedMailAttachment::SetFileName(const char *name) {
 	_data->SetFileName(name);
 }
 
-status_t AttributedAttachment::GetDecodedData(BPositionIO *data) {
+status_t BAttributedMailAttachment::GetDecodedData(BPositionIO *data) {
 	BNode *node = dynamic_cast<BNode *>(data);
 	if (node != NULL)
 		*node << _attributes;
@@ -558,7 +548,7 @@ status_t AttributedAttachment::GetDecodedData(BPositionIO *data) {
 	return B_OK;
 }
 
-status_t AttributedAttachment::SetDecodedData(BPositionIO *data) {
+status_t BAttributedMailAttachment::SetDecodedData(BPositionIO *data) {
 	BNode *node = dynamic_cast<BNode *>(data);
 	if (node != NULL)
 		_attributes << *node;
@@ -567,7 +557,7 @@ status_t AttributedAttachment::SetDecodedData(BPositionIO *data) {
 	return B_OK;
 }
 
-status_t AttributedAttachment::SetToRFC822(BPositionIO *data, size_t length, bool parse_now)
+status_t BAttributedMailAttachment::SetToRFC822(BPositionIO *data, size_t length, bool parse_now)
 {
 	status_t err = Initialize();
 	if (err < B_OK)
@@ -583,12 +573,12 @@ status_t AttributedAttachment::SetToRFC822(BPositionIO *data, size_t length, boo
 		return B_BAD_TYPE;
 
 	// get data and attributes
-	if ((_data = dynamic_cast<SimpleAttachment *>(fContainer->GetComponent(0))) == NULL)
+	if ((_data = dynamic_cast<BSimpleMailAttachment *>(fContainer->GetComponent(0))) == NULL)
 		return B_BAD_VALUE;
 	if (parse_now)
 		_data->GetDecodedData(); // Force it to make a copy of the data.  Needed for forwarding messages hack.
 
-	if ((_attributes_attach = dynamic_cast<SimpleAttachment *>(fContainer->GetComponent(1))) == NULL
+	if ((_attributes_attach = dynamic_cast<BSimpleMailAttachment *>(fContainer->GetComponent(1))) == NULL
 		|| _attributes_attach->GetDecodedData() == NULL)
 			return B_OK;
 
@@ -626,7 +616,7 @@ status_t AttributedAttachment::SetToRFC822(BPositionIO *data, size_t length, boo
 	return B_OK;
 }
 
-status_t AttributedAttachment::RenderToRFC822(BPositionIO *render_to) {
+status_t BAttributedMailAttachment::RenderToRFC822(BPositionIO *render_to) {
 	BMallocIO *io = new BMallocIO;
 #if B_BEOS_VERSION_DANO
 	const
@@ -655,14 +645,14 @@ status_t AttributedAttachment::RenderToRFC822(BPositionIO *render_to) {
 		free(allocd);
 	}
 	if (_attributes_attach == NULL)
-		_attributes_attach = new SimpleAttachment;
+		_attributes_attach = new BSimpleMailAttachment;
 
 	_attributes_attach->SetDecodedDataAndDeleteWhenDone(io);
 
 	return fContainer->RenderToRFC822(render_to);
 }
 
-status_t AttributedAttachment::MIMEType(BMimeType *mime) {
+status_t BAttributedMailAttachment::MIMEType(BMimeType *mime) {
 	return _data->MIMEType(mime);
 }
 
@@ -670,15 +660,15 @@ status_t AttributedAttachment::MIMEType(BMimeType *mime) {
 //	The reserved function stubs
 //	#pragma mark -
 
-void Attachment::_ReservedAttachment1() {}
-void Attachment::_ReservedAttachment2() {}
-void Attachment::_ReservedAttachment3() {}
-void Attachment::_ReservedAttachment4() {}
+void BMailAttachment::_ReservedAttachment1() {}
+void BMailAttachment::_ReservedAttachment2() {}
+void BMailAttachment::_ReservedAttachment3() {}
+void BMailAttachment::_ReservedAttachment4() {}
 
-void SimpleAttachment::_ReservedSimple1() {}
-void SimpleAttachment::_ReservedSimple2() {}
-void SimpleAttachment::_ReservedSimple3() {}
+void BSimpleMailAttachment::_ReservedSimple1() {}
+void BSimpleMailAttachment::_ReservedSimple2() {}
+void BSimpleMailAttachment::_ReservedSimple3() {}
 
-void AttributedAttachment::_ReservedAttributed1() {}
-void AttributedAttachment::_ReservedAttributed2() {}
-void AttributedAttachment::_ReservedAttributed3() {}
+void BAttributedMailAttachment::_ReservedAttributed1() {}
+void BAttributedMailAttachment::_ReservedAttributed2() {}
+void BAttributedMailAttachment::_ReservedAttributed3() {}

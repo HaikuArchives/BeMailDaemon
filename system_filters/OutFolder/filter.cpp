@@ -22,10 +22,7 @@
 
 #include <MDRLanguage.h>
 
-using namespace Zoidberg;
-
-
-class StatusChanger : public Mail::ChainCallback {
+class StatusChanger : public BMailChainCallback {
 	public:
 		StatusChanger(const char * entry);
 		void Callback(status_t result);
@@ -34,13 +31,13 @@ class StatusChanger : public Mail::ChainCallback {
 		const char * to_change;
 };
 
-class DiskProducer : public Mail::Filter
+class DiskProducer : public BMailFilter
 {	
-	Mail::ChainRunner *runner;
+	BMailChainRunner *runner;
 	status_t init;
 	
   public:
-	DiskProducer(BMessage*,Mail::ChainRunner*);
+	DiskProducer(BMessage*,BMailChainRunner*);
 	virtual status_t InitCheck(BString *err);
 	virtual status_t ProcessMailMessage
 	(
@@ -49,8 +46,8 @@ class DiskProducer : public Mail::Filter
 	);
 };
 
-DiskProducer::DiskProducer(BMessage* msg,Mail::ChainRunner*status)
-	: Mail::Filter(msg), runner(status), init(B_OK)
+DiskProducer::DiskProducer(BMessage* msg,BMailChainRunner*status)
+	: BMailFilter(msg), runner(status), init(B_OK)
 {}
 
 status_t DiskProducer::InitCheck(BString* err)
@@ -95,7 +92,7 @@ void StatusChanger::Callback(status_t result) {
 }
 		
 
-Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::ChainRunner *runner)
+BMailFilter* instantiate_mailfilter(BMessage* settings, BMailChainRunner *runner)
 {
 	return new DiskProducer(settings,runner);
 }
@@ -103,7 +100,7 @@ Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::ChainRunner *runn
 
 BView* instantiate_config_panel(BMessage *settings,BMessage *metadata)
 {
-	Mail::FileConfigView *view = new Mail::FileConfigView(MDR_DIALECT_CHOICE ("Source Folder:","送信箱："),"path",true,"/boot/home/mail/out");
+	BMailFileConfigView *view = new BMailFileConfigView(MDR_DIALECT_CHOICE ("Source Folder:","送信箱："),"path",true,"/boot/home/mail/out");
 	view->SetTo(settings,metadata);
 
 	return view;

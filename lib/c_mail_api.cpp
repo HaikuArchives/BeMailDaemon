@@ -21,19 +21,19 @@
 
 _EXPORT status_t check_for_mail(int32 * incoming_count)
 {
-	status_t err = Zoidberg::Mail::CheckMail(true);
+	status_t err = BMailDaemon::CheckMail(true);
 	if (err < B_OK)
 		return err;
 		
 	if (incoming_count != NULL)
-		*incoming_count = Zoidberg::Mail::CountNewMessages(true);
+		*incoming_count = BMailDaemon::CountNewMessages(true);
 		
 	return B_OK;
 }
 	
 _EXPORT status_t send_queued_mail(void)
 {
-	return Zoidberg::Mail::SendQueuedMail();
+	return BMailDaemon::SendQueuedMail();
 }
 
 _EXPORT int32 count_pop_accounts(void)
@@ -67,9 +67,9 @@ _EXPORT status_t get_pop_account(mail_pop_account* account, int32 index)
 	BMessage settings;
 	
 	BList chains;
-	Zoidberg::Mail::InboundChains(&chains);
+	GetInboundMailChains(&chains);
 	
-	Zoidberg::Mail::Chain *chain = (Zoidberg::Mail::Chain *)(chains.ItemAt(index));
+	BMailChain *chain = (BMailChain *)(chains.ItemAt(index));
 	if (chain == NULL) {
 		err = B_BAD_INDEX;
 		goto clean_up; //------Eek! A goto!
@@ -91,7 +91,7 @@ _EXPORT status_t get_pop_account(mail_pop_account* account, int32 index)
 	
   clean_up:
 	for (int32 i = 0; i < chains.CountItems(); i++)
-		delete (Zoidberg::Mail::Chain *)chains.ItemAt(i);
+		delete (BMailChain *)chains.ItemAt(i);
 		
 	return err;
 }
@@ -103,7 +103,7 @@ _EXPORT status_t set_pop_account(mail_pop_account *, int32, bool)
 
 _EXPORT status_t get_smtp_host(char* buffer)
 {
-	Zoidberg::Mail::Chain chain(Zoidberg::Mail::Settings().DefaultOutboundChainID());
+	BMailChain chain(BMailSettings().DefaultOutboundChainID());
 	status_t err = chain.InitCheck();
 	if (err < B_OK)
 		return err;
@@ -133,7 +133,7 @@ _EXPORT status_t forward_mail(entry_ref *ref, const char *recipients, bool now)
 	if (status < B_OK)
 		return status;
 
-	Zoidberg::Mail::Message mail(&file);
+	BEmailMessage mail(&file);
 	mail.SetTo(recipients);
 	
 	return mail.Send(now);

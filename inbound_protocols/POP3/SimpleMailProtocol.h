@@ -3,12 +3,9 @@
 
 #include <MailProtocol.h>
 
-namespace Zoidberg {
-namespace Mail {
-
-class SimpleProtocol : public Protocol {
+class SimpleMailProtocol : public BMailProtocol {
 	public:
-		SimpleProtocol(BMessage *settings, Mail::ChainRunner *runner);
+		SimpleMailProtocol(BMessage *settings, BMailChainRunner *runner);
 			//---Constructor. Simply call this in yours, and most everything will be handled for you.
 			
 		virtual status_t Open(const char *server, int port, int protocol) = 0;
@@ -64,7 +61,7 @@ class SimpleProtocol : public Protocol {
 		);
 		virtual status_t DeleteMessage(const char* uid);
 		virtual status_t InitCheck(BString* out_message = NULL);
-		virtual ~SimpleProtocol();
+		virtual ~SimpleMailProtocol();
 
 	protected:
 		status_t Init();
@@ -75,8 +72,5 @@ class SimpleProtocol : public Protocol {
 
 		uint32 _reserved[5];
 };
-
-}
-}
 
 #endif // ZOIDBERG_MAIL_SIMPLEPROTOCOL_H

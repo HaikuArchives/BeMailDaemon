@@ -18,26 +18,24 @@
 
 #include "ConfigView.h"
 
-using namespace Zoidberg;
-
 class NotifyFilter;
 
-class NotifyCallback : public Mail::ChainCallback {
+class NotifyCallback : public BMailChainCallback {
 	public:
-		NotifyCallback (int32 notification_method, Mail::ChainRunner *us,NotifyFilter *ref2);
+		NotifyCallback (int32 notification_method, BMailChainRunner *us,NotifyFilter *ref2);
 		virtual void Callback(status_t result);
 		
 		uint32 num_messages;
 	private:
-		Mail::ChainRunner *chainrunner;
+		BMailChainRunner *chainrunner;
 		int32 strategy;
 		NotifyFilter *parent;
 };
 
-class NotifyFilter : public Mail::Filter
+class NotifyFilter : public BMailFilter
 {
   public:
-	NotifyFilter(BMessage*,Mail::ChainRunner*);
+	NotifyFilter(BMessage*,BMailChainRunner*);
 	virtual status_t InitCheck(BString *err);
 	virtual status_t ProcessMailMessage
 	(
@@ -49,13 +47,13 @@ class NotifyFilter : public Mail::Filter
   	friend class NotifyCallback;
   	
   	NotifyCallback *callback;
-  	Mail::ChainRunner *_runner;
+  	BMailChainRunner *_runner;
   	int32 strategy;
 };
 
 
-NotifyFilter::NotifyFilter(BMessage* msg,Mail::ChainRunner *runner)
-	: Mail::Filter(msg), _runner(runner), callback(NULL)
+NotifyFilter::NotifyFilter(BMessage* msg,BMailChainRunner *runner)
+	: BMailFilter(msg), _runner(runner), callback(NULL)
 {
 	strategy = msg->FindInt32("notification_method");
 }
@@ -78,7 +76,7 @@ status_t NotifyFilter::ProcessMailMessage(BPositionIO**, BEntry*, BMessage*heade
 	return B_OK;
 }
 
-NotifyCallback::NotifyCallback (int32 notification_method, Mail::ChainRunner *us,NotifyFilter *ref2) : 
+NotifyCallback::NotifyCallback (int32 notification_method, BMailChainRunner *us,NotifyFilter *ref2) : 
 	strategy(notification_method),
 	chainrunner(us),
 	num_messages(0), parent(ref2)
@@ -129,7 +127,7 @@ void NotifyCallback::Callback(status_t result) {
 	}
 }
 
-Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::ChainRunner *runner)
+BMailFilter* instantiate_mailfilter(BMessage* settings, BMailChainRunner *runner)
 {
 	return new NotifyFilter(settings,runner);
 }

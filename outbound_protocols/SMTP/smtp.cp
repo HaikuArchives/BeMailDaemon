@@ -36,8 +36,6 @@
 	#include <socket.h>
 #endif
 
-using namespace Zoidberg;
-
 #define CRLF "\r\n"
 #define SMTP_RESPONSE_SIZE 8192
 
@@ -58,8 +56,8 @@ enum AuthType {
 };
 
 
-SMTPProtocol::SMTPProtocol(BMessage *message, Mail::ChainRunner *run)
-	: Mail::Filter(message),
+SMTPProtocol::SMTPProtocol(BMessage *message, BMailChainRunner *run)
+	: BMailFilter(message),
 	fSettings(message),
 	runner(run),
 	fAuthType(0)
@@ -242,16 +240,16 @@ SMTPProtocol::POP3Authentification()
 {
 	// find the POP3 filter of the other chain - identify by name...
 	BList chains;
-	if (Mail::InboundChains(&chains) < B_OK) {
+	if (GetInboundMailChains(&chains) < B_OK) {
 		fLog = "Cannot get inbound chains";
 		return B_ERROR;
 	}
 
-	Mail::ChainRunner *parent = runner;
-	Mail::Chain *chain = NULL;
+	BMailChainRunner *parent = runner;
+	BMailChain *chain = NULL;
 	for (int i = chains.CountItems(); i-- > 0;)
 	{
-		chain = (Mail::Chain *)chains.ItemAt(i);
+		chain = (BMailChain *)chains.ItemAt(i);
 		if (chain != NULL && !strcmp(chain->Name(), parent->Chain()->Name()))
 			break;
 		chain = NULL;
@@ -273,7 +271,7 @@ SMTPProtocol::POP3Authentification()
 				fLog = "Cannot load POP3 add-on";
 				if (image >= B_OK)
 				{
-					Mail::Filter *(* instantiate)(BMessage *, Mail::ChainRunner *);
+					BMailFilter *(* instantiate)(BMessage *, BMailChainRunner *);
 					status_t status = get_image_symbol(image, "instantiate_mailfilter",
 						B_SYMBOL_TYPE_TEXT, (void **)&instantiate);
 					if (status >= B_OK)
@@ -282,7 +280,7 @@ SMTPProtocol::POP3Authentification()
 						msg.AddBool("login_and_do_nothing_else_of_any_importance",true);
 
 						// instantiating and deleting should be enough
-						Mail::Filter *filter = (*instantiate)(&msg, runner);
+						BMailFilter *filter = (*instantiate)(&msg, runner);
 						delete filter;
 					}
 					else
@@ -301,7 +299,7 @@ SMTPProtocol::POP3Authentification()
 
 	for (int i = chains.CountItems(); i-- > 0;)
 	{
-		chain = (Mail::Chain *)chains.ItemAt(i);
+		chain = (BMailChain *)chains.ItemAt(i);
 		delete chain;
 	}
 
@@ -651,8 +649,8 @@ SMTPProtocol::SendCommand(const char *cmd)
 
 
 // Instantiate hook
-Mail::Filter *
-instantiate_mailfilter(BMessage *settings, Mail::ChainRunner *status)
+BMailFilter *
+instantiate_mailfilter(BMessage *settings, BMailChainRunner *status)
 {
 	return new SMTPProtocol(settings, status);
 }
@@ -662,7 +660,7 @@ instantiate_mailfilter(BMessage *settings, Mail::ChainRunner *status)
 BView *
 instantiate_config_panel(BMessage *settings, BMessage *)
 {
-	Mail::ProtocolConfigView *view = new Mail::ProtocolConfigView(Mail::MP_HAS_AUTH_METHODS | Mail::MP_HAS_USERNAME | Mail::MP_HAS_PASSWORD | Mail::MP_HAS_HOSTNAME);
+	BMailProtocolConfigView *view = new BMailProtocolConfigView(B_MAIL_PROTOCOL_HAS_AUTH_METHODS | B_MAIL_PROTOCOL_HAS_USERNAME | B_MAIL_PROTOCOL_HAS_PASSWORD | B_MAIL_PROTOCOL_HAS_HOSTNAME);
 
 	view->AddAuthMethod(MDR_DIALECT_CHOICE ("None","無し"), false);
 	view->AddAuthMethod(MDR_DIALECT_CHOICE ("ESMTP","ESMTP"));

@@ -37,8 +37,6 @@
 
 #include "deskbarview.h"
 
-using namespace Zoidberg;
-
 const char *kTrackerSignature = "application/x-vnd.Be-TRAK";
 
 
@@ -203,13 +201,13 @@ DeskbarView::MessageReceived(BMessage *message)
 		case MD_CHECK_SEND_NOW:
 			// also happens in DeskbarView::MouseUp() with
 			// B_TERTIARY_MOUSE_BUTTON pressed
-			Zoidberg::Mail::CheckMail(true);
+			BMailDaemon::CheckMail(true);
 			break;
 		case MD_CHECK_FOR_MAILS:
-			Zoidberg::Mail::CheckMail(false,message->FindString("account"));
+			BMailDaemon::CheckMail(false,message->FindString("account"));
 			break;
 		case MD_SEND_MAILS:
-			Zoidberg::Mail::SendQueuedMail();
+			BMailDaemon::SendQueuedMail();
 			break;
 
 		case MD_OPEN_NEW:
@@ -238,7 +236,7 @@ DeskbarView::MessageReceived(BMessage *message)
 			break;
 		}
 		case B_QUIT_REQUESTED:
-			Zoidberg::Mail::QuitDaemon();
+			BMailDaemon::Quit();
 			break;
 
 		case B_REFS_RECEIVED:	// open received files in the standard mail application
@@ -320,7 +318,7 @@ void DeskbarView::MouseUp(BPoint pos)
 	}
 
 	if (fLastButtons & B_TERTIARY_MOUSE_BUTTON)
-		Zoidberg::Mail::CheckMail(true);
+		BMailDaemon::CheckMail(true);
 }
 
 void DeskbarView::MouseDown(BPoint pos)
@@ -504,7 +502,7 @@ DeskbarView::BuildMenu()
 	if (modifiers() & B_SHIFT_KEY)
 	{
 		BList list;
-		Mail::InboundChains(&list);
+		GetInboundMailChains(&list);
 
 		BMenu *chainMenu = new BMenu(
 			MDR_DIALECT_CHOICE ("Check For Mails Only","R) メール受信のみ"));
@@ -513,7 +511,7 @@ DeskbarView::BuildMenu()
 		chainMenu->SetFont(&font);
 
 		for (int32 i = 0;i < list.CountItems();i++) {
-			Mail::Chain *chain = (Mail::Chain *)list.ItemAt(i);
+			BMailChain *chain = (BMailChain *)list.ItemAt(i);
 
 			BMessage *message = new BMessage(MD_CHECK_FOR_MAILS);
 			message->AddString("account",chain->Name());

@@ -12,18 +12,10 @@
 #include <unistd.h>
 #include <malloc.h>
 
-namespace Zoidberg {
-namespace Mail {
-	class _EXPORT MIMEMultipartContainer;
-}
-}
+class _EXPORT BMIMEMultipartMailContainer;
 
 #include <MailContainer.h>
 #include <MailAttachment.h>
-
-
-namespace Zoidberg {
-namespace Mail {
 
 typedef struct message_part {
 	message_part(off_t start, off_t end) { this->start = start; this->end = end; }
@@ -49,12 +41,12 @@ typedef struct message_part {
 } message_part;
 
 
-MIMEMultipartContainer::MIMEMultipartContainer(
+BMIMEMultipartMailContainer::BMIMEMultipartMailContainer(
 	const char *boundary,
 	const char *this_is_an_MIME_message_text,
 	uint32 defaultCharSet)
 	:
-	Container (defaultCharSet),
+	BMailContainer (defaultCharSet),
 	_boundary(NULL),
 	_MIME_message_warning(this_is_an_MIME_message_text),
 	_io_data(NULL)
@@ -65,8 +57,8 @@ MIMEMultipartContainer::MIMEMultipartContainer(
 	SetBoundary(boundary);
 }
 
-/*MIMEMultipartContainer::MIMEMultipartContainer(MIMEMultipartContainer &copy) :
-	Mail::Component(copy),
+/*BMIMEMultipartMailContainer::BMIMEMultipartMailContainer(BMIMEMultipartMailContainer &copy) :
+	BMailComponent(copy),
 	_boundary(copy._boundary),
 	_MIME_message_warning(copy._MIME_message_warning),
 	_io_data(copy._io_data) {
@@ -76,18 +68,18 @@ MIMEMultipartContainer::MIMEMultipartContainer(
 	}*/
 
 
-MIMEMultipartContainer::~MIMEMultipartContainer() {
+BMIMEMultipartMailContainer::~BMIMEMultipartMailContainer() {
 	for (int32 i = 0; i < _components_in_raw.CountItems(); i++)
 		delete (message_part *)_components_in_raw.ItemAt(i);
 
 	for (int32 i = 0; i < _components_in_code.CountItems(); i++)
-		delete (Mail::Component *)_components_in_code.ItemAt(i);
+		delete (BMailComponent *)_components_in_code.ItemAt(i);
 
 	free((void *)_boundary);
 }
 
 
-void MIMEMultipartContainer::SetBoundary(const char *boundary) {
+void BMIMEMultipartMailContainer::SetBoundary(const char *boundary) {
 	free ((void *) _boundary);
 	_boundary = NULL;
 	if (boundary != NULL)
@@ -105,12 +97,12 @@ void MIMEMultipartContainer::SetBoundary(const char *boundary) {
 }
 
 
-void MIMEMultipartContainer::SetThisIsAnMIMEMessageText(const char *text) {
+void BMIMEMultipartMailContainer::SetThisIsAnMIMEMessageText(const char *text) {
 	_MIME_message_warning = text;
 }
 
 
-status_t MIMEMultipartContainer::AddComponent(Mail::Component *component) {
+status_t BMIMEMultipartMailContainer::AddComponent(BMailComponent *component) {
 	if (!_components_in_code.AddItem(component))
 		return B_ERROR;
 	if (_components_in_raw.AddItem(NULL))
@@ -121,11 +113,11 @@ status_t MIMEMultipartContainer::AddComponent(Mail::Component *component) {
 }
 
 
-Mail::Component *MIMEMultipartContainer::GetComponent(int32 index, bool parse_now) {
+BMailComponent *BMIMEMultipartMailContainer::GetComponent(int32 index, bool parse_now) {
 	if (index >= CountComponents())
 		return NULL;
 	
-	if (Mail::Component *component = (Mail::Component *)_components_in_code.ItemAt(index))
+	if (BMailComponent *component = (BMailComponent *)_components_in_code.ItemAt(index))
 		return component;	//--- Handle easy case
 
 	message_part *part = (message_part *)(_components_in_raw.ItemAt(index));
@@ -134,11 +126,11 @@ Mail::Component *MIMEMultipartContainer::GetComponent(int32 index, bool parse_no
 
 	_io_data->Seek(part->start,SEEK_SET);
 
-	Mail::Component component (_charSetForTextDecoding);
+	BMailComponent component (_charSetForTextDecoding);
 	if (component.SetToRFC822(_io_data,part->end - part->start) < B_OK)
 		return NULL;
 
-	Mail::Component *piece = component.WhatIsThis();
+	BMailComponent *piece = component.WhatIsThis();
 
 	/* Debug code
 	_io_data->Seek(part->start,SEEK_SET);
@@ -161,14 +153,14 @@ Mail::Component *MIMEMultipartContainer::GetComponent(int32 index, bool parse_no
 
 
 int32
-MIMEMultipartContainer::CountComponents() const
+BMIMEMultipartMailContainer::CountComponents() const
 {
 	return _components_in_code.CountItems();
 }
 
 
 status_t
-MIMEMultipartContainer::RemoveComponent(Mail::Component *component)
+BMIMEMultipartMailContainer::RemoveComponent(BMailComponent *component)
 {
 	if (component == NULL)
 		return B_BAD_VALUE;
@@ -177,7 +169,7 @@ MIMEMultipartContainer::RemoveComponent(Mail::Component *component)
 	if (component == NULL)
 		return B_ENTRY_NOT_FOUND;
 
-	delete (Mail::Component *)_components_in_code.RemoveItem(index);
+	delete (BMailComponent *)_components_in_code.RemoveItem(index);
 	delete (message_part *)_components_in_raw.RemoveItem(index);
 
 	return B_OK;
@@ -185,30 +177,30 @@ MIMEMultipartContainer::RemoveComponent(Mail::Component *component)
 
 
 status_t
-MIMEMultipartContainer::RemoveComponent(int32 index)
+BMIMEMultipartMailContainer::RemoveComponent(int32 index)
 {
 	if (index >= CountComponents())
 		return B_BAD_INDEX;
 
-	delete (Mail::Component *)_components_in_code.RemoveItem(index);
+	delete (BMailComponent *)_components_in_code.RemoveItem(index);
 	delete (message_part *)_components_in_raw.RemoveItem(index);
 
 	return B_OK;
 }
 
 
-status_t MIMEMultipartContainer::GetDecodedData(BPositionIO *)
+status_t BMIMEMultipartMailContainer::GetDecodedData(BPositionIO *)
 {
 	return B_BAD_TYPE; //------We don't play dat
 }
 
 
-status_t MIMEMultipartContainer::SetDecodedData(BPositionIO *) {
+status_t BMIMEMultipartMailContainer::SetDecodedData(BPositionIO *) {
 	return B_BAD_TYPE; //------We don't play dat
 }
 
 
-status_t MIMEMultipartContainer::SetToRFC822(BPositionIO *data, size_t length, bool copy_data)
+status_t BMIMEMultipartMailContainer::SetToRFC822(BPositionIO *data, size_t length, bool copy_data)
 {
 	typedef enum LookingForEnum {
 		FIRST_NEWLINE,
@@ -239,7 +231,7 @@ status_t MIMEMultipartContainer::SetToRFC822(BPositionIO *data, size_t length, b
 	// Clear out old components.  Maybe make a MakeEmpty method?
 
 	for (i = _components_in_code.CountItems(); i-- > 0;)
-		delete (Mail::Component *)_components_in_code.RemoveItem(i);
+		delete (BMailComponent *)_components_in_code.RemoveItem(i);
 
 	for (i = _components_in_raw.CountItems(); i-- > 0;)
 		delete (message_part *)_components_in_raw.RemoveItem(i);
@@ -250,7 +242,7 @@ status_t MIMEMultipartContainer::SetToRFC822(BPositionIO *data, size_t length, b
 	topLevelStart = data->Position();
 	topLevelEnd = topLevelStart + length;
 
-	Mail::Component::SetToRFC822(data,length);
+	BMailComponent::SetToRFC822(data,length);
 
 	HeaderField("Content-Type",&content_type);
 	content_type_string = content_type.FindString("unlabeled");
@@ -407,8 +399,8 @@ status_t MIMEMultipartContainer::SetToRFC822(BPositionIO *data, size_t length, b
 }
 
 
-status_t MIMEMultipartContainer::RenderToRFC822(BPositionIO *render_to) {
-	Mail::Component::RenderToRFC822(render_to);
+status_t BMIMEMultipartMailContainer::RenderToRFC822(BPositionIO *render_to) {
+	BMailComponent::RenderToRFC822(render_to);
 
 	BString delimiter;
 	delimiter << "\r\n--" << _boundary << "\r\n";
@@ -422,7 +414,7 @@ status_t MIMEMultipartContainer::RenderToRFC822(BPositionIO *render_to) {
 		render_to->Write(delimiter.String(),delimiter.Length());
 		if (_components_in_code.ItemAt(i) != NULL) { //---- _components_in_code has precedence
 
-			Mail::Component *code = (Mail::Component *)_components_in_code.ItemAt(i);
+			BMailComponent *code = (BMailComponent *)_components_in_code.ItemAt(i);
 			status_t status = code->RenderToRFC822(render_to); //----Easy enough
 			if (status < B_OK)
 				return status;
@@ -450,14 +442,12 @@ status_t MIMEMultipartContainer::RenderToRFC822(BPositionIO *render_to) {
 	return B_OK;
 }
 
-void MIMEMultipartContainer::_ReservedMultipart1() {}
-void MIMEMultipartContainer::_ReservedMultipart2() {}
-void MIMEMultipartContainer::_ReservedMultipart3() {}
+void BMIMEMultipartMailContainer::_ReservedMultipart1() {}
+void BMIMEMultipartMailContainer::_ReservedMultipart2() {}
+void BMIMEMultipartMailContainer::_ReservedMultipart3() {}
 
-void Container::_ReservedContainer1() {}
-void Container::_ReservedContainer2() {}
-void Container::_ReservedContainer3() {}
-void Container::_ReservedContainer4() {}
+void BMailContainer::_ReservedContainer1() {}
+void BMailContainer::_ReservedContainer2() {}
+void BMailContainer::_ReservedContainer3() {}
+void BMailContainer::_ReservedContainer4() {}
 
-}	// namespace Mail
-}	// namespace Zoidberg

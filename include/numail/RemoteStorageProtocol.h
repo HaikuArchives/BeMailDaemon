@@ -8,13 +8,10 @@
 #include <MailProtocol.h>
 #include <StringList.h>
 
-namespace Zoidberg {
-namespace Mail {
-
-class RemoteStorageProtocol : public Mail::Protocol {
+class BMailRemoteStorageProtocol : public BMailProtocol {
 	public:
-		RemoteStorageProtocol(BMessage *settings, Mail::ChainRunner *runner);
-		virtual ~RemoteStorageProtocol();
+		BMailRemoteStorageProtocol(BMessage *settings, BMailChainRunner *runner);
+		virtual ~BMailRemoteStorageProtocol();
 		
 		virtual status_t GetMessage(const char *mailbox, const char *message, BPositionIO **, BMessage *headers) = 0;
 		virtual status_t AddMessage(const char *mailbox, BPositionIO *data, BString *id) = 0;
@@ -35,13 +32,10 @@ class RemoteStorageProtocol : public Mail::Protocol {
 		virtual status_t DeleteMessage(const char* uid);
 		
 	//---Data members
-		StringList mailboxes;
+		BStringList mailboxes;
 		
 	private:
 		BHandler *handler;
 };
-
-}
-}
 
 #endif // ZOIDBERG_MAIL_REMOTESTORAGEPROTOCOL_H
