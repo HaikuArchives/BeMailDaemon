@@ -100,11 +100,25 @@ bool StringMatcher::SetPattern(const char * str, bool isSimple)
 }
 
 
-bool StringMatcher::Match(const char * const str) const
+bool
+StringMatcher::Match(const char *str) const
 {
-   if (_regExpValid == false) return false;
-   int regExpStat = regexec(&_regExp, str, 0, NULL, 0);
-   return (regExpStat != REG_NOMATCH);
+#ifdef __INTEL__
+	char buffer[1024];
+	if (strlen(str) > 1024) {
+		// internal Be regex seems to be broken with strings larger than a certain size :-/
+		memcpy(buffer, str, 1023);
+		buffer[1023] = '\0';
+		str = buffer;
+	}
+#endif
+
+	if (_regExpValid == false)
+		return false;
+
+	int regExpStat = regexec(&_regExp, str, 0, NULL, 0);
+
+	return (regExpStat != REG_NOMATCH);
 } 
 
 

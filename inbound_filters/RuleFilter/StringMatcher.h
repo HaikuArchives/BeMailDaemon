@@ -56,7 +56,7 @@ public:
      * @param string a string to match against using our current expression.
      * @return true iff (string) matches, false otherwise.
      */
-    bool Match(const char * const string) const;
+    bool Match(const char *string) const;
     
 private:
     bool _regExpValid;
