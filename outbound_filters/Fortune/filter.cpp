@@ -11,7 +11,7 @@
 class FortuneFilter: public MailFilter
 {
 	bool enabled;
-	
+	BString fortune_file;	
   public:
 	FortuneFilter(BMessage*);
 	virtual status_t InitCheck(BString *err);
@@ -25,6 +25,7 @@ class FortuneFilter: public MailFilter
 FortuneFilter::FortuneFilter(BMessage* msg)
 : MailFilter(msg), enabled(msg->FindBool("enabled"))
 {
+	msg->FindString("fortune_file", &fortune_file);	
 }
 
 status_t FortuneFilter::InitCheck(BString* err){ return B_OK; }
@@ -32,10 +33,14 @@ status_t FortuneFilter::InitCheck(BString* err){ return B_OK; }
 MDStatus FortuneFilter::ProcessMailMessage
 (BPositionIO** io, BEntry* io_entry, BMessage* headers, BPath* , BString*)
 {
+	fortune_file.Prepend("/bin/fortune ");
+
+	printf("* Fortune * Line used: %s\n", fortune_file.String());
+
 	FILE * fd;
 	char buffer[768];
 	
-	fd = popen("/bin/fortune", "r");
+	fd = popen(fortune_file.String(), "r");
 	if (fd) {
 		(*io)->Seek(0, SEEK_END);
 		
