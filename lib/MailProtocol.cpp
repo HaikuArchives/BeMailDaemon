@@ -175,7 +175,8 @@ void DeletePass::Callback(MDStatus /*status*/) {
 	if ((us->unique_ids != NULL) && (us->InitCheck() == B_OK)) {
 		BMessage *meta_data = us->parent->Chain()->MetaData();
 		meta_data->RemoveName("manifest");
-		meta_data->AddFlat("manifest",us->unique_ids);
+		if (us->settings->FindBool("leave_mail_on_server"))
+			meta_data->AddFlat("manifest",us->unique_ids);
 	}
 }
 
