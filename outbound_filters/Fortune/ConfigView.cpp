@@ -10,6 +10,7 @@
 #include <String.h>
 #include <Message.h>
 
+#include <FileConfigView.h>
 
 ConfigView::ConfigView()
 	:	BView(BRect(0,0,20,20),"fortune_filter",B_FOLLOW_LEFT | B_FOLLOW_TOP,0)
@@ -23,13 +24,12 @@ ConfigView::ConfigView()
 
 	BRect rect(5,4,250,25);
 	rect.bottom = rect.top - 2 + itemHeight;
-	BTextControl *control = new BTextControl(rect,"fortune_file","Fortune File:",NULL,NULL);
-	control->SetDivider(control->StringWidth(control->Label()) + 6);
-	AddChild(control);
+	FileConfigView *fview = new FileConfigView("Fortune File:","fortune_file",true,"/boot/beos/etc/fortunes/default");
+	AddChild(fview);
 	
 	rect.top = rect.bottom + 8;
 	rect.bottom = rect.top - 2 + itemHeight;
-	control = new BTextControl(rect,"tag_line","Tag Line:",NULL,NULL);
+	BTextControl * control = new BTextControl(rect,"tag_line","Tag Line:",NULL,NULL);
 	control->SetDivider(control->StringWidth(control->Label()) + 6);
 	AddChild(control);
 
