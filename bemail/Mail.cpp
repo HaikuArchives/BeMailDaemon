@@ -61,7 +61,7 @@ All rights reserved.
 #include <MailMessage.h>
 #include <MailSettings.h>
 #include <MailDaemon.h>
-#include <mail_util.h> // For StripGook.
+#include <mail_util.h> // For StripGook and MDR_convert_from_utf8.
 #include <MDRLanguage.h>
 
 #ifndef BONE
@@ -119,6 +119,7 @@ BRect		signature_window;
 BRect		mail_window;
 BRect		last_window;
 uint32		gMailCharacterSet = B_MS_WINDOWS_CONVERSION;
+bool		gWarnAboutUnencodableCharacters = true;
 Words 		*gWords[MAX_DICTIONARIES], *gExactWords[MAX_DICTIONARIES];
 int32 		gUserDict;
 BFile 		*gUserDictFile;
@@ -268,6 +269,7 @@ TMailApp::TMailApp()
 				gReplyPreamble[len] = '\0';
 			}
 			fPrefs->Read(&attachAttributes_mode, sizeof(bool));
+			fPrefs->Read(&gWarnAboutUnencodableCharacters, sizeof(bool));
 
 			Mail::Settings settings;
 			gDefaultChain = settings.DefaultOutboundChainID();
@@ -484,7 +486,7 @@ void TMailApp::MessageReceived(BMessage *msg)
 						&fFont, &level, &wrap_mode, &attachAttributes_mode,
 						&gColoredQuotes, &gDefaultChain, &gUseAccountFrom,
 						&gReplyPreamble, &signature, &gMailCharacterSet,
-						&show_buttonbar);
+						&gWarnAboutUnencodableCharacters, &show_buttonbar);
 				fPrefsWindow->Show();
 				fPrevBBPref = show_buttonbar;
 			}
@@ -615,6 +617,7 @@ bool TMailApp::QuitRequested()
 		fPrefs->Write(&len, sizeof(int32));
 		fPrefs->Write(gReplyPreamble, len);
 		fPrefs->Write(&attachAttributes_mode, sizeof(bool));
+		fPrefs->Write(&gWarnAboutUnencodableCharacters, sizeof(bool));
 
 		if (gDefaultChain != ~0UL)
 		{
@@ -2807,31 +2810,6 @@ TMailWindow::Send(bool now)
 	mail_encoding	encodingForBody = quoted_printable;
 	mail_encoding	encodingForHeaders = quoted_printable;
 
-	if (fHeaderView != NULL)
-		characterSetToUse = fHeaderView->fCharacterSetUserSees;
-
-	// Set up the encoding to use for converting binary to printable ASCII.
-	// Normally this will be quoted printable, but for some old software,
-	// particularly Japanese stuff, they only understand base64.  They also
-	// prefer it for the smaller size.
-	if (characterSetToUse == B_SJIS_CONVERSION ||
-		characterSetToUse == B_EUC_CONVERSION)
-		encodingForBody = base64;
-	else if (characterSetToUse == B_JIS_CONVERSION ||
-		characterSetToUse == MDR_US_ASCII_CONVERSION)
-		encodingForBody = seven_bit;
-	else if (characterSetToUse == B_EUC_KR_CONVERSION)
-		encodingForBody = eight_bit;
-
-	// Using quoted printable on almost completely non-ASCII Japanese is a
-	// waste of time.  Besides, some stupid cell phone services need base64 in
-	// the headers.
-	if (characterSetToUse == B_SJIS_CONVERSION ||
-		characterSetToUse == B_EUC_CONVERSION ||
-		characterSetToUse == B_JIS_CONVERSION ||
-		characterSetToUse == B_EUC_KR_CONVERSION)
-		encodingForHeaders = base64;
-
 	if (!now)
 	{
 		status_t status;
@@ -2844,6 +2822,96 @@ TMailWindow::Send(bool now)
 				MDR_DIALECT_CHOICE ("Ok","了解")))->Go();
 		}
 		return status;
+	}
+
+	if (fHeaderView != NULL)
+		characterSetToUse = fHeaderView->fCharacterSetUserSees;
+
+	// Set up the encoding to use for converting binary to printable ASCII.
+	// Normally this will be quoted printable, but for some old software,
+	// particularly Japanese stuff, they only understand base64.  They also
+	// prefer it for the smaller size.  Later on this will be reduced to 7bit
+	// if the encoded text is just 7bit characters.
+	if (characterSetToUse == B_SJIS_CONVERSION ||
+		characterSetToUse == B_EUC_CONVERSION)
+		encodingForBody = base64;
+	else if (characterSetToUse == B_JIS_CONVERSION ||
+		characterSetToUse == MDR_US_ASCII_CONVERSION ||
+		characterSetToUse == B_ISO1_CONVERSION ||
+		characterSetToUse == B_EUC_KR_CONVERSION)
+		encodingForBody = eight_bit;
+
+	// Using quoted printable headers on almost completely non-ASCII Japanese
+	// is a waste of time.  Besides, some stupid cell phone services need
+	// base64 in the headers.
+	if (characterSetToUse == B_SJIS_CONVERSION ||
+		characterSetToUse == B_EUC_CONVERSION ||
+		characterSetToUse == B_JIS_CONVERSION ||
+		characterSetToUse == B_EUC_KR_CONVERSION)
+		encodingForHeaders = base64;
+
+	// Count the number of characters in the message body which aren't in the
+	// currently selected character set.  Also see if the resulting encoded
+	// text can safely use 7 bit characters.
+	if (fContentView->fTextView->TextLength() > 0) {
+		// First do a trial encoding with the user's character set.
+		int32	converterState = 0;
+		int32	originalLength;
+		BString	tempString;
+		int32	tempStringLength;
+		char	*tempStringPntr;
+		originalLength = fContentView->fTextView->TextLength();
+		tempStringLength = originalLength *
+			6 /* Some character sets bloat up on escape codes */;
+		tempStringPntr = tempString.LockBuffer (tempStringLength);
+		if (tempStringPntr != NULL &&
+			B_OK == Zoidberg::Mail::MDR_convert_from_utf8 (
+			characterSetToUse,
+			fContentView->fTextView->Text(), &originalLength,
+			tempStringPntr, &tempStringLength, &converterState,
+			0x1A /* The code to substitute for unknown characters */)) {
+
+			// Check for any characters which don't fit in a 7 bit encoding.
+			int		i;
+			bool	has8Bit = false;
+			for (i = 0; i < tempStringLength; i++)
+				if (tempString[i] == 0 || (tempString[i] & 0x80)) {
+					has8Bit = true;
+					break;
+				}
+			if (!has8Bit)
+				encodingForBody = seven_bit;
+			tempString.UnlockBuffer (tempStringLength);
+
+			// Count up the number of unencoded characters and warn the user about them.
+			if (gWarnAboutUnencodableCharacters) {
+				int32	offset = 0;
+				int		count = 0;
+				while (offset >= 0) {
+					offset = tempString.FindFirst (0x1A, offset);
+					if (offset >= 0) {
+						count++;
+						offset++; // Don't get stuck finding the same character again.
+					}
+				}
+				if (count > 0) {
+					int32	userAnswer;
+					BString	messageString;
+					messageString << "Your main text contains " << count <<
+						" unencodable characters.  Perhaps a different character set "
+						"would work better?  Hit Send to send it anyway (a substitute "
+						"character will be used in place of the unencodable ones), or "
+						"choose Cancel to go back and try fixing it up.";
+					userAnswer = (new BAlert ("Question", messageString.String(),
+						MDR_DIALECT_CHOICE ("Send","送信"),
+						MDR_DIALECT_CHOICE ("Cancel","中止"), // Default is cancel.
+						NULL, B_WIDTH_AS_USUAL, B_OFFSET_SPACING, B_WARNING_ALERT))
+						->Go();
+					if (userAnswer == 1)
+						return -1; // Cancel was picked.
+				}
+			}
+		}
 	}
 	
 	status_t result;

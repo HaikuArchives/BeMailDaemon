@@ -181,10 +181,12 @@ BEOS Mail Daemon Replacement v2.0.1 Beta 3
 
 履歴：
 
-May 8 2003 - v2.0.1b3
+May 9 2003 - v2.0.1b3
 - Added US-ASCII encoding and decoding, which also uses 7bit rather than quoted printable.
 - Remove leading and trailing spaces from the thread string (subject minus the Re: etc bits), since some other mail software likes adding a trailing space, which messes up the thread sorting.
 - Replace NUL bytes after conversion to UTF-8 with the substitute character.  This is because the BeOS ISO-2022-JP to UTF-8 conversion sometimes gets it wrong and inserts a NUL.
+- Added an optional alert to warn you if you try to send a message which contains characters unencodable in the currently selected character set.
+- More intelligently picks 7bit encoding if there are no 8 bit characters (for all character sets).  Also uses 8bit rather than quoted printable for Latin-1, ISO-2022-JP, EUC-KR.  Base64 used for SHIFT-JIS and EUC-JP.  Quoted printable for all others that have 8 bit data.
 
 April 13 2003 - v2.0.1b2
 - Make the encoding menu slide around when resizing the window.  Can only do it for reading a mail message, not when composing, since pop-up menus don't resize (a BeOS bug).

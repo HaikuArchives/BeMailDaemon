@@ -72,7 +72,7 @@ class TPrefsWindow : public BWindow
 		TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *warp,
 			bool *attachAttributes, bool *cquotes, uint32 *account,
 			int32 *replyTo, char **preamble, char **sig, uint32 *encoding,
-			bool *buttonBar);
+			bool *warnUnencodable, bool *buttonBar);
 		~TPrefsWindow();
 
 		virtual void MessageReceived(BMessage*);
@@ -88,6 +88,7 @@ class TPrefsWindow : public BWindow
 		BPopUpMenu *BuildAttachAttributesMenu(bool);
 		BPopUpMenu *BuildColoredQuotesMenu(bool quote);
 		BPopUpMenu *BuildEncodingMenu(uint32 encoding);
+		BPopUpMenu *BuildWarnUnencodableMenu(bool warnUnencodable);
 		BPopUpMenu *BuildButtonBarMenu(bool show);
 
 	private:
@@ -113,6 +114,8 @@ class TPrefsWindow : public BWindow
 		BFont	*fNewFont;
 		uint32	fEncoding;
 		uint32	*fNewEncoding;
+		bool	fWarnUnencodable;
+		bool	*fNewWarnUnencodable;
 		BButton	*fRevert;
 
 		BPopUpMenu *fFontMenu;
@@ -125,6 +128,7 @@ class TPrefsWindow : public BWindow
 		BTextControl *fReplyPreamble;
 		BPopUpMenu *fSignatureMenu;
 		BPopUpMenu *fEncodingMenu;
+		BPopUpMenu *fWarnUnencodableMenu;
 		BPopUpMenu *fButtonBarMenu;
 };
 

@@ -73,6 +73,8 @@ using namespace Zoidberg;
 #define REPLY_PREAMBLE_TEXT		MDR_DIALECT_CHOICE ("Reply Preamble:", "返信へ追加:")
 #define SIGNATURE_TEXT		MDR_DIALECT_CHOICE ("Auto Signature:", "自動署名:")
 #define ENCODING_TEXT		MDR_DIALECT_CHOICE ("Encoding:", "エンコード形式:")
+#define WARN_UNENCODABLE_TEXT	MDR_DIALECT_CHOICE ("Warn Unencodable:", "Warn Unencodable:")
+
 #define BUTTONBAR_TEXT		MDR_DIALECT_CHOICE ("Button Bar:", "ボタンバー:")
 
 #define OK_BUTTON_X1		(PREF_WIDTH - BUTTON_WIDTH - 6)
@@ -86,8 +88,9 @@ using namespace Zoidberg;
 
 enum	P_MESSAGES			{P_OK = 128, P_CANCEL, P_REVERT, P_FONT,
 							 P_SIZE, P_LEVEL, P_WRAP, P_ATTACH_ATTRIBUTES,
-							 P_SIG, P_ENC, P_BUTTON_BAR, P_ACCOUNT, P_REPLYTO,
-							 P_REPLY_PREAMBLE, P_COLORED_QUOTES};
+							 P_SIG, P_ENC, P_WARN_UNENCODABLE, P_BUTTON_BAR,
+							 P_ACCOUNT, P_REPLYTO, P_REPLY_PREAMBLE,
+							 P_COLORED_QUOTES};
 
 #define ICON_LABEL_TEXT MDR_DIALECT_CHOICE ("Show Icons & Labels", "アイコンとラベル")
 #define ICON_TEXT MDR_DIALECT_CHOICE ("Show Icons Only", "アイコンのみ")
@@ -139,8 +142,9 @@ const EncodingItem kEncodings[] =
 
 TPrefsWindow::TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *wrap,
 	bool *attachAttributes, bool *cquotes, uint32 *account, int32 *replyTo,
-	char **preamble, char **sig, uint32 *encoding, bool *buttonBar)
-	:	BWindow(rect, MDR_DIALECT_CHOICE ("BeMail Preferences","BeMailの設定"), B_TITLED_WINDOW, B_NOT_RESIZABLE |B_NOT_ZOOMABLE)
+	char **preamble, char **sig, uint32 *encoding, bool *warnUnencodable,
+	bool *buttonBar)
+	:	BWindow(rect, MDR_DIALECT_CHOICE ("BeMail Preferences","BeMailの設定"), B_TITLED_WINDOW, B_NOT_RESIZABLE | B_NOT_ZOOMABLE)
 {
 	BMenuField *menu;
 
@@ -152,6 +156,7 @@ TPrefsWindow::TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *wrap,
 	fNewAccount = account;		fAccount = *fNewAccount;
 	fNewReplyTo = replyTo;		fReplyTo = *fNewReplyTo;
 	fNewEncoding = encoding;	fEncoding = *fNewEncoding;
+	fNewWarnUnencodable = warnUnencodable;	fWarnUnencodable = *fNewWarnUnencodable;
 	fNewButtonBar = buttonBar;	fButtonBar = *fNewButtonBar;
 
 	fNewPreamble = preamble;
@@ -169,7 +174,7 @@ TPrefsWindow::TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *wrap,
 	font_height fontHeight;
 	view->GetFontHeight(&fontHeight);
 	int32 height = (int32)(fontHeight.ascent + fontHeight.descent + fontHeight.leading) + 6;
-	int32 labelWidth = (int32)view->StringWidth(ATTACH_ATTRIBUTES_TEXT) + SEPARATOR_MARGIN;
+	int32 labelWidth = (int32)view->StringWidth(WARN_UNENCODABLE_TEXT) + SEPARATOR_MARGIN;
 
 	// group boxes
 
@@ -178,7 +183,7 @@ TPrefsWindow::TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *wrap,
 	interfaceBox->SetLabel(MDR_DIALECT_CHOICE ("User Interface","ユーザーインターフェース"));
 	view->AddChild(interfaceBox);
 
-	r.top = r.bottom + 8;  r.bottom = r.top + 8 * (height + ITEM_SPACE);
+	r.top = r.bottom + 8;  r.bottom = r.top + 9 * (height + ITEM_SPACE);
 	BBox *mailBox = new BBox(r,NULL,B_FOLLOW_LEFT_RIGHT | B_FOLLOW_TOP);
 	mailBox->SetLabel(MDR_DIALECT_CHOICE ("Mailing","メール関係"));
 	view->AddChild(mailBox);
@@ -296,6 +301,15 @@ TPrefsWindow::TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *wrap,
 	mailBox->AddChild(menu);
 
 	r.OffsetBy(0,height + ITEM_SPACE);
+	fWarnUnencodableMenu = BuildWarnUnencodableMenu(fWarnUnencodable);
+	menu = new BMenuField(r, "warnUnencodable", WARN_UNENCODABLE_TEXT,
+		fWarnUnencodableMenu, B_FOLLOW_ALL,
+		B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
+	menu->SetDivider(labelWidth);
+	menu->SetAlignment(B_ALIGN_RIGHT);
+	mailBox->AddChild(menu);
+
+	r.OffsetBy(0,height + ITEM_SPACE);
 	fWrapMenu = BuildWrapMenu(*wrap);
 	menu = new BMenuField(r, "wrap", WRAP_TEXT, fWrapMenu,B_FOLLOW_ALL,
 				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
@@ -399,6 +413,7 @@ TPrefsWindow::MessageReceived(BMessage *msg)
 			}
 
 			*fNewEncoding = fEncoding;
+			*fNewWarnUnencodable = fWarnUnencodable;
 			*fNewButtonBar = fButtonBar;
 
 			be_app->PostMessage(PREFS_CHANGED);
@@ -455,6 +470,10 @@ TPrefsWindow::MessageReceived(BMessage *msg)
 						break;
 					}
 				}
+
+				strcpy(label, fWarnUnencodable ? "On" : "Off");
+				if ((item = fWarnUnencodableMenu->FindItem(label)) != NULL)
+					item->SetMarked(true);
 			}
 			else
 				Quit();
@@ -537,6 +556,9 @@ TPrefsWindow::MessageReceived(BMessage *msg)
 		case P_ENC:
 			msg->FindInt32("encoding", (int32 *)fNewEncoding);
 			break;
+		case P_WARN_UNENCODABLE:
+			msg->FindBool("warnUnencodable", fNewWarnUnencodable);
+			break;
 		case P_BUTTON_BAR:
 			msg->FindInt8("bar", (int8 *)fNewButtonBar);
 			be_app->PostMessage( PREFS_CHANGED );
@@ -562,6 +584,7 @@ TPrefsWindow::MessageReceived(BMessage *msg)
 		|| strcmp(fReplyPreamble->Text(), *fNewPreamble)
 		|| strcmp(fSignature, *fNewSignature)
 		|| fEncoding != *fNewEncoding
+		|| fWarnUnencodable != *fNewWarnUnencodable
 		|| fButtonBar != *fNewButtonBar;
 	fRevert->SetEnabled(changed);
 }
@@ -878,6 +901,13 @@ TPrefsWindow::BuildEncodingMenu(uint32 encoding)
 			item->SetMarked(true);
 	}
 	return menu;
+}
+
+
+BPopUpMenu *
+TPrefsWindow::BuildWarnUnencodableMenu(bool warnUnencodable)
+{
+	return BuildBoolMenu(P_WARN_UNENCODABLE,"warnUnencodable",warnUnencodable);
 }
 
 
