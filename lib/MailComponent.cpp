@@ -380,17 +380,15 @@ status_t PlainTextBodyComponent::Instantiate(BPositionIO *data, size_t length) {
 	switch (encoding) {
 		case 'b':
 			len = decode_base64(text,alternate.String(),alternate.Length());
-			text[len] = 0;
 			break;
 		case 'q':
 			len = decode_qp(text,alternate.String(),alternate.Length());
-			text[len] = 0;
 			break;
 		default:
 			len = alternate.Length();
 			strcpy(text,alternate.String());
 	}
-	alt2.UnlockBuffer(len+1);
+	alt2.UnlockBuffer(len);
 	
 	alt2.ReplaceAll("\r\n","\n");
 	
@@ -398,8 +396,7 @@ status_t PlainTextBodyComponent::Instantiate(BPositionIO *data, size_t length) {
 	int32 dest_len = len * 2;
 	int32 state;
 	convert_to_utf8(charset,alt2.String(),&len,text,&dest_len,&state);
-	text[dest_len] = 0;
-	this->text.UnlockBuffer(dest_len+1);
+	this->text.UnlockBuffer(dest_len);
 	
 	return B_OK;
 }
@@ -443,18 +440,15 @@ status_t PlainTextBodyComponent::Render(BPositionIO *render_to) {
 		char *raw = alt.LockBuffer(dest_len);
 		int32 state;
 		convert_from_utf8(charset,this->text.String(),&len,raw,&dest_len,&state);
-		raw[dest_len] = 0;
 		alt.UnlockBuffer(dest_len);
 		
 		raw = modified.LockBuffer((alt.Length()*3)+1);
 		switch (encoding) {
 			case 'b':
 				len = encode_base64(raw,alt.String(),alt.Length());
-				text[len] = 0;
 				break;
 			case 'q':
 				len = encode_qp(raw,alt.String(),alt.Length(), false);
-				text[len] = 0;
 				break;
 			default:
 				len = alt.Length();
