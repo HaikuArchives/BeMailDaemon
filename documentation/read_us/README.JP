@@ -181,7 +181,7 @@ BEOS Mail Daemon Replacement v2.0.1 Beta 2
 
 履歴：
 
-April 5 2003 - v2.0.1b2
+April 8 2003 - v2.0.1b2
 - Make the encoding menu slide around when resizing the window.  Can only do it for reading a mail message, not when composing, since pop-up menus don't resize (a BeOS bug).
 - Changed encoding to work on a per-word basis to reduce the chance of making words longer than the 75 character RFC2047 limit.  Will even split up a Japanese subject line with no spaces into encoded "words" which should get reassembled without spaces.
 - Changed header encoding to base64 rather than quoted-printable for Asian languages, for cell phone system compatability.
@@ -192,6 +192,7 @@ April 5 2003 - v2.0.1b2
 - Add All People menu item, now only people not in any group are listed at the bottom of the pop-up address menu.
 - Fixed a PPC (PowerPC CPU version of BeOS) bug in AGMSBayesianSpamServer (atoll wasn't working so word database wasn't read), and changed sound effect format so they work for PPC.
 - Also, besides double quotes, don't encode <>,@() in the headers so that the mail system can see them.
+- AGMSBayesianSpamServer now shuts down immediately and returns true if it is asked to quit by the registrar.  Previously if you left it running, the system shutdown would be cancelled at AGMSBayesianSpamServer.
 
 February 20 2003 - v2.0.1b1
 - Yet more Japanese translations, courtesy of Jun Suzki this time.

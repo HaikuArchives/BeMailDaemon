@@ -74,6 +74,9 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
+ * Revision 1.80  2003/04/07 19:20:27  agmsmith
+ * Ooops, int64 doesn't exist, use long long instead.
+ *
  * Revision 1.79  2003/04/07 19:05:22  agmsmith
  * Now with Allen Brunson's atoll for PPC (you need the %Ld, but that
  * becomes %lld on other systems).
@@ -3961,7 +3964,8 @@ received, we use a time delay to do the quit and make sure there are no pending
 commands being processed by the auxiliary looper which is sending us commands.
 Also, we have a countdown which can be interrupted by an incoming scripting
 message in case one client tells us to quit while another one is still using us
-(happens when you have two or more e-mail accounts). */
+(happens when you have two or more e-mail accounts).  But if the system is
+shutting down, quit immediately! */
 
 void ABSApp::Pulse ()
 {
@@ -3985,6 +3989,24 @@ been started). */
 
 bool ABSApp::QuitRequested ()
 {
+  BMessage  *QuitMessage;
+  team_info  RemoteInfo;
+  BMessenger RemoteMessenger;
+  team_id    RemoteTeam;
+
+  /* See if the quit is from the system shutdown command (which goes through
+  the registrar server), if so, quit immediately. */
+
+  QuitMessage = CurrentMessage ();
+  if (QuitMessage != NULL && QuitMessage->IsSourceRemote ())
+  {
+    RemoteMessenger = QuitMessage->ReturnAddress ();
+    RemoteTeam = RemoteMessenger.Team ();
+    if (get_team_info (RemoteTeam, &RemoteInfo) == B_OK &&
+    strstr (RemoteInfo.args, "registrar") != NULL)
+      g_QuitCountdown = 0;
+  }
+
   if (g_QuitCountdown == 0)
     return BApplication::QuitRequested ();
 
