@@ -187,7 +187,7 @@ MailDaemonApp::MailDaemonApp(void)
 		
 	string << " new messages.";
 	
-	status->SetDefaultMessage(strdup(string.String())); /* Memory Leak!!!!!! How to fix? */
+	status->SetDefaultMessage(string);
 }
 
 MailDaemonApp::~MailDaemonApp()

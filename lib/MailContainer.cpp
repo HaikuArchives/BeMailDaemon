@@ -18,10 +18,10 @@ typedef struct message_part {
 } message_part;
 
 MIMEMultipartContainer::MIMEMultipartContainer(const char *boundary, const char *this_is_an_MIME_message_text) :
+	MailComponent(), 
 	_boundary(boundary),
 	_MIME_message_warning(this_is_an_MIME_message_text),
-	_io_data(NULL),
-	MailComponent() {
+	_io_data(NULL) {
 		AddHeaderField("MIME-Version","1.0");
 		AddHeaderField("Content-Type","multipart/mixed");
 	}
@@ -73,7 +73,7 @@ MailComponent *MIMEMultipartContainer::GetComponent(int32 index) {
 	
 	_io_data->Seek(part->start,SEEK_SET);
 	
-	printf("Instantiating from %d to %d\n", part->start, part->end);
+	printf("Instantiating from %d to %d\n", (int)part->start, (int)part->end);
 	
 	piece->Instantiate(_io_data,part->end - part->start);
 	
@@ -125,7 +125,7 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length) {
 		buf[len] = 0;
 		line.UnlockBuffer(len);
 		
-		printf("Offset: %d\n",offset);
+		printf("Offset: %d\n", (int)offset);
 		
 		if (len <= 0)
 			break;
@@ -142,8 +142,8 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length) {
 		
 		if (strncmp(line.String(),type.String(), type.Length()) == 0) {
 			if (last_boundary >= 0) {
-				printf("Last boundary %d",last_boundary);
-				printf(", offset %d\n",offset);
+				printf("Last boundary %d", (int)last_boundary);
+				printf(", offset %d\n", (int)offset);
 				_components_in_raw.AddItem(new message_part(last_boundary, offset));
 				_components_in_code.AddItem(NULL);
 			}

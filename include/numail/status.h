@@ -23,7 +23,7 @@ class StatusWindow : public BWindow {
 		
 				bool	HasItems(void);
 				void	SetShowCriterion(uint32);
-				void	SetDefaultMessage(const char* m);
+				void	SetDefaultMessage(const BString& m);
 
 	private:
 		friend	class	StatusView;

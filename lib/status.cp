@@ -145,11 +145,11 @@ void StatusWindow::MessageReceived(BMessage *msg)
 }
 
 // SetDefaultMessage
-void StatusWindow::SetDefaultMessage(const char* m)
+void StatusWindow::SetDefaultMessage(const BString& m)
 {
 	if (Lock())
 	{
-		message_view->SetText(m);
+		message_view->SetText(m.String());
 		Unlock();
 	}
 }
