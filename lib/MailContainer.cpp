@@ -22,7 +22,7 @@ MIMEMultipartContainer::MIMEMultipartContainer(const char *boundary, const char 
 	MailComponent(), 
 	_boundary(boundary),
 	_MIME_message_warning(this_is_an_MIME_message_text),
-	_io_data(NULL) {
+	_io_data(NULL) {		
 		AddHeaderField("MIME-Version","1.0");
 		AddHeaderField("Content-Type","multipart/mixed");
 	}
@@ -111,15 +111,23 @@ status_t MIMEMultipartContainer::ManualGetComponent(MailComponent *component, in
 	return component->Instantiate(_io_data,part->end - part->start);
 }
 
-status_t MIMEMultipartContainer::GetDecodedData(BPositionIO *data) {
+status_t MIMEMultipartContainer::GetDecodedData(BPositionIO *) {
 	return B_BAD_TYPE; //------We don't play dat
 }
 
-status_t MIMEMultipartContainer::SetDecodedData(BPositionIO *data) {
+status_t MIMEMultipartContainer::SetDecodedData(BPositionIO *) {
 	return B_BAD_TYPE; //------We don't play dat
 }
 
 status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length) {
+	MailComponent *old;
+	while ((old = (MailComponent *)_components_in_code.RemoveItem(0L)) != NULL)
+		delete old;
+		
+	message_part *old2;
+	while ((old2 = (message_part *)_components_in_raw.RemoveItem(0L)) != NULL)
+		delete old2;
+	
 	_io_data = data;
 	
 	off_t position = data->Position();
