@@ -1,5 +1,7 @@
 #include <RemoteStorageProtocol.h>
-#include <NetEndpoint.h>
+#include <socket.h>
+#include <netdb.h>
+#include <errno.h>
 #include <Message.h>
 #include <ChainRunner.h>
 #include <MDRLanguage.h>
@@ -69,7 +71,7 @@ class IMAP4Client : public Mail::RemoteStorageProtocol {
 		BMessageRunner *nooprunner;
 		
 		int32 commandCount;
-		BNetEndpoint *net;
+		int net;
 		BString selected_mb, inbox_name, hierarchy_delimiter, mb_root;
 		int32 inbox_index;
 		BList box_info;
@@ -161,25 +163,61 @@ class NoopWorker : public BHandler {
 		IMAP4Client *us;
 };
 
-IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::RemoteStorageProtocol(settings,run), commandCount(0), net(NULL), selected_mb(""), inbox_index(-1), noop(NULL) {
+IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::RemoteStorageProtocol(settings,run), commandCount(0), net(-1), selected_mb(""), inbox_index(-1), noop(NULL) {
 	err = B_OK;
 	
 	mb_root = settings->FindString("root");
 	
-	net = new BNetEndpoint;
 	int port = settings->FindInt32("port");
 	if (port <= 0)
 		port = 143;
 
 //-----Open TCP link	
 	runner->ReportProgress(0,0,MDR_DIALECT_CHOICE ("Opening connection...","接続中..."));
-	err = net->Connect(settings->FindString("server"),port);
-	if (err < B_OK) {
+	
+	uint32 hostIP = inet_addr(settings->FindString("server"));  // first see if we can parse it as a numeric address
+	if ((hostIP == 0)||(hostIP == (uint32)-1)) {
+		struct hostent * he = gethostbyname(settings->FindString("server"));
+		hostIP = he ? *((uint32*)he->h_addr) : 0;
+	}
+   
+	if (hostIP == 0) {
 		BString error;
 		error << "Could not connect to IMAP server " << settings->FindString("server");
 		if (port != 143)
 			error << ":" << port;
-		error << '.';
+		error << ": Host not found.";
+		runner->ShowError(error.String());
+		runner->Stop();
+		return;
+	}
+	
+	net = socket(AF_INET, SOCK_STREAM, 0);
+	if (net >= 0) {
+		struct sockaddr_in saAddr;
+		memset(&saAddr, 0, sizeof(saAddr));
+		saAddr.sin_family      = AF_INET;
+		saAddr.sin_port        = htons(port);
+		saAddr.sin_addr.s_addr = hostIP;
+		int result = connect(net, (struct sockaddr *) &saAddr, sizeof(saAddr));
+		if (result < 0) {
+			closesocket(net);
+			net = -1;
+			BString error;
+			error << "Could not connect to IMAP server " << settings->FindString("server");
+			if (port != 143)
+				error << ":" << port;
+			error << '.';
+			runner->ShowError(error.String());
+			runner->Stop();
+			return;
+		}
+	} else {
+		BString error;
+		error << "Could not connect to IMAP server " << settings->FindString("server");
+		if (port != 143)
+			error << ":" << port;
+		error << ". (" << strerror(errno) << ')';
 		runner->ShowError(error.String());
 		runner->Stop();
 		return;
@@ -237,6 +275,7 @@ IMAP4Client::~IMAP4Client() {
 		delete (struct mailbox_info *)(box_info.ItemAt(i));
 	
 	delete noop;
+	closesocket(net);
 }
 
 void IMAP4Client::InitializeMailboxes() {
@@ -326,8 +365,8 @@ status_t IMAP4Client::AddMessage(const char *mailbox, BPositionIO *data, BString
 	ReceiveLine(command);
 	char *buffer = new char[size];
 	data->ReadAt(0,buffer,size);
-	net->Send(buffer,size);
-	net->Send("\r\n",2);
+	send(net,buffer,size,0);
+	send(net,"\r\n",2,0);
 	WasCommandOkay(command);
 	
 	if (((struct mailbox_info *)(box_info.ItemAt(box_index)))->next_uid <= 0) {
@@ -670,7 +709,7 @@ IMAP4Client::SendCommand(const char* command)
 {
 	static char cmd[255];
 	::sprintf(cmd,"a%.7ld %s"CRLF,++commandCount,command);
-	net->Send(cmd,strlen(cmd));
+	send(net,cmd,strlen(cmd),0);
 	
 	PRINT(("C: %s",cmd));
 	
@@ -683,11 +722,28 @@ IMAP4Client::ReceiveLine(BString &out)
 	uint8 c = 0;
 	int32 len = 0,r;
 	out = "";
-	if(net->IsDataPending(kIMAP4ClientTimeout))
+	
+	struct timeval tv;
+	struct fd_set fds; 
+
+	tv.tv_sec = long(kIMAP4ClientTimeout / 1e6); 
+	tv.tv_usec = long(kIMAP4ClientTimeout-(tv.tv_sec * 1e6)); 
+	
+	/* Initialize (clear) the socket mask. */ 
+	FD_ZERO(&fds);
+	
+	/* Set the socket in the mask. */ 
+	FD_SET(net, &fds); 
+	int result = select(32, &fds, NULL, NULL, &tv);
+	
+	if (result < 0)
+		return errno;
+	
+	if(result > 0)
 	{
 		while(c != '\n' && c != xEOF)
 		{
-			r = net->Receive(&c,1);
+			r = recv(net,&c,1,0);
 			if(r <= 0) {
 				BString error;
 				error << "Connection to " << settings->FindString("server") << " lost.";
@@ -716,11 +772,31 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 	BString out;
 	bool in_quote = false;
 	bool was_cr = false;
-	if(net->IsDataPending(kIMAP4ClientTimeout))
+	int result;
+	
+	{
+		struct timeval tv;
+		struct fd_set fds; 
+	
+		tv.tv_sec = long(kIMAP4ClientTimeout / 1e6); 
+		tv.tv_usec = long(kIMAP4ClientTimeout-(tv.tv_sec * 1e6)); 
+		
+		/* Initialize (clear) the socket mask. */ 
+		FD_ZERO(&fds);
+		
+		/* Set the socket in the mask. */ 
+		FD_SET(net, &fds); 
+		result = select(32, &fds, NULL, NULL, &tv);
+	}
+	
+	if (result < 0)
+		return errno;
+		
+	if(result > 0)
 	{
 		while(c != '\n' && c != xEOF)
 		{
-			r = net->Receive(&c,1);
+			r = recv(net,&c,1,0);
 			if(r <= 0) {
 				BString error;
 				error << "Connection to " << settings->FindString("server") << " lost.";
@@ -772,7 +848,7 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 						int read_octets = 0;
 						int nibble_size;
 						while (read_octets < octets_to_read) {
-							nibble_size = net->Receive(buffer + read_octets,octets_to_read - read_octets);
+							nibble_size = recv(net,buffer + read_octets,octets_to_read - read_octets,0);
 							read_octets += nibble_size;
 							if (report_literals)
 								runner->ReportProgress(nibble_size,0);
