@@ -14,6 +14,7 @@
 #include <MailSettings.h>
 #include <NodeMessage.h>
 #include <ChainRunner.h>
+#include <status.h>
 
 
 _EXPORT const char *pretty_name = "Incoming Mail Folder";
@@ -100,10 +101,15 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	create_directory(path.Path(),0777);
 	dir.SetTo(path.Path());
 	
-	if (e->MoveTo(&dir) != B_OK)
+	status_t err = e->MoveTo(&dir);
+	
+	if (err != B_OK)
 	{
-		// what; BAlert?
-		// Deal with cross-FS moves
+		BString error;
+		error << "An error occurred while saving the message " << out_headers->FindString("subject") << " to " << path.Path() << ": " << strerror(err);
+		
+		ShowAlert("Folder Error",error.String(),"OK",B_WARNING_ALERT);
+		
 		return MD_ERROR;
 	} else {
 		BNode node(e);
