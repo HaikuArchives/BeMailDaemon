@@ -140,6 +140,7 @@ status_t SMTPProtocol::Open(const char *server, int port, bool esmtp) {
 			if (end == B_ERROR)
 				end = fLog.Length();
 			BString auth(fLog.String() + start,end - start);
+			printf("Authentification string: \"%s\"\n",auth.String());
 			
 			if (auth.FindFirst("LOGIN"))
 				fAuthType |= LOGIN;
@@ -449,7 +450,6 @@ status_t SMTPProtocol::SendCommand(const char* cmd) {
 
 	while(true) {
 		len = ReceiveLine(fLog,true);
-		printf("< %s\n",fLog.String());
 		
 		if(len <= 0)
 			return B_ERROR;
@@ -464,6 +464,7 @@ status_t SMTPProtocol::SendCommand(const char* cmd) {
 				break;
 		}
 	}
+	printf("< %s\n",fLog.String());
 	return B_OK;
 }
 
