@@ -1,5 +1,6 @@
 #include <E-mail.h>
 #include <MailDaemon.h>
+#include <Directory.h>
 
 _EXPORT status_t	check_for_mail(int32 * incoming_count) {
 	status_t err = MailDaemon::CheckMail(true);
