@@ -39,8 +39,6 @@ ConfigView::ConfigView()
 
 void ConfigView::SetTo(BMessage *archive)
 {
-	archive->PrintToStream();
-	
 	BString path = archive->FindString("fortune_file");
 	if (path == B_EMPTY_STRING)
 		path = "/boot/beos/etc/fortunes/default";
@@ -60,7 +58,6 @@ void ConfigView::SetTo(BMessage *archive)
 
 status_t ConfigView::Archive(BMessage *into,bool) const
 {
-	into->PrintToStream();
 	if (FileConfigView *control = (FileConfigView *)FindView("fortune_file"))
 	{
 		control->Archive(into);
@@ -74,8 +71,6 @@ status_t ConfigView::Archive(BMessage *into,bool) const
 		if (into->ReplaceString("tag_line",line.String()) != B_OK)
 			into->AddString("tag_line",line.String());
 	}
-
-	into->PrintToStream();
 	return B_OK;
 }
 
