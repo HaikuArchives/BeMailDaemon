@@ -14,6 +14,8 @@
 #include <FileConfigView.h>
 #include <MailSettings.h>
 
+#include <MDRLanguage.h>
+
 using namespace Zoidberg;
 
 const uint32 kMsgActionMoveTo = 'argm';
@@ -44,25 +46,25 @@ class RuleFilterConfig : public BView {
 
 RuleFilterConfig::RuleFilterConfig(BMessage *settings) : BView(BRect(0,0,260,85),"rulefilter_config", B_FOLLOW_LEFT | B_FOLLOW_TOP, 0) {
 	SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
-	attr = new BTextControl(BRect(5,5,100,20),"attr","If","header (e.g. Subject)",NULL);
-	attr->SetDivider(be_plain_font->StringWidth("If ") + 4);
+	attr = new BTextControl(BRect(5,5,100,20),"attr",MDR_DIALECT_CHOICE ("If","条件:"),MDR_DIALECT_CHOICE ("header (e.g. Subject)","ヘッダ(例えばSubject)"),NULL);
+	attr->SetDivider(be_plain_font->StringWidth(MDR_DIALECT_CHOICE ("If ","条件: "))+ 4);
 	if (settings->HasString("attribute"))
 		attr->SetText(settings->FindString("attribute"));
 	AddChild(attr);
 	
-	regex = new BTextControl(BRect(104,5,255,20),"attr"," is ","value (can be a regular expression, like *spam*)",NULL);
-	regex->SetDivider(be_plain_font->StringWidth(" is ") + 4);
+	regex = new BTextControl(BRect(104,5,255,20),"attr",MDR_DIALECT_CHOICE (" is "," が "),MDR_DIALECT_CHOICE ("value (can be a regular expression, like *spam*)","値(正規表現対応)"),NULL);
+	regex->SetDivider(be_plain_font->StringWidth(MDR_DIALECT_CHOICE (" is "," が ")) + 4);
 	if (settings->HasString("regex"))
 		regex->SetText(settings->FindString("regex"));
 	AddChild(regex);
 	
-	arg = new FileControl(BRect(5,55,255,80),"arg",NULL,"this field is based on the Action");
+	arg = new FileControl(BRect(5,55,255,80),"arg",NULL,MDR_DIALECT_CHOICE ("this field is based on the Action","ここは動作によって意味が変わります"));
 	if (BControl *control = (BControl *)arg->FindView("select_file"))
 		control->SetEnabled(false);
 	if (settings->HasString("argument"))
 		arg->SetText(settings->FindString("argument"));
 	
-	outbound = new BPopUpMenu("<Choose Account>");
+	outbound = new BPopUpMenu(MDR_DIALECT_CHOICE ("<Choose Account>","<アカウントを選択>"));
 	BList list;
 	Mail::OutboundChains(&list);
 	if (settings->HasInt32("do_what"))
@@ -86,17 +88,17 @@ RuleFilterConfig::RuleFilterConfig(BMessage *settings) : BView(BRect(0,0,260,85)
 	
 
 void RuleFilterConfig::AttachedToWindow() {
-	menu = new BPopUpMenu("<Choose Action>");
-	menu->AddItem(new BMenuItem("Move To", new BMessage(kMsgActionMoveTo)));
-	menu->AddItem(new BMenuItem("Set Flags To", new BMessage(kMsgActionSetTo)));
-	menu->AddItem(new BMenuItem("Delete Message", new BMessage(kMsgActionDelete)));
-	menu->AddItem(new BMenuItem("Reply With", new BMessage(kMsgActionReplyWith)));
-	menu->AddItem(new BMenuItem("Set As Read", new BMessage(kMsgActionSetRead)));
+	menu = new BPopUpMenu(MDR_DIALECT_CHOICE ("<Choose Action>","<動作を選択>"));
+	menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Move To","移動する"), new BMessage(kMsgActionMoveTo)));
+	menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Set Flags To","フラグを指定する"), new BMessage(kMsgActionSetTo)));
+	menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Delete Message","削除する"), new BMessage(kMsgActionDelete)));
+	menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Reply With","返事を書く"), new BMessage(kMsgActionReplyWith)));
+	menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Set As Read","既読にする"), new BMessage(kMsgActionSetRead)));
 	menu->SetTargetForItems(this);
 
-	BMenuField *field = new BMenuField(BRect(5,30,210,50),"do_what","Then",menu);
+	BMenuField *field = new BMenuField(BRect(5,30,210,50),"do_what",MDR_DIALECT_CHOICE ("Then","ならば"),menu);
 	field->ResizeToPreferred();
-	field->SetDivider(be_plain_font->StringWidth("Then") + 8);
+	field->SetDivider(be_plain_font->StringWidth(MDR_DIALECT_CHOICE ("Then","ならば")) + 8);
 	AddChild(field);
 	
 	outbound_field = new BMenuField(BRect(5,55,255,80),"reply","Foo",outbound);
