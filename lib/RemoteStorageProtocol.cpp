@@ -135,6 +135,8 @@ class UpdateHandler : public BHandler {
 							BDirectory dir(&item_ref);
 							BNode node(&dir,msg->FindString("name"));
 								//--- Why in HELL can't you make a BNode from a node_ref?*/
+								
+							snooze(500000);
 							_prot->SyncMailbox(to_mb);
 								
 							//node.WriteAttrString("MAIL:unique_id",&id);
@@ -167,9 +169,10 @@ class UpdateHandler : public BHandler {
 				msg->FindInt64("directory",&directory);
 				switch (opcode) {
 					case B_ENTRY_CREATED:
-						if (!is_dir)
+						if (!is_dir) {
+							snooze(500000);
 							_prot->SyncMailbox(nodes[directory]);
-						else {
+						} else {
 							BString mb;
 							if (directory == dest_node)
 								mb = msg->FindString("name");
@@ -298,8 +301,9 @@ void RemoteStorageProtocol::SyncMailbox(const char *mailbox) {
 			continue;
 		snoodle.SetTo(&entry,B_READ_WRITE);
 		append = false;
-		snooze(1000000);
+		
 		while (snoodle.Lock() != B_OK) snooze(100);
+		
 		if (snoodle.ReadAttr("MAIL:chain",B_INT32_TYPE,0,&chain,sizeof(chain)) < B_OK)
 			append = true;
 		if (chain != runner->Chain()->ID())

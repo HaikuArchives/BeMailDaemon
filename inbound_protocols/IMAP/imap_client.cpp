@@ -59,7 +59,7 @@ class IMAP4Client : public Mail::RemoteStorageProtocol {
 		status_t ReceiveLine(BString &out);
 		status_t SendCommand(const char *command);
 		
-		status_t Select(const char *mb, bool force_reselect = false);
+		status_t Select(const char *mb, bool force_reselect = false, bool queue_new_messages = true, bool noop = true);
 		status_t Close();
 		
 		virtual status_t InitCheck(BString *) { return err; }
@@ -79,7 +79,6 @@ class IMAP4Client : public Mail::RemoteStorageProtocol {
 		int32 commandCount;
 		int net;
 		BString selected_mb, inbox_name, hierarchy_delimiter, mb_root;
-		int32 inbox_index;
 		BList box_info;
 		status_t err;
 };
@@ -87,88 +86,17 @@ class IMAP4Client : public Mail::RemoteStorageProtocol {
 class NoopWorker : public BHandler {
 	public:
 		NoopWorker(IMAP4Client *a) : us(a), last_run(0) {}
-		void RecentMessages() {
-			int32 num_messages = -1;
-			int32 next_uid = -1;
-			int32 total = 0;
-			char expected[255];
-			BString tag;
-			::sprintf(expected,"a%.7ld",us->commandCount);
-			while(1) {
-				NestedString response;
-				if (us->GetResponse(tag,&response) < 0)
-					return;
-				
-				if (tag == expected)
-					break;
-				
-				if (response[0].CountItems() == 2 && strcasecmp(response[0][0](),"UIDNEXT") == 0)
-					next_uid = atol(response[0][1]());
-					
-				if (response.CountItems() < 2)
-					continue;
-				
-				if (strcasecmp(response[1](),"RECENT") == 0)
-					num_messages = atoi(response[0]());
-				if (strcasecmp(response[1](),"EXISTS") == 0)
-					total = atoi(response[0]());
-			}
-			
-			
-			if ((num_messages < 0) || (total < 0))
-				return;
-				
-			struct mailbox_info *stats = (struct mailbox_info *)us->box_info.ItemAt(us->inbox_index);
-			stats->exists = total;
-			stats->next_uid = next_uid;
-			
-			if ((num_messages == 0) || (total == 0))
-				return;
-				
-			BString command;
-			command = "FETCH ";
-			command << total - num_messages + 1 << ':' << total << " UID";
-			us->SendCommand(command.String());
-			::sprintf(expected,"a%.7ld",us->commandCount);
-			StringList list;
-			BString uid;
-			while(1) {
-				NestedString response;
-				if (us->GetResponse(tag,&response) < 0)
-					return;
-							
-				if (tag == expected)
-					break;
-				
-				uid = us->inbox_name;
-				uid << '/' << response[2][1]();
-				if (!us->unique_ids->HasItem(uid.String()))
-					list.AddItem(uid.String());
-			}
-			
-			(*us->unique_ids) += list;
-			us->runner->GetMessages(&list,-1);
-		}
 		void MessageReceived(BMessage *msg) {
+			puts("Noop message received");
 			if (msg->what != 'impn' /* IMaP Noop */)
 				return;
 				
 			if ((time(NULL) - last_run) < 9)
 				return;
-				
-			if (strcasecmp(us->selected_mb.String(),"INBOX"))
-				us->Close();
 			
-			if (us->selected_mb == "") {
-				BString command = "SELECT ";
-				command << us->inbox_name;
-				us->SendCommand(command.String());
-				us->selected_mb = us->inbox_name;
-				RecentMessages();
-			} else {
-				us->SendCommand("NOOP");
-				RecentMessages();
-			}
+			puts("Issuing NOOP");
+				
+			us->Select(us->inbox_name.String());
 			last_run = time(NULL);
 		}
 	private:
@@ -176,7 +104,7 @@ class NoopWorker : public BHandler {
 		time_t last_run;
 };
 
-IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::RemoteStorageProtocol(settings,run), commandCount(0), net(-1), selected_mb(""), inbox_index(-1), noop(NULL) {
+IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::RemoteStorageProtocol(settings,run), commandCount(0), net(-1), selected_mb(""), noop(NULL) {
 	err = B_OK;
 	
 	mb_root = settings->FindString("root");
@@ -275,12 +203,12 @@ IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Rem
 	StringList to_dl;
 	unique_ids->NotThere(*manifest,&to_dl);
 	
-	if (to_dl.CountItems() > 0)
-		runner->GetMessages(&to_dl,-1);
-	
 	noop = new NoopWorker(this);
 	runner->AddHandler(noop);
 	nooprunner = new BMessageRunner(BMessenger(noop,runner),new BMessage('impn'),10e6);
+	
+	if (to_dl.CountItems() > 0)
+		runner->GetMessages(&to_dl,-1);
 }
 
 IMAP4Client::~IMAP4Client() {	
@@ -345,10 +273,8 @@ void IMAP4Client::InitializeMailboxes() {
 				parsed_name.Remove(0,1);
 				
 			mailboxes += parsed_name.String();
-			if (strcasecmp(parsed_name.String(),"INBOX") == 0) {
-				inbox_name = response[3]();
-				inbox_index = box_info.CountItems() - 1;
-			}
+			if (strcasecmp(parsed_name.String(),"INBOX") == 0)
+				inbox_name = parsed_name;
 				
 			BPath blorp(path);
 			blorp.Append(parsed_name.String());
@@ -379,10 +305,8 @@ void IMAP4Client::InitializeMailboxes() {
 			mailboxes += "";
 			box_info.AddItem(info);
 			
-			if (strcasecmp(mb_root.String(),"INBOX") == 0) {
-				inbox_name = mb_root;
-				inbox_index = box_info.CountItems() - 1;
-			}
+			if (strcasecmp(mb_root.String(),"INBOX") == 0)
+				inbox_name = "";
 			SendCommand("CLOSE");
 		}
 	}
@@ -394,8 +318,8 @@ void IMAP4Client::InitializeMailboxes() {
 							puts("Done\n");
 
 status_t IMAP4Client::AddMessage(const char *mailbox, BPositionIO *data, BString *id) {
-	Select(mailbox,true);
-	Close();
+	Select(mailbox); //---Update info
+	Close(); //---APPEND is not valid if a mailbox is selected
 	
 	const int32 box_index = mailboxes.IndexOf(mailbox);
 	char expected[255];
@@ -415,7 +339,7 @@ status_t IMAP4Client::AddMessage(const char *mailbox, BPositionIO *data, BString
 	WasCommandOkay(command);
 	
 	if (((struct mailbox_info *)(box_info.ItemAt(box_index)))->next_uid <= 0) {
-		Select(mailbox,true);
+		Select(mailbox,false,false);
 		
 		command = "FETCH ";
 		command << ((struct mailbox_info *)(box_info.ItemAt(box_index)))->exists << " UID";
@@ -470,7 +394,7 @@ status_t IMAP4Client::CopyMessage(const char *mailbox, const char *to_mailbox, B
 	if (!WasCommandOkay(command))
 		return B_ERROR;
 	
-	Select(to_mailbox,true);
+	Select(to_mailbox,false,false,true); //---Update mailbox info
 	
 	if (to_mb->next_uid <= 0) {
 		command = "FETCH ";
@@ -504,7 +428,7 @@ status_t IMAP4Client::CreateMailbox(const char *mailbox) {
 	info->next_uid = -1;
 	info->server_mb_name = mailbox;
 	info->server_mb_name.ReplaceAll("/",hierarchy_delimiter.String());
-	if (mb_root.ByteAt(mb_root.Length() - 1) != hierarchy_delimiter.ByteAt(0))
+	if ((mb_root.ByteAt(mb_root.Length() - 1) != hierarchy_delimiter.ByteAt(0)) && (mb_root.Length() > 0))
 		info->server_mb_name.Prepend(hierarchy_delimiter);
 		
 	info->server_mb_name.Prepend(mb_root.String());
@@ -559,7 +483,7 @@ void IMAP4Client::GetUniqueIDs() {
 	runner->ReportProgress(0,0,"Getting Unique IDs");
 	
 	for (int32 i = 0; i < mailboxes.CountItems(); i++) {
-		Select(mailboxes[i]);
+		Select(mailboxes[i],true,false /* We queue them as a group */);
 		
 		info = (struct mailbox_info *)(box_info.ItemAt(i));
 		if (info->exists <= 0)
@@ -597,7 +521,7 @@ status_t IMAP4Client::Close() {
 	return B_OK;
 }
 
-status_t IMAP4Client::Select(const char *mb, bool reselect) {
+status_t IMAP4Client::Select(const char *mb, bool reselect, bool queue_new_messages, bool noop) {
 	if (reselect)
 		Close();
 	
@@ -607,20 +531,26 @@ status_t IMAP4Client::Select(const char *mb, bool reselect) {
 		
 	const char *real_mb = info->server_mb_name.String();
 	
-	if (selected_mb != real_mb) {
-		if (selected_mb != "") {
+	if ((selected_mb != real_mb) || (noop)) {
+		if ((selected_mb != "")  && (selected_mb != real_mb)){
 			BString trash;
 			SendCommand("CLOSE");
 			selected_mb = "";
 			WasCommandOkay(trash);
 		}
-		BString cmd = "SELECT \"";
-		cmd << real_mb << '\"';
+		BString cmd;
+		if (selected_mb == real_mb)
+			cmd = "NOOP";
+		else
+			cmd << "SELECT \"" << real_mb << '\"';
+			
 		SendCommand(cmd.String());
 		
 		char expected[255];
 		BString tag;
 		::sprintf(expected,"a%.7ld",commandCount);
+		
+		int32 new_exists(-1), new_next_uid(-1), recent(-1);
 		
 		while(1) {
 			NestedString response;
@@ -630,11 +560,44 @@ status_t IMAP4Client::Select(const char *mb, bool reselect) {
 				break;
 			
 			if ((response.CountItems() > 1) && (strcasecmp(response[1](),"EXISTS") == 0))
-				info->exists = atoi(response[0]());
+				new_exists = atoi(response[0]());
 			
 			if (response[0].CountItems() == 2 && strcasecmp(response[0][0](),"UIDNEXT") == 0)
-				info->next_uid = atol(response[0][1]());
+				new_next_uid = atol(response[0][1]());
+				
+			if ((response.CountItems() > 1) && (strcasecmp(response[1](),"RECENT") == 0))
+				recent = atoi(response[0]());
 		}
+		
+		if ((queue_new_messages) && (recent > 0)) {
+			BString command = "FETCH ";
+			command << new_exists - recent + 1 << ':' << new_exists << " UID";
+			SendCommand(command.String());
+			::sprintf(expected,"a%.7ld",commandCount);
+			StringList list;
+			BString uid;
+			while(1) {
+				NestedString response;
+				if (GetResponse(tag,&response) < 0)
+					break;
+							
+				if (tag == expected)
+					break;
+				
+				uid = real_mb;
+				uid << '/' << response[2][1]();
+				if (!unique_ids->HasItem(uid.String()))
+					list.AddItem(uid.String());
+			}
+			
+			if (list.CountItems() > 0) {
+				(*unique_ids) += list;
+				runner->GetMessages(&list,-1);
+			}
+		}
+		
+		info->exists = new_exists;
+		info->next_uid = new_next_uid;
 		
 		selected_mb = real_mb;
 	}

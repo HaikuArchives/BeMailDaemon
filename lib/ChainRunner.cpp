@@ -401,6 +401,7 @@ ChainRunner::get_messages(StringList *list)
 			struct filter_image *current = (struct filter_image *)(addons.ItemAt(j));
 			
 			err = current->filter->ProcessMailMessage(&file,entry,headers,folder,uid);
+
 			if (err != B_OK)
 				break;
 		}
@@ -422,6 +423,7 @@ ChainRunner::get_messages(StringList *list)
 	CallCallbacksFor(process_cb, err);
 
 	if (save_chain) {
+	
 		entry_ref addon;
 		BMessage settings;
 		for (int32 i = 0; i < addons.CountItems(); i++) {
@@ -442,6 +444,7 @@ ChainRunner::get_messages(StringList *list)
 
 	if (err == B_MAIL_END_CHAIN)
 		Stop();
+
 }
 
 
