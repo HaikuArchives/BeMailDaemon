@@ -53,7 +53,8 @@ All rights reserved.
 #include "Utilities.h"
 
 
-status_t WriteAttrString(BNode *node, const char *attr, const char *value)
+status_t
+WriteAttrString(BNode *node, const char *attr, const char *value)
 {
 	if (!value)
 		value = B_EMPTY_STRING;
@@ -64,7 +65,8 @@ status_t WriteAttrString(BNode *node, const char *attr, const char *value)
 }
 
 
-status_t ReadAttrString(BNode *node, const char *attr, BString *value)
+status_t
+ReadAttrString(BNode *node, const char *attr, BString *value)
 {
 	attr_info attrInfo;
 	
@@ -84,7 +86,8 @@ status_t ReadAttrString(BNode *node, const char *attr, BString *value)
 // case-insensitive version of strcmp
 //
 
-int32 cistrcmp(const char *str1, const char *str2)
+int32
+cistrcmp(const char *str1, const char *str2)
 {
 	char	c1;
 	char	c2;
@@ -92,18 +95,20 @@ int32 cistrcmp(const char *str1, const char *str2)
 	int32	loop;
 
 	len = strlen(str1) + 1;
-	for (loop = 0; loop < len; loop++) {
+	for (loop = 0; loop < len; loop++)
+	{
 		c1 = str1[loop];
-		if ((c1 >= 'A') && (c1 <= 'Z'))
-			c1 += ('a' - 'A');
+		if (c1 >= 'A' && c1 <= 'Z')
+			c1 += 'a' - 'A';
 		c2 = str2[loop];
-		if ((c2 >= 'A') && (c2 <= 'Z'))
-			c2 += ('a' - 'A');
-		if (c1 == c2) {
+		if (c2 >= 'A' && c2 <= 'Z')
+			c2 += 'a' - 'A';
+		if (c1 == c2)
+		{
 		}
 		else if (c1 < c2)
 			return -1;
-		else if ((c1 > c2) || (!c2))
+		else if (c1 > c2 || !c2)
 			return 1;
 	}
 	return 0;
@@ -114,24 +119,27 @@ int32 cistrcmp(const char *str1, const char *str2)
 // case-insensitive version of strncmp
 //
 
-int32 cistrncmp(const char *str1, const char *str2, int32 max)
+int32
+cistrncmp(const char *str1, const char *str2, int32 max)
 {
 	char		c1;
 	char		c2;
 	int32		loop;
 
-	for (loop = 0; loop < max; loop++) {
+	for (loop = 0; loop < max; loop++)
+	{
 		c1 = *str1++;
-		if ((c1 >= 'A') && (c1 <= 'Z'))
-			c1 += ('a' - 'A');
+		if (c1 >= 'A' && c1 <= 'Z')
+			c1 += 'a' - 'A';
 		c2 = *str2++;
-		if ((c2 >= 'A') && (c2 <= 'Z'))
-			c2 += ('a' - 'A');
-		if (c1 == c2) {
+		if (c2 >= 'A' && c2 <= 'Z')
+			c2 += 'a' - 'A';
+		if (c1 == c2)
+		{
 		}
 		else if (c1 < c2)
 			return -1;
-		else if ((c1 > c2) || (!c2))
+		else if (c1 > c2 || !c2)
 			return 1;
 	}
 	return 0;
@@ -142,7 +150,8 @@ int32 cistrncmp(const char *str1, const char *str2, int32 max)
 // case-insensitive version of strstr
 //
 
-char *cistrstr(const char *cs, const char *ct)
+char *
+cistrstr(const char *cs, const char *ct)
 {
 	char		c1;
 	char		c2;
@@ -153,10 +162,13 @@ char *cistrstr(const char *cs, const char *ct)
 
 	cs_len = strlen(cs);
 	ct_len = strlen(ct);
-	for (loop1 = 0; loop1 < cs_len; loop1++) {
+	for (loop1 = 0; loop1 < cs_len; loop1++)
+	{
 		if (cs_len - loop1 < ct_len)
-			goto done;
-		for (loop2 = 0; loop2 < ct_len; loop2++) {
+			return NULL;
+
+		for (loop2 = 0; loop2 < ct_len; loop2++)
+		{
 			c1 = cs[loop1 + loop2];
 			if ((c1 >= 'A') && (c1 <= 'Z'))
 				c1 += ('a' - 'A');
@@ -167,9 +179,10 @@ char *cistrstr(const char *cs, const char *ct)
 				goto next;
 		}
 		return const_cast<char *>(&cs[loop1]);
-next:;
+next:
+		// label must be followed by a statement
+		;
 	}
-done:;
 	return NULL;
 }
 
@@ -178,18 +191,19 @@ done:;
 // Un-fold field and add items to dst
 //
 
-void extract(char **dst, const char *src)
+void
+extract(char **dst, const char *src)
 {
 	if (src == NULL)
 		return;
 
-	bool		remove_ws = true;
-	int32		comma = 0;
-	int32		count = 0;
-	int32		index = 0;
-	int32		len;
-	int32 		srcLen = strlen(src);
-	
+	bool remove_ws = true;
+	int32 comma = 0;
+	int32 count = 0;
+	int32 index = 0;
+	int32 len;
+	int32 srcLen = strlen(src);
+
 	if (strlen(*dst))
 		comma = 2;
 
@@ -213,13 +227,13 @@ void extract(char **dst, const char *src)
 
 				if (src[index + 1] == '\n')
 					index++;
-				if ((src[index + 1] != ' ') && (src[index + 1] != '\t'))
+				if (src[index + 1] != ' ' && src[index + 1] != '\t')
 					break;
 			}
 		}
 		else
 		{
-			if ((remove_ws) && ((src[index] == ' ') || (src[index] == '\t')))
+			if (remove_ws && (src[index] == ' ' || src[index] == '\t'))
 			{
 				// just ignore that whitespace
 			}
@@ -240,14 +254,15 @@ void extract(char **dst, const char *src)
 // get list of recipients
 //
 
-void get_recipients(char **dest, Mail::Message *mail, bool all)
+void
+get_recipients(char **dest, Mail::Message *mail, bool all)
 {
-	extract(dest,mail->To());
-	extract(dest,mail->CC());
+	extract(dest, mail->To());
+	extract(dest, mail->CC());
 	if (all)
 	{
-		extract(dest,mail->From());
-		extract(dest,mail->ReplyTo());
+		extract(dest, mail->From());
+		extract(dest, mail->ReplyTo());
 	}
 
 	verify_recipients(dest);
@@ -258,25 +273,27 @@ void get_recipients(char **dest, Mail::Message *mail, bool all)
 // verify list of recipients
 //
 
-void verify_recipients(char **to)
+void
+verify_recipients(char **to)
 {
-	bool		quote;
-	char		*dst = NULL;
-	char		*src;
-	int32		dst_len = 0;
-	int32		index = 0;
-	int32		loop;
-	int32		offset;
-	int32		len;
-	int32		l;
-	int32		src_len;
+	char *dst = NULL;
+	char *src;
+	bool quote;
+	int32 dst_len = 0;
+	int32 index = 0;
+	int32 loop;
+	int32 offset;
+	int32 len;
+	int32 l;
+	int32 src_len;
 
 	src = *to;
 	src_len = strlen(src);
 	while (index < src_len) {
 		len = 0;
 		quote = false;
-		while ((src[index + len]) && ((quote) || ((!quote) && (src[index + len] != ',')))) {
+		while (src[index + len] && (quote || (!quote && src[index + len] != ',')))
+		{
 			if (src[index + len] == '"')
 				quote = !quote;
 			len++;
@@ -285,22 +302,27 @@ void verify_recipients(char **to)
 		//
 		//	Error in header
 		//
-		if (quote) {
+		if (quote)
+		{
 			(new BAlert("Error", "There is an error in the header of this "
-			  "message, some information may not appear correctly.",
-			  "OK", NULL, NULL, B_WIDTH_AS_USUAL, B_WARNING_ALERT))->Go();
+				"message, some information may not appear correctly.",
+				"OK", NULL, NULL, B_WIDTH_AS_USUAL, B_WARNING_ALERT))->Go();
 			break;
 		}
 
-// remove quoted text...
-		if (len) {
+		// remove quoted text...
+		if (len)
+		{
 			offset = index;
 			index += len + 1;
-			for (loop = offset; loop < offset + len; loop++) {
-				if (src[loop] == '"') {
+			for (loop = offset; loop < offset + len; loop++)
+			{
+				if (src[loop] == '"')
+				{
 					len -= (loop - offset) + 1;
 					offset = loop + 1;
-					while ((len) && (src[offset] != '"')) {
+					while (len && src[offset] != '"')
+					{
 						offset++;
 						len--;
 					}
@@ -310,27 +332,31 @@ void verify_recipients(char **to)
 				}
 			}
 
-// look for bracketed '<...>' text...
-			for (loop = offset; loop < offset + len; loop++) {
-				if (src[loop] == '<') {
+			// look for bracketed '<...>' text...
+			for (loop = offset; loop < offset + len; loop++)
+			{
+				if (src[loop] == '<')
+				{
 					offset = loop + 1;
 					l = 0;
-					while ((l < len) && (src[offset + l] != '>')) {
+					while (l < len && src[offset + l] != '>')
 						l++;
-					}
+
 					goto add;
 				}
 			}
 
-// not bracketed? then take it all...
+			// not bracketed? then take it all...
 			l = len;
-			while ((l) && ((src[offset] == ' ') || (src[offset] == '\t'))) {
+			while (l && (src[offset] == ' ' || src[offset] == '\t'))
+			{
 				offset++;
 				l--;
 			}
 
 add:
-			if (dst_len) {
+			if (dst_len)
+			{
 				dst = (char *)realloc(dst, dst_len + 1 + l);
 				dst[dst_len++] = ',';
 			}
@@ -343,11 +369,13 @@ add:
 			index++;
 	}
 
-	if (dst_len) {
+	if (dst_len)
+	{
 		dst = (char *)realloc(dst, dst_len + 1);
 		dst[dst_len] = 0;
 	}
-	else {
+	else
+	{
 		dst = (char *)malloc(1);
 		dst[0] = 0;
 	}
@@ -361,14 +389,17 @@ add:
 // return length of \n terminated line
 //
 
-int32 linelen(char *str, int32 len, bool header)
+int32
+linelen(char *str, int32 len, bool header)
 {
 	int32		loop;
 
-	for (loop = 0; loop < len; loop++) {
-		if (str[loop] == '\n') {
-			if ((!header) || (loop < 2) || ((header) && (str[loop + 1] != ' ') &&
-										  (str[loop + 1] != '\t')))
+	for (loop = 0; loop < len; loop++)
+	{
+		if (str[loop] == '\n')
+		{
+			if (!header || loop < 2
+				|| (header && str[loop + 1] != ' ' && str[loop + 1] != '\t'))
 				return loop + 1;
 		}
 	}
@@ -380,7 +411,8 @@ int32 linelen(char *str, int32 len, bool header)
 // get named parameter from string
 //
 
-bool get_parameter(const char *src, char *param, BString *dest)
+bool
+get_parameter(const char *src, char *param, BString *dest)
 {
 	if (!src)
 		return false;
@@ -391,7 +423,8 @@ bool get_parameter(const char *src, char *param, BString *dest)
 
 	offset += strlen(param);
 	int32 len = strlen(src) - (offset - src);
-	if (*offset == '"') {
+	if (*offset == '"')
+	{
 		offset++;
 		len = 0;
 		while (offset[len] != '"')
@@ -405,7 +438,7 @@ bool get_parameter(const char *src, char *param, BString *dest)
 				return false;						
 			}
 		}
-		dest->Append(offset,len);
+		dest->Append(offset, len);
 	}
 	else
 		dest->SetTo(offset);
@@ -418,12 +451,14 @@ bool get_parameter(const char *src, char *param, BString *dest)
 // search buffer for boundary
 //
 
-char* find_boundary(char *buf, char *boundary, int32 len)
+char *
+find_boundary(char *buf, char *boundary, int32 len)
 {
 	char	*offset;
 
 	offset = buf;
-	while (strncmp(boundary, offset, strlen(boundary))) {
+	while (strncmp(boundary, offset, strlen(boundary)))
+	{
 		offset += linelen(offset, (buf + len) - offset + 1, false);
 		if (*offset == '\r')
 			offset++;
@@ -432,3 +467,4 @@ char* find_boundary(char *buf, char *boundary, int32 len)
 	}
 	return offset;
 }
+
