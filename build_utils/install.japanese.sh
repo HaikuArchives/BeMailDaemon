@@ -121,11 +121,11 @@ fi
 
 # Force the MIME database to reload the icons and other application info, since
 # it doesn't do it automatically and we sometimes add new icons.
-rm ~/config/settings/beos_mime/text/x-partial-email
+rm ~/config/settings/beos_mime/text/x-partial-email ~/config/settings/beos_mime/text/x-email ~/config/settings/beos_mime/text/x-vnd.be-maildraft
 # Remove this to deal with previous misconfiguration of the filetype
-mimeset -F -apps /system/servers/mail_daemon
-mimeset -F -apps /boot/beos/apps/BeMail
-mimeset -F -apps ~/config/bin/AGMSBayesianSpamServer
+mimeset /system/servers/mail_daemon
+mimeset /boot/beos/apps/BeMail
+mimeset ~/config/bin/AGMSBayesianSpamServer
 
 sleep 1
 /system/Deskbar &
