@@ -172,6 +172,9 @@ class TTextView : public BTextView
 			int32 *end);
 		void EnableSpellCheck(bool enable);
 
+		void AddQuote(int32 start, int32 finish);
+		void RemoveQuote(int32 start, int32 finish);
+
 		bool fHeader;
 		bool fReady;
 

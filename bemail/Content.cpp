@@ -291,71 +291,77 @@ FilterHTMLTag(int32 *first,char **t,char *end)
 }
 
 
+/** Fills the specified text_run_array with the correct values for the
+ *	specified text.
+ *	If "view" is NULL, it will assume that "line" lies on a line break,
+ *	if not, it will correctly retrieve the number of quotes the current
+ *	line already has.
+ */
+
 void
 FillInQouteTextRuns(BTextView *view, const char *line, int32 length, const BFont &font,
 	text_run_array *style, int32 maxStyles)
 {
 	text_run *runs = style->runs;
 	int32 index = style->count;
-	bool begin = view->TextLength() == 0 || view->ByteAt(view->TextLength() - 1) == '\n';
-	int32 start,end,pos = 0;
-	view->GetSelection(&end,&end);
-	const char *text = view->Text();
+	bool begin; 
+	int32 pos = 0;
 	int32 level = 0;
 	char *quote = QUOTE;
 
 	// get index to the beginning of the current line
 
-	// the following line works only reliable when text wrapping is set to off;
-	// so the complicated version actually used here is necessary:
-	// start = view->OffsetAt(view->CurrentLine());
+	if (view != NULL) {
+		int32 start, end;
+		view->GetSelection(&end, &end);
 
-	if (!begin)
-	{
-		// if the text is not the start of a new line, go back
-		// to the first character in the current line
-		for (start = end; start > 0; start--)
-		{
-			if (text[start - 1] == '\n')
-				break;
-		}
-	}
+		begin = view->TextLength() == 0 || view->ByteAt(view->TextLength() - 1) == '\n';
 
-	// get number of nested qoutes for current line
+		// the following line works only reliable when text wrapping is set to off;
+		// so the complicated version actually used here is necessary:
+		// start = view->OffsetAt(view->CurrentLine());
 
-	if (!begin && start < end)
-	{
-		begin = true;	// if there was no text in this line, there may come more nested quotes
-
-		for (int32 i = start;i < end;i++)
-		{
-			if (text[i] == *quote)
-				level++;
-			else if (text[i] != ' ' && text[i] != '\t')
-			{
-				begin = false;
-				break;
+		const char *text = view->Text();
+	
+		if (!begin) {
+			// if the text is not the start of a new line, go back
+			// to the first character in the current line
+			for (start = end; start > 0; start--) {
+				if (text[start - 1] == '\n')
+					break;
 			}
 		}
-		if (begin)	// skip leading spaces (tabs & newlines aren't allowed here)
-			while (line[pos] == ' ')
-				pos++;
-	}
+	
+		// get number of nested qoutes for current line
+	
+		if (!begin && start < end) {
+			begin = true;	// if there was no text in this line, there may come more nested quotes
+	
+			for (int32 i = start; i < end; i++) {
+				if (text[i] == quote[0])
+					level++;
+				else if (text[i] != ' ' && text[i] != '\t') {
+					begin = false;
+					break;
+				}
+			}
+			if (begin)	// skip leading spaces (tabs & newlines aren't allowed here)
+				while (line[pos] == ' ')
+					pos++;
+		}
+	} else
+		begin = true;
 
 	// set styles for all qoute levels in the text to be inserted
 
-	for (int32 pos = 0;pos < length;)
-	{
+	for (int32 pos = 0; pos < length;) {
 		int32 next;
-		if (begin && line[pos] == *quote)
-		{
-			while (pos < length && line[pos] != '\n')
-			{
+		if (begin && line[pos] == quote[0]) {
+			while (pos < length && line[pos] != '\n') {
 				level++;
 
 				bool search = true;
-				for (next = pos + 1;next < length;next++)
-				{
+				for (next = pos + 1; next < length; next++) {
 					if (search && line[next] == '>'
 						|| line[next] == '\n')
 						break;
@@ -371,33 +377,30 @@ FillInQouteTextRuns(BTextView *view, const char *line, int32 length, const BFont
 				if (++index >= maxStyles)
 					break;
 			}
-		}
-		else
-		{
+		} else {
 			runs[index].offset = pos;
 			runs[index].font = font;
 			runs[index].color = level > 0 ? kQuoteColors[level % kNumQuoteColors] : kNormalTextColor;
 			index++;
 			
-			for (next = pos;next < length;next++)
-			{
+			for (next = pos; next < length; next++) {
 				if (line[next] == '\n')
 					break;
 			}
 			pos = next;
 		}
+
 		if (index >= maxStyles)
 			break;
 
 		level = 0;
 
-		if (line[pos] == '\n')
-		{
+		if (pos < length && line[pos] == '\n') {
 			pos++;
 			begin = true;
 
 			// skip leading spaces (tabs & newlines aren't allowed here)
-			while (line[pos] == ' ')
+			while (pos < length && line[pos] == ' ')
 				pos++;
 		}
 	}
@@ -438,23 +441,7 @@ TContentView::TContentView(BRect rect, bool incoming, Mail::Message *mail, BFont
 void
 TContentView::MessageReceived(BMessage *msg)
 {
-	char		*str;
-	char		*quote;
-	const char	*text;
-	int32		finish;
-	int32		len;
-	int32		loop;
-	int32		new_start;
-	int32		offset;
-	int32		removed = 0;
-	int32		start;
-	BFile		file;
-	BRect		r;
-	entry_ref	ref;
-	off_t		size;
-
-	switch (msg->what)
-	{
+	switch (msg->what) {
 		case CHANGE_FONT:
 		{
 			BFont *font;
@@ -465,133 +452,70 @@ TContentView::MessageReceived(BMessage *msg)
 		}
 
 		case M_QUOTE:
-			r = fTextView->Bounds();
+		{
+			int32 start, finish;
 			fTextView->GetSelection(&start, &finish);
-			quote = (char *)malloc(strlen(QUOTE) + 1);
-			strcpy(quote, QUOTE);
-			len = strlen(QUOTE);
-			fTextView->GoToLine(fTextView->CurrentLine());
-			fTextView->GetSelection(&new_start, &new_start);
-			fTextView->Select(new_start, finish);
-			finish -= new_start;
-			str = (char *)malloc(finish + 1);
-			fTextView->GetText(new_start, finish, str);
-			offset = 0;
-			for (loop = 0; loop < finish; loop++)
-			{
-				if (str[loop] == '\n')
-				{
-					quote = (char *)realloc(quote, len + loop - offset + 1);
-					memcpy(&quote[len], &str[offset], loop - offset + 1);
-					len += loop - offset + 1;
-					offset = loop + 1;
-					if (offset < finish)
-					{
-						quote = (char *)realloc(quote, len + strlen(QUOTE));
-						memcpy(&quote[len], QUOTE, strlen(QUOTE));
-						len += strlen(QUOTE);
-					}
-				}
-			}
-			if (offset != finish)
-			{
-				quote = (char *)realloc(quote, len + (finish - offset));
-				memcpy(&quote[len], &str[offset], finish - offset);
-				len += finish - offset;
-			}
-			free(str);
-
-			fTextView->Delete();
-			fTextView->Insert(quote, len);
-			if (start != new_start)
-			{
-				start += strlen(QUOTE);
-				len -= (start - new_start);
-			}
-			fTextView->Select(start, start + len);
-			fTextView->ScrollTo(r.LeftTop());
-			free(quote);
+			fTextView->AddQuote(start, finish);
 			break;
-
+		}
 		case M_REMOVE_QUOTE:
-			r = fTextView->Bounds();
+		{
+			int32 start, finish;
 			fTextView->GetSelection(&start, &finish);
-			len = start;
-			fTextView->GoToLine(fTextView->CurrentLine());
-			fTextView->GetSelection(&start, &start);
-			fTextView->Select(start, finish);
-			new_start = finish;
-			finish -= start;
-			str = (char *)malloc(finish + 1);
-			fTextView->GetText(start, finish, str);
-			for (loop = 0; loop < finish; loop++)
-			{
-				if (strncmp(&str[loop], QUOTE, strlen(QUOTE)) == 0)
-				{
-					finish -= strlen(QUOTE);
-					memcpy(&str[loop], &str[loop + strlen(QUOTE)], finish - loop);
-					removed += strlen(QUOTE);
-				}
-				while ((loop < finish) && (str[loop] != '\n'))
-					loop++;
-
-				if (loop == finish)
-					break;
-			}
-			if (removed)
-			{
-				fTextView->Delete();
-				fTextView->Insert(str, finish);
-				new_start -= removed;
-				fTextView->Select(new_start - finish + (len - start) - 1, new_start);
-			}
-			else
-				fTextView->Select(len, new_start);
-
-			fTextView->ScrollTo(r.LeftTop());
-			free(str);
+			fTextView->RemoveQuote(start, finish);
 			break;
+		}
 
 		case M_SIGNATURE:
+		{
+			entry_ref ref;
 			msg->FindRef("ref", &ref);
-			file.SetTo(&ref, O_RDWR);
-			if (file.InitCheck() == B_NO_ERROR)
-			{
-				file.GetSize(&size);
-				str = (char *)malloc(size);
-				size = file.Read(str, size);
-				fTextView->GetSelection(&start, &finish);
-				text = fTextView->Text();
 
-				len = fTextView->TextLength();
-				if (len && text[len - 1] != '\n')
-				{
-					fTextView->Select(len, len);
+			BFile file(&ref, B_READ_ONLY);
+			if (file.InitCheck() == B_OK) {
+				int32 start, finish;
+				fTextView->GetSelection(&start, &finish);
+
+				off_t size;
+				file.GetSize(&size);
+				if (size > 32768)	// safety against corrupt signatures
+					break;
+
+				char *signature = (char *)malloc(size);
+				ssize_t bytesRead = file.Read(signature, size);
+				if (bytesRead < B_OK)
+					break;
+
+				const char *text = fTextView->Text();
+				int32 length = fTextView->TextLength();
+
+				if (length && text[length - 1] != '\n') {
+					fTextView->Select(length, length);
 
 					char newLine = '\n';
 					fTextView->Insert(&newLine, 1);
 
-					len++;
+					length++;
 				}
-				fTextView->Select(len, len);
-				fTextView->Insert(str, size);
-				fTextView->Select(len, len + size);
+
+				fTextView->Select(length, length);
+				fTextView->Insert(signature, bytesRead);
+				fTextView->Select(length, length + bytesRead);
 				fTextView->ScrollToSelection();
+
 				fTextView->Select(start, finish);
 				fTextView->ScrollToSelection();
-			}
-			else
-			{
+			} else {
 				beep();
 				(new BAlert("", MDR_DIALECT_CHOICE ("An error occurred trying to open this signature.","この署名を開くときにエラーが発生しました"),
 					MDR_DIALECT_CHOICE ("Sorry","了解")))->Go();
 			}
 			break;
+		}
 
 		case M_FIND:
 			FindString(msg->FindString("findthis"));
 			break;
-
 
 		default:
 			BView::MessageReceived(msg);
@@ -1026,8 +950,7 @@ TTextView::MakeFocus(bool focus)
 void
 TTextView::MessageReceived(BMessage *msg)
 {
-	switch (msg->what)
-	{
+	switch (msg->what) {
 		case B_SIMPLE_DATA:
 		{
 			if (fIncoming)
@@ -3117,12 +3040,174 @@ TTextView::WindowActivated(bool flag)
 	BTextView::WindowActivated(flag);
 }
 
-void
-TTextView::Undo(BClipboard* clipboard)
-{
-	if (clipboard) ;
 
-	if (IM_Active) return;
+void 
+TTextView::AddQuote(int32 start, int32 finish)
+{
+	BRect rect = Bounds();
+
+	int32 lineStart;
+	GoToLine(CurrentLine());
+	GetSelection(&lineStart, &lineStart);
+
+	// make sure that we're changing the whole last line, too
+	int32 lineEnd = finish > lineStart ? finish - 1 : finish;
+	{
+		const char *text = Text();
+		while (text[lineEnd] && text[lineEnd] != '\n')
+			lineEnd++;
+	}
+	Select(lineStart, lineEnd);
+
+	int32 textLength = lineEnd - lineStart;
+	char *text = (char *)malloc(textLength + 1);
+	if (text == NULL)
+		return;
+
+	GetText(lineStart, textLength, text);
+
+	int32 quoteLength = strlen(QUOTE);
+	int32 targetLength = 0;
+	char *target = NULL;
+	int32 lastLine = 0;
+
+	for (int32 index = 0; index < textLength; index++) {
+		if (text[index] == '\n' || index == textLength - 1) {
+			// add quote to this line
+			int32 lineLength = index - lastLine + 1;
+
+			target = (char *)realloc(target, targetLength + lineLength + quoteLength);
+			if (target == NULL)
+				// free the old buffer?
+				return;
+
+			// copy the quote sign
+			memcpy(&target[targetLength], QUOTE, quoteLength);
+			targetLength += quoteLength;
+
+			// copy the rest of the line
+			memcpy(&target[targetLength], &text[lastLine], lineLength);
+			targetLength += lineLength;
+
+			lastLine = index + 1;
+		}
+	}
+
+	// replace with quoted text
+	free(text);
+	Delete();
+
+	if (gColoredQuotes) {
+		const BFont *font = Font();
+
+		struct text_runs : text_run_array { text_run _runs[63]; } style;
+		style.count = 0;
+		FillInQouteTextRuns(NULL, target, targetLength, font, &style, 64);
+
+		Insert(target, targetLength, &style);
+	} else
+		Insert(target, targetLength);
+
+	free(target);
+
+	// redo the old selection (compute the new start if necessary)
+	Select(start + quoteLength, finish + (targetLength - textLength));
+
+	ScrollTo(rect.LeftTop());
+}
+
+
+void 
+TTextView::RemoveQuote(int32 start, int32 finish)
+{
+	BRect rect = Bounds();
+
+	GoToLine(CurrentLine());
+	int32 lineStart;
+	GetSelection(&lineStart, &lineStart);
+
+	// make sure that we're changing the whole last line, too
+	int32 lineEnd = finish > lineStart ? finish - 1 : finish;
+	const char *text = Text();
+	while (text[lineEnd] && text[lineEnd] != '\n')
+		lineEnd++;
+
+	Select(lineStart, lineEnd);
+
+	int32 length = lineEnd - lineStart;
+	char *target = (char *)malloc(length + 1);
+	if (target == NULL)
+		return;
+
+	int32 quoteLength = strlen(QUOTE);
+	int32 removed = 0;
+	text += lineStart;
+
+	for (int32 index = 0; index < length;) {
+		// find out the length of the current line
+		int32 lineLength = 0;
+		while (index + lineLength < length && text[lineLength] != '\n')
+			lineLength++;
+
+		// include the newline to be part of this line
+		if (text[lineLength] == '\n' && index + lineLength + 1 < length)
+			lineLength++;
+
+		if (!strncmp(text, QUOTE, quoteLength)) {
+			// remove quote
+			length -= quoteLength;
+			removed += quoteLength;
+
+			lineLength -= quoteLength;
+			text += quoteLength;
+		}
+
+		memcpy(&target[index], text, lineLength);
+
+		text += lineLength;
+		index += lineLength;
+	}
+
+	if (removed) {
+		Delete();
+
+		if (gColoredQuotes) {
+			const BFont *font = Font();
+	
+			struct text_runs : text_run_array { text_run _runs[63]; } style;
+			style.count = 0;
+			FillInQouteTextRuns(NULL, target, length, font, &style, 64);
+	
+			Insert(target, length, &style);
+		} else
+			Insert(target, length);
+
+		// redo old selection
+		bool noSelection = start == finish;
+
+		if (start > lineStart + quoteLength)
+			start -= quoteLength;
+		else
+			start = lineStart;
+
+		if (noSelection)
+			finish = start;
+		else
+			finish -= removed;
+	}
+
+	free(target);
+
+	Select(start, finish);
+	ScrollTo(rect.LeftTop());
+}
+
+
+void
+TTextView::Undo(BClipboard */*clipboard*/)
+{
+	if (IM_Active)
+		return;
 
 //	UndoBuffer.PrintToStream();
 
