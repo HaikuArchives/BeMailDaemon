@@ -153,6 +153,7 @@ November 27 2002 - v2.0.0b5
 - New "Set As Read" option for the Match Header filter.
 - Old style name extraction fixed so that StripGook "joe@foo.com (Joe)" will return "Joe" rather than "Jo".
 - MessageIO fixed so that it doesn't reread the whole message when doing a SEEK_END, doubles performance when checking for spam!
+- Added a close window box in the title bar of the E-mail preferences, acts like the Cancel button.
 - Changed AGMSBayesianSpamFilter so that it checks the server's tokenize mode, and if it is JustHeaders then it will only download the headers for spam testing, rather than the entire message.
 
 November 20 2002 - v2.0.0b4
