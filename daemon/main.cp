@@ -285,7 +285,7 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 			}
 			if (alert_string != B_EMPTY_STRING) {
 				alert_string.Truncate(alert_string.Length()-1);
-				(new BAlert("New Messages",alert_string.String(),"OK"))->Go(NULL);
+				ShowAlert("New Messages",alert_string.String());
 				alert_string = B_EMPTY_STRING;
 			}
 			break;
