@@ -11,6 +11,9 @@
  * Public Domain 2002, by Alexander G. M. Smith, no warranty.
  *
  * $Log$
+ * Revision 1.11  2002/12/16 16:03:20  agmsmith
+ * Changed spam cutoff to 0.95 to work with default Chi-Squared scoring.
+ *
  * Revision 1.10  2002/12/13 22:04:42  agmsmith
  * Changed default to turn on the Spam marker in the subject.
  *
@@ -76,6 +79,7 @@ using namespace Zoidberg;
 // The names match the ones set up by AGMSBayesianSpamServer for sound effects.
 static const char *kAGMSBayesBeepGenuineName = "AGMSBayes-Genuine";
 static const char *kAGMSBayesBeepSpamName = "AGMSBayes-Spam";
+static const char *kAGMSBayesBeepUncertainName = "AGMSBayes-Uncertain";
 
 static const char *kServerSignature =
 	"application/x-vnd.agmsmith.AGMSBayesianSpamServer";
@@ -87,9 +91,11 @@ AGMSBayesianSpamFilter::AGMSBayesianSpamFilter (BMessage *settings)
 		fAutoTraining (false),
 		fBeepGenuine (false),
 		fBeepSpam (false),
+		fBeepUncertain (false),
+		fGenuineCutoffRatio (0.05f),
 		fHeaderOnly (false),
 		fLaunchAttemptCount (0),
-		fNoWordsMeansSpam (false),
+		fNoWordsMeansSpam (true),
 		fQuitServerWhenFinished (true),
 		fSpamCutoffRatio (0.95f)
 {
@@ -106,6 +112,10 @@ AGMSBayesianSpamFilter::AGMSBayesianSpamFilter (BMessage *settings)
 			fBeepGenuine = tempBool;
 		if (settings->FindBool ("BeepSpam", &tempBool) == B_OK)
 			fBeepSpam = tempBool;
+		if (settings->FindBool ("BeepUncertain", &tempBool) == B_OK)
+			fBeepUncertain = tempBool;
+		if (settings->FindFloat ("GenuineCutoffRatio", &tempFloat) == B_OK)
+			fGenuineCutoffRatio = tempFloat;
 		if (settings->FindBool ("NoWordsMeansSpam", &tempBool) == B_OK)
 			fNoWordsMeansSpam = tempBool;
 		if (settings->FindBool ("QuitServerWhenFinished", &tempBool) == B_OK)
@@ -289,31 +299,36 @@ AGMSBayesianSpamFilter::ProcessMailMessage (
 		goto ErrorExit; // Classification failed in one of many ways.
 
 	// If we are auto-training, feed back the message to the server as a
-	// training example.  Also redo the evaluation after training.
+	// training example (don't train if it is uncertain).  Also redo the
+	// evaluation after training.
 
 	if (fAutoTraining) {
-		scriptingMessage.MakeEmpty ();
-		scriptingMessage.what = B_SET_PROPERTY;
-		scriptingMessage.AddSpecifier ((spamRatio >= fSpamCutoffRatio)
-			? "SpamString" : "GenuineString");
-		errorCode = scriptingMessage.AddData ("data", B_STRING_TYPE,
-			stringBuffer, dataSize + 1, false /* fixed size */);
-		if (errorCode != B_OK)
-			goto ErrorExit;
-		replyMessage.MakeEmpty ();
-		errorCode = fMessengerToServer.SendMessage (&scriptingMessage,
-			&replyMessage);
-		if (errorCode != B_OK
-			|| replyMessage.FindInt32 ("error", &errorCode) != B_OK)
-			goto ErrorExit; // Unable to read the return code.
-		if (errorCode != B_OK)
-			goto ErrorExit; // Failed to set a good example.
+		if (spamRatio >= fSpamCutoffRatio || spamRatio < fGenuineCutoffRatio) {
+			scriptingMessage.MakeEmpty ();
+			scriptingMessage.what = B_SET_PROPERTY;
+			scriptingMessage.AddSpecifier ((spamRatio >= fSpamCutoffRatio)
+				? "SpamString" : "GenuineString");
+			errorCode = scriptingMessage.AddData ("data", B_STRING_TYPE,
+				stringBuffer, dataSize + 1, false /* fixed size */);
+			if (errorCode != B_OK)
+				goto ErrorExit;
+			replyMessage.MakeEmpty ();
+			errorCode = fMessengerToServer.SendMessage (&scriptingMessage,
+				&replyMessage);
+			if (errorCode != B_OK
+				|| replyMessage.FindInt32 ("error", &errorCode) != B_OK)
+				goto ErrorExit; // Unable to read the return code.
+			if (errorCode != B_OK)
+				goto ErrorExit; // Failed to set a good example.
+		}
 
 		// Note the kind of example made so that the user doesn't reclassify
 		// the message twice (the spam server looks for this attribute).
 
 		classificationString =
-			(spamRatio >= fSpamCutoffRatio) ? "Spam" : "Genuine";
+			(spamRatio >= fSpamCutoffRatio)
+			? "Spam"
+			: ((spamRatio < fGenuineCutoffRatio) ? "Genuine" : "Uncertain");
 		if (nodeForOutputFileInitialised)
 			nodeForOutputFile.WriteAttr ("MAIL:classification", B_STRING_TYPE,
 				0 /* offset */, classificationString,
@@ -364,14 +379,18 @@ AGMSBayesianSpamFilter::ProcessMailMessage (
 	}
 
 	// Beep if requested, different sounds for spam and genuine, as Jeremy
-	// Friesner nudged me to get around to implementing.
+	// Friesner nudged me to get around to implementing.  And add uncertain to
+	// that, as "BiPolar" suggested.
 
 	if (spamRatio >= fSpamCutoffRatio) {
 		if (fBeepSpam)
 			system_beep (kAGMSBayesBeepSpamName);
-	} else {
+	} else if (spamRatio < fGenuineCutoffRatio) {
 		if (fBeepGenuine)
 			system_beep (kAGMSBayesBeepGenuineName);
+	} else {
+		if (fBeepUncertain)
+			system_beep (kAGMSBayesBeepUncertainName);
 	}
 
 	return MD_OK;
@@ -394,6 +413,7 @@ descriptive_name (
 	bool		autoTraining = false;
 	bool		beepGenuine = false;
 	bool		beepSpam = false;
+	bool		beepUncertain = false;
 	float		cutoffRatio = 0.95f;
 	bool		tempBool;
 	float		tempFloat;
@@ -409,6 +429,8 @@ descriptive_name (
 			beepGenuine = tempBool;
 		if (settings->FindBool ("BeepSpam", &tempBool) == B_OK)
 			beepSpam = tempBool;
+		if (settings->FindBool ("BeepUncertain", &tempBool) == B_OK)
+			beepUncertain = tempBool;
 	}
 
 	sprintf (buffer, "Spam >= %05.3f", (double) cutoffRatio);
@@ -416,7 +438,7 @@ descriptive_name (
 		strcat (buffer, ", Mark Subject");
 	if (autoTraining)
 		strcat (buffer, ", Self-training");
-	if (beepGenuine || beepSpam)
+	if (beepGenuine || beepSpam || beepUncertain)
 		strcat (buffer, ", Beep");
 	strcat (buffer, ".");
 

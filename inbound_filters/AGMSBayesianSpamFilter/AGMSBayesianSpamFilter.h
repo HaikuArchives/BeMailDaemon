@@ -13,6 +13,10 @@
  * Public Domain 2002, by Alexander G. M. Smith, no warranty.
  *
  * $Log$
+ * Revision 1.4  2002/12/12 00:56:28  agmsmith
+ * Added some new spam filter options - self training (not implemented yet)
+ * and a button to edit the server settings.
+ *
  * Revision 1.3  2002/11/28 20:20:57  agmsmith
  * Now checks if the spam database is running in headers only mode, and
  * then only downloads headers if that is the case.
@@ -64,6 +68,8 @@ class AGMSBayesianSpamFilter : public Zoidberg::Mail::Filter {
 		bool fAutoTraining;
 		bool fBeepGenuine;
 		bool fBeepSpam;
+		bool fBeepUncertain;
+		float fGenuineCutoffRatio;
 		bool fHeaderOnly;
 		int fLaunchAttemptCount;
 		BMessenger fMessengerToServer;
