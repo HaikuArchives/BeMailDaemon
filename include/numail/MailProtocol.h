@@ -76,6 +76,10 @@ class Protocol : public Filter
 	// assumed (but not required) that GetMessage(uid,...)
 	// et al will fail with B_NAME_NOT_FOUND.
 	
+			void CheckForDeletedMessages();
+	// You can call this to trigger a sweep for deleted messages.
+	// Automatically called at the beginning of the chain.
+	
 	//------MailFilter calls
 	virtual status_t ProcessMailMessage
 	(
@@ -90,7 +94,6 @@ class Protocol : public Filter
 	Mail::ChainRunner *runner;	
   private:
   	inline void error_alert(const char *process, status_t error);
-  	bool ran_yet;
 	virtual void _ReservedProtocol1();
 	virtual void _ReservedProtocol2();
 	virtual void _ReservedProtocol3();
@@ -99,7 +102,9 @@ class Protocol : public Filter
 
 	friend class DeletePass;
 	
-	uint32 _reserved[5];
+	BHandler *trash_monitor;
+	
+	uint32 _reserved[4];
 };
 
 // standard MailProtocols:

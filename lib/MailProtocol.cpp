@@ -11,6 +11,8 @@
 #include <StringList.h>
 #include <E-mail.h>
 #include <NodeInfo.h>
+#include <Directory.h>
+#include <NodeMonitor.h>
 
 #include <stdio.h>
 #include <assert.h>
@@ -46,16 +48,6 @@ class ManifestAdder : public Mail::ChainCallback {
 		const char *uid;
 };
 
-class RanYetReset : public Mail::ChainCallback {
-	public:
-		RanYetReset(bool *ranyet) : _ranyet(ranyet) {}
-		virtual void Callback(status_t) {
-			*_ranyet = false;
-		}
-	private:
-		bool *_ranyet;
-};
-
 class MessageDeletion : public Mail::ChainCallback {
 	public:
 		MessageDeletion(Protocol *home, const char *uid, BEntry *io_entry, bool delete_anyway);
@@ -86,28 +78,53 @@ Protocol::error_alert(const char *process, status_t error)
 }
 
 
-class DeleteCallback : public Mail::ChainCallback {
+class DeleteHandler : public BHandler {
 	public:
-		DeleteCallback(Protocol *a)
+		DeleteHandler(Protocol *a)
 			: us(a)
 		{
 		}
 
-		void Callback(status_t)
+		void MessageReceived(BMessage *msg)
 		{
-			if (us->InitCheck() == B_OK)
-				us->ProcessMailMessage(NULL, NULL, NULL, NULL, NULL);
+			if ((msg->what == 'DELE') && (us->InitCheck() == B_OK)) {
+				us->CheckForDeletedMessages();
+				Looper()->RemoveHandler(this);
+				delete this;
+			}
 		}
 
 	private:
 		Protocol *us;
 };
 
+class TrashMonitor : public BHandler {
+	public:
+		TrashMonitor(Protocol *a)
+			: us(a), trash("/boot/home/Desktop/Trash")
+		{
+		}
+
+		void MessageReceived(BMessage *msg)
+		{
+			if (msg->what == 'INIT') {
+				node_ref to_watch;
+				trash.GetNodeRef(&to_watch);
+				watch_node(&to_watch,B_WATCH_DIRECTORY,this);
+				return;
+			}
+			if ((msg->what == B_NODE_MONITOR) && (us->InitCheck() == B_OK) && (trash.CountEntries() == 0))
+				us->CheckForDeletedMessages();
+		}
+
+	private:
+		Protocol *us;
+		BDirectory trash;
+};
 
 Protocol::Protocol(BMessage *settings, ChainRunner *run)
 	: Filter(settings),
-	runner(run),
-	ran_yet(false)
+	runner(run), trash_monitor(NULL)
 {
 	unique_ids = new StringList;
 	Protocol::settings = settings;
@@ -115,8 +132,16 @@ Protocol::Protocol(BMessage *settings, ChainRunner *run)
 	manifest = new StringList;
 	runner->Chain()->MetaData()->FindFlat("manifest", manifest); //---no error checking, because if it doesn't exist, it will stay empty anyway
 	
-	if (!settings->FindBool("login_and_do_nothing_else_of_any_importance"))
-		runner->RegisterChainCallback(new DeleteCallback(this));
+	if (!settings->FindBool("login_and_do_nothing_else_of_any_importance")) {
+		DeleteHandler *h = new DeleteHandler(this);
+		runner->AddHandler(h);
+		runner->PostMessage('DELE',h);
+		
+		trash_monitor = new TrashMonitor(this);
+		runner->AddHandler(trash_monitor);
+		runner->PostMessage('INIT',trash_monitor);
+		
+	}
 }
 
 
@@ -131,6 +156,8 @@ Protocol::~Protocol()
 
 	delete unique_ids;
 	delete manifest;
+	if (trash_monitor != NULL)
+		delete trash_monitor;
 }
 
 
@@ -144,49 +171,6 @@ Protocol::ProcessMailMessage(BPositionIO **io_message, BEntry *io_entry,
 	BMessage *io_headers, BPath *io_folder, const char *io_uid)
 {
 	status_t error;
-
-	if (!ran_yet) {
-		{
-			//---Delete things from the manifest no longer on the server
-			StringList temp;
-			manifest->NotThere(*unique_ids, &temp);
-			(*manifest) -= temp;
-		}
-
-		if (((settings->FindBool("delete_remote_when_local")) || !(settings->FindBool("leave_mail_on_server"))) && (manifest->CountItems() > 0)) {
-			StringList query_contents;
-			BQuery fido;
-			BVolume boot;
-			entry_ref entry;
-			BVolumeRoster().GetBootVolume(&boot);
-
-			fido.SetVolume(&boot);
-			fido.PushAttr("MAIL:chain");
-			fido.PushInt32(settings->FindInt32("chain"));
-			fido.PushOp(B_EQ);
-			fido.Fetch();
-
-			BString uid;
-			while (fido.GetNextRef(&entry) == B_OK) {
-				BNode(&entry).ReadAttrString("MAIL:unique_id",&uid);
-				query_contents.AddItem(uid.String());
-			}
-
-			StringList to_delete;
-			query_contents.NotHere(*manifest,&to_delete);
-
-			for (int32 i = 0; i < to_delete.CountItems(); i++)
-				DeleteMessage(to_delete[i]);
-			
-			//*(unique_ids) -= to_delete; --- This line causes bad things to
-			// happen (POP3 client uses the wrong indices to retrieve
-			// messages).  Without it, bad things don't happen.
-			*(manifest) -= to_delete;
-		}
-	
-		ran_yet = true;
-		runner->RegisterProcessCallback(new RanYetReset(&ran_yet));
-	}
 
 	if (io_uid == NULL)
 		return B_ERROR;
@@ -208,6 +192,45 @@ Protocol::ProcessMailMessage(BPositionIO **io_message, BEntry *io_entry,
 	return B_OK;
 }
 
+void Protocol::CheckForDeletedMessages() {
+	{
+		//---Delete things from the manifest no longer on the server
+		StringList temp;
+		manifest->NotThere(*unique_ids, &temp);
+		(*manifest) -= temp;
+	}
+
+	if (((settings->FindBool("delete_remote_when_local")) || !(settings->FindBool("leave_mail_on_server"))) && (manifest->CountItems() > 0)) {
+		StringList query_contents;
+		BQuery fido;
+		BVolume boot;
+		entry_ref entry;
+		BVolumeRoster().GetBootVolume(&boot);
+
+		fido.SetVolume(&boot);
+		fido.PushAttr("MAIL:chain");
+		fido.PushInt32(settings->FindInt32("chain"));
+		fido.PushOp(B_EQ);
+		fido.Fetch();
+
+		BString uid;
+		while (fido.GetNextRef(&entry) == B_OK) {
+			BNode(&entry).ReadAttrString("MAIL:unique_id",&uid);
+			query_contents.AddItem(uid.String());
+		}
+
+		StringList to_delete;
+		query_contents.NotHere(*manifest,&to_delete);
+
+		for (int32 i = 0; i < to_delete.CountItems(); i++)
+			DeleteMessage(to_delete[i]);
+		
+		//*(unique_ids) -= to_delete; --- This line causes bad things to
+		// happen (POP3 client uses the wrong indices to retrieve
+		// messages).  Without it, bad things don't happen.
+		*(manifest) -= to_delete;
+	}
+}
 
 void Protocol::_ReservedProtocol1() {}
 void Protocol::_ReservedProtocol2() {}
