@@ -1027,9 +1027,8 @@ TTextView::MessageReceived(BMessage *msg)
 			break;
 
 		case M_RAW:
-			Window()->Unlock();
 			StopLoad();
-			Window()->Lock();
+
 			msg->FindBool("raw", &fRaw);
 			SetText(NULL);
 			LoadMessage(fMail, false, NULL);
@@ -1652,9 +1651,7 @@ TTextView::ClearList()
 void
 TTextView::LoadMessage(Mail::Message *mail, bool quoteIt, const char *text)
 {
-	Window()->Unlock();
 	StopLoad();
-	Window()->Lock();
 
 	fMail = mail;
 
@@ -1904,6 +1901,8 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 void
 TTextView::StopLoad()
 {
+	Window()->Unlock();
+
 	thread_info	info;
 	if (fThread != 0 && get_thread_info(fThread, &info) == B_NO_ERROR)
 	{
@@ -1915,6 +1914,8 @@ TTextView::StopLoad()
 		release_sem(fStopSem);
 		fStopLoading = false;
 	}
+
+	Window()->Lock();
 }
 
 
@@ -2078,7 +2079,7 @@ TTextView::Reader::Reader(bool header, bool raw, bool quote, bool incoming, bool
 
 
 bool
-TTextView::Reader::ParseMail(Mail::Container *container,Mail::TextComponent *ignore)
+TTextView::Reader::ParseMail(Mail::Container *container, Mail::TextComponent *ignore)
 {
 	int32 count = 0;
 	for (int32 i = 0;i < container->CountComponents();i++)
