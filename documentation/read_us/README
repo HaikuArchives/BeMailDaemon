@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v2.0.0 alpha 1
+BEOS Mail Daemon Replacement v2.0.0 alpha 2
 
 ABOUT:
 
@@ -82,7 +82,9 @@ Right click the Deskbar mail icon to access a menu with various options.
 Single-click the icon to open your mail inbox. The field about new messages
 will be available for selection if you have new messages, and will open a
 Tracker query displaying those messages. The Quit option quits the
-mail_daemon. You don't want to do this.
+mail_daemon. You don't want to do this. Right-clicking the Deskbar replicant
+while pressing the SHIFT key reveals more options for Sending/Receiving 
+emails.
 
 ADDON INSTALLATION:
 
@@ -119,10 +121,31 @@ ADDON INSTALLATION.
    "get rich quick" in the subject, do this: If |subject| is |*get rich quick*|
    Then |Delete Message| The ||, of course, are just the edges of the
    text boxes. Or, to put it messages from BeUserTalk in ~/mail/beusertalk:
-   If |subject| is |*[BeUserTalk]*| Then |Move To| |/boot/home/mail/beusertalk|
+   If |subject| is |*BeUserTalk*| Then |Move To| |/boot/home/mail/beusertalk|
 
 HISTORY:
 
+November 21 2001 - v2.0.0a2
+  - Attachments that used not to be handled are handled now.
+  - HTML emails are displayed as the HTML source.
+  - Implements all stub functions programs like Postmaster expects (most functions do nothing).
+  - Mail handling is much faster
+  - Various API improvements
+  - Blinking lights support (Notifier)
+  - Really improved Deskbar menu! Uses NavMenu. Check it out!
+  - Right-clicking the deskbar replicant while pressing the SHIFT key gives more options
+  - Central Notification (uses only one Alert for all accounts).
+  - Changed links for bug reporting and others
+  - Button to enable configuration of the Deskbar Replicant menu
+  - Do not crash when opening pre-MDR2 emails
+  - Reply to Sender
+  - Reply to all
+  - Resend/Forward works
+  - Better Notifier Filter
+  - Better RuleFilter (Descriptive filter names)
+  - Better Folder Filter (No more email filename colisions)
+  - SMTP Auth now works for real
+ 
 November 06 2001 - v2.0.0 a1
   - Complete rewrite from the ground up
   - Filters
@@ -185,43 +208,30 @@ The latest version has the following (interesting) features:
  - PPP connection detection.
  - Multiple accounts.
  - Addition of the Account attribute. The install script indexes it.
- - Filter emails per account (mails will be dropped in the /boot/home/
-   mail/Account/in folder).
+ - Email Filters
  - Timed email retrieval.
- - Deskbar replicant.
+ - Deskbar replicant with NavMenu.
  - The status window can be made persistent.
  - Status window remembers its size and position.
- - Filtering API release 1.
+ - BeMail
 
 TODO:
 
 This is a partial list of what we intend to implement. Suggestions are welcome:
 
- - IMAP support (waiting for the rewrite).
- - mail_parser protocol (so we can implement a PGP add-on, for instance).
- 	handled by filters
- - SMTP Auth (Done. Will be include in the next version).
  - HotMail support.
  - Spam filter
- - Filter configuration interface
  - Filter description field/attribute
- - Filter order
- - Safe setting saving
- - Safe message saving
  - Read initial account info from old E-mail prefs
  - "Ask before/Skip downloading messages larger than Xkb"
- - Handle 'MAIL:flags' properly so that messages don't get
-   resent by the old mail_daemon
- - Handle messages that are not sent when a connection
-   fails (currently they are forgotten).
  - More...
 
 OTHER STUFF:
 
 This program was created by Dr. Zoidberg Enterprises (zoidberg@bug-
-br.org.br). Special thanks goes to Todd Lair, Peter Folk and Stephan 
-Assmus for helping us with ideas and code. We also would like to thank 
-the BeOS community in general for their support.
+br.org.br). Special thanks goes to Todd Lair, Brad Froehle, David Reid, 
+Rene Gollent and others for helping us with ideas and code. We also would 
+like to thank the BeOS community in general for their support.
 
 The cool new mail-daemon deskbar icon is a courtesy of Syn.Terra.
 
@@ -229,4 +239,5 @@ Copyright (c)2001 by Dr. Zoidberg Enterprises. All rights reserved.
 
 Dr. Zoidberg Enterprises is a joint-venture between Bruno G. Albuquerque
 (bga@bug-br.org.br), Nathan Whitehorn (nwhitehorn@qwest.net), Peter Folk
-(pfolk@uni.uiuc.edu) and Stephan Assmus (stippi@yellowbites.com).
+(pfolk@uni.uiuc.edu) and Stephan Assmus (stippi@yellowbites.com), Alan Ellis
+and David Reid.
