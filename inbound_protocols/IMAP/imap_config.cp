@@ -23,14 +23,14 @@ class IMAPConfig : public Mail::ProtocolConfigView {
 };
 
 IMAPConfig::IMAPConfig(BMessage *archive)
-	: Mail::ProtocolConfigView(Mail::MP_HAS_USERNAME | Mail::MP_HAS_PASSWORD | Mail::MP_HAS_HOSTNAME | Mail::MP_CAN_LEAVE_MAIL_ON_SERVER | Mail::MP_HAS_FLAVORS)
-{
+	: Mail::ProtocolConfigView(Mail::MP_HAS_USERNAME | Mail::MP_HAS_PASSWORD | Mail::MP_HAS_HOSTNAME | Mail::MP_CAN_LEAVE_MAIL_ON_SERVER
 	#ifdef IMAPSSL
+	 | Mail::MP_HAS_FLAVORS)
+{
 		AddFlavor("Unencrypted");
 		AddFlavor("IMAP-SSL");
-		
-		/*if (!archive->HasInt32("flavor"))
-			archive->AddInt32("flavor",0);*/
+	#else
+		) {
 	#endif
 	
 	SetTo(archive);
