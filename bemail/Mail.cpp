@@ -764,25 +764,26 @@ TMailApp::RefsReceived(BMessage *msg)
 					window = NewWindow(&ref, NULL, false, fTrackerMessenger);
 					window->Show();
 				} else if(!strcmp(type, "application/x-person")) {
-					
-					/* see if it has an Email address */
+					/* Got a People contact info file, see if it has an Email address. */
 					BString name;
 					BString email;
 					attr_info	info;
 					char *attrib;
 
 					if (file.GetAttrInfo("META:email", &info) == B_NO_ERROR) {
-						attrib = (char *) malloc(sizeof(info.size));
+						attrib = (char *) malloc(info.size + 1);
 						file.ReadAttr("META:email", B_STRING_TYPE, 0, attrib, info.size);
+						attrib[info.size] = 0; // Just in case it wasn't NUL terminated.
 						email << attrib;
 						free(attrib);
-					
-					/* we got something... */	
-					if (email.Length() > 0) {
+
+						/* we got something... */	
+						if (email.Length() > 0) {
 							/* see if we can get a username as well */
 							if(file.GetAttrInfo("META:name", &info) == B_NO_ERROR) {
-								attrib = (char *) malloc(sizeof(info.size));
+								attrib = (char *) malloc(info.size + 1);
 								file.ReadAttr("META:name", B_STRING_TYPE, 0, attrib, info.size);
+								attrib[info.size] = 0; // Just in case it wasn't NUL terminated.
 								name << "\"" << attrib << "\" ";
 								email.Prepend("<");
 								email.Append(">");
@@ -798,7 +799,6 @@ TMailApp::RefsReceived(BMessage *msg)
 							email.SetTo("");
 							name.SetTo("");
 						}
-
 					}
 				}
 				else if (!strcmp(type, kDraftType))
