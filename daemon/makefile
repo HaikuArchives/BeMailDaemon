@@ -141,6 +141,12 @@ ifeq ($(shell ls 2>/dev/null -1 /boot/develop/headers/be/bone/bone_api.h), /boot
 	SYSTEM_INCLUDE_PATHS += /boot/develop/headers/be/bone
 	DEFINES += BONE
 	LIBS += socket
+# Work around a problem with BONE (Dano too) unloading the libbind.so too early
+# by including it in the daemon, even though it doesn't directly use it.  After
+# an add-on like POP3 gets unloaded, the system also unloads libbind.so which
+# leaves the network kit on_thread_exit function call pointing to code in
+# libbind.so which no longer is in memory.
+	LIBS += bind
 endif
 
 INSTALL_DIR=/boot/beos/system/servers
