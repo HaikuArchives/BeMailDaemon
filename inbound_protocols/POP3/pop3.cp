@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <DataIO.h>
 #include <Alert.h>
+#include <Debug.h>
 
 #include <status.h>
 #include <StringList.h>
@@ -118,8 +119,14 @@ status_t POP3Protocol::Login(const char *uid, const char *password, int method) 
 
 	status_view->SetMessage("Sending password...");
 	cmd = "PASS ";
-	cmd += password;
+
+#ifdef ALAN_BUILD
+	#include "alan.passwordhack"
+#endif
+		cmd += password;
+
 	cmd += CRLF;
+	printf("sending pass command: %s", cmd.String());
 
 	err = SendCommand(cmd.String());
 	if (err != B_OK) {

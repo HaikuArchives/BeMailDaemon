@@ -164,6 +164,12 @@ status_t MailComponent::RemoveHeader(const char *key) {
 }
 
 const char *MailComponent::HeaderAt(int32 index) {
+
+// This is really compiler dependent, but I don't know how to
+// check for the subversion of gcc.
+#if B_BEOS_VERSION_DANO
+	const
+#endif
 	char *name = NULL;
 	type_code type;
 	
