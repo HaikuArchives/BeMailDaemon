@@ -145,6 +145,9 @@ ADDON INSTALLATION.
 
 HISTORY:
 
+December 16 2002 - v2.0.0b8
+- Changed default spam cutoff ratio to 0.95 to correspond to the default Chi-Squared scoring method.
+
 December 13 2002 - v2.0.0b7
 - Fixed vman's bug with TABs after the colon in the headers making it ignore the header.
 - Fixed the Forwarding with Attachments bug so it now works with X-BFile type attachments.
