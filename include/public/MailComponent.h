@@ -23,7 +23,7 @@ class PlainTextBodyComponent : public MailComponent {
 	public:
 		PlainTextBodyComponent(const char *text = NULL);
 		
-		void SetEncoding(char encoding, int charset);
+		void SetEncoding(char encoding, int32 charset);
 			//------encoding: q for quoted-printable (default), b for base64 (very much not reccomended)
 			//------charset: use Conversion flavor constants from UTF8.h
 		
@@ -36,8 +36,9 @@ class PlainTextBodyComponent : public MailComponent {
 		
 		virtual status_t Instantiate(BPositionIO *data, size_t length);
 		virtual status_t Render(BPositionIO *render_to);
-		
-		virtual status_t MIMEType(BMimeType *mime);
 	private:
 		BString text;
+		
+		char encoding;
+		int32 charset;
 };

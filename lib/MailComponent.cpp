@@ -2,8 +2,10 @@
 #include <Mime.h>
 
 #include <malloc.h>
+#include <ctype.h>
 
 class _EXPORT MailComponent;
+class _EXPORT PlainTextBodyComponent;
 
 #include <MailComponent.h>
 #include <mail_util.h>
@@ -105,6 +107,91 @@ status_t MailComponent::MIMEType(BMimeType *mime) {
 	BString string = HeaderField("content-type");
 	string.Truncate(string.FindFirst(';'));
 	mime->SetTo(string.String());
+	
+	return B_OK;
+}
+
+PlainTextBodyComponent::PlainTextBodyComponent(const char *text) 
+	: MailComponent(),
+	encoding('q'),
+	charset(B_ISO1_CONVERSION) {
+		if (text != NULL)
+			SetText(text);
+}
+
+void PlainTextBodyComponent::SetEncoding(char encoding, int32 charset) {
+	this->encoding = encoding;
+	this->charset = charset;
+}
+
+void PlainTextBodyComponent::SetText(const char *text) {
+	this->text.SetTo(text);
+	
+	this->text.ReplaceAll("\r\n","\n");
+}
+
+void PlainTextBodyComponent::SetText(BDataIO *text) {
+	char buffer[255];
+	size_t buf_len;
+	
+	while ((buf_len = text->Read(buffer,254)) > 0) {
+		buffer[buf_len] = 0;
+		this->text << buffer;
+	}
+	
+	this->text.ReplaceAll("\r\n","\n");
+}
+
+void PlainTextBodyComponent::AppendText(const char *text) {
+	this->text << text;
+}
+
+const char *PlainTextBodyComponent::Text() {
+	return text.String();
+}
+
+status_t PlainTextBodyComponent::Instantiate(BPositionIO *data, size_t length) {
+	MailComponent::Instantiate(data,length);
+	
+	SetText(data);
+	
+	return B_OK;
+}
+
+status_t PlainTextBodyComponent::Render(BPositionIO *render_to) {
+	MailComponent::Render(render_to);
+	
+	char *rfc2047 = (char *)malloc(text.Length() + 1);
+	strcpy(rfc2047,text.String());
+	
+	utf8_to_rfc2047(&rfc2047,text.Length(),charset,encoding);
+	
+	//------Desperate bid to wrap lines
+	BString modified = rfc2047;
+	free(rfc2047);
+	
+	modified.ReplaceAll("\n","\r\n");
+	
+	int32 curr_line_length = 0;
+	int32 last_space = 0;
+	
+	for (int32 i = 0; i < modified.Length(); i++) {
+		if (isspace(modified.ByteAt(i)))
+			last_space = i;
+			
+		if ((modified.ByteAt(i) == '\r') && (modified.ByteAt(i+1) == '\n'))
+			curr_line_length = 0;
+		else
+			curr_line_length++;
+			
+		if (curr_line_length > 80) {
+			modified.Insert("\r\n",last_space+1);
+			i = last_space;
+			curr_line_length = 0;
+		}
+	}
+	
+	render_to->Write(modified.String(),modified.Length());
 	
 	return B_OK;
 }
