@@ -411,7 +411,7 @@ ChainRunner::get_messages(StringList *list)
 	const char *uid;
 
 	status_t err = B_OK;
-	char *glort;
+	const char *glort;
 	bool using_tmp = (_chain->MetaData()->FindString("path",&glort) < B_OK);
 		
 	BDirectory tmp(using_tmp ? "/tmp" : glort);
@@ -426,7 +426,7 @@ ChainRunner::get_messages(StringList *list)
 			BPath pathy(glort);
 			pathy.Append("Downloading");
 			path = (char *)malloc(B_PATH_NAME_LENGTH);
-			sprintf(path,"%s (%s: %d)...",pathy.Path(), _chain->Name(), _chain->ID());
+			sprintf(path,"%s (%s: %ld)...",pathy.Path(), _chain->Name(), _chain->ID());
 		}
 			
 		BEntry *entry = new BEntry(path);
