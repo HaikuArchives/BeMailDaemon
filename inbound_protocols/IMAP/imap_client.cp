@@ -224,7 +224,7 @@ IMAP4Client::Select(const char* folder_name)
 				break;
 			// get mail count
 			if((mail_count <0) && (out.IFindFirst("EXISTS") != -1))
-				mail_count = atol(&out[2]);
+				mail_count = atol(&(out.String()[2]));
 				
 			// check session end
 			state = CheckSessionEnd(out.String(),cmdNumber);		

@@ -288,7 +288,7 @@ size_t POP3Protocol::MessageSize(int32 index) {
 		return 0;
 	int32 i = fLog.FindLast(" ");
 	if (i >= 0)
-		return atol(&fLog[i]);
+		return atol(&(fLog.String()[i]));
 	return 0;	
 }
 		
