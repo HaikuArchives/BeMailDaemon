@@ -136,7 +136,7 @@ void MailMessage::AddComponent(MailComponent *component) {
 }
 
 MailComponent *MailMessage::GetComponent(int32 i) {
-	if (_num_components <= 1) {
+	if (!is_instance_of(_body,MIMEMultipartContainer)) {
 		if (i >= _num_components)
 			return NULL;
 		else return _body;
@@ -256,10 +256,13 @@ status_t MailMessage::Instantiate(BPositionIO *mail_file, size_t length) {
 			it_is = component.WhatIsThis();
 			_text_body = dynamic_cast<PlainTextBodyComponent *> (it_is);
 			
-			if (_text_body != NULL)
-				break;
-			else
+			if (_text_body != NULL) {
+				_text_body = (PlainTextBodyComponent *)cont->GetComponent(i);
 				delete it_is;
+				break;
+			 }
+			 
+			 delete it_is;
 		}
 	}
 

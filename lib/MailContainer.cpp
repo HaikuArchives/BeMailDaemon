@@ -195,7 +195,6 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length)
 		len = line.Length();
 		buf = line.LockBuffer(len + 255) + len;
 		len = data->ReadAt(offset,buf,90);
-		buf[len] = 0;
 		line.UnlockBuffer(len);
 				
 		if (len <= 0)
@@ -205,11 +204,11 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length)
 		
 		if (len < 0) {
 			offset += line.Length();
-			continue;
+			if (offset < (start + length))
+				continue;
+		} else {
+			line.Truncate(len);
 		}
-		
-		
-		line.Truncate(len);
 		
 		if (strncmp(line.String(),type.String(), type.Length()) == 0) {
 			if (last_boundary >= 0) {
