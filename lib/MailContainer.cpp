@@ -51,7 +51,7 @@ MIMEMultipartContainer::~MIMEMultipartContainer() {
 	}
 	
 	if (_boundary != NULL)
-		free(_boundary);
+		free((void *)_boundary);
 }
 
 void MIMEMultipartContainer::SetBoundary(const char *boundary) {
