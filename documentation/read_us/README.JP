@@ -181,7 +181,8 @@ BEOS Mail Daemon Replacement v2.2.4
 
 履歴：
 
-October 8 2003 - v2.2.4
+October 12 2003 - v2.2.4
+- Fixed IMAP's mailbox look-up routines so that they use LSUB instead of LIST. This fixes a few bugs with certain mail servers, and allows better interoperability with other mail clients on the same account. 
 - Added the X-Mailer header to satisfy Feature Request 788700.
 - Made it so that the message count uses the correct singular/plural form, given the number of messages, in the daemon status window.
 - CHECK_MEM build simply does not work with BONE, changed to get it to partially work.
