@@ -10,7 +10,7 @@
 #include <String.h>
 #include <map>
 
-#include <MailProtocol.h>
+#include "SimpleMailProtocol.h"
 
 
 class POP3Protocol : public Zoidberg::Mail::SimpleProtocol {

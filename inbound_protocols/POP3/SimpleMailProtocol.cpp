@@ -10,20 +10,13 @@
 #include <Alert.h>
 
 #include <stdio.h>
-
-namespace Zoidberg {
-namespace Mail {
-	class _EXPORT SimpleProtocol;
-}
-}
-
 #include <crypt.h>
 
-#include <MailProtocol.h>
 #include <StringList.h>
 #include <ChainRunner.h>
 #include <status.h>
 
+#include "SimpleMailProtocol.h"
 #include "MessageIO.h"
 
 

@@ -13,7 +13,7 @@
 #include <string.h>
 
 #include "MessageIO.h"
-#include "MailProtocol.h"
+#include "SimpleMailProtocol.h"
 
 
 namespace Zoidberg {
