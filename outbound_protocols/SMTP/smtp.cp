@@ -135,13 +135,8 @@ SMTPProtocol::ProcessMailMessage(BPositionIO **io_message, BEntry */*io_entry*/,
 	if (!to)
 		to = io_headers->FindString("MAIL:to");
 
-	if (to == NULL || from == NULL) {
-		if (to == from) {
-			// fail silently
-			return B_OK;
-		}
+	if (to == NULL || from == NULL)
 		fLog = "Invalid message headers";
-	}
 
 	if (to && from && Send(to, from, *io_message) == B_OK) {
 		runner->ReportProgress(0, 1);
