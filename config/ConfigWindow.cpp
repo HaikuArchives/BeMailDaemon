@@ -238,7 +238,7 @@ class AboutTextView : public BTextView
 ConfigWindow::ConfigWindow()
 		: BWindow(BRect(200.0, 200.0, 640.0, 580.0),
 				  "E-mail", B_TITLED_WINDOW,
-				  B_ASYNCHRONOUS_CONTROLS | B_NOT_ZOOMABLE | B_NOT_CLOSABLE | B_NOT_RESIZABLE),
+				  B_ASYNCHRONOUS_CONTROLS | B_NOT_ZOOMABLE | B_NOT_RESIZABLE),
 		fLastSelectedAccount(NULL),
 		fSaveSettings(false)
 {
