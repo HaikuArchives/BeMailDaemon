@@ -164,9 +164,11 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 			
 				strcpy(status.if_name, "ppp0");
 				if (ioctl(s, BONE_SERIAL_PPP_GET_STATUS, &status, sizeof(status)) != 0) {
+					close(s);
 					break;
 				} else {
 					if (status.connection_status != BSPPP_CONNECTED) {
+						close(s);
 						break;
 					}
 				}
