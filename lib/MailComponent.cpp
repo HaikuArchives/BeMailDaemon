@@ -241,14 +241,16 @@ Component::SetToRFC822(BPositionIO *data, size_t /*length*/, bool /* parse_now *
 		// terminate
 		buf[len] = 0;
 
-		const char *delimiter = strstr(buf, ": ");
+		const char *delimiter = strstr(buf, ":");
 		if (delimiter == NULL)
 			continue;
 
 		BString header(buf, delimiter - buf);
 		header.CapitalizeEachWord(); //-------Unified case for later fetch
 
-		headers.AddString(header.String(),delimiter + 2);
+		while (isspace (*delimiter))
+			delimiter++; // Skip over leading white space and tabs.  To do: (comments in brackets).
+		headers.AddString(header.String(),delimiter);
 	}
 	if (buf)
 		free(buf);
