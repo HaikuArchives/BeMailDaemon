@@ -144,6 +144,9 @@ class Settings
 	bool CheckOnlyIfPPPUp();
 	void SetCheckOnlyIfPPPUp(bool yes);
 	
+	bool SendOnlyIfPPPUp();
+	void SetSendOnlyIfPPPUp(bool yes);
+	
 	uint32 DefaultOutboundChainID();
 	void SetDefaultOutboundChainID(uint32 to);
 

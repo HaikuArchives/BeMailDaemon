@@ -319,6 +319,15 @@ void Settings::SetCheckOnlyIfPPPUp(bool yes) {
 		data.AddBool("CheckOnlyIfPPPUp",yes);
 }
 
+bool Settings::SendOnlyIfPPPUp() {
+	return data.FindBool("SendOnlyIfPPPUp");
+}
+
+void Settings::SetSendOnlyIfPPPUp(bool yes) {
+	if (data.ReplaceBool("SendOnlyIfPPPUp",yes))
+		data.AddBool("SendOnlyIfPPPUp",yes);
+}
+
 uint32 Settings::DefaultOutboundChainID() {
 	return data.FindInt32("DefaultOutboundChainID");
 }

@@ -51,6 +51,7 @@ class ConfigWindow : public BWindow
 		BTextControl	*fIntervalControl;
 		BMenuField		*fIntervalUnitField;
 		BCheckBox		*fPPPActiveCheckBox;
+		BCheckBox		*fPPPActiveSendCheckBox;
 		BMenuField		*fStatusModeField,*fStatusLookField,*fStatusWorkspaceField;
 		BCheckBox		*fAutoStartCheckBox;
 

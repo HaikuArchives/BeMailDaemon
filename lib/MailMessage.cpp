@@ -20,6 +20,16 @@
 #include <sys/utsname.h>
 #include <ctype.h>
 
+#ifdef BONE
+	#ifdef _KERNEL_MODE
+		#undef _KERNEL_MODE
+		#include <sys/socket.h>
+		#define _KERNEL_MODE 1
+	#endif
+	#include <bone_serial_ppp.h>
+	#include <unistd.h>
+#endif
+
 namespace Zoidberg {
 namespace Mail {
 	class _EXPORT Message;
@@ -724,10 +734,34 @@ status_t Message::Send(bool send_now) {
 	BDirectory directory(via->MetaData()->FindString("path"));
 
 	status_t status = RenderTo(&directory);
-	if (status >= B_OK && send_now)
-		status = Mail::SendQueuedMail();
-	
 	delete via;
+	if (status >= B_OK && send_now) {
+		Mail::Settings settings_file;
+		if (settings_file.SendOnlyIfPPPUp()) {
+#ifdef BONE
+			int s = socket(AF_INET, SOCK_DGRAM, 0);
+			bsppp_status_t status;
+		
+			strcpy(status.if_name, "ppp0");
+			if (ioctl(s, BONE_SERIAL_PPP_GET_STATUS, &status, sizeof(status)) != 0) {
+				close(s):
+				return B_OK;
+			} else {
+				if (status.connection_status != BSPPP_CONNECTED) {
+					close(s);
+					return B_OK;
+				}
+			}
+			close(s);
+#else
+			if (find_thread("tty_thread") <= 0)
+				return B_OK;
+#endif
+			status = Mail::SendQueuedMail();
+		} else {
+			status = Mail::SendQueuedMail();
+		}
+	}
 	
 	return status;
 }

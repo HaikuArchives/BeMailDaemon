@@ -294,7 +294,7 @@ ConfigWindow::ConfigWindow()
 	tabView->TabAt(1)->SetLabel("General");
 
 	rect = view->Bounds().InsetByCopy(8,8);
-	rect.right -= 1;	rect.bottom = rect.top + height * 3 + 15;
+	rect.right -= 1;	rect.bottom = rect.top + height * 5 + 15;
 	BBox *box = new BBox(rect);
 	box->SetLabel("Retrieval Frequency");
 	view->AddChild(box);
@@ -326,6 +326,10 @@ ConfigWindow::ConfigWindow()
 	rect.OffsetBy(0,height + 9);	rect.bottom -= 2;
 	fPPPActiveCheckBox = new BCheckBox(rect,"ppp active","only when PPP is active", NULL);
 	box->AddChild(fPPPActiveCheckBox);
+	
+	rect.OffsetBy(0,height + 9);	rect.bottom -= 2;
+	fPPPActiveSendCheckBox = new BCheckBox(rect,"ppp activesend","Queue outgoing mail when PPP is inactive", NULL);
+	box->AddChild(fPPPActiveSendCheckBox);
 
 	rect = box->Frame();  rect.bottom = rect.top + 4*height + 20;
 	box = new BBox(rect);
@@ -586,7 +590,7 @@ void ConfigWindow::SaveSettings()
 	{
 		settings.SetAutoCheckInterval(time * 1e6);
 		settings.SetCheckOnlyIfPPPUp(fPPPActiveCheckBox->Value() == B_CONTROL_ON);
-
+		settings.SetSendOnlyIfPPPUp(fPPPActiveSendCheckBox->Value() == B_CONTROL_ON);
 		settings.SetDaemonAutoStarts(fAutoStartCheckBox->Value() == B_CONTROL_ON);
 		int32 index = fStatusModeField->Menu()->IndexOf(fStatusModeField->Menu()->FindMarked());
 		settings.SetShowStatusWindow(index);
@@ -746,6 +750,7 @@ status_t ConfigWindow::SetToGeneralSettings(Mail::Settings *settings)
 	fIntervalControl->SetEnabled(timeIndex != 0);
 
 	fPPPActiveCheckBox->SetValue(settings->CheckOnlyIfPPPUp());
+	fPPPActiveSendCheckBox->SetValue(settings->SendOnlyIfPPPUp());
 
 	fAutoStartCheckBox->SetValue(settings->DaemonAutoStarts());
 
