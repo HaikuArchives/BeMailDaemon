@@ -702,6 +702,9 @@ status_t IMAP4Client::Select(const char *mb, bool reselect, bool queue_new_messa
 				if (tag == expected)
 					break;
 				
+				if (strcmp(response[2][0](),"UID") != 0)
+					continue; //--- Courier IMAP blows. Hard.
+				
 				uid = mb;
 				uid << '/' << response[2][1]();
 				if (!unique_ids->HasItem(uid.String()))
@@ -989,8 +992,9 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 	
 	if (result < 0)
 		return errno;
-		
-	PRINT(("S: "));
+	
+	if (!internal_flag)
+		PRINT(("S: "));
 
 	if(result > 0)
 	{
