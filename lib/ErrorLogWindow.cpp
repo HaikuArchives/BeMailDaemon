@@ -48,7 +48,7 @@ class ErrorPanel : public BView {
 		BScrollView *scroll;
 };
 
-ErrorLogWindow::ErrorLogWindow(BRect rect, const char *name, window_type type) : BWindow(rect,name,type,B_NO_WORKSPACE_ACTIVATION | B_ASYNCHRONOUS_CONTROLS) {
+ErrorLogWindow::ErrorLogWindow(BRect rect, const char *name, window_type type) : BWindow(rect,name,type,B_NO_WORKSPACE_ACTIVATION | B_NOT_MINIMIZABLE | B_ASYNCHRONOUS_CONTROLS) {
 	rect = Bounds();
 	rect.right -= B_V_SCROLL_BAR_WIDTH;
 	//rect.bottom -= B_H_SCROLL_BAR_HEIGHT;
