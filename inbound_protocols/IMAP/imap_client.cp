@@ -452,6 +452,9 @@ IMAP4Client::Logout()
 {
 	BString out;
 
+	SendCommand("CLOSE");
+	ReceiveLine(out);
+	
 	SendCommand("LOGOUT");
 	ReceiveLine(out);
 	
