@@ -62,6 +62,12 @@ copyattr -d -m bin/BeMail /boot/beos/apps/BeMail
 mkdir -p ~/config/settings/Mail/Menu\ Links
 unzip -n bin/ExtraMenuLinksForR5Tracker.zip -d ~/config/settings/Mail/Menu\ Links
 rm bin/ExtraMenuLinksForR5Tracker.zip
+mv -f -v "${HOME}/config/settings/Mail/Menu Links/E-Mail From…" "${HOME}/config/settings/Mail/Menu Links/F) 送信者を検索…"
+mv -f -v "${HOME}/config/settings/Mail/Menu Links/Open Draft" "${HOME}/config/settings/Mail/Menu Links/D) ドラフトを開く…"
+mv -f -v "${HOME}/config/settings/Mail/Menu Links/Open Inbox Folder" "${HOME}/config/settings/Mail/Menu Links/I) 受信箱を開く"
+mv -f -v "${HOME}/config/settings/Mail/Menu Links/Open Mail Folder" "${HOME}/config/settings/Mail/Menu Links/M) 郵便箱を開く"
+mv -f -v "${HOME}/config/settings/Mail/Menu Links/Subject Contains…" "${HOME}/config/settings/Mail/Menu Links/S) 見出しで検索…"
+mv -f -v "${HOME}/config/settings/Mail/Menu Links/Today's E-Mail" "${HOME}/config/settings/Mail/Menu Links/T) 本日のメール"
 
 # Set up the spam classifier server.
 copyattr -d -m bin/AGMSBayesianSpamServer ~/config/bin/AGMSBayesianSpamServer
