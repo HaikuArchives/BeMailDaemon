@@ -1464,7 +1464,7 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 		enclosure->saved = true;
 		entry.GetPath(&path);
 		update_mime_info(path.Path(), false, true,
-			!cistrcmp("application/octet-stream", enclosure->content_type));
+			!cistrcmp("application/octet-stream", enclosure->content_type ? enclosure->content_type : B_EMPTY_STRING));
 		entry.GetNodeRef(&enclosure->node);
 		watch_node(&enclosure->node, B_WATCH_NAME, this);
 	}	
