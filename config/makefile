@@ -139,7 +139,7 @@ ifeq ($(shell ls 2>/dev/null -1 /boot/develop/headers/be/bone/bone_api.h), /boot
 	LIBS += socket
 endif
 
-INSTALL_DIR=/boot/beos/preferences/
+INSTALL_DIR=/boot/beos/preferences
 
 ## include the makefile-engine
 include $(BUILDHOME)/etc/makefile-engine.MailD
