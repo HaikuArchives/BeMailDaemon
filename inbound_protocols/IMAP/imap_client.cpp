@@ -24,8 +24,6 @@ using namespace Zoidberg;
 #define xEOF    236
 const bigtime_t kIMAP4ClientTimeout = 1000000*60; // 60 sec
 
-#define DEBUG 1
-
 enum { OK,BAD,NO,CONTINUE, NOT_COMMAND_RESPONSE };
 
 struct mailbox_info {
