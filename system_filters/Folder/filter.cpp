@@ -14,6 +14,7 @@
 #include <Path.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <parsedate.h>
 
 #include <MailAddon.h>
@@ -175,7 +176,7 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	worker << name << uniquer;
 
 	int32 tries = 20;
-	while ((err = e->Rename(worker.String)) == B_FILE_EXISTS && --tries > 0) {
+	while ((err = e->Rename(worker.String())) == B_FILE_EXISTS && --tries > 0) {
 		srand(uniquer);
 		uniquer += (rand() >> 16) - 16384;
 
