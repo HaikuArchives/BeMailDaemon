@@ -152,7 +152,7 @@ Protocol::ProcessMailMessage(BPositionIO **io_message, BEntry *io_entry,
 			(*manifest) -= temp;
 		}
 
-		if ((settings->FindBool("delete_remote_when_local")) || !(settings->FindBool("leave_mail_on_server"))) {
+		if (((settings->FindBool("delete_remote_when_local")) || !(settings->FindBool("leave_mail_on_server"))) && (manifest->CountItems() > 0)) {
 			StringList query_contents;
 			BQuery fido;
 			BVolume boot;
