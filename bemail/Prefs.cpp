@@ -486,6 +486,7 @@ TPrefsWindow::MessageReceived(BMessage *msg)
 			}
 
 			BTextView *text = fReplyPreamble->TextView();
+			// To do: insert at selection point rather than at the end.
 			text->Insert(text->TextLength(), item->Label(), 2);
 		}
 		case P_SIG:
@@ -666,10 +667,12 @@ BMenu *
 TPrefsWindow::BuildReplyPreambleMenu()
 {
 	const char *substitutes[] = {
+/* To do: Not yet working, leave out for 2.0.0 beta 4:
 		"%n - Full name",
 		"%f - First name",
 		"%l - Last name",
 		"%d - Date",
+*/
 		"%e - E-mail address",
 		"",
 		"\\n - Newline",
