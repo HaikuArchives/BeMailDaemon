@@ -77,6 +77,17 @@ bool MailComponent::IsAttachment() {
 	return false;
 }
 
+status_t MailComponent::FileName(char *text) {
+	BMessage content_type;
+	HeaderField("Content-Type",&content_type);
+	
+	if (!content_type.HasString("name"))
+		return B_NAME_NOT_FOUND;
+	
+	strncpy(text,content_type.FindString("name"),B_FILE_NAME_LENGTH);
+	return B_OK;
+}
+	
 void MailComponent::SetHeaderField(const char *key, const char *value, uint32 charset, mail_encoding encoding, bool replace_existing) {
 	if (replace_existing)
 		headers.RemoveName(key);
@@ -191,8 +202,7 @@ status_t MailComponent::GetDecodedData(BPositionIO *) {return B_OK;}
 status_t MailComponent::SetDecodedData(BPositionIO *) {return B_OK;}
 
 status_t MailComponent::Instantiate(BPositionIO *data, size_t /*length*/) {
-	// Remove the warning. Is length necessary at all?
-	
+
 	headers.MakeEmpty();
 	
 	char *	buf = (char *)malloc(1);

@@ -97,7 +97,8 @@ typedef struct {
 	char *encoding;
 	int32 text_start;
 	int32 text_end;
-	MailComponent *component;
+	MailContainer *container;
+	int32 componentAt;
 	bool saved;
 	bool have_ref;
 	entry_ref ref;
@@ -206,7 +207,7 @@ private:
 			bool fIncoming;
 			bool fMime;
 			TTextView *fView;
-			BFile fFile;
+			BFile *fFile;
 			BList *fEnclosures;
 			sem_id fStopSem;
 	};

@@ -36,7 +36,7 @@ class MailComponent {
 		bool IsAttachment();
 			// Returns true if this component is an attachment, false
 			// otherwise
-			
+
 		void SetHeaderField(
 			const char *key, const char *value,
 			uint32 charset = B_ISO1_CONVERSION,
@@ -51,6 +51,8 @@ class MailComponent {
 		status_t	HeaderField(const char *key, BMessage *structured_header, int32 index = 0);
 		
 		status_t	RemoveHeader(const char *key);
+
+		virtual status_t FileName(char *name);
 		
 		virtual status_t GetDecodedData(BPositionIO *data);
 		virtual status_t SetDecodedData(BPositionIO *data);

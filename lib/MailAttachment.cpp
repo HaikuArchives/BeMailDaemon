@@ -50,17 +50,6 @@ SimpleMailAttachment::~SimpleMailAttachment() {
 		delete _data;
 }
 
-status_t SimpleMailAttachment::FileName(char *text) {
-	BMessage content_type;
-	HeaderField("Content-Type",&content_type);
-	
-	if (!content_type.HasString("name"))
-		return B_NAME_NOT_FOUND;
-	
-	strcpy(text,content_type.FindString("name"));
-	return B_OK;
-}
-	
 void SimpleMailAttachment::SetFileName(const char *name) {
 	BMessage content_type;
 	HeaderField("Content-Type",&content_type);

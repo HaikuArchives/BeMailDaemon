@@ -8,7 +8,6 @@
 
 class MailAttachment {
 	public:
-		virtual status_t FileName(char *name) = 0;
 		virtual void SetFileName(const char *name) = 0;
 };
 
@@ -20,7 +19,6 @@ class SimpleMailAttachment : public MailComponent, public MailAttachment {
 		SimpleMailAttachment(const void *data, size_t length /* data to attach */);
 		virtual ~SimpleMailAttachment();
 		
-		virtual status_t FileName(char *name);
 		virtual void SetFileName(const char *name);
 		
 		virtual status_t GetDecodedData(BPositionIO *data);

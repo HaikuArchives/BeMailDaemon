@@ -359,7 +359,6 @@ TTextView::TTextView(BRect frame, BRect text, bool incoming, BFile *file,
 			fReady(false),
 			fYankBuffer(NULL),
 			fLastPosition(-1),
-			fFile(file),
 			fMail(NULL),
 			fFont(font),
 			fParent(view),
@@ -370,6 +369,8 @@ TTextView::TTextView(BRect frame, BRect text, bool incoming, BFile *file,
 			fRaw(false),
 			fCursor(false)
 {
+	fFile = new BFile(*file);
+
 	BFont	menuFont = *be_plain_font;
 	menuFont.SetSize(10);
 
@@ -411,6 +412,7 @@ TTextView::~TTextView()
 	delete_sem(fStopSem);
 
 	delete fMail;
+	delete fFile;
 }
 
 
@@ -1247,9 +1249,13 @@ void TTextView::LoadMessage(BFile *file, bool quoteIt, const char *text)
 	Window()->Lock();
 
 	delete fMail;  fMail = NULL;
-	fFile = file;
-
+	if (fFile != file)
+	{
+		delete fFile;
+		fFile = new BFile(*file);
+	}
 	ClearList();
+
 	MakeSelectable(true);
 	MakeEditable(false);
 	if (text)
@@ -1257,8 +1263,8 @@ void TTextView::LoadMessage(BFile *file, bool quoteIt, const char *text)
 
 	attr_info attrInfo;
 	TTextView::Reader *reader = new TTextView::Reader(fHeader, fRaw, quoteIt, fIncoming,
-				file->GetAttrInfo(B_MAIL_ATTR_MIME, &attrInfo) == B_OK,
-				this, file, fEnclosures, fStopSem);
+				fFile->GetAttrInfo(B_MAIL_ATTR_MIME, &attrInfo) == B_OK,
+				this, fFile, fEnclosures, fStopSem);
 
 	resume_thread(fThread = spawn_thread(Reader::Run, "reader", B_NORMAL_PRIORITY, reader));
 }
@@ -1438,7 +1444,10 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 		}
 	}
 	
-	if (enclosure->component == NULL)
+	MailComponent *component = NULL;
+	if (enclosure->container != NULL)
+		component = enclosure->container->GetComponent(enclosure->componentAt);
+	if (component == NULL)
 		result = B_ERROR;
 
 	if (result == B_NO_ERROR)
@@ -1446,7 +1455,7 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 		//
 		// Write the data
 		//
-		enclosure->component->GetDecodedData(&file);
+		component->GetDecodedData(&file);
 		
 		BEntry entry;
 		dir.FindEntry(name, &entry);
@@ -1608,7 +1617,7 @@ TTextView::Reader::Reader(bool header, bool raw, bool quote, bool incoming, bool
 		fIncoming(incoming),
 		fMime(mime),
 		fView(view),
-		fFile(*file),
+		fFile(file),
 		fEnclosures(list),
 		fStopSem(sem)
 {
@@ -1617,14 +1626,14 @@ TTextView::Reader::Reader(bool header, bool raw, bool quote, bool incoming, bool
 
 bool TTextView::Reader::ParseMail(MailContainer *container,PlainTextBodyComponent *ignore)
 {
-	//MailComponent c;
+	MailComponent c;
 	int32 count = 0;
 	for (int32 i = 0;i < container->CountComponents();i++)
 	{
 		MailComponent *component;
-		/*if (container->ManualGetComponent(c,i) == B_OK)
+		if (container->ManualGetComponent(&c,i) == B_OK)
 			component = &c;
-		else*/ if ((component = container->GetComponent(i)) == NULL)
+		else if ((component = container->GetComponent(i)) == NULL)
 		{
 			hyper_text *enclosure = (hyper_text *)malloc(sizeof(hyper_text));
 			memset(enclosure, 0, sizeof(hyper_text));
@@ -1658,13 +1667,13 @@ bool TTextView::Reader::ParseMail(MailContainer *container,PlainTextBodyComponen
 			memset(enclosure, 0, sizeof(hyper_text));
 
 			enclosure->type = TYPE_ENCLOSURE;
-			enclosure->component = component;
+			enclosure->container = container;
+			enclosure->componentAt = i;
 
 			BString name;
 			char fileName[B_FILE_NAME_LENGTH];
 			strcpy(fileName,"untitled");
-			if (MailAttachment *attachment = dynamic_cast<MailAttachment *>(component))
-				attachment->FileName(fileName);
+			component->FileName(fileName);
 
 			BPath path(fileName);
 			enclosure->name = strdup(path.Leaf());
@@ -1858,17 +1867,17 @@ status_t TTextView::Reader::Run(void *_this)
 	int32	len;
 	off_t	size;
 
-	len = header_len(&reader->fFile);
+	len = header_len(reader->fFile);
 
 	if (reader->fHeader)
 		size = len;
 	else if (reader->fRaw || !reader->fMime)
-		reader->fFile.GetSize(&size);
+		reader->fFile->GetSize(&size);
 
 	if ((msg = (char *)malloc(size)) == NULL)
 		goto done;
-	reader->fFile.Seek(0, 0);
-	size = reader->fFile.Read(msg, size);
+	reader->fFile->Seek(0, 0);
+	size = reader->fFile->Read(msg, size);
 
 	// show the header?
 	if (reader->fHeader && len)
@@ -1900,8 +1909,8 @@ status_t TTextView::Reader::Run(void *_this)
 	}
 	else
 	{
-		reader->fFile.Seek(0, 0);
-		MailMessage *mail = new MailMessage(&reader->fFile);
+		reader->fFile->Seek(0, 0);
+		MailMessage *mail = new MailMessage(reader->fFile);
 		
 		// at first, insert the mail body
 		if (mail->BodyText())
