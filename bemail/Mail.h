@@ -132,7 +132,8 @@ enum MENUS {
 	M_BCC_MENU,
 	/* nav */
 	M_NEXTMSG,
-	M_PREVMSG
+	M_PREVMSG,
+	M_SAVE_POSITION
 };
 
 enum USER_LEVEL {
@@ -189,7 +190,7 @@ private:
 	BFile *fPrefs;
 	TPrefsWindow *fPrefsWindow;
 	TSignatureWindow *fSigWindow;
-	BMessenger *trackerMessenger;	// Talks to tracker window that
+	BMessenger *fTrackerMessenger;	// Talks to tracker window that
 									// this was launched from.
 	bool fPrevBBPref;
 };
@@ -222,8 +223,12 @@ public:
 	status_t Send(bool);
 	status_t SaveAsDraft( void );
 	status_t OpenMessage(entry_ref*);
+
 	entry_ref* GetMailFile() const;
-	bool GetTrackerWindowFile(entry_ref*, bool dir) const;
+	bool GetTrackerWindowFile(entry_ref *, bool dir) const;
+	void SaveTrackerPosition(entry_ref *);
+	void SetOriginatingWindow(BWindow *window);
+
 	void SetCurrentMessageRead();
 	void SetTrackerSelectionToCurrent();
 	TMailWindow* FrontmostWindow();
@@ -268,8 +273,10 @@ private:
 	THeaderView *fHeaderView;
 	TEnclosuresView *fEnclosuresView;
 	TMenu *fSignature;
-	BMessenger *trackerMessenger;	// Talks to tracker window that
+	BMessenger *fTrackerMessenger;	// Talks to tracker window that
 									// this was launched from.
+	entry_ref fPrevRef, fNextRef;
+	bool fTrackerPositionSaved;
 	static BList sWindowList;
 	bool fSigAdded;
 	bool fIncoming;
@@ -281,6 +288,7 @@ private:
 
 	char *fStartingText;	
 	entry_ref	fRepliedMail;
+	BMessenger	*fOriginatingWindow;
 };
 
 //====================================================================

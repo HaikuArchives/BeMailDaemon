@@ -176,7 +176,7 @@ TMailApp::TMailApp()
 		fWindowCount(0),
 		fPrefsWindow(NULL),	
 		fSigWindow(NULL),
-		trackerMessenger(NULL)
+		fTrackerMessenger(NULL)
 {
 	fFont.SetSize(FONT_SIZE);
 	signature = (char*) malloc(strlen(SIG_NONE) + 1);
@@ -263,7 +263,7 @@ TMailApp::TMailApp()
 TMailApp::~TMailApp()
 {
 	delete fPrefs;
-	delete trackerMessenger;
+	delete fTrackerMessenger;
 }
 
 //--------------------------------------------------------------------
@@ -357,17 +357,17 @@ void TMailApp::ArgvReceived(int32 argc, char **argv)
 
 void TMailApp::MessageReceived(BMessage* msg)
 {
-	int32			type;
-	BMessage		*message;
-	entry_ref		ref;
-	TMailWindow		*window = NULL;
-	TMailWindow		*src_window;
+	TMailWindow	*window = NULL;
+	entry_ref	ref;
 
 	switch (msg->what)
 	{
 		case M_NEW:
+		{
+			int32 type;
 			msg->FindInt32("type", &type);
-			switch (type) {
+			switch (type)
+			{
 				case M_NEW:
 					window = NewWindow();
 					break;
@@ -395,23 +395,29 @@ void TMailApp::MessageReceived(BMessage* msg)
 				case M_REPLY:
 				case M_REPLY_ALL:
 				case M_COPY_TO_NEW:
-					msg->FindPointer("window", (void **)&src_window);
-					if (!src_window->Lock())
+				{
+					TMailWindow	*sourceWindow;
+					if (msg->FindPointer("window", (void **)&sourceWindow) < B_OK
+						|| !sourceWindow->Lock())
 						break;
 					msg->FindRef("ref", &ref);
 					window = NewWindow();
-					window->Lock();
-					if( type == M_COPY_TO_NEW )
-						window->CopyMessage(&ref, src_window);
-					else
-						window->Reply(&ref, src_window, type == M_REPLY_ALL);
-					window->Unlock();
-					src_window->Unlock();
+					if (window->Lock())
+					{
+						if (type == M_COPY_TO_NEW)
+							window->CopyMessage(&ref, sourceWindow);
+						else
+							window->Reply(&ref, sourceWindow, type == M_REPLY_ALL);
+						window->Unlock();
+					}
+					sourceWindow->Unlock();
 					break;
+				}
 			}
 			if (window)
 				window->Show();
 			break;
+		}
 
 		case M_WRAP_TEXT:
 		{
@@ -474,24 +480,26 @@ void TMailApp::MessageReceived(BMessage* msg)
 			break;
 
 		case REFS_RECEIVED:
-			if (msg->HasPointer("window")) {
+			if (msg->HasPointer("window"))
+			{
 				msg->FindPointer("window", (void **)&window);
-				message = new BMessage(*msg);
-				window->PostMessage(message, window);
-				delete message;
+				BMessage message(*msg);
+				window->PostMessage(&message, window);
 			}
 			break;
 
 		case WINDOW_CLOSED:
-			switch (msg->FindInt32("kind")) {
+			switch (msg->FindInt32("kind"))
+			{
 				case MAIL_WINDOW:
-					{
-						TMailWindow	*window;
-						if( msg->FindPointer( "window", (void **)&window ) == B_OK )
-							fWindowList.RemoveItem( window );
-						fWindowCount--;
-						break;
-					}
+				{
+					TMailWindow	*window;
+					if( msg->FindPointer( "window", (void **)&window ) == B_OK )
+						fWindowList.RemoveItem( window );
+					fWindowCount--;
+					break;
+				}
+
 				case PREFS_WINDOW:
 					fPrefsWindow = NULL;
 					break;
@@ -501,7 +509,7 @@ void TMailApp::MessageReceived(BMessage* msg)
 					break;
 			}
 
-			if ((!fWindowCount) && (!fSigWindow) && (!fPrefsWindow))
+			if (!fWindowCount && !fSigWindow && !fPrefsWindow)
 				be_app->PostMessage(B_QUIT_REQUESTED);
 			break;
 
@@ -674,8 +682,8 @@ void TMailApp::RefsReceived(BMessage *msg)
 	// If a tracker window opened me, get a messenger from it.
 	//
 	if (msg->HasMessenger("TrackerViewToken")) {
-		trackerMessenger = new BMessenger;
-		msg->FindMessenger("TrackerViewToken", trackerMessenger);
+		fTrackerMessenger = new BMessenger;
+		msg->FindMessenger("TrackerViewToken", fTrackerMessenger);
 	}
 	
 	while (msg->HasRef("refs", item)) {
@@ -688,7 +696,7 @@ void TMailApp::RefsReceived(BMessage *msg)
 				BNodeInfo	node(&file);
 				node.GetType(type);
 				if (!strcmp(type, B_MAIL_TYPE)) {
-					window = NewWindow(&ref, NULL, false, trackerMessenger);
+					window = NewWindow(&ref, NULL, false, fTrackerMessenger);
 					window->Show();
 				} else if(!strcmp(type, "application/x-person")) {
 					
@@ -865,14 +873,16 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 			fSigButton(NULL),
 			fZoom(rect),
 			fEnclosuresView(NULL),
-			trackerMessenger(msng),
+			fTrackerMessenger(msng),
+			fTrackerPositionSaved(false),
 			fSigAdded(false),
 			fReplying(false),
 			fResending(resending),
 			fSent(false),
 			fDraft(false),
 			fChanged(false),
-			fStartingText(NULL)
+			fStartingText(NULL),
+			fOriginatingWindow(NULL)
 {
 	bool		done = false;
 	char		str[256];
@@ -1338,27 +1348,35 @@ void TMailWindow::UpdateViews( void )
 	fContentView->ResizeTo( bounds.right-bounds.left, bounds.bottom-nextY+1 );
 }
 
-//--------------------------------------------------------------------
 
 TMailWindow::~TMailWindow()
 {	
 	delete fFile;
 	last_window = Frame();
 	delete fPanel;
+	delete fOriginatingWindow;
 
 	sWindowList.RemoveItem(this);
 }
+
 
 entry_ref* TMailWindow::GetMailFile() const
 {
 	return fRef;
 }
 
+
 bool TMailWindow::GetTrackerWindowFile(entry_ref *ref, bool next) const
 {
-	if (trackerMessenger == NULL)
+	// Position was already saved
+	if (fTrackerPositionSaved)
+	{
+		*ref = next ? fNextRef : fPrevRef;
+		return true;
+	}
+	if (fTrackerMessenger == NULL)
 		return false;
-	
+
 	//
 	//	Ask the tracker what the next/prev file in the window is.
 	//	Continue asking for the next reference until a valid 
@@ -1366,7 +1384,8 @@ bool TMailWindow::GetTrackerWindowFile(entry_ref *ref, bool next) const
 	//
 	entry_ref nextRef = *ref;
 	bool foundRef = false;
-	while (!foundRef) {
+	while (!foundRef)
+	{
 		BMessage request(B_GET_PROPERTY);
 		BMessage spc;
 		if (next)
@@ -1379,7 +1398,7 @@ bool TMailWindow::GetTrackerWindowFile(entry_ref *ref, bool next) const
 
 		request.AddSpecifier(&spc);
 		BMessage reply;
-		if (trackerMessenger->SendMessage(&request, &reply) != B_OK)
+		if (fTrackerMessenger->SendMessage(&request, &reply) != B_OK)
 			return false;
 
 		if (reply.FindRef("result", &nextRef) != B_OK)
@@ -1402,12 +1421,33 @@ bool TMailWindow::GetTrackerWindowFile(entry_ref *ref, bool next) const
 }
 
 
+void TMailWindow::SaveTrackerPosition(entry_ref *ref)
+{
+	if (fTrackerPositionSaved)
+		return;
+
+	fNextRef = fPrevRef = *ref;
+
+	bool next = GetTrackerWindowFile(&fNextRef, true);
+	bool prev = GetTrackerWindowFile(&fPrevRef, false);
+
+	fTrackerPositionSaved = next | prev;
+}
+
+
+void TMailWindow::SetOriginatingWindow(BWindow *window)
+{
+	delete fOriginatingWindow;
+	fOriginatingWindow = new BMessenger(window);
+}
+
+
 void TMailWindow::SetTrackerSelectionToCurrent()
 {
 	BMessage setsel(B_SET_PROPERTY);
 	setsel.AddSpecifier("Selection");
 	setsel.AddRef("data", fRef);
-	trackerMessenger->SendMessage(&setsel);
+	fTrackerMessenger->SendMessage(&setsel);
 }
 
 void TMailWindow::SetCurrentMessageRead()
@@ -1479,7 +1519,7 @@ void TMailWindow::MenusBeginning()
 			fCut->SetEnabled(false);
 			fPaste->SetEnabled(false);
 
-			if (trackerMessenger == NULL || !trackerMessenger->IsValid())
+			if (fTrackerMessenger == NULL || !fTrackerMessenger->IsValid())
 			{
 				nextMsg->SetEnabled(false);
 				prevMsg->SetEnabled(false);
@@ -1615,34 +1655,34 @@ void TMailWindow::MessageReceived(BMessage* msg)
 			break;
 		}
 		case M_REPLY:
+		{
+			uint32 buttons;
+			if (msg->FindInt32("buttons", (int32 *)&buttons) == B_OK
+				&& buttons == B_SECONDARY_MOUSE_BUTTON)
 			{
-				uint32 buttons;
-				if (msg->FindInt32("buttons", (int32 *)&buttons) == B_OK
-					&& buttons == B_SECONDARY_MOUSE_BUTTON)
+				BPopUpMenu menu("Reply To", false, false);
+				BMenuItem *item;
+				BMessage *message = new BMessage(*msg);
+				message->RemoveName("buttons");
+				message->RemoveName("where");
+				
+				menu.AddItem(new BMenuItem("Reply to Sender", message));
+				message = new BMessage(*message);
+				message->what = M_REPLY_ALL;
+				menu.AddItem(new BMenuItem("Reply to All", message));
+				
+				BPoint	where;
+				msg->FindPoint("where", &where);
+
+				if ((item = menu.Go(where, false, false)) != NULL)
 				{
-					BPopUpMenu menu("Reply To", false, false);
-					BMenuItem *item;
-					BMessage *message = new BMessage(*msg);
-					message->RemoveName("buttons");
-					message->RemoveName("where");
-					
-					menu.AddItem(new BMenuItem("Reply to Sender", message));
-					message = new BMessage(*message);
-					message->what = M_REPLY_ALL;
-					menu.AddItem(new BMenuItem("Reply to All", message));
-					
-					BPoint	where;
-					
-					msg->FindPoint("where", &where);
-					if ((item = menu.Go(where, false, false)) != NULL)
-					{
-						item->SetTarget(this);
-						PostMessage(item->Message());
-					}
-					break;
+					item->SetTarget(this);
+					PostMessage(item->Message());
 				}
+				break;
 			}
-			// Fall Through
+		}
+		// Fall Through
 		case M_REPLY_ALL:
 		case M_FORWARD:
 		case M_RESEND:
@@ -1686,7 +1726,7 @@ void TMailWindow::MessageReceived(BMessage* msg)
 			if (fIncoming)
 				SetCurrentMessageRead();
 
-			if (trackerMessenger == NULL || !trackerMessenger->IsValid() || !fIncoming)
+			if (fTrackerMessenger == NULL || !fTrackerMessenger->IsValid() || !fIncoming)
 			{
 				//
 				//	Not associated with a tracker window.  Create a new
@@ -1720,7 +1760,7 @@ void TMailWindow::MessageReceived(BMessage* msg)
 				entryspec.AddRef("refs", fRef);
 				entryspec.AddString("property", "Entry");
 				delmsg.AddSpecifier(&entryspec);
-				trackerMessenger->SendMessage(&delmsg);
+				fTrackerMessenger->SendMessage(&delmsg);
 			}
 
 			//
@@ -1993,6 +2033,11 @@ void TMailWindow::MessageReceived(BMessage* msg)
 					beep();
 			}
 			break;
+		case M_SAVE_POSITION:
+			if (fRef)
+				SaveTrackerPosition(fRef);
+			break;
+
 		case M_OPEN_MAIL_FOLDER:
 		case M_OPEN_MAIL_BOX:
 		{
@@ -2404,6 +2449,7 @@ void TMailWindow::CopyMessage(entry_ref *ref, TMailWindow *src)
 void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, bool all)
 {
 	fRepliedMail = *ref;
+	SetOriginatingWindow(window);
 
 	BFile file(ref, O_RDONLY);
 	if (file.InitCheck() != B_OK)
@@ -2609,7 +2655,14 @@ status_t TMailWindow::Send(bool now)
 		{
 			BNode node(&fRepliedMail);
 			if (node.InitCheck() >= B_OK)
+			{
+				if (fOriginatingWindow)
+				{
+					BMessage msg(M_SAVE_POSITION), reply;
+					fOriginatingWindow->SendMessage(&msg, &reply);
+				}
 				WriteAttrString(&node, B_MAIL_ATTR_STATUS,"Replied");
+			}
 		}
 	}
 

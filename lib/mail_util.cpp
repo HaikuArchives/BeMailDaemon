@@ -293,9 +293,11 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, cha
 					encoded_len = encode_base64(encoded,current->begin,current->length);
 					break;
 			}
-			
+
+#ifdef DEBUG
 			printf("String: %s, len: %ld\n",current->begin,current->length);
-			
+#endif
+
 			rfc2047 << "=?" << charset_dec << '?' << encoding << '?';
 			rfc2047.Append(encoded,encoded_len);
 			rfc2047 << "?=" << current->begin[current->length];
@@ -413,7 +415,6 @@ _EXPORT ssize_t readfoldedline(BPositionIO &in, char **buffer, size_t *buflen)
 			{
 				// we read a line; break out of the loop
 				//ATT-ungetc(c,file); translates to this, right?
-				puts("seek back");
 				in.Seek(-1,SEEK_CUR);
 				c = '\n';
 				break;
