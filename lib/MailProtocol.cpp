@@ -114,6 +114,10 @@ MDStatus Protocol::ProcessMailMessage
 		
 		error = GetMessage(io_uid->String(),io_message,io_headers,io_folder);
 		if (error < B_OK) {
+			for (int32 i = unique_ids->IndexOf(io_uid->String()); unique_ids->ItemAt(i) != NULL;) {
+				unique_ids->RemoveItem(unique_ids->ItemAt(i));
+			} //-----Remove the rest of our list: these have not yet been downloaded
+			
 			if (error == B_NAME_NOT_FOUND)
 				return MD_NO_MORE_MESSAGES;
 				
