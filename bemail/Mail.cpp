@@ -2809,7 +2809,7 @@ TMailWindow::Send(bool now)
 		if (result == B_OK)
 		{
 			Zoidberg::Mail::Message mail(&file);
-			mail.SetTo(fHeaderView->fTo->Text());
+			mail.SetTo(fHeaderView->fTo->Text(), gMailCharacterSet, quoted_printable);
 
 			if (fHeaderView->fChain != ~0L)
 				mail.SendViaAccount(fHeaderView->fChain);
