@@ -83,8 +83,8 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 		// Add each header to the headers message
 		headers->AddString(piece.String(),string.String() + piece.Length() + 2);
 	}
-		
-	free(buf);
+	if (buf != NULL)
+		free(buf);
 	
 	//
 	// add pseudo-header THREAD, that contains the subject

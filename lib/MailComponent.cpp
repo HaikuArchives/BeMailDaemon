@@ -214,8 +214,8 @@ status_t Component::SetDecodedData(BPositionIO *) {return B_OK;}
 status_t Component::SetToRFC822(BPositionIO *data, size_t /*length*/, bool /* lazy */) {
 
 	headers.MakeEmpty();
-	
-	char *	buf = (char *)malloc(1);
+
+	char *	buf = NULL;
 	size_t	buflen = 0;
 	int32	len;
 	//
@@ -241,7 +241,8 @@ status_t Component::SetToRFC822(BPositionIO *data, size_t /*length*/, bool /* la
 
 		headers.AddString(header.String(),delimiter + 2);
 	}
-	free(buf);
+	if (buf)
+		free(buf);
 
 	return B_OK;
 }
