@@ -13,6 +13,9 @@ files:
   LICENSE
    Conditions for using/distributing this package.
 
+  DANGER, WILL ROBINSON
+   The reasons this is not a final release. You really should read this.
+
   libmail.so
    This library provides the backend for the new mail_daemon.
    It will be installed in /boot/beos/system/lib
@@ -92,7 +95,8 @@ Add-ons should be installed in /boot/home/config/add-ons/
 mail_daemon/ in the subdirectory specified in the add on documentation.
 This directory will be automatically created by the installation process.
 The distribution contains POP3 (with APOP support), IMAP and SMTP (including 
-SMTP-Auth) protocols, as well as Fortune, Compatibility, and RuleFilter filters.
+SMTP-Auth) protocols, as well as Add Fortune, R5 Daemon Filter, and Match
+Header filters.
 
 FILTERS:
 
@@ -104,26 +108,37 @@ will be executed in the order they appear in the list, and can be reorderd with
 a simple drag and drop. To install new filters, follow the directions in 
 ADDON INSTALLATION.
 
- Fortune
+ Add Fortune
    This filter adds a random fortune to the bottom of all outgoing e-mail. For
    an example, open your Terminal and type fortune. The database can be
    specified in config, although it is highly reccomended that you use the
    default. For more information on Fortune and its database format, go look
    somewhere on the web.
 
- Compatibility
+ R5 Daemon Filter
    This filter executes old style mail daemon filters on inbound messages.
    For more information, see http://www.betips.net/chunga.php?ID=511
 
- RuleFilter
+ Match Header
    Allows you to filter messages based on an arbitrary header, of a value
    you define. The value can be a regex. So to trash messages containing
-   "get rich quick" in the subject, do this: If |subject| is |*get rich quick*|
+   "get rich quick" in the subject, do this: If |Subject| is |*get rich quick*|
    Then |Delete Message| The ||, of course, are just the edges of the
    text boxes. Or, to put it messages from BeUserTalk in ~/mail/beusertalk:
-   If |subject| is |*BeUserTalk*| Then |Move To| |/boot/home/mail/beusertalk|
+   If |Subject| is |*BeUserTalk*| Then |Move To| |/boot/home/mail/beusertalk|
+   This works for any header field. Also, THREAD is a special header
+   containing (you guessed it!) the message thread.
 
 HISTORY:
+
+February 12 2002 - v2.0.0b1
+  - Serious speed and stability improvements
+  - Friendly addon names
+  - Finalized, beautified, and FBC-protected API
+  - Crash on shutdown bug fixed
+  - Colored quotes
+  - Attachments work now :P
+  - Lots of other things are much better too, but I don't remember them now
 
 November 21 2001 - v2.0.0a2
   - Attachments that used not to be handled are handled now.

@@ -20,4 +20,6 @@ IT'S NOT A BUG, IT'S A FEATURE:
 
 3) The settings in things like Postmaster and the old e-mail prefs that used the settings of the old mail daemon will no longer be able to save settings. They will however be able to read them, since we were nice and added that feature. But what are you doing using Postmaster anyway?
 
+4) Most of the addon names have changed. They are nice and friendly now, so don't get scared.
+
 THANK YOU FOR LISTENING. WE WILL NOW RETURN TO OUR REGULARLY SCHEDULED PROGRAM. BEEP!
