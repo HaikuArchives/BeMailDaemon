@@ -239,7 +239,8 @@ status_t MIMEMultipartContainer::SetToRFC822(BPositionIO *data, size_t length, b
 					}
 					break;
 			}
-			if (state >= FOUND_BOUNDARY_STATE)
+			// if a boundary was found or the file is broken
+			if (state >= FOUND_BOUNDARY_STATE || (offset + i + 1) >= end)
 			{
 				if (lastBoundary >= 0)
 				{

@@ -348,7 +348,8 @@ status_t MailMessage::RenderToRFC822(BPositionIO *file) {
 
 			TrimWhite(little);
 			recipientsList.AddItem(little.String());
-			j = i;
+			printf(":::%s\n",little.String());
+			j = i + 1;
 		}
 	}
 	recipients = "";
@@ -362,6 +363,7 @@ status_t MailMessage::RenderToRFC822(BPositionIO *file) {
 			little.Prepend("<");
 			little.Append(">");
 		}
+		printf("###%s\n",little.String());
 		
 		if (i)
 			recipients << ',';
