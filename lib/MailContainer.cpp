@@ -98,20 +98,30 @@ int32 MIMEMultipartContainer::CountComponents() const {
 	return _components_in_code.CountItems();
 }
 
-status_t MIMEMultipartContainer::GetDecodedData(BPositionIO * /*data*/) {
+status_t MIMEMultipartContainer::ManualGetComponent(MailComponent *component, int32 index) {
+	if (_components_in_code.ItemAt(index) != NULL)
+		return B_NAME_IN_USE;
+		
+	message_part *part = (message_part *)(_components_in_raw.ItemAt(index));
+	if (part == NULL)
+		return B_BAD_INDEX;
+		
+	_io_data->Seek(part->start,SEEK_SET);
+	
+	return component->Instantiate(_io_data,part->end - part->start);
+}
+
+status_t MIMEMultipartContainer::GetDecodedData(BPositionIO *data) {
 	return B_BAD_TYPE; //------We don't play dat
 }
 
-status_t MIMEMultipartContainer::SetDecodedData(BPositionIO * /*data*/) {
+status_t MIMEMultipartContainer::SetDecodedData(BPositionIO *data) {
 	return B_BAD_TYPE; //------We don't play dat
 }
 
 status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length) {
 	_io_data = data;
 	
-	if (length & 0x80000000)
-		return B_BAD_VALUE;
-
 	off_t position = data->Position();
 	MailComponent::Instantiate(data,length);
 	
@@ -136,14 +146,14 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length) {
 
 	end_delimiter << type << "--";
 	
-	int32 offset = data->Position();
-	int32 start = offset + (int32)length;
+	int32 start = data->Position();
+	int32 offset = start;
 	ssize_t len;
 	BString line;
 	char *buf;
 	int32 last_boundary = -1;
-
-	while (offset < start) {
+	
+	while (offset < (start + length)) {
 		len = line.Length();
 		buf = line.LockBuffer(len + 255) + len;
 		len = data->ReadAt(offset,buf,90);

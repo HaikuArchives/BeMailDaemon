@@ -401,6 +401,6 @@ status_t MailChain::RemoveFilter(int32 index)
 	return s||a?B_OK:B_BAD_INDEX;
 }
 
-void MailChain::RunChain(StatusWindow *window) {
-	(new ChainRunner(this))->RunChain(window,true);
+void MailChain::RunChain(StatusWindow *window, bool async) {
+	(new ChainRunner(this))->RunChain(window,true,async);
 }

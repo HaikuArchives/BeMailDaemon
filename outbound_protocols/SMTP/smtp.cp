@@ -173,7 +173,7 @@ status_t SMTPProtocol::Login(const char * _login, const char * password) {
 					if (chain->GetFilter(0,&msg,&ref) >= B_OK)
 					{
 						BPath path(&ref);
-						if (path.InitCheck() >= B_OK && !strcmp(path.Leaf(),"POP3"))
+						if (path.InitCheck() >= B_OK/* && !strcmp(path.Leaf(),"POP3")*/)
 						{
 							// protocol matches, go execute it!
 		
@@ -201,14 +201,21 @@ status_t SMTPProtocol::Login(const char * _login, const char * password) {
 								unload_add_on(image);
 							}
 						}
-						else
-							fLog = "POP3 protocol is not used";
+						//else
+						//	fLog = "POP3 protocol is not used";
 					}
 					else
 						fLog = "Could not get inbound protocol";
 				}
 				else
 					fLog = "Cannot find inbound chain";
+					
+				for (int i = chains.CountItems();i-- > 0;)
+				{
+					chain = (MailChain *)chains.ItemAt(i);
+					delete chain;
+				}
+			
 			}
 			else
 				fLog = "Cannot get inbound chains";

@@ -45,7 +45,7 @@ class MailChain: public BArchivable
 	status_t AddFilter(int32 index, const BMessage&, const entry_ref&);
 	status_t RemoveFilter(int32 index);
 	
-	void RunChain(StatusWindow *window);
+	void RunChain(StatusWindow *window, bool async = true);
 	
   private:
 	status_t Path(BPath *path) const;

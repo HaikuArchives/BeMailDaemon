@@ -18,6 +18,8 @@ class MIMEMultipartContainer : public MailComponent {
 		MailComponent *GetComponent(int32 index);
 		int32 CountComponents() const;
 		
+		status_t ManualGetComponent(MailComponent *component, int32 index);
+		
 		virtual status_t GetDecodedData(BPositionIO *data);
 		virtual status_t SetDecodedData(BPositionIO *data);
 		

@@ -32,7 +32,7 @@ class ChainRunner {
 		MailChain *Chain();
 		
 		//----The big, bad asynchronous RunChain() function. Pretty harmless looking, huh?
-		status_t RunChain(StatusWindow *status, bool self_destruct_when_done);
+		status_t RunChain(StatusWindow *status, bool self_destruct_when_done, bool asynchronous = true);
 		
 	private:
 		static int32 async_chain_runner(void *arg);
