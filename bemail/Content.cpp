@@ -1853,7 +1853,7 @@ void TTextView::AddAsContent(MailMessage *mail, bool wrap)
 
 		// hard-wrap, based on TextView's soft-wrapping
 		int32	numLines = CountLines();
-		char	*content = (char *)malloc(textLen + numLines);	// most we'll ever need
+		char	*content = (char *)malloc(textLen + numLines * 72);	// more we'll ever need
 		if (content != NULL)
 		{
 			int32 contentLen = 0;
@@ -1870,7 +1870,30 @@ void TTextView::AddAsContent(MailMessage *mail, bool wrap)
 				// add a newline to every line except for the ones
 				// that already end in newlines, and the last line 
 				if ((text[endOffset - 1] != '\n') && (i < (numLines - 1)))
+				{
 					content[contentLen++] = '\n';
+					
+					// count qoute level (to be able to wrap quotes correctly)
+
+					char *quote = QUOTE;
+					int32 level = 0;
+					for (int32 i = startOffset;i < endOffset;i++)
+					{
+						if (text[i] == *quote)
+							level++;
+					}
+					
+					// if there are too much quotes, try to preserve the quote color level
+					if (level > 10)
+						level = kNumQuoteColors * 3 + (level % kNumQuoteColors);
+						
+					int32 quoteLength = strlen(QUOTE);
+					for (;level-- > 0;)
+					{
+						strcpy(content + contentLen,QUOTE);
+						contentLen += quoteLength;
+					}
+				}
 			}
 			content[contentLen] = '\0';
 
