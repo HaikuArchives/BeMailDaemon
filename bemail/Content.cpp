@@ -104,17 +104,27 @@ bool FilterHTMLTag(char *first,char **t,char *end)
 {
 	const char *newlineTags[] = {
 		"br",
-		"p","div",
+		"/p","/div","/table","/tr",
 		NULL};
 
 	char *a = *t;
+
+	// check for &nbsp; entity
+	if (*first == '&')
+	{
+		if (!strncasecmp(a,"&nbsp;",6))
+		{
+			*t += 6;
+			*first = ' ';
+			return false;
+		}
+	}
 
 	// no tag to filter
 	if (*first != '<')
 		return false;
 
 	a++;
-	if (*a == '/') a++;
 
 	// is the tag one of the newline tags?
 
@@ -152,7 +162,9 @@ bool FilterHTMLTag(char *first,char **t,char *end)
 		}
 	}
 
+	// skip until tag end
 	while(*a && *a != '>' && a < end) a++;
+	
 	*t = a;
 
 	if (newline)
@@ -2160,6 +2172,7 @@ status_t TTextView::Reader::Run(void *_this)
 	// show the header?
 	if (reader->fHeader && len)
 	{
+		// strip all headers except "From", "To", "Reply-To", "Subject", and "Date"
 	 	if (reader->fStripHeader)
 	 	{
 		 	const char *header = msg;
@@ -2247,10 +2260,22 @@ status_t TTextView::Reader::Run(void *_this)
 				for(a = bodyText;*t;t++)
 				{
 					char c = *t;
-			
+
+					// compact newlines and spaces
+					bool space = false;
+					while (c && isspace(c))
+					{
+						c = *(++t);
+						space = true;
+					}
+					if (space)
+					{
+						c = ' ';
+						t--;
+					}
 					if (FilterHTMLTag(&c,&t,end))	// the tag filter
 						continue;
-			
+
 					*(a++) = c;
 				}
 			
