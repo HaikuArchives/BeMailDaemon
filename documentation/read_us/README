@@ -145,13 +145,14 @@ ADDON INSTALLATION.
 
 HISTORY:
 
-November 24 2002 - v2.0.0b5
+November 27 2002 - v2.0.0b5
 - Changed readfoldedline and MIME parsing to both handle lines ending in either CRLF (the standard for Internet mail) or LF (sometimes used for local file storage).  Also handles EOF and errors better.
 - Fixed a bug where an empty message sub-part would cause a crash due to BString UnlockBuffer(0) not working for empty strings.  This generally made it crash when it tried to open a malformed message.
 - Check for IO errors while writing generic headers and copying existing MIME components.
 - New "Reply With" option for the Match Header filter.
 - New "Set As Read" option for the Match Header filter.
 - Old style name extraction fixed so that StripGook "joe@foo.com (Joe)" will return "Joe" rather than "Jo".
+- MessageIO fixed so that it doesn't reread the whole message when doing a SEEK_END, doubles performance when checking for spam!
 
 November 20 2002 - v2.0.0b4
  - Zillions of bug fixes. Too much to mention, really
