@@ -23,21 +23,11 @@
 namespace Zoidberg {
 namespace Mail {
 
-class SinglePassTermination : public Mail::ChainCallback {
-	public:
-		SinglePassTermination(Mail::ChainRunner *run) : runner(run) {}
-		void Callback(status_t) { runner->Stop(); }
-		
-	private:
-		Mail::ChainRunner *runner;
-};
-
 SimpleProtocol::SimpleProtocol(BMessage *settings, Mail::ChainRunner *run) :
 	Mail::Protocol(settings,run),
 	error(B_OK),
 	last_message(-1)
 {
-	runner->RegisterProcessCallback(new SinglePassTermination(runner));
 }
 
 
@@ -89,6 +79,7 @@ SimpleProtocol::Init()
 		maildrop_size += MessageSize(unique_ids->IndexOf(to_dl[i]));
 
 	runner->GetMessages(&to_dl, maildrop_size);
+	runner->Stop(); //---This gets queued
 
 	return error;
 }
