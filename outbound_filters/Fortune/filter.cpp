@@ -12,10 +12,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <MailAddon.h>
+#include <MailMessage.h>
+
 #include "NodeMessage.h"
 
 using namespace Zoidberg;
-
 
 class FortuneFilter : public Mail::Filter
 {
@@ -43,37 +44,56 @@ status_t FortuneFilter::InitCheck(BString* err)
 status_t FortuneFilter::ProcessMailMessage
 (BPositionIO** io, BEntry* io_entry, BMessage* headers, BPath* , const char*)
 {
-	BString fortune_file;
-	settings->FindString("fortune_file", &fortune_file);	
+	// What we want to do here is to change the message body. To do that we use the
+	// framework we already have by creating a new Mail::Message based on the
+	// BPositionIO, changing the message body and rendering it back to disk. Of course
+	// this method ends up not being super-efficient, but it works. Ideas on how to 
+	// improve this are welcome.
+	BString	fortune_file;
+	BString	tag_line;
+	BString	fortune;
+	
+	Mail::Message	mail_message(*io);
+	BString				mail_body(mail_message.BodyText());
+	
+	// Obtain relevant settings
+	settings->FindString("fortune_file", &fortune_file);
+	settings->FindString("tag_line", &tag_line);
+	
+	// Add command to be executed
 	fortune_file.Prepend("/bin/fortune ");
-
-	FILE * fd;
-	char buffer[768];
-	BString result;
+	
+	char	buffer[768];
+	FILE		*fd;
 	
 	fd = popen(fortune_file.String(), "r");
-	if (fd) {
-		(*io)->Seek(0, SEEK_END);
-		
-		(*io)->Write("\r\n", strlen("\r\n"));
-		(*io)->Write("--\r\n",strlen("--\r\n"));
-		
-		result = settings->FindString("tag_line");
-		result.ReplaceAll("\n","\r\n");
-		(*io)->Write(result.String(), result.Length());
-		result = B_EMPTY_STRING;
+	if (fd)
+	{
+		mail_body += "\n--\n";
+		mail_body += tag_line;
 		
 		while (fgets(buffer, 768, fd))
-			result << buffer;
-			
-		result.ReplaceAll("\n","\r\n");
-		(*io)->Write(result.String(), result.Length());
+			mail_body += buffer;
+		
+		mail_body += "\n";
 		
 		pclose(fd);
-	} else {
-		printf("Could not open pipe to fortune!\n");
+	
+		printf("Mail Body : %s\n", mail_body.String());
+		
+		// Update the message body and render it back to the BPositionIO.
+		mail_message.SetBodyTextTo(mail_body.String());
+		BMallocIO shimmy_pipe;
+		mail_message.RenderToRFC822(&shimmy_pipe);
+		
+		(*io)->Seek(0, SEEK_SET);
+		(*io)->SetSize(0);
+		(*io)->Write(shimmy_pipe.Buffer(),shimmy_pipe.BufferLength());
 	}
-	return B_OK;
+	else
+		printf("Could not open pipe to fortune!\n");
+
+	return B_OK;	
 }
 
 Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::ChainRunner*)
