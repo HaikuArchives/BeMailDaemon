@@ -27,12 +27,12 @@ status_t MDR_convert_from_utf8 (uint32 dstEncoding, const char *src,
 	char substitute = B_SUBSTITUTE);
 
 
-size_t unqp(char *data, size_t dataLen);
-// convert text inplace
+void TrimWhite (BString &string);
+// Remove leading and trailing white space from the string.
 
-void StripGook(BString* header);
-// Given a header field with gobbledygook in it, find the
-// longest human-readable phrase.
+void StripGook (BString* header);
+// Given a header field (usually the From: e-mail address) with gobbledygook in
+// it, find the longest human-readable phrase (usually the person's name).
 
 void SubjectToThread (BString &string);
 // Convert a subject to the core words (remove the extraneous RE: re: etc).

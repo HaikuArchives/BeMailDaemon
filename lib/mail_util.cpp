@@ -999,6 +999,25 @@ _EXPORT ssize_t nextfoldedline(const char** header, char **buffer, size_t *bufle
 }
 
 
+_EXPORT void TrimWhite (BString &string)
+{
+	int32 i;
+	int32 length = string.Length();
+	char *buffer = string.LockBuffer(length + 1);
+
+	while (length > 0 && isspace(buffer[length - 1]))
+		length--;
+	buffer[length] = '\0';
+
+	for (i = 0; buffer[i] && isspace(buffer[i]); i++) {}
+	if (i != 0) {
+		length -= i;
+		memmove(buffer,buffer + i,length + 1);
+	}
+	string.UnlockBuffer(length);
+}
+
+
 _EXPORT void StripGook(BString* header)
 {
 	//
@@ -1193,6 +1212,11 @@ _EXPORT void SubjectToThread (BString &string)
 		free(regs.start);
 		free(regs.end);
 	}
+
+	// Finally remove leading and trailing space.  Some software, like
+	// tm-edit 1.8, appends a space to the subject, which would break
+	// threading if we left it in.
+	TrimWhite (string);
 }
 
 

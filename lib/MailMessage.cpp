@@ -624,25 +624,6 @@ Message::SetToRFC822(BPositionIO *mail_file, size_t length, bool parse_now)
 }
 
 
-inline void
-TrimWhite(BString &string)
-{
-	char *buffer = string.LockBuffer(string.Length() + 1);
-
-	int32 i,length = strlen(buffer);
-	while (length > 0 && isspace(buffer[length - 1]))
-		length--;
-	buffer[length] = '\0';
-
-	for (i = 0; buffer[i] && isspace(buffer[i]); i++) {}
-	if (i != 0) {
-		length -= i;
-		memmove(buffer,buffer + i,length + 1);
-	}
-	string.UnlockBuffer(length);
-}
-
-
 status_t
 Message::RenderToRFC822(BPositionIO *file)
 {
