@@ -189,8 +189,8 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 						error << "Error loading the mail addon " << path.Path() << " from chain " << chain->Name()
 							<< ": the addon does not seem to be a mail addon (missing symbol instantiate_mailfilter).";
 						ShowAlert("add-on error",error.String(),"Ok",B_WARNING_ALERT);,
-						error << "メールアドオン " << path.Path() << " を " << chain->Name() << "から読み込む際にエラーが発生しました: "
-							<< "the addon does not seem to be a mail addon (missing symbol instantiate_mailfilter).";
+						error << "メールアドオン " << path.Path() << " を " << chain->Name() << "から読み込む際にエラーが発生しました"
+ 							<< ": そのアドオンはメールアドオンではないようです（instantiate_mailfilterシンボルがありません）";
 						ShowAlert("アドオンエラー",error.String(),"了解",B_WARNING_ALERT);
 					)
 
