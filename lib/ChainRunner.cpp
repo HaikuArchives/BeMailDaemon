@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include <MDRLanguage.h>
 
@@ -278,7 +279,14 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 		
 	if (destroy_chain)
 		delete chain;
-	
+
+	// Save the disk cache to the actual disk so mail data won't get lost if a
+	// crash happens soon after mail has been received or sent.  Has to be done
+	// here rather than after the overall chain running since chains can be
+	// asynchronous.  Mostly put here because of unexpected mail daemon
+	// activity during debugging of kernel crashing software.
+	sync ();
+
 	return 0;
 }
 

@@ -181,10 +181,12 @@ BEOS Mail Daemon Replacement v2.0.1 Beta 1
 
 履歴：
 
-February 12 2003 - v2.0.1b1
+February 18 2003 - v2.0.1b1
 - Yet more Japanese translations, courtesy of Jun Suzki this time.
 - Added an international install script feature.
 - Fixed crash bug when using Open With…BeMail on people files (was a buffer size bug).
+- Add BeOS USer Guide Replacement for the E-mail preferences aaplication.
+- Do a "sync" to flush data to disk at the end of each chain processing, so that a crash soon after receiving e-mail won't lose data.
 
 February 6 2003 - v2.0.0b9
 - Use quoted printable for the headers to avoid base64 extra CRLF insertion which makes a mess if the header (like Subject) is too long to fit on a line.
