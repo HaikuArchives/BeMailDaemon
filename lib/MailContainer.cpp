@@ -208,12 +208,10 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length)
 	off_t end = length + position;
 	int32 lastBoundary = -1;
 
-printf("parse chunk: %Lx - %Lx\n", offset, position + length);
 	while (offset < end)
 	{
 		ssize_t bytes = (offset + sizeof(buffer)) > end ? end - offset : sizeof(buffer);
 		bytes = data->Read(buffer, bytes);
-//printf("read %ld bytes (offset == 0x%Lx, end == 0x%Lx, state == %d)!\n",bytes,offset,end,state);
 		if (bytes <= 0)
 			break;
 		
@@ -222,7 +220,6 @@ printf("parse chunk: %Lx - %Lx\n", offset, position + length);
 			switch (state)
 			{
 				case CHECK_BOUNDARY_STATE:	// check for boundary
-//printf("check for boundary: \"%s\": %-15.15s...\n",_boundary,buffer + i);
 					if ((bytes - i) > boundaryLength)	// string fits
 					{
 						boundaryPos = 0;
@@ -230,12 +227,14 @@ printf("parse chunk: %Lx - %Lx\n", offset, position + length);
 							state = check_state(buffer,boundaryLength + i,bytes);
 					}
 					else if (!strncmp(buffer + i, _boundary, boundaryPos = bytes - i))
+					{
 						state++;
+						i += boundaryPos;
+					}
 					else
 						state = 0;
 					break;
 				case CHECK_PART_STATE:		// check for part of boundary
-//printf("check for part of boundary: \"%s\": %s\n",_boundary,buffer + i);
 					if (!strncmp(buffer + i, _boundary + boundaryPos, boundaryLength - boundaryPos))
 						state = check_state(buffer,boundaryLength - boundaryPos + i,bytes);
 					else
@@ -257,8 +256,7 @@ printf("parse chunk: %Lx - %Lx\n", offset, position + length);
 			{
 				if (lastBoundary >= 0)
 				{
-				printf("found part from 0x%lx : 0x%lx\n",lastBoundary,(int32)offset + i - 2);
-					_components_in_raw.AddItem(new message_part(lastBoundary, offset + i - 2));
+					_components_in_raw.AddItem(new message_part(lastBoundary, offset + i - boundaryPos - 2));
 					_components_in_code.AddItem(NULL);
 				}
 				if (state == FOUND_END_STATE)
@@ -269,53 +267,10 @@ printf("parse chunk: %Lx - %Lx\n", offset, position + length);
 				state = 0;
 			}
 		}
+		if (state == FOUND_END_STATE)
+			break;
 		offset += bytes;
 	}
-	/*
-	off_t start = offset;
-	//off_t offset = start;
-	ssize_t len, result;
-	BString line;
-	char buf[256];
-	int32 last_boundary = -1;
-	
-	while (offset < (start + length))
-	{
-		result = data->ReadAt(offset,buf,255);
-				
-		if (result <= 0)
-			break;
-			
-		buf[result] = 0;
-		line.Append(buf);
-		len = line.Length();
-		
-		len = line.FindFirst("\r\n");
-		
-		if (len < 0) {
-			offset += result;
-			if (offset < (start + length))
-				continue;
-		} else {
-			line.Truncate(len);
-		}
-		
-		if (strncmp(line.String(),type.String(), type.Length()) == 0) {
-			if (last_boundary >= 0) {
-				_components_in_raw.AddItem(new message_part(last_boundary, offset));
-				_components_in_code.AddItem(NULL);
-			}
-			
-			last_boundary = offset + len + 2;
-			
-			if (strncmp(line.String(),end_delimiter.String(), end_delimiter.Length()) == 0)
-				break;
-		}
-		
-		line = "";
-		offset += len + 2; // CRLF
-	}
-	*/
 	return B_OK;
 }
 
