@@ -85,6 +85,8 @@ status_t ChainRunner::RunChain(bool asynchronous) {
 
 	Run();
 	
+	running_chains.AddItem((void *)(_chain->ID()));
+	
 	PostMessage('INIT');
 	
 	if (!asynchronous) {
