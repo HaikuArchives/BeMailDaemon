@@ -1109,23 +1109,25 @@ TTextView::MessageReceived(BMessage *msg)
 				break;
 
 			BMessage message(REFS_RECEIVED);
-			bool is_enclosure = false;
+			bool isEnclosure = false;
 			bool inserted = false;
-			entry_ref ref;
+
 			off_t len = 0;
-			off_t size;
 			int32 end;
-			int32 loop;
 			int32 start;
 
-			for (int32 index = 0;msg->FindRef("refs", index++, &ref) == B_NO_ERROR;) {
+			int32 index = 0;
+			entry_ref ref;
+			while (msg->FindRef("refs", index++, &ref) == B_OK) {
 				BFile file(&ref, B_READ_ONLY);
-				if (file.InitCheck() == B_NO_ERROR) {
+				if (file.InitCheck() == B_OK) {
 					BNodeInfo node(&file);
 					char type[B_FILE_NAME_LENGTH];
 					node.GetType(type);
 
+					off_t size = 0;
 					file.GetSize(&size);
+
 					if (!strncasecmp(type, "text/", 5) && size > 0) {
 						len += size;
 						char *text = (char *)malloc(size);
@@ -1135,7 +1137,7 @@ TTextView::MessageReceived(BMessage *msg)
 						}
 						if (file.Read(text, size) < B_OK) {
 							puts("could not read from file");
-							return;
+							continue;
 						}
 						if (!inserted) {
 							GetSelection(&start, &end);
@@ -1144,7 +1146,7 @@ TTextView::MessageReceived(BMessage *msg)
 						}
 
 						int32 offset = 0;
-						for (loop = 0; loop < size; loop++) {
+						for (int32 loop = 0; loop < size; loop++) {
 							if (text[loop] == '\n') {
 								Insert(&text[offset], loop - offset + 1);
 								offset = loop + 1;
@@ -1159,14 +1161,21 @@ TTextView::MessageReceived(BMessage *msg)
 						}
 						free(text);
 					} else {
-						is_enclosure = true;
+						isEnclosure = true;
 						message.AddRef("refs", &ref);
 					}
 				}
 			}
+
+			if (index == 1) {
+				// message doesn't contain any refs - maybe the parent class likes it
+				BTextView::MessageReceived(msg);
+				break;
+			}
+
 			if (inserted)
 				Select(start, start + len);
-			if (is_enclosure)
+			if (isEnclosure)
 				Window()->PostMessage(&message, Window());
 			break;
 		}
