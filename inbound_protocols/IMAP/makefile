@@ -51,7 +51,7 @@ RSRCS=
 #		naming scheme you need to specify the path to the library
 #		and it's name
 #		library: my_lib.a entry: my_lib.a or path/my_lib.a
-LIBS= be mail ssl crypto
+LIBS= be mail
 
 #	specify additional paths to directories following the standard
 #	libXXX.so or libXXX.a naming scheme.  You can specify full paths
@@ -59,12 +59,12 @@ LIBS= be mail ssl crypto
 #	be recursive, so include all of the paths where libraries can
 #	be found.  Directories where source files are found are
 #	automatically included.
-LIBPATHS= ../../lib /boot/home/config/lib
+LIBPATHS= ../../lib
 
 #	additional paths to look for system headers
 #	thes use the form: #include <header>
 #	source file directories are NOT auto-included here
-SYSTEM_INCLUDE_PATHS = ../../include ../../include/numail ../../include/public ../../include/support /boot/home/config/include
+SYSTEM_INCLUDE_PATHS = ../../include ../../include/numail ../../include/public ../../include/support
 
 #	additional paths to look for local headers
 #	thes use the form: #include "header"
@@ -80,7 +80,7 @@ OPTIMIZE= SOME
 #	to use.  For example, setting DEFINES to "DEBUG=1" will cause the
 #	compiler option "-DDEBUG=1" to be used.  Setting DEFINES to "DEBUG"
 #	would pass "-DDEBUG" on the compiler's command line.
-DEFINES=IMAPSSL
+DEFINES=
 
 #	specify special warning levels
 #	if unspecified default warnings will be used
@@ -139,6 +139,14 @@ ifeq ($(shell ls 2>/dev/null -1 /boot/develop/headers/be/bone/bone_api.h), /boot
 	DEFINES += BONE
 else
 	LIBS += net
+endif
+
+#	Detect OpenSSL
+ifeq ($(shell ls 2>/dev/null -1 /boot/home/config/include/openssl/ssl.h), /boot/home/config/include/openssl/ssl.h)
+	SYSTEM_INCLUDE_PATHS += /boot/home/config/include
+	LIBPATHS += /boot/home/config/lib
+	LIBS += ssl crypto
+	DEFINES += IMAPSSL
 endif
 
 INSTALL_DIR=/boot/home/config/add-ons/mail_daemon/inbound_protocols
