@@ -74,6 +74,9 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
+ * Revision 1.69  2002/12/10 01:46:04  agmsmith
+ * Added the Chi-Squared scoring method.
+ *
  * Revision 1.68  2002/11/29 22:08:25  agmsmith
  * Change default purge age to 2000 so that hitting the purge button
  * doesn't erase stuff from the new sample database.
@@ -309,13 +312,17 @@
 #include <stdio.h>
 #include <errno.h>
 
-#if __POWERPC__
+#if __POWERPC__ /* atoll is missing from the PowerPC standard library. */
 static long long atoll (const char *str) {
   long long val = 0; // Set to zero in case it half works.  -agmsmith
   sscanf(str,"%d",&val); //--- Trust me, this works. -nwhitehorn
   return val;
 }
 #endif
+
+/* Standard C++ library. */
+
+#include <iostream>
 
 /* STL (Standard Template Library) headers. */
 
@@ -324,7 +331,6 @@ static long long atoll (const char *str) {
 #include <set>
 #include <string>
 #include <vector>
-#include <iostream>
 
 /* BeOS (Be Operating System) headers. */
 
@@ -1056,8 +1062,8 @@ public:
 
 private:
   /* Our member functions. */
-  status_t AddMessageToDatabase (bool IsSpam,
-    const char *FileName, char *ErrorMessage);
+  status_t AddPositionIOToDatabase (bool IsSpam, BPositionIO *MessageIOPntr,
+    const char *OptionalFileName, char *ErrorMessage);
   void AddWordsToSet (const char *InputString,
     size_t NumberOfBytes, set<string> &WordSet);
   status_t CreateDatabaseFile (char *ErrorMessage);
@@ -1607,6 +1613,49 @@ static double ChiSquaredProbability (double x2, int v)
 
 
 /******************************************************************************
+ * A utility function to remove the "[Spam 99.9%] " from in front of the
+ * MAIL:subject attribute of a file.
+ */
+
+static status_t RemoveSpamPrefixFromSubjectAttribute (BNode *BNodePntr)
+{
+  status_t    ErrorCode;
+  const char *MailSubjectName = "MAIL:subject";
+  char       *StringPntr;
+  char        SubjectString [2000];
+
+  ErrorCode = BNodePntr->ReadAttr (MailSubjectName,
+    B_STRING_TYPE, 0 /* offset */, SubjectString,
+    sizeof (SubjectString) - 1);
+  if (ErrorCode <= 0)
+    return 0; /* The attribute isn't there so we don't care. */
+  if (ErrorCode >= (int) sizeof (SubjectString) - 1)
+    return 0; /* Can't handle subjects which are too long. */
+
+  SubjectString [ErrorCode] = 0;
+  ErrorCode = 0; /* So do-nothing exit returns zero. */
+  if (strncmp (SubjectString, "[Spam ", 6) == 0)
+  {
+    for (StringPntr = SubjectString;
+    *StringPntr != 0 && *StringPntr != ']'; StringPntr++)
+      ; /* No body in this for loop. */
+    if (StringPntr[0] == ']' && StringPntr[1] == ' ')
+    {
+      ErrorCode = BNodePntr->RemoveAttr (MailSubjectName);
+      ErrorCode = BNodePntr->WriteAttr (MailSubjectName,
+        B_STRING_TYPE, 0 /* offset */,
+        StringPntr + 2, strlen (StringPntr + 2) + 1);
+      if (ErrorCode > 0)
+        ErrorCode = 0;
+    }
+  }
+
+  return ErrorCode;
+}
+
+
+
+/******************************************************************************
  * Implementation of the ABSApp class, constructor, destructor and the rest of
  * the member functions in mostly alphabetical order.
  */
@@ -1739,29 +1788,33 @@ developed the chi-squared scoring method.\n\n"
 }
 
 
-/* Add the given file to the database.  The unique words in the file will be
-added to the database (incrementing the count for the number of messages using
-each word, either the spam or genuine count depending on IsSpam).  Optionally
-an attribute will be added to the file to record that it has been marked as
-Spam or Genuine (so that it doesn't get added to the database a second time).
-If things go wrong, a non-zero error code will be returned and an explanation
-written to ErrorMessage (assumed to be at least PATH_MAX + 1024 bytes long). */
+/* Add the given text to the database.  The unique words found in MessageIOPntr
+will be added to the database (incrementing the count for the number of
+messages using each word, either the spam or genuine count depending on
+IsSpam).  An attribute will be added to MessageIOPntr (if it is a file) to
+record that it has been marked as Spam or Genuine (so that it doesn't get added
+to the database a second time).  If things go wrong, a non-zero error code will
+be returned and an explanation written to ErrorMessage (assumed to be at least
+PATH_MAX + 1024 bytes long).  OptionalFileName is just used in the error
+message to identify the file to the user. */
 
-status_t ABSApp::AddMessageToDatabase (
+status_t ABSApp::AddPositionIOToDatabase (
   bool IsSpam,
-  const char *FileName,
+  BPositionIO *MessageIOPntr,
+  const char *OptionalFileName,
   char *ErrorMessage)
 {
+  BNode                             *BNodePntr;
   char                               ClassificationString [NAME_MAX];
   StatisticsMap::iterator            DataIter;
-  status_t                           ErrorCode;
+  status_t                           ErrorCode = 0;
   pair<StatisticsMap::iterator,bool> InsertResult;
   uint32                             NewAge;
   StatisticsRecord                   NewStatistics;
   bool                               PreviouslyClassified;
   bool                               PreviouslySpam = false;
   StatisticsPointer                  StatisticsPntr;
-  BFile                              TextFile;
+  BMessage                           TempBMessage;
   set<string>::iterator              WordEndIter;
   set<string>::iterator              WordIter;
   set<string>                        WordSet;
@@ -1775,49 +1828,45 @@ status_t ABSApp::AddMessageToDatabase (
     return ENOMEM;
   }
 
-  if ((ErrorCode = TextFile.SetTo (FileName, B_READ_ONLY)) != B_OK)
-  {
-    sprintf (ErrorMessage, "Problems opening file \"%s\" for reading",
-      FileName);
-    return ErrorCode;
-  }
-
   /* Check that this file hasn't already been added to the database. */
 
-  ErrorCode = TextFile.ReadAttr (g_AttributeNameClassification,
-    B_STRING_TYPE, 0 /* offset */, ClassificationString,
-    sizeof (ClassificationString) - 1);
-  if (ErrorCode <= 0) /* Positive values for the number of bytes read */
-    strcpy (ClassificationString, "none");
-  else /* Just in case it needs a NUL at the end. */
-    ClassificationString [ErrorCode] = 0;
+  PreviouslyClassified = false;
+  BNodePntr = dynamic_cast<BNode *> (MessageIOPntr);
+  if (BNodePntr != NULL) /* If this thing might have attributes. */
+  {
+    ErrorCode = BNodePntr->ReadAttr (g_AttributeNameClassification,
+      B_STRING_TYPE, 0 /* offset */, ClassificationString,
+      sizeof (ClassificationString) - 1);
+    if (ErrorCode <= 0) /* Positive values for the number of bytes read */
+      strcpy (ClassificationString, "none");
+    else /* Just in case it needs a NUL at the end. */
+      ClassificationString [ErrorCode] = 0;
 
-  if (strcasecmp (ClassificationString, g_ClassifiedSpam) == 0)
-  {
-    PreviouslyClassified = true;
-    PreviouslySpam = true;
+    if (strcasecmp (ClassificationString, g_ClassifiedSpam) == 0)
+    {
+      PreviouslyClassified = true;
+      PreviouslySpam = true;
+    }
+    else if (strcasecmp (ClassificationString, g_ClassifiedGenuine) == 0)
+    {
+      PreviouslyClassified = true;
+      PreviouslySpam = false;
+    }
   }
-  else if (strcasecmp (ClassificationString, g_ClassifiedGenuine) == 0)
-  {
-    PreviouslyClassified = true;
-    PreviouslySpam = false;
-  }
-  else
-    PreviouslyClassified = false;
 
   if (!m_IgnorePreviousClassification && PreviouslyClassified)
   {
     if (IsSpam == PreviouslySpam)
     {
       sprintf (ErrorMessage, "Ignoring file \"%s\" since it seems to have "
-        "already been classified as %s.", FileName,
+        "already been classified as %s.", OptionalFileName,
         IsSpam ? g_ClassifiedSpam : g_ClassifiedGenuine);
       DisplayErrorMessage (ErrorMessage, 0, "Note");
       return B_OK; /* It has already been classified correctly. */
     }
 
     sprintf (ErrorMessage, "Changing existing classification of file \"%s\" "
-      "from %s to %s.", FileName,
+      "from %s to %s.", OptionalFileName,
       PreviouslySpam ? g_ClassifiedSpam : g_ClassifiedGenuine,
       IsSpam ? g_ClassifiedSpam : g_ClassifiedGenuine);
     DisplayErrorMessage (ErrorMessage, 0, "Note");
@@ -1825,8 +1874,8 @@ status_t ABSApp::AddMessageToDatabase (
 
   /* Get the list of unique words in the file. */
 
-  ErrorCode =
-    GetWordsFromPositionIO (&TextFile, FileName, WordSet, ErrorMessage);
+  ErrorCode = GetWordsFromPositionIO (MessageIOPntr, OptionalFileName,
+    WordSet, ErrorMessage);
   if (ErrorCode != B_OK)
     return ErrorCode;
 
@@ -1853,12 +1902,15 @@ status_t ABSApp::AddMessageToDatabase (
   /* Mark the file's attributes with the new classification.  Don't care if it
   fails. */
 
-  ErrorCode = TextFile.RemoveAttr (g_AttributeNameClassification);
-  strcpy (ClassificationString,
-    IsSpam ? g_ClassifiedSpam : g_ClassifiedGenuine);
-  ErrorCode = TextFile.WriteAttr (g_AttributeNameClassification,
-    B_STRING_TYPE, 0 /* offset */,
-    ClassificationString, strlen (ClassificationString) + 1);
+  if (BNodePntr != NULL) /* If this thing might have attributes. */
+  {
+    ErrorCode = BNodePntr->RemoveAttr (g_AttributeNameClassification);
+    strcpy (ClassificationString,
+      IsSpam ? g_ClassifiedSpam : g_ClassifiedGenuine);
+    ErrorCode = BNodePntr->WriteAttr (g_AttributeNameClassification,
+      B_STRING_TYPE, 0 /* offset */,
+      ClassificationString, strlen (ClassificationString) + 1);
+  }
 
   /* Add the words to the database by incrementing or decrementing the counts
   for each word as appropriate. */
@@ -1877,7 +1929,7 @@ status_t ABSApp::AddMessageToDatabase (
       {
         sprintf (ErrorMessage, "Failed to insert new database entry for "
           "word \"%s\", while processing file \"%s\"",
-          WordIter->c_str (), FileName);
+          WordIter->c_str (), OptionalFileName);
         return ENOMEM;
       }
       DataIter = InsertResult.first;
@@ -2033,8 +2085,8 @@ void ABSApp::DefaultSettings ()
   m_IgnorePreviousClassification = false;
   g_ServerMode = false;
   m_PurgeAge = 2000;
-  m_PurgePopularity = 3;
-  m_ScoringMode = SM_ROBINSON;
+  m_PurgePopularity = 2;
+  m_ScoringMode = SM_CHISQUARED;
   m_TokenizeMode = TM_ANY_TEXT_HEADER;
 
   m_SettingsHaveChanged = true;
@@ -2089,7 +2141,8 @@ status_t ABSApp::DeleteDatabaseFile (char *ErrorMessage)
 
 
 /* Evaluate the given file as being a spam message, and tag it with the
-resulting spam probability ratio. */
+resulting spam probability ratio.  If it also has an e-mail subject attribute,
+remove the [Spam 99.9%] prefix. */
 
 status_t ABSApp::EvaluateFile (
   const char *PathName,
@@ -2115,8 +2168,13 @@ status_t ABSApp::EvaluateFile (
 
   if (ErrorCode == B_OK &&
   ReplyMessagePntr->FindFloat (g_ResultName, &TempFloat) == B_OK)
+  {
     TextFile.WriteAttr (g_AttributeNameSpamRatio, B_FLOAT_TYPE,
-    0 /* offset */, &TempFloat, sizeof (TempFloat));
+      0 /* offset */, &TempFloat, sizeof (TempFloat));
+    /* Don't know the spam cutoff ratio, that's in the e-mail filter, so just
+    blindly remove the prefix, which would have the wrong percentage. */
+    RemoveSpamPrefixFromSubjectAttribute (&TextFile);
+  }
 
   return ErrorCode;
 }
@@ -2640,7 +2698,7 @@ status_t ABSApp::InstallThings (char *ErrorMessage)
     Parameters.AddInt32 ("attr:type", B_FLOAT_TYPE);
     Parameters.AddBool ("attr:viewable", true);
     Parameters.AddBool ("attr:editable", false);
-    Parameters.AddInt32 ("attr:width", 55);
+    Parameters.AddInt32 ("attr:width", 50);
     Parameters.AddInt32 ("attr:alignment", B_ALIGN_LEFT);
     Parameters.AddBool ("attr:extra", false);
   }
@@ -3286,8 +3344,10 @@ void ABSApp::ProcessScriptingMessage (
   BString     CommandText;
   status_t    ErrorCode;
   int         i;
+  BFile       MessageFile;
   BMessage    ReplyMessage (B_MESSAGE_NOT_UNDERSTOOD);
   ssize_t     StringBufferSize;
+  BMessage    TempBMessage;
   BPath       TempPath;
   char        TempString [PATH_MAX + 1024];
 
@@ -3471,11 +3531,17 @@ void ABSApp::ProcessScriptingMessage (
           }
           if ((ErrorCode = LoadDatabaseIfNeeded (TempString)) != B_OK)
             goto ErrorExit;
-          if ((ErrorCode = AddMessageToDatabase (
-          PropInfoPntr->extra_data == PN_SPAM /* IsSpam */,
-          ArgumentString /* FileName */,
-          TempString /* ErrorMessage */)) != B_OK)
+          sprintf (TempString, "Unable to open file \"%s\"", ArgumentString);
+          if ((ErrorCode = MessageFile.SetTo (ArgumentString, B_READ_ONLY))
+          != B_OK)
             goto ErrorExit;
+          if ((ErrorCode = AddPositionIOToDatabase (
+          PropInfoPntr->extra_data == PN_SPAM /* IsSpam */, &MessageFile,
+          ArgumentString, TempString /* ErrorMessage */)) != B_OK)
+            goto ErrorExit;
+          MessageFile.Unset ();
+          /* Re-evaluate the file so that the user sees the new ratio. */
+          EvaluateFile (ArgumentString, &TempBMessage, TempString);
           break;
 
         default: /* Unknown operation code, error message already set. */
