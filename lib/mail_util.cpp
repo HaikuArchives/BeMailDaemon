@@ -233,6 +233,7 @@ _EXPORT ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 	(*bufp)[strLen] = '\0';
 
 	//---------Whew! Now for RFC compliant mail
+	bool encodedWordFoundPreviously = false;
 	for (head = tail = string;
 		((charset = strstr(tail, "=?")) != NULL)
 		&& (((encoding = strchr(charset + 2, '?')) != NULL)
@@ -242,11 +243,25 @@ _EXPORT ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 		//        ^charset       ^encoding    ^end
 		tail = end)
 	{
-		// copy non-encoded text to the output
-		if (string != tail && tail != charset)
-			memmove(string, tail, charset-tail);
-		string += charset-tail;
+		// Copy non-encoded text (from tail up to charset) to the output.
+		// Ignore spaces between two encoded "words".  RFC2047 says the words
+		// should be concatenated without the space (designed for Asian
+		// sentences which have no spaces yet need to be broken into "words" to
+		// keep within the line length limits).
+		bool nonSpaceFound = false;
+		for (int i = 0; i < charset-tail; i++) {
+			if (!isspace (tail[i])) {
+				nonSpaceFound = true;
+				break;
+			}
+		}
+		if (!encodedWordFoundPreviously || nonSpaceFound) {
+			if (string != tail && tail != charset)
+				memmove(string, tail, charset-tail);
+			string += charset-tail;
+		}
 		tail = charset;
+		encodedWordFoundPreviously = true;
 
 		// move things to point at what they should:
 		//   =?...charset...?e?...text...?=   (e == encoding)
@@ -373,6 +388,7 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 		BString	convertedWord;
 		bool	unprintable;
 		bool	priorSpaces;
+		bool	splitAsianSentenceFollows;
 		bool	isQuote;
 		bool	hasTrailingQuote;
 	};
@@ -409,6 +425,7 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 
 		currentWord = new struct word;
 		currentWord->unprintable = false;
+		currentWord->splitAsianSentenceFollows = false;
 		currentWord->priorSpaces = spacesBefore;
 		currentWord->isQuote = quoted;
 
@@ -423,6 +440,19 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 			} else {
 				if (isspace(source[wordEnd]) || source[wordEnd] == '"')
 					break;
+				if (wordEnd > 51 /* Makes Base64 ISO-2022-JP "word" a multiple of 4 bytes */ &&
+					0xC0 == (0xC0 & (unsigned int) source[wordEnd])) {
+					// No English words are that long (46 is the longest),
+					// break up what is likely Asian text (which has no spaces)
+					// at the start of the next non-ASCII UTF-8 character (high
+					// two bits are both ones).  Note that two encoded words in
+					// a row get joined together, even if there is a space
+					// between them in the final output text, according to the
+					// standard.
+					currentWord->splitAsianSentenceFollows = true;
+					currentWord->unprintable = true;
+					break;
+				}
 			}
 		}
 		bool trailingQuote = (quoted && source[wordEnd] == '"');
@@ -441,10 +471,13 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 		MDR_convert_from_utf8 (charset, source, &originalLength,
 			convertedBuffer, &convertedLength, &state);
 
-		for (int i = 0; i < convertedLength; i++)
+		for (int i = 0; i < convertedLength; i++) {
 			if ((convertedBuffer[i] & (1 << 7)) ||
-				(convertedBuffer[i] >= 0 && convertedBuffer[i] < 32))
+				(convertedBuffer[i] >= 0 && convertedBuffer[i] < 32)) {
 				currentWord->unprintable = true;
+				break;
+			}
+		}
 
 		currentWord->convertedWord.UnlockBuffer (convertedLength);
 
@@ -468,10 +501,13 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 			continue; // Don't combine quoted words, their quotes need to be outside.
 		for (int32 g = i+1; (run = (struct word *) words.ItemAt (g)) != NULL; g++) {
 			if (!run->isQuote && run->unprintable && currentWord->unprintable &&
+				!currentWord->splitAsianSentenceFollows &&
 				(currentWord->convertedWord.Length() + run->convertedWord.Length() <= 53)) {
 				if (run->priorSpaces)
 					currentWord->convertedWord.Append (" ");
 				currentWord->convertedWord.Append (run->convertedWord);
+				if (run->splitAsianSentenceFollows)
+					currentWord->splitAsianSentenceFollows = true;
 				words.RemoveItem(g);
 				delete run;
 				g--;
@@ -532,6 +568,8 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 		}
 		if (currentWord->hasTrailingQuote)
 			rfc2047.Append ("\"");
+		if (currentWord->splitAsianSentenceFollows)
+			rfc2047.Append (" ");
 		delete currentWord;
 	}
 
