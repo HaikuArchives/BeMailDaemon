@@ -118,7 +118,9 @@ struct EncodingItem {
 };
 const EncodingItem kEncodings[] = {
 	// B_MS_WINDOWS is a superset of B_ISO1, MS mailers lie and send Windows chars as ISO-1
-	{"ISO-8859-1", B_MS_WINDOWS_CONVERSION},
+	// we still don't want to pretend we would use the Windows 1252 codetable, axeld.
+	// {"ISO-8859-1", B_MS_WINDOWS_CONVERSION},
+	{"ISO-8859-1", B_ISO1_CONVERSION},
 	{"ISO-8859-2", B_ISO2_CONVERSION},
 	{"ISO-8859-3", B_ISO3_CONVERSION},
 	{"ISO-8859-4", B_ISO4_CONVERSION},
