@@ -153,6 +153,8 @@ For POP3, this is entirely straightforward. New e-mail is fetched into the direc
 
 For IMAP, things are slightly more complicated. The IMAP folder structure is duplicated in your inbox. So if you chose /boot/home/mail/in as your inbox, you will end up with IMAP folders like /boot/home/mail/in/INBOX. Further, you should note that what happens in IMAP folders is bidirectional. That is, if you move a file inside the folder hierarchy, it moves on the server. If you duplicate one, it's duplicated on the server. If you move in an e-mail from another account, it's uploaded to the server (this also means that you can have it store sent mail on the server). You can also create and delete mail folders in Tracker. Pretty cool, huh? As a final note on IMAP, because it stays connected to the server, the "fetch mail every x" option is irrelevant, except as a way to start the connection, as it only connects when you first press "Check Mail Now". A final note: moving partial messages from one account to another causes the message (1) not to be transferred and (2) to be deleted. Unpleasant. So download them first.
 
+Note that if you have a large number of archived e-mail messages on your system, it will scan all of them for message ID numbers to keep track of what has been downloaded and what has not.  This will delay the start of the mail check if you have tens of thousands of old messages (and thrash your hard drive).  To work around that, remove the MAIL:chain attribute from your old messages; the Terminal command "rmattr MAIL:chain *" will do that for all files in the current directory.
+
 HISTORY:
 
 December 4 2003 - v2.2.5
