@@ -64,7 +64,7 @@ IMAP4Client::IMAP4Client(BMessage *settings,Mail::StatusView *status)
 	else
 	{
 		BString errdesc("Error Logging in: ");
-		errdesc << strerror(error));
+		errdesc << strerror(error);
 		PRINT((errdesc.String()));
 		_status->SetMessage(errdesc.String());
 	}
