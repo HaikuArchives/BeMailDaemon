@@ -231,25 +231,31 @@ status_t SimpleMailAttachment::RenderToRFC822(BPositionIO *render_to) {
 	MailComponent::RenderToRFC822(render_to);
 	
 	//---------Massive memory squandering!---ALERT!----------
+	//	now with error checks, dumb :-) -- axeld.
 	//if (_encoding != base64)
 	//	return B_BAD_TYPE;
 
 	_data->Seek(0,SEEK_END);
-	size_t size = _data->Position();
+	off_t size = _data->Position();
 	char *src = (char *)malloc(size);
+	if (src == NULL)
+		return B_NO_MEMORY;
+
 	_data->Seek(0,SEEK_SET);
 	
-	size = _data->Read(src,size);
-	
-	char *dest = (char *)malloc(max_encoded_length(_encoding,size)); //--The encoded text will never be more than twice as large with any conceivable encoding
+	ssize_t read = _data->Read(src,size);
+	if (read < B_OK)
+		return read;
+
+	char *dest = (char *)malloc(max_encoded_length(_encoding,read)); //--The encoded text will never be more than twice as large with any conceivable encoding
 	
 	switch (_encoding) {
 		case base64:
-			size = encode_base64(dest,src,size);
+			size = encode_base64(dest,src,read);
 			free(src);
 			break;
 		case quoted_printable:
-			size = decode_qp(dest,src,size);
+			size = decode_qp(dest,src,read);
 			free(src);
 			break;
 		case no_encoding:
@@ -259,10 +265,10 @@ status_t SimpleMailAttachment::RenderToRFC822(BPositionIO *render_to) {
 			return B_BAD_TYPE;
 	}
 	
-	render_to->Write(dest,size);
+	read = render_to->Write(dest,size);
 	free(dest);
-	
-	return B_OK;
+
+	return read > 0 ? B_OK : read;
 }
 
 //-------AttributedMailAttachment--Awareness of bfs, sends attributes--
