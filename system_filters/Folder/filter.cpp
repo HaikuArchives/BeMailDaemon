@@ -164,7 +164,6 @@ Mail::MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMes
 		node << attributes;
 		
 		BString name = attributes.FindString("MAIL:subject");
-		name.ReplaceAll('/','_');
 		
 		name << ": <" << attributes.FindString("MAIL:from") << ">";
 		
@@ -172,6 +171,8 @@ Mail::MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMes
 		int32 uniquer = time(NULL);
 		worker << name << uniquer;
 		
+		worker.ReplaceAll('/', '_');
+
 		while (destination.Contains(worker.String())) {
 			worker = name;
 			uniquer++;
