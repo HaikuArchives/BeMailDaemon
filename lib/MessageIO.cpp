@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <malloc.h>
+#include <string.h>
 
 #include "MessageIO.h"
 #include "MailProtocol.h"
