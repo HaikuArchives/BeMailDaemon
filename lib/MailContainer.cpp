@@ -365,6 +365,20 @@ status_t MIMEMultipartContainer::SetToRFC822(BPositionIO *data, size_t length, b
 		}
 	}
 
+	// Some bad MIME encodings (usually spam, or damaged files) don't put on
+	// the trailing boundary.  Dump whatever is remaining into a final
+	// component if there wasn't a trailing boundary and there is some data
+	// remaining.
+
+	if (!finalComponentCompleted
+		&& lastBoundaryOffset >= 0 && lastBoundaryOffset < topLevelEnd) {
+		_components_in_raw.AddItem (new message_part (lastBoundaryOffset, topLevelEnd));
+		_components_in_code.AddItem (NULL);
+	}
+
+	// If requested, actually read the data inside each component, otherwise
+	// only the positions in the BPositionIO are recorded.
+
 	if (copy_data) {
 		for (i = 0; GetComponent(i) != NULL; i++) {}
 	}
