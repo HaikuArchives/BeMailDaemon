@@ -84,7 +84,7 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 	}
 	headers->AddString("THREAD",string.String());
 	
-	headers->PrintToStream();
+//	headers->PrintToStream();
 	
 	// name
 	BString h;
