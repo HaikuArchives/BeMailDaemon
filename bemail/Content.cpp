@@ -402,7 +402,7 @@ CheckForURL(const char *string, size_t &urlLength, BString *url = NULL)
  */
 
 void
-FillInQouteTextRuns(BTextView *view, const char *line, int32 length, const BFont &font,
+FillInQuoteTextRuns(BTextView *view, const char *line, int32 length, const BFont &font,
 	text_run_array *style, int32 maxStyles)
 {
 	text_run *runs = style->runs;
@@ -410,7 +410,7 @@ FillInQouteTextRuns(BTextView *view, const char *line, int32 length, const BFont
 	bool begin; 
 	int32 pos = 0;
 	int32 level = 0;
-	char *quote = QUOTE;
+	const char *quote = QUOTE;
 
 	// get index to the beginning of the current line
 
@@ -465,7 +465,7 @@ FillInQouteTextRuns(BTextView *view, const char *line, int32 length, const BFont
 
 				bool search = true;
 				for (next = pos + 1; next < length; next++) {
-					if (search && line[next] == '>'
+					if (search && line[next] == quote[0]
 						|| line[next] == '\n')
 						break;
 					else if (line[next] != ' ' && line[next] != '\t')
@@ -508,6 +508,25 @@ FillInQouteTextRuns(BTextView *view, const char *line, int32 length, const BFont
 		}
 	}
 	style->count = index;
+}
+
+
+//	#pragma mark -
+
+
+TextRunArray::TextRunArray(size_t entries)
+	:
+	fNumEntries(entries)
+{
+	fArray = (text_run_array *)malloc(sizeof(int32) + sizeof(text_run) * entries);
+	if (fArray != NULL)
+		fArray->count = 0;
+}
+
+
+TextRunArray::~TextRunArray()
+{
+	free(fArray);
 }
 
 
@@ -2241,30 +2260,28 @@ TTextView::Reader::Insert(const char *line, int32 count, bool isHyperLink, bool 
 		return true;
 
 	BFont font(fView->Font());
-	struct text_runs : text_run_array { text_run _runs[63]; } style;
-	style.count = 0;
+	TextRunArray style(count / 8 + 8);
 
 	if (gColoredQuotes && !isHeader && !isHyperLink)
-		FillInQouteTextRuns(fView, line, count, font, &style, 64);
-	else
-	{
-		style.count = 1;
-		style.runs[0].offset = 0;
-		if (isHeader)
-		{
-			style.runs[0].color = isHyperLink ? kHyperLinkColor : kHeaderColor;
+		FillInQuoteTextRuns(fView, line, count, font, style, style.MaxEntries());
+	else {
+		text_run_array &array = style.Array();
+		array.count = 1;
+		array.runs[0].offset = 0;
+		if (isHeader) {
+			array.runs[0].color = isHyperLink ? kHyperLinkColor : kHeaderColor;
 			font.SetSize(font.Size() * 0.9);
-		}
-		else
-			style.runs[0].color = isHyperLink ? kHyperLinkColor : kNormalTextColor;
-		style.runs[0].font = font;
+		} else
+			array.runs[0].color = isHyperLink ? kHyperLinkColor : kNormalTextColor;
+		array.runs[0].font = font;
 	}
 
 	if (!fView->Window()->Lock())
 		return false;
-	fView->Insert(line, count, &style);
-	fView->Window()->Unlock();
 
+	fView->Insert(line, count, style);
+
+	fView->Window()->Unlock();
 	return true;
 }
 
@@ -2961,12 +2978,10 @@ TTextView::AddQuote(int32 start, int32 finish)
 
 	if (gColoredQuotes) {
 		const BFont *font = Font();
+		TextRunArray style(targetLength / 8 + 8);
 
-		struct text_runs : text_run_array { text_run _runs[63]; } style;
-		style.count = 0;
-		FillInQouteTextRuns(NULL, target, targetLength, font, &style, 64);
-
-		Insert(target, targetLength, &style);
+		FillInQuoteTextRuns(NULL, target, targetLength, font, style, style.MaxEntries());
+		Insert(target, targetLength, style);
 	} else
 		Insert(target, targetLength);
 
@@ -3035,12 +3050,10 @@ TTextView::RemoveQuote(int32 start, int32 finish)
 
 		if (gColoredQuotes) {
 			const BFont *font = Font();
-	
-			struct text_runs : text_run_array { text_run _runs[63]; } style;
-			style.count = 0;
-			FillInQouteTextRuns(NULL, target, length, font, &style, 64);
-	
-			Insert(target, length, &style);
+			TextRunArray style(length / 8 + 8);
+
+			FillInQuoteTextRuns(NULL, target, length, font, style, style.MaxEntries());
+			Insert(target, length, style);
 		} else
 			Insert(target, length);
 

@@ -131,7 +131,7 @@ static const char *kSpamMenuItemTextArray[] = {
 // global variables
 bool		gHelpOnly = false;
 bool		header_flag = false;
-bool		wrap_mode = true;
+static bool	sWrapMode = true;
 bool		attachAttributes_mode = true;
 bool		gColoredQuotes = true;
 bool		show_buttonbar = true;
@@ -422,7 +422,7 @@ TMailApp::MessageReceived(BMessage *msg)
 				fPrefsWindow = new TPrefsWindow(BRect(prefs_window.x,
 						prefs_window.y, prefs_window.x + PREF_WIDTH,
 						prefs_window.y + PREF_HEIGHT),
-						&fFont, &level, &wrap_mode, &attachAttributes_mode,
+						&fFont, &level, &sWrapMode, &attachAttributes_mode,
 						&gColoredQuotes, &gDefaultChain, &gUseAccountFrom,
 						&gReplyPreamble, &signature, &gMailCharacterSet,
 						&gWarnAboutUnencodableCharacters,
@@ -916,7 +916,7 @@ TMailApp::LoadSavePrefs(bool loadThem)
 
 		prefsFile.Read(&signature_window, sizeof(BRect));
 		prefsFile.Read(&header_flag, sizeof(bool));
-		prefsFile.Read(&wrap_mode, sizeof(bool));
+		prefsFile.Read(&sWrapMode, sizeof(bool));
 		prefsFile.Read(&prefs_window, sizeof(BPoint));
 		int32 len;
 		if (prefsFile.Read(&len, sizeof(int32)) > 0)
@@ -1046,9 +1046,9 @@ TMailApp::LoadSavePrefs(bool loadThem)
 	fieldName = "WordWrapMode";
 	if (loadThem) {
 		if (settingsMsg.FindBool(fieldName, &tempBool) == B_OK)
-			wrap_mode = tempBool;
+			sWrapMode = tempBool;
 	} else if (errorCode == B_OK)
-		errorCode = settingsMsg.AddBool(fieldName, wrap_mode);
+		errorCode = settingsMsg.AddBool(fieldName, sWrapMode);
 
 	fieldName = "PreferencesWindowLocation";
 	if (loadThem) {
@@ -3166,13 +3166,12 @@ TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 			const BFont *font = fContentView->fTextView->Font();
 			int32 length = fContentView->fTextView->TextLength();
 
-			struct text_runs : text_run_array { text_run _runs[63]; } style;
-			style.count = 0;
+			TextRunArray style(length / 8 + 8);
 
-			FillInQouteTextRuns(fContentView->fTextView, fContentView->fTextView->Text(),
-				length, font, &style, 64);
+			FillInQuoteTextRuns(fContentView->fTextView, fContentView->fTextView->Text(),
+				length, font, style, style.MaxEntries());
 
-			fContentView->fTextView->SetRunArray(0, length, &style);
+			fContentView->fTextView->SetRunArray(0, length, style);
 		}
 
 		fContentView->fTextView->GoToLine(0);
@@ -3189,16 +3188,14 @@ TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 status_t
 TMailWindow::Send(bool now)
 {
-	uint32			characterSetToUse = gMailCharacterSet;
-	mail_encoding	encodingForBody = quoted_printable;
-	mail_encoding	encodingForHeaders = quoted_printable;
+	uint32 characterSetToUse = gMailCharacterSet;
+	mail_encoding encodingForBody = quoted_printable;
+	mail_encoding encodingForHeaders = quoted_printable;
 
-	if (!now)
-	{
+	if (!now) {
 		status_t status;
 
-		if ((status = SaveAsDraft()) != B_OK)
-		{
+		if ((status = SaveAsDraft()) != B_OK) {
 			beep();
 			(new BAlert("",
 				MDR_DIALECT_CHOICE ("E-mail draft could not be saved!","ドラフトは保存できませんでした。"),
@@ -3309,8 +3306,7 @@ TMailWindow::Send(bool now)
 
 	status_t result;
 
-	if (fResending)
-	{
+	if (fResending) {
 		BFile file(fRef, O_RDONLY);
 		result = file.InitCheck();
 		if (result == B_OK)
@@ -3323,9 +3319,7 @@ TMailWindow::Send(bool now)
 
 			result = mail.Send(now);
 		}
-	}
-	else
-	{
+	} else {
 		if (fMail == NULL)
 			// the mail will be deleted when the window is closed
 			fMail = new Zoidberg::Mail::Message;
@@ -3335,61 +3329,53 @@ TMailWindow::Send(bool now)
 		// when changing the header to force it to remove the header.
 
 		fMail->SetTo(fHeaderView->fTo->Text(), characterSetToUse, encodingForHeaders);
-
 		fMail->SetSubject(fHeaderView->fSubject->Text(), characterSetToUse, encodingForHeaders);
-
 		fMail->SetCC(fHeaderView->fCc->Text(), characterSetToUse, encodingForHeaders);
-
 		fMail->SetBCC(fHeaderView->fBcc->Text());
-		
+
 		//--- Add X-Mailer field
 		{
-			int32 major = 0,middle = 0,minor = 0,variety = 0,internal = 1;
-			char version_string[255];
+			// get app version
+			version_info versionInfo;
+			memset(&versionInfo, 0, sizeof(version_info));
+
 			app_info appInfo;
-			if (be_app->GetAppInfo(&appInfo) == B_OK)
-			{
-				BFile file(&appInfo.ref,B_READ_ONLY);
-				if (file.InitCheck() == B_OK)
-				{
+			if (be_app->GetAppInfo(&appInfo) == B_OK) {
+				BFile file(&appInfo.ref, B_READ_ONLY);
+				if (file.InitCheck() == B_OK) {
 					BAppFileInfo info(&file);
 					if (info.InitCheck() == B_OK)
-					{
-						version_info versionInfo;
-						if (info.GetVersionInfo(&versionInfo,B_APP_VERSION_KIND) == B_OK)
-						{
-							major = versionInfo.major;
-							middle = versionInfo.middle;
-							minor = versionInfo.minor;
-							variety = versionInfo.variety;
-							internal = versionInfo.internal;
-						}
-					}
+						info.GetVersionInfo(&versionInfo, B_APP_VERSION_KIND);
 				}
 			}
 			// prepare version variety string
-			const char *varietyStrings[] = {"Development","Alpha","Beta","Gamma","Golden master","Final"};
+			const char *varietyStrings[] = {
+				"Development", "Alpha", "Beta",
+				"Gamma", "Golden master", "Final"
+			};
 			char varietyString[32];
-			strcpy(varietyString,varietyStrings[variety % 6]);
-			if (variety < 5)
-				sprintf(varietyString + strlen(varietyString),"/%li",internal);
-			sprintf(version_string,"BeMail - Mail Daemon Replacement %ld.%ld.%ld %s",major,middle,minor,varietyString);
-			fMail->SetHeaderField("X-Mailer",version_string);
+			strcpy(varietyString, varietyStrings[versionInfo.variety % 6]);
+			if (versionInfo.variety < 5)
+				sprintf(varietyString + strlen(varietyString), "/%li", versionInfo.internal);
+
+			char versionString[255];
+			sprintf(versionString,
+				"BeMail - Mail Daemon Replacement %ld.%ld.%ld %s",
+				versionInfo.major, versionInfo.middle, versionInfo.minor, varietyString);
+			fMail->SetHeaderField("X-Mailer", versionString);
 		}
 
 		/****/
 
 		// the content text is always added to make sure there is a mail body
 		fMail->SetBodyTextTo("");
-		fContentView->fTextView->AddAsContent(fMail, wrap_mode, characterSetToUse,
+		fContentView->fTextView->AddAsContent(fMail, sWrapMode, characterSetToUse,
 			encodingForBody);
 
-		if (fEnclosuresView != NULL)
-		{
+		if (fEnclosuresView != NULL) {
 			TListItem *item;
 			int32 index = 0;
-			while ((item = (TListItem *)fEnclosuresView->fList->ItemAt(index++)) != NULL)
-			{
+			while ((item = (TListItem *)fEnclosuresView->fList->ItemAt(index++)) != NULL) {
 				if (item->Component())
 					continue;
 
@@ -3406,15 +3392,12 @@ TMailWindow::Send(bool now)
 
 		result = fMail->Send(now);
 
-		if (fReplying)
-		{
+		if (fReplying) {
 			// Set status of the replied mail
 
 			BNode node(&fRepliedMail);
-			if (node.InitCheck() >= B_OK)
-			{
-				if (fOriginatingWindow)
-				{
+			if (node.InitCheck() >= B_OK) {
+				if (fOriginatingWindow) {
 					BMessage msg(M_SAVE_POSITION), reply;
 					fOriginatingWindow->SendMessage(&msg, &reply);
 				}
@@ -3426,15 +3409,13 @@ TMailWindow::Send(bool now)
 	bool close = false;
 	char errorMessage[256];
 
-	switch (result)
-	{
+	switch (result) {
 		case B_NO_ERROR:
 			close = true;
 			fSent = true;
 
 			// If it's a draft, remove the draft file
-			if (fDraft)
-			{
+			if (fDraft) {
 				BEntry entry(fRef);
 				entry.Remove();
 			}
@@ -3453,8 +3434,7 @@ TMailWindow::Send(bool now)
 				MDR_DIALECT_CHOICE ("Start Now","ただちに開始する"),
 				MDR_DIALECT_CHOICE ("Ok","了解")))->Go();
 
-			if (start == 0)
-			{
+			if (start == 0) {
 				result = be_roster->Launch("application/x-vnd.Be-POST");
 				if (result == B_OK)
 					Mail::SendQueuedMail();
@@ -3479,8 +3459,8 @@ TMailWindow::Send(bool now)
 			sprintf(errorMessage, "An error occurred trying to send mail (0x%.8lx): %s",
 							result,strerror(result));
 	}
-	if (result != B_NO_ERROR && result != B_MAIL_NO_DAEMON)
-	{
+
+	if (result != B_NO_ERROR && result != B_MAIL_NO_DAEMON) {
 		beep();
 		(new BAlert("", errorMessage, "Ok"))->Go();
 	}
@@ -3500,13 +3480,10 @@ TMailWindow::SaveAsDraft()
 	BFile		draft;
 	uint32		flags = 0;
 
-	if (fDraft)
-	{
+	if (fDraft) {
 		if ((status = draft.SetTo(fRef, B_WRITE_ONLY | B_CREATE_FILE | B_ERASE_FILE)) != B_OK)
 			return status;
-	}
-	else
-	{
+	} else {
 		// Get the user home directory
 		if ((status = find_directory(B_USER_DIRECTORY, &draftPath)) != B_OK)
 			return status;
@@ -3539,16 +3516,14 @@ TMailWindow::SaveAsDraft()
 
 				// Create the file; if the name exists, find a unique name
 				flags = B_WRITE_ONLY | B_CREATE_FILE | B_FAIL_IF_EXISTS;
-				for (i = 1;(status = draft.SetTo(&dir, fileName, flags )) != B_OK;i++)
-				{
+				for (i = 1; (status = draft.SetTo(&dir, fileName, flags )) != B_OK; i++) {
 					if( status != B_FILE_EXISTS )
 						return status;
 					sprintf(eofn, "%ld", i );
 				}
 
 				// Cache the ref
-				if (fRef)
-					delete fRef;
+				delete fRef;
 				BEntry entry(&dir, fileName);
 				fRef = new entry_ref;
 				entry.GetRef(fRef);
@@ -3576,14 +3551,12 @@ TMailWindow::SaveAsDraft()
 	draft.WriteAttr( "MAIL:draft", B_INT32_TYPE, 0, &draftAttr, sizeof(uint32) );
 
 	// Add Attachment paths in attribute
-	if (fEnclosuresView != NULL)
-	{
+	if (fEnclosuresView != NULL) {
 		TListItem *item;
 		BPath path;
 		BString pathStr;
 
-		for (int32 i = 0; (item = (TListItem *)fEnclosuresView->fList->ItemAt(i)) != NULL; i++)
-		{
+		for (int32 i = 0; (item = (TListItem *)fEnclosuresView->fList->ItemAt(i)) != NULL; i++) {
 			if (i > 0)
 				pathStr.Append(":");
 

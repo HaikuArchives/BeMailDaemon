@@ -265,8 +265,7 @@ class TTextView : public BTextView
 
 //====================================================================
 
-class TSavePanel : public BFilePanel
-{
+class TSavePanel : public BFilePanel {
 	public:
 		TSavePanel(hyper_text*, TTextView*);
 		virtual void SendMessage(const BMessenger*, BMessage*);
@@ -277,7 +276,24 @@ class TSavePanel : public BFilePanel
 		TTextView *fView;
 };
 
-extern void FillInQouteTextRuns(BTextView *view, const char *line, int32 length,
+//====================================================================
+
+class TextRunArray {
+	public:
+		TextRunArray(size_t entries);
+		~TextRunArray();
+
+		text_run_array &Array() { return *fArray; }
+		size_t MaxEntries() const { return fNumEntries; }
+
+		template<class T> operator T*() { return fArray; }
+
+	private:
+		text_run_array *fArray;
+		size_t fNumEntries;
+};
+
+extern void FillInQuoteTextRuns(BTextView *view, const char *line, int32 length,
 				const BFont &font, text_run_array *style, int32 maxStyles = 5);
 
 #endif	/* #ifndef _CONTENT_H */
