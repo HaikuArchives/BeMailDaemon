@@ -178,32 +178,36 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length)
 	
 	off_t start = data->Position();
 	off_t offset = start;
-	ssize_t len;
+	ssize_t len, result;
 	BString line;
-	char *buf;
+	char buf[256];
 	int32 last_boundary = -1;
 	
 	while (offset < (start + length))
 	{
-		len = line.Length();
-		buf = line.LockBuffer(len + 255) + len;
-		len = data->ReadAt(offset,buf,90);
-		line.UnlockBuffer(len);
+		result = data->ReadAt(offset,buf,255);
 				
-		if (len <= 0)
+		if (result <= 0)
 			break;
+			
+		buf[result] = 0;
+		line.Append(buf);
+		len = line.Length();
 		
 		len = line.FindFirst("\r\n");
 		
 		if (len < 0) {
-			offset += line.Length();
+			offset += result;
 			if (offset < (start + length))
 				continue;
 		} else {
 			line.Truncate(len);
 		}
 		
+			/*printf("line: %s,",line.String());
+			printf(" offset: %d\n",(int)offset);*/
 		if (strncmp(line.String(),type.String(), type.Length()) == 0) {
+			//puts(line.String());
 			if (last_boundary >= 0) {
 				_components_in_raw.AddItem(new message_part(last_boundary, offset));
 				_components_in_code.AddItem(NULL);
