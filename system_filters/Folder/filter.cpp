@@ -38,7 +38,8 @@ static const mail_header_field gDefaultFields[] =
 {
 	{ "To",            	B_MAIL_ATTR_TO,       B_STRING_TYPE },
 	{ "From",         	B_MAIL_ATTR_FROM,     B_STRING_TYPE },
-	{ "Date",         	B_MAIL_ATTR_WHEN,     B_TIME_TYPE },
+	{ "Cc",				B_MAIL_ATTR_CC,		  B_STRING_TYPE },
+	{ "Date",         	B_MAIL_ATTR_WHEN,     B_TIME_TYPE   },
 	{ "Reply-To",     	B_MAIL_ATTR_REPLY,    B_STRING_TYPE },
 	{ "Subject",      	B_MAIL_ATTR_SUBJECT,  B_STRING_TYPE },
 	{ "Priority",     	B_MAIL_ATTR_PRIORITY, B_STRING_TYPE },
