@@ -96,51 +96,43 @@ class MailDaemonApp : public BApplication {
 };
 
 
-void MailDaemonApp::RefsReceived(BMessage *a_message) {
-	entry_ref ref;
-	BNode node;
-	int32 id;
-	BString uid;
-	int32 size;
-	BPath path;
-	status->Activate(true);
-	for (int32 i = 0; a_message->FindRef("refs",i,&ref) == B_OK; i++) {
-		node.SetTo(&ref);
-		if (node.ReadAttrString("MAIL:unique_id",&uid) < 0)
-			continue;
-		if (node.ReadAttr("MAIL:chain",B_INT32_TYPE,0,&id,sizeof(id)) < 0)
-			continue;
-		if (node.ReadAttr("MAIL:fullsize",B_SIZE_T_TYPE,0,&size,sizeof(size)) < 0)
-			size = -1;
-		
-		path.SetTo(&ref);
-		Mail::ChainRunner *runner = Mail::GetRunner(id,status);
-		runner->GetSingleMessage(uid.String(),size,&path);
-	}
-}
-	
 MailDaemonApp::MailDaemonApp(void)
-	: BApplication("application/x-vnd.Be-POST" /* mail daemon sig */ )
-{
-	InstallDeskbarIcon();
-	
-	status = new StatusWindow(BRect(40,400,360,400),"Mail Status", settings_file.ShowStatusWindow());
+	: BApplication("application/x-vnd.Be-POST")
+{	
+	status = new StatusWindow(BRect(40, 400, 360, 400), "Mail Status",
+					settings_file.ShowStatusWindow());
 	auto_check = NULL;
 }
 
-void MailDaemonApp::ReadyToRun() {
+
+MailDaemonApp::~MailDaemonApp()
+{
+	delete auto_check;
+
+	for (int32 i = 0; i < queries.CountItems(); i++)
+		delete ((BQuery *)(queries.ItemAt(i)));
+
+	delete led;
+}
+
+
+void
+MailDaemonApp::ReadyToRun()
+{
+	InstallDeskbarIcon();
+
 	UpdateAutoCheck(settings_file.AutoCheckInterval());
 
 	BVolume volume;
 	BVolumeRoster roster;
-	
+
 	new_messages = 0;
-	
+
 	while (roster.GetNextVolume(&volume) == B_OK) {
-		{char name[255];volume.GetName(name);printf("Volume: %s\n",name);}
-		
+		//{char name[255];volume.GetName(name);printf("Volume: %s\n",name);}
+
 		BQuery *query = new BQuery;
-		
+
 		query->SetTarget(this);
 		query->SetVolume(&volume);
 		query->PushAttr(B_MAIL_ATTR_STATUS);
@@ -155,15 +147,15 @@ void MailDaemonApp::ReadyToRun() {
 		query->PushOp(B_OR);
 		query->PushOp(B_AND);
 		query->Fetch();
-		
+
 		BEntry entry;
 		for (; query->GetNextEntry(&entry) == B_OK; new_messages++);
-		
+
 		queries.AddItem(query);
 	}
-		
+
 	BString string;
-	MDR_DIALECT_CHOICE (
+	MDR_DIALECT_CHOICE(
 		if (new_messages > 0)
 			string << new_messages;
 		else
@@ -179,44 +171,61 @@ void MailDaemonApp::ReadyToRun() {
 	);	
 	central_beep = false;
 	status->SetDefaultMessage(string);
-	
+
 	led = new LEDAnimation;
 	SetPulseRate(1000000);	
 }
 
-MailDaemonApp::~MailDaemonApp()
+
+void
+MailDaemonApp::RefsReceived(BMessage *message)
 {
-	if (auto_check != NULL)
-		delete auto_check;
-	
-	for (int32 i = 0; i < queries.CountItems(); i++)
-		delete ((BQuery *)(queries.ItemAt(i)));
-		
-	delete led;
+	status->Activate(true);
+
+	entry_ref ref;
+	for (int32 i = 0; message->FindRef("refs", i, &ref) == B_OK; i++) {
+		BNode node(&ref);
+		if (node.InitCheck() < B_OK)
+			continue;
+
+		BString uid;
+		if (node.ReadAttrString("MAIL:unique_id", &uid) < 0)
+			continue;
+
+		int32 id;
+		if (node.ReadAttr("MAIL:chain", B_INT32_TYPE, 0, &id, sizeof(id)) < 0)
+			continue;
+
+		int32 size;
+		if (node.ReadAttr("MAIL:fullsize", B_SIZE_T_TYPE, 0, &size, sizeof(size)) < 0)
+			size = -1;
+
+		BPath path(&ref);
+		Mail::ChainRunner *runner = Mail::GetRunner(id, status);
+		runner->GetSingleMessage(uid.String(), size, &path);
+	}
 }
 
 
-void MailDaemonApp::UpdateAutoCheck(bigtime_t interval)
+void
+MailDaemonApp::UpdateAutoCheck(bigtime_t interval)
 {
-	if (interval > 0)
-	{
-		if (auto_check != NULL)
-		{
+	if (interval > 0) {
+		if (auto_check != NULL) {
 			auto_check->SetInterval(interval);
 			auto_check->SetCount(-1);
-		}
-		else
+		} else
 			auto_check = new BMessageRunner(be_app_messenger,new BMessage('moto'),interval);
-	}
-	else
-	{
+	} else {
 		delete auto_check;
 		auto_check = NULL;
 	}
 }
 
 
-void MailDaemonApp::MessageReceived(BMessage *msg) {
+void
+MailDaemonApp::MessageReceived(BMessage *msg)
+{
 	switch (msg->what) {
 		case 'moto':
 			if (settings_file.CheckOnlyIfPPPUp()) {
@@ -378,7 +387,7 @@ MailDaemonApp::InstallDeskbarIcon()
 	if (!deskbar.HasItem("mail_daemon")) {
 		BRoster roster;
 		entry_ref ref;
-		
+
 		status_t status = roster.FindApp("application/x-vnd.Be-POST", &ref);
 		if (status < B_OK) {
 			fprintf(stderr, "Can't find application to tell deskbar: %s\n", strerror(status));
@@ -413,66 +422,69 @@ MailDaemonApp::QuitRequested()
 
 
 void
-MailDaemonApp::RunChains(BList &list,BMessage *msg)
+MailDaemonApp::RunChains(BList &list, BMessage *msg)
 {
 	Chain *chain;
 
-	int32 index = 0,id;
-	for (;msg->FindInt32("chain",index,&id) == B_OK;index++)
-	{
+	int32 index = 0, id;
+	for (; msg->FindInt32("chain", index, &id) == B_OK; index++) {
 		for (int32 i = 0; i < list.CountItems(); i++) {
 			chain = (Chain *)list.ItemAt(i);
-			
-			if (chain->ID() == id)
-			{
-				chain->RunChain(status,true,true,true);
+
+			if (chain->ID() == id) {
+				chain->RunChain(status, true, true, true);
 				list.RemoveItem(i);	// the chain runner deletes the chain
 				break;
 			}
 		}
 	}
-	
-	if (index == 0)	// invoke all chains
-	{
+
+	if (index == 0) {
+		// invoke all chains
 		for (int32 i = 0; i < list.CountItems(); i++) {
 			chain = (Chain *)list.ItemAt(i);
-			
-			chain->RunChain(status,true,true,true);
+
+			chain->RunChain(status, true, true, true);
 		}
-	}
-	else	// delete unused chains
-	{
-		for (int32 i = list.CountItems();i-- > 0;)
+	} else {
+		// delete unused chains
+		for (int32 i = list.CountItems(); i-- > 0;)
 			delete (Chain *)list.RemoveItem(i);
 	}
 }
 
-void MailDaemonApp::GetNewMessages(BMessage *msg) {
+
+void
+MailDaemonApp::GetNewMessages(BMessage *msg)
+{
 	BList list;
 	InboundChains(&list);
 
 	RunChains(list,msg);	
 }
 
-void MailDaemonApp::SendPendingMessages(BMessage *msg) {
+
+void
+MailDaemonApp::SendPendingMessages(BMessage *msg)
+{
 	BVolumeRoster roster;
 	BVolume volume;
-	
+
 	while (roster.GetNextVolume(&volume) == B_OK) {
 		BQuery query;
 		query.SetVolume(&volume);
 		query.PushAttr(B_MAIL_ATTR_FLAGS);
 		query.PushInt32(B_MAIL_PENDING);
 		query.PushOp(B_EQ);
-		
+
 		query.PushAttr(B_MAIL_ATTR_FLAGS);
 		query.PushInt32(B_MAIL_PENDING | B_MAIL_SAVE);
 		query.PushOp(B_EQ);
-		
+
 		query.PushOp(B_OR);
-		
+
 		int32 chain_id = -1;
-		
+
 		if (msg->FindInt32("chain",&chain_id) == B_OK) {
 			query.PushAttr("MAIL:chain");
 			query.PushInt32(chain_id);
@@ -481,18 +493,18 @@ void MailDaemonApp::SendPendingMessages(BMessage *msg) {
 		} else {
 			chain_id = -1;
 		}
-		
+
 		if (!msg->HasString("message_path")) {
 			if (chain_id == -1) {
-				map <int32,snuzzwut *> messages;
-				
+				map <int32, snuzzwut *> messages;
+
 				query.Fetch();
 				BEntry entry;
 				BPath path;
 				BNode node;
 				int32 chain, default_chain(Mail::Settings().DefaultOutboundChainID());
 				off_t size;
-				
+
 				while (query.GetNextEntry(&entry) == B_OK) {
 					while (node.SetTo(&entry) == B_BUSY) snooze(100);
 					if (node.ReadAttr("MAIL:chain",B_INT32_TYPE,0,&chain,4) < B_OK)
@@ -503,11 +515,11 @@ void MailDaemonApp::SendPendingMessages(BMessage *msg) {
 						messages[chain] = new snuzzwut;
 						messages[chain]->bytes = 0;
 					}
-						
+
 					messages[chain]->msgs += path.Path();
 					messages[chain]->bytes += size;
 				}
-				
+
 				map<int32,snuzzwut *>::iterator iter = messages.begin();
 				map<int32,snuzzwut *>::iterator end = messages.end();
 				while (iter != end) {
@@ -517,19 +529,19 @@ void MailDaemonApp::SendPendingMessages(BMessage *msg) {
 						delete messages[iter->first];
 						runner->Stop();
 					}
-					
+
 					iter++;
 				}
 			} else {
 				StringList ids;
 				size_t bytes = 0;
-				
+
 				query.Fetch();
 				BEntry entry;
 				BPath path;
 				BNode node;
 				off_t size;
-				
+
 				while (query.GetNextEntry(&entry) == B_OK) {
 					node.SetTo(&entry);
 					entry.GetPath(&path);
@@ -537,7 +549,7 @@ void MailDaemonApp::SendPendingMessages(BMessage *msg) {
 					ids += path.Path();
 					bytes += size;
 				}
-				
+
 				Mail::ChainRunner *runner = Mail::GetRunner(chain_id,status);
 				runner->GetMessages(&ids,bytes);
 				runner->Stop();
@@ -556,7 +568,10 @@ void MailDaemonApp::SendPendingMessages(BMessage *msg) {
 	}
 }
 
-void MailDaemonApp::Pulse() {
+
+void
+MailDaemonApp::Pulse()
+{
 	bigtime_t idle = idle_time();
 	if (led->IsRunning() && (idle < 100000))
 		led->Stop();
@@ -568,7 +583,8 @@ void MailDaemonApp::Pulse() {
 //	#pragma mark -
 
 
-void makeIndices()
+void
+makeIndices()
 {
 	const char *stringIndices[] = {	B_MAIL_ATTR_ACCOUNT,B_MAIL_ATTR_CC,
 									B_MAIL_ATTR_FROM,B_MAIL_ATTR_NAME,
@@ -696,16 +712,17 @@ makeMimeType(bool remakeMIMETypes)
 }
 
 
-int main (int argc, const char **argv)
+int
+main(int argc, const char **argv)
 {
 	bool remakeMIMETypes = false;
 
 	for (int i = 1; i < argc; i++) {
-		if (strcmp(argv[i],"-E") == 0) {
+		if (strcmp(argv[i], "-E") == 0) {
 			if (!Zoidberg::Mail::Settings().DaemonAutoStarts())
 				return 0;
 		}
-		if (strcmp(argv[i],"-M") == 0) {
+		if (strcmp(argv[i], "-M") == 0) {
 			remakeMIMETypes = true;
 		}
 	}
