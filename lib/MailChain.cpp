@@ -24,14 +24,14 @@ class _EXPORT MailChain;
 /*--------End hacks----*/
 
 MailChain::MailChain(uint32 i)
-: id(i), meta_data(NULL), direction(inbound), settings_ct(0), addons_ct(0), _err(B_OK) 
+: id(i), meta_data(NULL), _err(B_OK), direction(inbound), settings_ct(0), addons_ct(0) 
 {
 	name[0] = 0;
 	Reload();
 }
 
 MailChain::MailChain(BMessage* settings)
-: id(settings->FindInt32("id")), meta_data(NULL), direction(inbound), settings_ct(0), addons_ct(0), _err(B_OK) 
+: id(settings->FindInt32("id")), meta_data(NULL), _err(B_OK), direction(inbound), settings_ct(0), addons_ct(0) 
 {
 	name[0] = 0;
 	Load(settings);
