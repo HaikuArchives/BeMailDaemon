@@ -155,8 +155,12 @@ For IMAP, things are slightly more complicated. The IMAP folder structure is dup
 
 HISTORY:
 
-October 12 2003 - v2.2.5
-- Queries changed to be multivolume, so maybe (untested) you can have mail directories (inbox, outbox, draft) on volumes other than /boot.
+December 4 2003 - v2.2.5
+- Queries changed to be multivolume, so you can have mail directories (inbox, outbox, draft) on volumes other than /boot.
+- Added new error-handling, so there aren't alert boxes. Whooo!
+- Fixed all outstanding bugs in IMAP.
+- More memory leaks fixed.
+- General happiness.
 
 October 12 2003 - v2.2.4
 - Fixed IMAP's mailbox look-up routines so that they use LSUB instead of LIST. This fixes a few bugs with certain mail servers, and allows better interoperability with other mail clients on the same account. 
@@ -439,7 +443,6 @@ This is a partial list of what we intend to implement. Suggestions are welcome:
  - HotMail support.
  - Filter description field/attribute
  - Read initial account info from old E-mail prefs
- - "Ask before/Skip downloading messages larger than Xkb"
  - More...
 
 OTHER STUFF:
@@ -456,7 +459,7 @@ ITO Takayuki (yuki@euc.jp),Tanuki, Ryo Hattori, Ichikawa Hirotaka and many other
 
 The cool new mail-daemon deskbar icon is a courtesy of Syn.Terra.
 
-Copyright (c)2001 by Dr. Zoidberg Enterprises. All rights reserved.
+Copyright (c)2001-2003 by Dr. Zoidberg Enterprises. All rights reserved.
 
 Dr. Zoidberg Enterprises is a joint-venture between Bruno G. Albuquerque
 (bga@bug-br.org.br), Nathan Whitehorn (nwhitehorn@qwest.net), Peter Folk
