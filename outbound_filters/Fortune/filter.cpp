@@ -1,3 +1,5 @@
+#include "ConfigView.h"
+
 #include <Message.h>
 #include <Entry.h>
 #include <String.h>
@@ -50,3 +52,12 @@ MDStatus FortuneFilter::ProcessMailMessage
 
 MailFilter* instantiate_mailfilter(BMessage* settings, StatusView*)
 { return new FortuneFilter(settings); }
+
+
+BView* instantiate_config_panel(BMessage *settings)
+{
+	ConfigView *view = new ConfigView();
+	view->SetTo(settings);
+
+	return view;
+}
