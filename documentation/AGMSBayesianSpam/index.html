@@ -7,6 +7,9 @@
 <META NAME="description" CONTENT="Documentation for AGMSBayesianSpam, for classifying incoming e-mail messages as spam (junk mail) or genuine.">
 <!--
 ; $Log$
+; Revision 1.8  2002/12/13 22:20:50  agmsmith
+; Under construction.
+;
 ; Revision 1.7  2002/11/29 23:42:26  agmsmith
 ; Describe the word display and what you can do with it.
 ;
@@ -236,13 +239,17 @@ mailing list.
 <P>Check for e-mail as usual.  If you look at the inbox directory in Tracker,
 you can add an extra column with the E-mail attribute "Spam/Genuine Estimate"
 to see how spammy the messages are.  0.0 means the system thinks the message is
-fully genuine, 1.0 fully spam.  Usually if it is over 0.56 (the best cutoff
-value depends a bit on your database quality, but 0.56 is typical) then it is
-spam, and the closer it is to 1.0 the more likely it really is spam.  But it
-can be wrong, for things like a friend of yours quoting a spam message.  I sort
-by spam ratio, and manually throw away the messages that are spammy, then I
-switch the Tracker window back to sorting by thread+date (just a click on the
-appropriate column title does it) and get on with reading the mail.
+fully genuine, 1.0 fully spam.  But it can be wrong, for things like a friend
+of yours quoting a spam message.  For the Chi-squared method (the default), you
+see numbers close to zero for genuine (like 9.750e-13), close to 1 for spam and
+in-between (0.01 to 0.99) if it can't decide.  With the Robinson scoring
+method, usually if it is over 0.56 (the best cutoff value depends a bit on your
+database quality, but 0.56 is typical) then it is spam, and the closer it is to
+1.0 the more likely it really is spam.
+
+<P>I sort by spam ratio, and manually throw away the messages that are spammy,
+then I switch the Tracker window back to sorting by thread+date (just a click
+on the appropriate column title does it) and get on with reading the mail.
 
 <P>If you turned on the filter option to modify the subject, you'll see spam
 messages with something like [Spam 95%] in front of the subject (I don't use it
@@ -254,11 +261,9 @@ attribute, which is what the Tracker shows.
 
 <P><EM>The accuracy is only as good as your database</EM>, so update it with
 more example spam and genuine messages.  In particular, if it gets the estimate
-wrong, add that message to the database to tell it what it should be doing.
-You may also want to do this with all your messages (it gives slightly better
-results in the long run than just training on the mistakes).  A quick way to do
-that is to right click on the e-mail in Tracker, and pick Open With...
-AGMSBayesianSpamServer.<BR>
+wrong, add that message to the database to tell it what it should be doing.  A
+quick way to do that is to right click on the e-mail in Tracker, and pick Open
+With...  AGMSBayesianSpamServer.<BR>
 <IMG SRC="pictures/SortingInboxBySpamEstimate.png"
 ALT="[Sorting Inbox By Spam Estimate]" WIDTH="831" HEIGHT="361"><BR>
 It should start up and ask you if the message is spam or genuine.<BR>
@@ -270,14 +275,25 @@ third does something else that's mostly harmless and fun.<BR>
 <IMG SRC="pictures/DropZones.png" ALT="[Drop Zones]" WIDTH="596"
 HEIGHT="204"><BR>
 
+<P>You may also want to train it with all your messages (it gives slightly
+better results in the long run than just training on the mistakes).  To make it
+easier, turn on the self-training option in the mail filter.  It will compute
+the spam ratio of new mail messages, then feed back the same message into the
+database as an example of spam/genuine.  When it gets it wrong, you should
+manually retrain it with the correct classification, otherwise the database
+will get worse and worse and finally turn into mush.
+
 <H2><A NAME="HidingServer"></A>Hiding the Server Window</H2>
 
 <P>If you're annoyed by the server window popping up whenver the system checks
 for e-mail, you can tell it to hide.  Just click the "Server Mode" checkbox.
-To make it visible again, start up AGMSBayesianSpamServer (possibly by double
-clicking on its icon in <A
+Actually, that's now the default since people were complaining about the window
+getting in the way.  The disadvantage is that you don't get to see error
+messages.  To make it visible again, start up AGMSBayesianSpamServer (possibly
+by double clicking on its icon in <A
 HREF="file:/boot/home/config/bin/">/boot/home/config/bin/</A> and bring up the
-hidden window by using the deskbar).<BR>
+hidden window by using the deskbar, or by using the "Edit Server Settings"
+button in the spam filter configuration).<BR>
 <IMG SRC="pictures/MakingTheWindowVisibleFromTheDeskbar.png"
 ALT="MakingTheWindowVisibleFromTheDeskbar" WIDTH="640" HEIGHT="109"><BR>
 
@@ -688,8 +704,9 @@ of each should be enough to start).  A full message database may also work, but
 headers only training should be more accurate for headers only decisions.  When
 testing JustHeader mode, I noticed that the false positive rate (genuine
 reported as spam) is nice and low, but the false negative rate (spam reported
-as genuine) is high.  So this means JustHeader mode will delete maybe half the
-spam (and download the rest) and also delete the occasional genuine message.
+as genuine) is high (tested with Robinson scoring, not Chi-Squared scoring).
+So this means JustHeader mode will delete maybe half the spam (and download the
+rest) and also delete the occasional genuine message.
 
 
 <H1><A NAME="ChangeLog"></A>Change Log</H1>
@@ -699,6 +716,9 @@ accumulated minor changes, which you can see by looking at the log in the top of
 source code files.
 
 <UL>
+  <LI>Version 1.73 added self training support and the Chi-Squared scoring
+  method.
+
   <LI>Version 1.68 nothing significant changed.  Just very minor tweaking.
 
   <LI>Version 1.65 added a time delay for exiting the program.  This is so that
