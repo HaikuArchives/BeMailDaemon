@@ -424,8 +424,12 @@ status_t POP3Protocol::SendCommand(const char* cmd) {
 			break;
 	}
 
-	if (conn.Send(cmd, ::strlen(cmd)) < 0)
+	if (conn.Send(cmd, ::strlen(cmd)) < 0) {
+		fLog = conn.ErrorStr ();
+		printf ("POP3Protocol::SendCommand Send \"%s\" failed, code %d: %s\n",
+			cmd, conn.Error(), fLog.String());
 		return conn.Error();
+	}
 
 	fLog="";
 	status_t err = B_OK;
