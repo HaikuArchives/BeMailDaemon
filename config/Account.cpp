@@ -100,7 +100,7 @@ Account::Account(Mail::Chain *inbound,Mail::Chain *outbound)
 	if (fSettings)
 		label << fSettings->Name();
 	else
-		label << "Unnamed";
+		label << MDR_DIALECT_CHOICE ("Unnamed","名称未定");
 	fAccountItem = new AccountItem(label.String(),this,ACCOUNT_ITEM);
 
 	fInboundItem = new AccountItem(MDR_DIALECT_CHOICE ("   · Incoming","   - 受信"),this,INBOUND_ITEM);
@@ -286,7 +286,7 @@ void Account::CreateInbound()
 	// New Mail Notification
 	path = addOnPath;
 	path.Append(kSystemFilterAddOnPath);
-	path.Append(MDR_DIALECT_CHOICE ("New Mail Notification", "郵便通告方法"));
+	path.Append(MDR_DIALECT_CHOICE ("New Mail Notification", "着信通知方法"));
 	BEntry(path.Path()).GetRef(&ref);
 	fInbound->AddFilter(msg,ref);
 

@@ -991,7 +991,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 	//
 	//	File Menu
 	//
-	menu = new BMenu(MDR_DIALECT_CHOICE ("File","ファイル"));
+	menu = new BMenu(MDR_DIALECT_CHOICE ("File","F) ファイル"));
 
 	msg = new BMessage(M_NEW);
 	msg->AddInt32("type", M_NEW);
@@ -1084,7 +1084,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 	//
 	//	Edit Menu
 	//
-	menu = new BMenu(MDR_DIALECT_CHOICE ("Edit","編集"));
+	menu = new BMenu(MDR_DIALECT_CHOICE ("Edit","E) 編集"));
 	menu->AddItem(fUndo = new BMenuItem(MDR_DIALECT_CHOICE ("Undo","Z) やり直し"), new BMessage(B_UNDO), 'Z'));
 	fUndo->SetTarget(NULL, this);
 	menu->AddSeparatorItem();
@@ -1131,7 +1131,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 	//
 	//	Message Menu
 	//
-	menu = new BMenu(MDR_DIALECT_CHOICE ("Message", "メッセージ"));
+	menu = new BMenu(MDR_DIALECT_CHOICE ("Message", "M) メッセージ"));
 	
 	if (!resending && fIncoming)
 	{
@@ -1150,10 +1150,10 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 		fDeleteNext = new BMenuItem(MDR_DIALECT_CHOICE ("Move to Trash","T) 削除"), new BMessage(M_DELETE_NEXT), 'T');
 		menu->AddItem(fDeleteNext);
 		menu->AddSeparatorItem();
-		fPrevMsg = new BMenuItem(MDR_DIALECT_CHOICE ("Previous Message","+) 前のメッセージ"), new BMessage(M_PREVMSG), 
+		fPrevMsg = new BMenuItem(MDR_DIALECT_CHOICE ("Previous Message","B) 前のメッセージ"), new BMessage(M_PREVMSG), 
 		 B_UP_ARROW);
 		menu->AddItem(fPrevMsg);
-		fNextMsg = new BMenuItem(MDR_DIALECT_CHOICE ("Next Message","-) 次のメッセージ"), new BMessage(M_NEXTMSG), 
+		fNextMsg = new BMenuItem(MDR_DIALECT_CHOICE ("Next Message","N) 次のメッセージ"), new BMessage(M_NEXTMSG), 
 		  B_DOWN_ARROW);
 		menu->AddItem(fNextMsg);
 		menu->AddSeparatorItem();
@@ -1233,7 +1233,7 @@ skip:			if (!done)
 	//
 	if (!fIncoming)
 	{
-		menu = new BMenu(MDR_DIALECT_CHOICE ("Enclosures","添付ファイル"));
+		menu = new BMenu(MDR_DIALECT_CHOICE ("Enclosures","N) 添付ファイル"));
 		menu->AddItem(fAdd = new BMenuItem(MDR_DIALECT_CHOICE ("Add","E) 追加")B_UTF8_ELLIPSIS, new BMessage(M_ADD), 'E'));
 		menu->AddItem(fRemove = new BMenuItem(MDR_DIALECT_CHOICE ("Remove","T) 削除"), new BMessage(M_REMOVE), 'T'));
 		menu_bar->AddItem(menu);

@@ -151,7 +151,7 @@ void AccountConfigView::UpdateViews()
 	{
 		if (BMenuItem *item = fTypeField->Menu()->FindMarked())
 			item->SetMarked(false);
-		fTypeField->Menu()->Superitem()->SetLabel("<select account type>");
+		fTypeField->Menu()->Superitem()->SetLabel(MDR_DIALECT_CHOICE ("<select account type>","<用途を選択してください>"));
 		
 		fNameControl->SetEnabled(false);
 		fRealNameControl->SetEnabled(false);

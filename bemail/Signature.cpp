@@ -72,28 +72,28 @@ TSignatureWindow::TSignatureWindow(BRect rect)
 	BRect r = Bounds();
 	/*** Set up the menus ****/
 	menu_bar = new BMenuBar(r, "MenuBar");
-	menu = new BMenu(MDR_DIALECT_CHOICE ("Signature","署名"));
-	menu->AddItem(fNew = new BMenuItem(MDR_DIALECT_CHOICE ("New","新規"), new BMessage(M_NEW), 'N'));
-	fSignature = new TMenu(MDR_DIALECT_CHOICE ("Open","開く"), INDEX_SIGNATURE, M_SIGNATURE);
+	menu = new BMenu(MDR_DIALECT_CHOICE ("Signature","S) 署名"));
+	menu->AddItem(fNew = new BMenuItem(MDR_DIALECT_CHOICE ("New","N) 新規"), new BMessage(M_NEW), 'N'));
+	fSignature = new TMenu(MDR_DIALECT_CHOICE ("Open","O) 開く"), INDEX_SIGNATURE, M_SIGNATURE);
 	menu->AddItem(new BMenuItem(fSignature));
 	menu->AddSeparatorItem();
-	menu->AddItem(fSave = new BMenuItem(MDR_DIALECT_CHOICE ("Save","保存"), new BMessage(M_SAVE), 'S'));
-	menu->AddItem(fDelete = new BMenuItem(MDR_DIALECT_CHOICE ("Delete","削除"), new BMessage(M_DELETE), 'T'));
+	menu->AddItem(fSave = new BMenuItem(MDR_DIALECT_CHOICE ("Save","S) 保存"), new BMessage(M_SAVE), 'S'));
+	menu->AddItem(fDelete = new BMenuItem(MDR_DIALECT_CHOICE ("Delete","T) 削除"), new BMessage(M_DELETE), 'T'));
 	menu->AddSeparatorItem();
-	menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Close","閉じる"), new BMessage(B_CLOSE_REQUESTED), 'W'));
+	menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Close","W) 閉じる"), new BMessage(B_CLOSE_REQUESTED), 'W'));
 	menu_bar->AddItem(menu);
 
-	menu = new BMenu(MDR_DIALECT_CHOICE ("Edit","編集"));
-	menu->AddItem(fUndo = new BMenuItem(MDR_DIALECT_CHOICE ("Undo","やり直し"), new BMessage(B_UNDO), 'Z'));
+	menu = new BMenu(MDR_DIALECT_CHOICE ("Edit","E) 編集"));
+	menu->AddItem(fUndo = new BMenuItem(MDR_DIALECT_CHOICE ("Undo","Z) やり直し"), new BMessage(B_UNDO), 'Z'));
 	fUndo->SetTarget(NULL, this);
 	menu->AddSeparatorItem();
-	menu->AddItem(fCut = new BMenuItem(MDR_DIALECT_CHOICE ("Cut","切り取り"), new BMessage(B_CUT), 'X'));
+	menu->AddItem(fCut = new BMenuItem(MDR_DIALECT_CHOICE ("Cut","X) 切り取り"), new BMessage(B_CUT), 'X'));
 	fCut->SetTarget(NULL, this);
-	menu->AddItem(fCopy = new BMenuItem(MDR_DIALECT_CHOICE ("Copy","コピー"), new BMessage(B_COPY), 'C'));
+	menu->AddItem(fCopy = new BMenuItem(MDR_DIALECT_CHOICE ("Copy","C) コピー"), new BMessage(B_COPY), 'C'));
 	fCopy->SetTarget(NULL, this);
-	menu->AddItem(fPaste = new BMenuItem(MDR_DIALECT_CHOICE ("Paste","貼り付け"), new BMessage(B_PASTE), 'V'));
+	menu->AddItem(fPaste = new BMenuItem(MDR_DIALECT_CHOICE ("Paste","V) 貼り付け"), new BMessage(B_PASTE), 'V'));
 	fPaste->SetTarget(NULL, this);
-	menu->AddItem(item = new BMenuItem(MDR_DIALECT_CHOICE ("Select All","全文選択"), new BMessage(M_SELECT), 'A'));
+	menu->AddItem(item = new BMenuItem(MDR_DIALECT_CHOICE ("Select All","A) 全文選択"), new BMessage(M_SELECT), 'A'));
 	item->SetTarget(NULL, this);
 	menu_bar->AddItem(menu);
 
@@ -415,7 +415,7 @@ TSignatureView::AttachedToWindow()
 	fName = new TNameControl(rect, kNameText, new BMessage(NAME_FIELD));
 	AddChild(fName);
 
-	fName->SetDivider(divide_length);
+	fName->SetDivider(divide_length + 10);
 	fName->SetAlignment(B_ALIGN_RIGHT, B_ALIGN_LEFT);
 
 	rect.OffsetBy(0,fName->Bounds().Height()+5);

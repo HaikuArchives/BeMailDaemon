@@ -18,7 +18,10 @@ BEOS Mail Daemon Replacement v2.0.1 Beta 1
    使用/配付するための条件が書かれています。（英語）
 
  DANGER, WILL ROBINSON
-   これは最終版ではありません。読んでおくべきだと思います。（英語）
+   これは最終版ではありません。読んでおくべきだと思います。（英語版）
+
+ DANGER, WILL ROBINSON.JP
+   上記の日本語版
 
  AGMSBayesianSpamDocumentation
     この空白を含まない美しいフォルダ名の中に、Alexander G. M. Smith (略して AGMS)の
@@ -158,19 +161,19 @@ BEOS Mail Daemon Replacement v2.0.1 Beta 1
 
 　　Subjectに"get rich quick"（あっというまにお金持ちに！）などの
 　　言葉を含んでいるメッセージを捨てるためには、
-　　　If |Subject| is |*get rich quick*|
-   　　Then |Delete Message|
+　　　条件: |Subject| が |*get rich quick*|
+   　　ならば |Delete Message|
 　　のようにします。||は、もちろんテキストボックスの端です。
 
 　　BeUserTalkからのメッセージを~/mail/beusertalkに移動する場合は、
-　　If |Subject| is |*BeUserTalk*| Then |Move To| |/boot/home/mail/beusertalk|
-　　にょうにします。
+　　条件: |Subject| が |*BeUserTalk*| ならば |Move To| |/boot/home/mail/beusertalk|
+　　のようにします。
 　　これはヘッダ情報内の全てにおいて動作します。
 　　さらにTHREADは（ご存知のとおり！）メッセージスレッドに含まれる特別なヘッダです。
 
 　AGMS Bayesian Spam Filter
 
-　　このフィルタはスパムを追っ払います。
+　　このフィルタはスパムを追っ払います。（訳注：日本語メールでは動作しません）
 　　（あなたもきっとそうでしょうが）さらに詳細を知りたい場合、空白が含まれていない　　
 　　AGMSBayesianSpamDocumentationというフォルダ内にさらに文書があります。
 　　それはこれと異なり、多くのきれいな絵が入っています。
