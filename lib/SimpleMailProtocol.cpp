@@ -49,8 +49,10 @@ SimpleProtocol::SimpleProtocol(BMessage *settings, Mail::ChainRunner *run) :
 status_t SimpleProtocol::Init() {
 		
 	error = Open(settings->FindString("server"),settings->FindInt32("port"),settings->FindInt32("flavor"));
-	if (error < B_OK)
+	if (error < B_OK) {
+		runner->Stop();
 		return error;
+	}
 	
 	const char *password = settings->FindString("password");
 	char *passwd = get_passwd(settings,"cpasswd");
@@ -60,12 +62,16 @@ status_t SimpleProtocol::Init() {
 	error = Login(settings->FindString("username"),password,settings->FindInt32("auth_method"));
 	delete passwd;
 	
-	if (error < B_OK)
+	if (error < B_OK) {
+		runner->Stop();
 		return error;
+	}
 		
 	error = UniqueIDs();
-	if (error < B_OK)
+	if (error < B_OK) {
+		runner->Stop();
 		return error;
+	}
 		
 	//if (settings->FindBool("leave_mail_on_server")) {
 		size_t	maildrop_size = 0;
