@@ -247,8 +247,8 @@ status_t MailChain::Reload()
 		BString leaf;
 		leaf << id;
 		
-		puts(path.Path());
-		puts(leaf.String());
+		//puts(path.Path());
+		//puts(leaf.String());
 		
 		if (BDirectory(working.Path()).Contains(leaf.String())) {
 			path = working;
@@ -262,7 +262,7 @@ status_t MailChain::Reload()
 			}
 		}
 		
-		puts(path.Path());
+		//puts(path.Path());
 		
 		path.Append(leaf.String());
 		
