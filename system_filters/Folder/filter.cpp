@@ -38,14 +38,14 @@ struct mail_header_field
 
 static const mail_header_field gDefaultFields[] =
 {
-	{ "to",            	B_MAIL_ATTR_TO,       B_STRING_TYPE },
-	{ "from",         	B_MAIL_ATTR_FROM,     B_STRING_TYPE },
-	{ "date",         	B_MAIL_ATTR_WHEN,     B_TIME_TYPE },
-	{ "reply-to",     	B_MAIL_ATTR_REPLY,    B_STRING_TYPE },
-	{ "subject",      	B_MAIL_ATTR_SUBJECT,  B_STRING_TYPE },
-	{ "priority",     	B_MAIL_ATTR_PRIORITY, B_STRING_TYPE },
-	{ "mime-version", 	B_MAIL_ATTR_MIME,     B_STRING_TYPE },
-	{ "status",       	B_MAIL_ATTR_STATUS,   B_STRING_TYPE },
+	{ "To",            	B_MAIL_ATTR_TO,       B_STRING_TYPE },
+	{ "From",         	B_MAIL_ATTR_FROM,     B_STRING_TYPE },
+	{ "Date",         	B_MAIL_ATTR_WHEN,     B_TIME_TYPE },
+	{ "Reply-To",     	B_MAIL_ATTR_REPLY,    B_STRING_TYPE },
+	{ "Subject",      	B_MAIL_ATTR_SUBJECT,  B_STRING_TYPE },
+	{ "Priority",     	B_MAIL_ATTR_PRIORITY, B_STRING_TYPE },
+	{ "Mime-Version", 	B_MAIL_ATTR_MIME,     B_STRING_TYPE },
+	{ "Status",       	B_MAIL_ATTR_STATUS,   B_STRING_TYPE },
 	{ "THREAD",       	"MAIL:thread", 		  B_STRING_TYPE }, //---Not supposed to be used for this (we add it in Parser), but why not?
 	{ "NAME",       	B_MAIL_ATTR_NAME,	  B_STRING_TYPE },
 	{ NULL,              NULL,                 0 }
@@ -114,7 +114,7 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	if (err != B_OK)
 	{
 		BString error;
-		error << "An error occurred while saving the message " << out_headers->FindString("subject") << " to " << path.Path() << ": " << strerror(err);
+		error << "An error occurred while saving the message " << out_headers->FindString("Subject") << " to " << path.Path() << ": " << strerror(err);
 		
 		Mail::ShowAlert("Folder Error",error.String(),"OK",B_WARNING_ALERT);
 		

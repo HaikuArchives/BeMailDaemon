@@ -37,7 +37,7 @@ class RuleFilterConfig : public BView {
 
 RuleFilterConfig::RuleFilterConfig(BMessage *settings) : BView(BRect(0,0,260,85),"rulefilter_config", B_FOLLOW_LEFT | B_FOLLOW_TOP, 0) {
 	SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
-	attr = new BTextControl(BRect(5,5,100,20),"attr","If","header in lower case (e.g. subject)",NULL);
+	attr = new BTextControl(BRect(5,5,100,20),"attr","If","header (e.g. Subject)",NULL);
 	attr->SetDivider(be_plain_font->StringWidth("If ") + 4);
 	if (settings->HasString("attribute"))
 		attr->SetText(settings->FindString("attribute"));

@@ -7,6 +7,7 @@
 #include <Node.h>
 #include <String.h>
 
+#include <stdlib.h>
 #include <stdio.h>
 
 #include "RuleFilter.h"
@@ -20,7 +21,11 @@ _EXPORT const char *pretty_name = "Match Header";
 
 
 RuleFilter::RuleFilter(BMessage *settings) : Mail::Filter(settings) {
-	settings->FindString("attribute",&attribute);
+	// attribute is adapted to our "capitalize-each-word-in-the-header" policy
+	BString attr;
+	settings->FindString("attribute",&attr);
+	attr.CapitalizeEachWord();
+	attribute = strdup(attr.String());
 
 	const char *regex = NULL;	
 	settings->FindString("regex",&regex);
@@ -28,6 +33,12 @@ RuleFilter::RuleFilter(BMessage *settings) : Mail::Filter(settings) {
 	
 	settings->FindString("argument",&arg);
 	settings->FindInt32("do_what",(long *)&do_what);
+}
+
+RuleFilter::~RuleFilter()
+{
+	if (attribute)
+		free((void *)attribute);
 }
 
 status_t RuleFilter::InitCheck(BString* out_message) {
@@ -40,7 +51,7 @@ MDStatus RuleFilter::ProcessMailMessage
 	BMessage* io_headers, BPath* io_folder, BString* 
 ) {
 	const char *data;
-	if (io_headers->FindString(attribute,&data) < B_OK)
+	if (!attribute || io_headers->FindString(attribute,&data) < B_OK)
 		return MD_OK; //----That field doesn't exist? NO match
 
 	if (!matcher.Match(data))

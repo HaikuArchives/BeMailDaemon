@@ -36,7 +36,8 @@ ParseFilter::ParseFilter(BMessage* msg)
 	: Mail::Filter(msg), name_field("from")
 {
 	const char *n = msg->FindString("name_field");
-	if (n) name_field = n;
+	if (n)
+		name_field = n;
 }
 
 status_t ParseFilter::InitCheck(BString* err)
@@ -77,7 +78,7 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 			continue;
 		
 		string.CopyInto(piece,0,string.FindFirst(": "));
-		piece.ToLower(); // Unified case for later fetch
+		piece.CapitalizeEachWord(); // Unified case for later fetch
 		
 		// Add each header to the headers message
 		headers->AddString(piece.String(),string.String() + piece.Length() + 2);
@@ -91,7 +92,7 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 	// Re: prefixes, added by mailers when you reply.
 	// This will generally be the "thread subject".
 	//
-	string.SetTo(headers->FindString("subject"));
+	string.SetTo(headers->FindString("Subject"));
 	subject2thread(string);
 	headers->AddString("THREAD",string.String());
 	

@@ -22,7 +22,8 @@ typedef enum {
 class RuleFilter : public Zoidberg::Mail::Filter {
 	public:
 							RuleFilter(BMessage *settings);
-		virtual				~RuleFilter() { }					
+		virtual				~RuleFilter();
+					
 		virtual status_t	InitCheck(BString* out_message = NULL);
 		
 		virtual MDStatus ProcessMailMessage(BPositionIO** io_message,
