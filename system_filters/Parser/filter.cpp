@@ -1,14 +1,17 @@
 #include <Message.h>
 #include <String.h>
+#include <Locker.h>
 #include <E-mail.h>
 
 #include <malloc.h>
+#include <ctype.h>
 
 #include <MailAddon.h>
-
 #include <mail_util.h>
-#include <Locker.h>
-#include <regex.h>
+
+#define MAX_PREFIX_LENGTH 4
+
+void StripSubjectPrefixes(BString &string);
 
 class ParseFilter: public MailFilter
 {
@@ -81,50 +84,8 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 	// This will generally be the "thread subject".
 	//
 	string.SetTo(headers->FindString("subject"));
-	
-	static regex_t *rebuf=NULL, re;
-	static BLocker remakelock;
-	if (rebuf==NULL && remakelock.Lock())
-	{
-		if (rebuf==NULL)
-		{
-			int err = regcomp(&re, "^( *([Rr][Ee] *: *)*\\[[^\\]]*\\])* *([Rr][Ee] *: *)*", 1);
-			if (err)
-			{
-				char errbuf[1024];
-				regerror(err,&re,errbuf,sizeof(errbuf)-1);
-				fprintf(stderr, "Failed to compile the regex: %s\n", errbuf);
-			}
-			else rebuf = &re;
-		}
-		remakelock.Unlock();
-	}
-	if (rebuf)
-	{
-		/*puts("Bleepy!");
-		printf ("buffer: %s\n",rebuf->buffer);
-		printf ("allocated: %d\n",rebuf->allocated);
-		printf ("used: %d\n",rebuf->used);
-		printf ("syntax: %d\n",rebuf->syntax);
-		printf ("fastmap: %s\n",rebuf->fastmap);
-		printf ("translate: %s\n",rebuf->translate);
-		printf ("re_nsub: %d\n",rebuf->re_nsub);
-		printf ("can_be_null: %d\n",rebuf->can_be_null);
-		printf ("regs_allocated: %d\n",rebuf->regs_allocated);
-		printf ("fastmap_accurate: %d\n",rebuf->fastmap_accurate);
-		printf ("no_sub: %d\n",rebuf->no_sub);
-		printf ("not_bol: %d\n",rebuf->not_bol);
-		printf ("not_eol: %d\n",rebuf->not_eol);
-		printf ("newline_anchor: %d\n",rebuf->newline_anchor);*/
-		
-		regmatch_t match;
-		if (regexec(rebuf, string.String(), 1, &match, 0) >= 0)
-			// we found something
-			string.Remove(match.rm_so,match.rm_eo);
-		
-		headers->AddString("THREAD",string.String());
-	}
-//	headers->PrintToStream();
+	StripSubjectPrefixes(string);
+	headers->AddString("THREAD",string.String());
 	
 	// name
 	if (headers->FindString(name_field.String(),0,&string)==B_OK)
@@ -141,6 +102,50 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 	
 	(*data)->Seek(0,SEEK_SET);
 	return MD_OK;
+}
+
+void StripSubjectPrefixes(BString &string) {
+	BString sub;
+	int32 i = 0,j = 0;
+	while(1) {
+		if ((string.ByteAt(0) == '[') && (string.FindFirst(']',i) >= 0)) {
+			i = string.FindFirst(']')+1;
+			if (!isspace(string.ByteAt(i)))
+				string.Insert(" ",i);
+			i++;
+		}
+		
+		j = string.FindFirst(':',i);
+		if (j < 0)
+			break;
+		j++;
+		
+		//-------Strip [*]	
+		string.CopyInto(sub,i,j-i);
+		if ((sub.FindFirst('[') >= 0) && (sub.FindFirst(']') >= 0))
+			sub.Remove(sub.FindFirst('['),sub.FindFirst(']') - sub.FindFirst('[') + 1);
+		
+		//-------Strip white space between x and :, so Re : becomes Re:
+		int32 h = sub.Length()-2;
+		while (h >= 0) {
+			 if (!isspace(sub.ByteAt(h)))
+			 	break;
+			 	
+			 h--;
+		}
+		sub.Remove(h+1, sub.Length() - 2 - h);
+		
+		//-------If it is the right length, toss it
+		if (sub.CountChars() <= MAX_PREFIX_LENGTH) { //-------Maximum four UTF8 chars including colon
+			if (isspace(string.ByteAt(j)))
+				j++;
+			string.Remove(i,j-i);
+		} else {
+			break;
+		}
+			
+		sub = "";
+	}
 }
 
 MailFilter* instantiate_mailfilter(BMessage* settings, StatusView *view)
