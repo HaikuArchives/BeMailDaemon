@@ -78,7 +78,8 @@ copyattr -d -m bin/SoundUncertain "${HOME}/config/settings/AGMSBayesianSpam/Soun
 # Patch up things that need Japanese names.  Do it here before the daemon is
 # started.  A link (rather than renaming) is done so that saved chain settings,
 # which use the file names of the add-ons, will still work if they were made in
-# English mode.
+# English mode.  Also done in the English version, in case someone was using
+# Japanese and switched back to English.
 ln -f -s -v "${HOME}/config/add-ons/mail_daemon/system_filters/Inbox" "${HOME}/config/add-ons/mail_daemon/system_filters/受信箱"
 ln -f -s -v "${HOME}/config/add-ons/mail_daemon/system_filters/Outbox" "${HOME}/config/add-ons/mail_daemon/system_filters/送信箱"
 ln -f -s -v "${HOME}/config/add-ons/mail_daemon/system_filters/New Mail Notification" "${HOME}/config/add-ons/mail_daemon/system_filters/郵便通告方法"
