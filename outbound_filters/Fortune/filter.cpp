@@ -9,10 +9,10 @@
 #include <Message.h>
 #include <Entry.h>
 #include <String.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <MailAddon.h>
 #include <MailMessage.h>
+
+#include <stdio.h>
 
 #include "NodeMessage.h"
 
@@ -79,11 +79,17 @@ status_t FortuneFilter::ProcessMailMessage
 		
 		pclose(fd);
 		
-		// Update the message body and render it back to the BPositionIO.
+		// Update the message body
 		mail_message.SetBodyTextTo(mail_body.String());
+
+		// Render it back to a BMallocIO object. We need this because we do not render
+		// the entire message in memory so if we try to change the BPositionIO object we
+		// have directly we will end up having the mail components pointing out to wrong
+		// locations in the BPositionIo itself.
 		BMallocIO shimmy_pipe;
 		mail_message.RenderToRFC822(&shimmy_pipe);
-		
+
+		// Now we use the BMallocIO object and overwrite the BPositionIO one with it.		
 		(*io)->Seek(0, SEEK_SET);
 		(*io)->SetSize(0);
 		(*io)->Write(shimmy_pipe.Buffer(),shimmy_pipe.BufferLength());
