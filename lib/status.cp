@@ -22,7 +22,7 @@ StatusWindow
 // constructor
 StatusWindow::StatusWindow(BRect rect, const char *name, uint32 s)
 			: BWindow(rect, name, B_MODAL_WINDOW_LOOK, B_NORMAL_WINDOW_FEEL,
-			          B_NOT_CLOSABLE | B_NO_WORKSPACE_ACTIVATION | B_NOT_V_RESIZABLE | B_NOT_ZOOMABLE),
+			          B_NOT_CLOSABLE | B_NO_WORKSPACE_ACTIVATION | B_NOT_V_RESIZABLE | B_NOT_ZOOMABLE | B_NOT_MINIMIZABLE),
 			  show(s),
 			  default_is_hidden(false)
 {
