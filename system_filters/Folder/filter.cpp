@@ -168,7 +168,9 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	node.Sync();
 	off_t size;
 	node.GetSize(&size);
-	if ((out_headers->HasInt32("SIZE") && size == out_headers->FindInt32("SIZE")) || out_headers->FindBool("ENTIRE_MESSAGE") || !out_headers->HasInt32("SIZE"))
+	// Note - sometimes the actual message size is a few bytes more than the
+	// registered size, so use >= when testing.
+	if ((out_headers->HasInt32("SIZE") && size >= out_headers->FindInt32("SIZE")) || out_headers->FindBool("ENTIRE_MESSAGE") || !out_headers->HasInt32("SIZE"))
 		info.SetType(B_MAIL_TYPE);
 	else
 		info.SetType("text/x-partial-email");
