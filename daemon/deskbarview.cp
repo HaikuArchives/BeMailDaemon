@@ -397,12 +397,19 @@ BPopUpMenu *DeskbarView::BuildMenu()
 				navMenu = new BNavMenu(path.Leaf(),B_REFS_RECEIVED,tracker),
 				msg = new BMessage(B_REFS_RECEIVED)));
 
-			BSymLink link(&ref);
-			if (link.InitCheck() == B_OK)
+			BEntry entry;
+			while (entry.SetTo(&ref) == B_OK && entry.IsSymLink())
 			{
-				if (link.MakeLinkedPath(&directory,&path) >= B_OK)
-					get_ref_for_path(path.Path(),&ref);
+				BSymLink link(&ref);
+				if (link.InitCheck() == B_OK)
+				{
+					BDirectory parent;
+					if (entry.GetParent(&parent) == B_OK
+						&& link.MakeLinkedPath(&parent,&path) >= B_OK)
+						get_ref_for_path(path.Path(),&ref);
+				}
 			}
+
 			navMenu->SetNavDir(&ref);
 			msg->AddRef("refs", &ref);
 		}
@@ -438,12 +445,14 @@ BPopUpMenu *DeskbarView::BuildMenu()
 		menu->AddItem(item = new BMenuItem("No new messages",NULL));
 		item->SetEnabled(false);
 	}
-
-	menu->AddSeparatorItem();
 	
-	menu->AddItem(new BMenuItem("Check & Send Mail Now",new BMessage(MD_CHECK_SEND_NOW)));
-	menu->AddItem(new BMenuItem("Check For Mails",new BMessage(MD_CHECK_FOR_MAILS)));
-	menu->AddItem(new BMenuItem("Send Pending Mails",new BMessage(MD_SEND_MAILS)));
+	if (modifiers() & B_SHIFT_KEY)
+	{
+		menu->AddItem(new BMenuItem("Check For Mails Only",new BMessage(MD_CHECK_FOR_MAILS)));
+		menu->AddItem(new BMenuItem("Send Pending Mails",new BMessage(MD_SEND_MAILS)));
+	}
+	else
+		menu->AddItem(new BMenuItem("Check For Mail Now",new BMessage(MD_CHECK_SEND_NOW)));
 	
 	menu->AddSeparatorItem();
 	menu->AddItem(new BMenuItem("Edit Preferences" B_UTF8_ELLIPSIS,new BMessage(MD_OPEN_PREFS)));
