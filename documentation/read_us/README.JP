@@ -181,9 +181,14 @@ BEOS Mail Daemon Replacement v2.2.7
 
 履歴：
 
-January 17 2004 - v2.2.7
+February 7 2004 - v2.2.7
 - Fix date parsing to handle time zone offset numbers inside round brackets.
 - Handle spam messages with a malformed MIME Content-Type header that specifies multipart, but no boundary marker string.  The messages show up as empty.  They also sneakily have a second Content-Type that says the message is text.  So, only use the multipart entry if there is no other, and only if the boundary string exists too.
+- Makefiles changed to do a parallel make on multiprocessor systems.
+- BeMail no longer breaks URLs in outgoing mails, at least it tries to do that. It's kind of a hack like the whole word-wrap algorithm, so it shouldn't do much more harm :)
+- E-mail addresses are now properly recognized without the "mailto:" 
+prefix.
+- Doesn't keep as many file handles open as before (was using 4 per window, with the BeOS limit of 100 files open, that was a maximum of 25 BeMail windows).
 
 December 29 2003 - v2.2.6
 - Don't use "!" in file names of e-mail messages, the bash shell doesn't like it.
