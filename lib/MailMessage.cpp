@@ -147,8 +147,13 @@ status_t Message::AddComponent(Mail::Component *component) {
 		if ((status = container->AddComponent(_body)) == B_OK)
 			status = container->AddComponent(component);
 		_body = container;
-	} else
-		status = ((MIMEMultipartContainer *)(_body))->AddComponent(component);
+	} else {
+		MIMEMultipartContainer *container = dynamic_cast<MIMEMultipartContainer *>(_body);
+		if (container == NULL)
+			return B_MISMATCHED_VALUES; //---This really needs a B_WTF constant...
+		
+		status = container->AddComponent(component);
+	}
 
 	if (status == B_OK)
 		_num_components++;
@@ -162,8 +167,8 @@ status_t Message::RemoveComponent(int32 /*index*/) {
 
 
 Mail::Component *Message::GetComponent(int32 i) {
-	if (dynamic_cast<MIMEMultipartContainer *>(_body))
-		return ((MIMEMultipartContainer *)(_body))->GetComponent(i);
+	if (MIMEMultipartContainer *container = dynamic_cast<MIMEMultipartContainer *>(_body))
+		return container->GetComponent(i);
 
 	if (i < _num_components)
 		return _body;
@@ -189,8 +194,12 @@ bool Message::IsComponentAttachment(int32 i) {
 		
 	if (_num_components == 1)
 		return _body->IsAttachment();
-		
-	Mail::Component *component = ((MIMEMultipartContainer *)(_body))->GetComponent(i);
+	
+	MIMEMultipartContainer *container = dynamic_cast<MIMEMultipartContainer *>(_body);
+	if (container == NULL)
+		return false; //-----This should never, ever, ever, ever, happen
+	
+	Mail::Component *component = container->GetComponent(i);
 	if (component == NULL)
 		return false;
 	return component->IsAttachment();

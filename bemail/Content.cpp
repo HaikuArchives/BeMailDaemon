@@ -2100,7 +2100,10 @@ bool TTextView::Reader::ParseMail(Mail::Container *container,Mail::TextComponent
 
 		if (component->ComponentType() == Mail::MC_MULTIPART_CONTAINER)
 		{
-			Mail::MIMEMultipartContainer *c = (Mail::MIMEMultipartContainer *)container->GetComponent(i);
+			Mail::MIMEMultipartContainer *c = dynamic_cast<Mail::MIMEMultipartContainer *>(container->GetComponent(i));
+			#if DEBUG
+				assert(c != NULL);
+			#endif
 			if (!ParseMail(c,ignore))
 				count--;
 		}

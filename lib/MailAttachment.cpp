@@ -11,8 +11,10 @@
 #include <Mime.h>
 #include <ByteOrder.h>
 #include <NodeInfo.h>
+#include <ClassInfo.h>
 
 #include <malloc.h>
+#include <assert.h>
 
 namespace Zoidberg {
 namespace Mail {
@@ -507,11 +509,19 @@ status_t AttributedAttachment::SetToRFC822(BPositionIO *data, size_t length, boo
 	_attributes.MakeEmpty();
 
 	// get data and attributes	
-	if ((_data = (SimpleAttachment *)GetComponent(0)) == NULL)
-		return B_BAD_VALUE;
-	if ((_attributes_attach = (SimpleAttachment *)GetComponent(1)) == NULL
+	/*if ((_data = (SimpleAttachment *)GetComponent(0)) == NULL)
+		return B_BAD_VALUE;*/
+		
+	Component *foo = GetComponent(1);
+	SimpleAttachment *bar;
+	bar = dynamic_cast<SimpleAttachment *>(foo);
+	
+	puts(class_name(foo));
+	assert(bar != NULL);
+	
+	/*if ((_attributes_attach = (SimpleAttachment *)GetComponent(1)) == NULL
 		|| _attributes_attach->GetDecodedData() == NULL)
-		return B_BAD_VALUE;
+		return B_BAD_VALUE;*/
 
 	int32		len;
 	int32		index = 0;

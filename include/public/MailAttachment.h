@@ -15,7 +15,7 @@
 namespace Zoidberg {
 namespace Mail {
 
-class Attachment {
+class Attachment : public virtual Component {
 	public:
 		virtual void SetFileName(const char *name) = 0;
 		virtual status_t FileName(char *name) = 0;
@@ -30,7 +30,7 @@ class Attachment {
 		virtual void _ReservedAttachment4();
 };
 
-class SimpleAttachment : public Component, public Attachment {
+class SimpleAttachment : public virtual Component, public Attachment {
 	public:
 		SimpleAttachment(BPositionIO *data /* data to attach */, mail_encoding encoding = base64);
 		SimpleAttachment(const void *data, size_t length /* data to attach */, mail_encoding encoding = base64);
