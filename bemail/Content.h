@@ -284,7 +284,6 @@ class TextRunArray {
 		~TextRunArray();
 
 		text_run_array &Array() { return *fArray; }
-		text_run_array *ArrayPntr() { return fArray; }
 		size_t MaxEntries() const { return fNumEntries; }
 
 	private:

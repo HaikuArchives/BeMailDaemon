@@ -2345,7 +2345,7 @@ TTextView::Reader::Insert(const char *line, int32 count, bool isHyperLink, bool 
 	TextRunArray style(count / 8 + 8);
 
 	if (gColoredQuotes && !isHeader && !isHyperLink)
-		FillInQuoteTextRuns(fView, line, count, font, style.ArrayPntr(), style.MaxEntries());
+		FillInQuoteTextRuns(fView, line, count, font, &style.Array(), style.MaxEntries());
 	else {
 		text_run_array &array = style.Array();
 		array.count = 1;
@@ -2361,7 +2361,7 @@ TTextView::Reader::Insert(const char *line, int32 count, bool isHyperLink, bool 
 	if (!fView->Window()->Lock())
 		return false;
 
-	fView->Insert(line, count, style.ArrayPntr());
+	fView->Insert(line, count, &style.Array());
 
 	fView->Window()->Unlock();
 	return true;
@@ -3058,8 +3058,8 @@ TTextView::AddQuote(int32 start, int32 finish)
 		const BFont *font = Font();
 		TextRunArray style(targetLength / 8 + 8);
 
-		FillInQuoteTextRuns(NULL, target, targetLength, font, style.ArrayPntr(), style.MaxEntries());
-		Insert(target, targetLength, style.ArrayPntr());
+		FillInQuoteTextRuns(NULL, target, targetLength, font, &style.Array(), style.MaxEntries());
+		Insert(target, targetLength, &style.Array());
 	} else
 		Insert(target, targetLength);
 
@@ -3135,8 +3135,8 @@ TTextView::RemoveQuote(int32 start, int32 finish)
 			const BFont *font = Font();
 			TextRunArray style(length / 8 + 8);
 
-			FillInQuoteTextRuns(NULL, target, length, font, style.ArrayPntr(), style.MaxEntries());
-			Insert(target, length, style.ArrayPntr());
+			FillInQuoteTextRuns(NULL, target, length, font, &style.Array(), style.MaxEntries());
+			Insert(target, length, &style.Array());
 		} else
 			Insert(target, length);
 
