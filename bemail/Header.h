@@ -51,9 +51,6 @@ All rights reserved.
 
 #include "ComboBox.h"
 
-#define HEADER_HEIGHT		 82
-#define MIN_HEADER_HEIGHT	(HEADER_HEIGHT - 8)//26)
-
 #define TO_TEXT				"To:"
 #define FROM_TEXT			"From:"
 #define TO_FIELD_H			 39
@@ -62,6 +59,7 @@ All rights reserved.
 #define TO_FIELD_WIDTH		270
 #define FROM_FIELD_WIDTH	280
 #define TO_FIELD_HEIGHT		 16
+#define FIELD_HEIGHT		 25
 
 #define SUBJECT_TEXT		"Subject:"
 #define SUBJECT_FIELD_H		 18
@@ -93,16 +91,19 @@ class	QPopupMenu;
 class THeaderView : public BBox {
 public:
 	THeaderView(BRect, BRect, bool, BFile*, bool); 
-	virtual void MessageReceived(BMessage*);
-	virtual void AttachedToWindow(void);
-	void BuildMenus();
-	void SetAddress(BMessage*);
-	status_t LoadMessage(BFile*);
 
-	TTextControl *fBcc;
-	TTextControl *fCc;
-	TTextControl *fSubject;
-	TTextControl *fTo;
+	virtual void	MessageReceived(BMessage*);
+	virtual void	AttachedToWindow(void);
+	void			BuildMenus();
+	void			SetAddress(BMessage*);
+	status_t		LoadMessage(BFile*);
+
+	BPopUpMenu		*fAccountMenu;
+	uint32			fChain;
+	TTextControl	*fBcc;
+	TTextControl	*fCc;
+	TTextControl	*fSubject;
+	TTextControl	*fTo;
 
 private:		
 	void InitEmailCompletion();

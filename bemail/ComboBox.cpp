@@ -511,6 +511,7 @@ float BComboBox::ChoiceListView::LineHeight()
 }
 
 // ----------------------------------------------------------------------------
+//	#pragma mark -
 
 BComboBox::TextInput::TextInput(BRect rect, BRect text_r, ulong rMask,
 		ulong flags)
@@ -855,6 +856,7 @@ void BComboBox::TextInput::DeleteText(int32 fromOffset, int32 toOffset)
 }
 
 // ----------------------------------------------------------------------------
+//	#pragma mark -
 
 BComboBox::ComboBoxWindow::ComboBoxWindow(BComboBox *box)
 	: BWindow(BRect(0, 0, 10, 10), NULL,  B_BORDERED_WINDOW_LOOK,
@@ -929,10 +931,8 @@ BScrollBar *BComboBox::ComboBoxWindow::ScrollBar()
 	return fScrollBar;
 }
 
-
-
-
 // ----------------------------------------------------------------------------
+//	#pragma mark -
 
 BComboBox::BComboBox(BRect frame, const char *name, const char *label,
 	BMessage *message, uint32 resizeMask, uint32 flags)
@@ -1720,7 +1720,15 @@ filter_result BComboBox::MovedMessageFilter::Filter(BMessage *message,
 	return B_DISPATCH_MESSAGE;
 }
 
+void BComboBox::MakeFocus(bool state)
+{
+	fText->MakeFocus(state);
+	if (state)
+		fText->SelectAll();
+}
+
 // ----------------------------------------------------------------------------
+//	#pragma mark -
 
 BDefaultChoiceList::BDefaultChoiceList(BComboBox *owner = NULL)
 {
@@ -1838,9 +1846,3 @@ BComboBox *BDefaultChoiceList::Owner()
 	return fOwner;
 }
 
-void BComboBox::MakeFocus(bool state)
-{
-	fText->MakeFocus(state);
-	if (state)
-		fText->SelectAll();
-}

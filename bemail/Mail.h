@@ -59,7 +59,7 @@ All rights reserved.
 #define RIGHT_BOUNDARY 		8191
 #define SEPERATOR_MARGIN	  7
 #define	VIEW_COLOR			216
-#define FONT_SIZE			 10.0
+#define FONT_SIZE			 11.0
 #define QUOTE				">"
 
 enum MESSAGES {
@@ -130,8 +130,6 @@ enum MENUS {
 	M_TO_MENU,
 	M_CC_MENU,
 	M_BCC_MENU,
-	/* accounts */
-	M_ACCOUNT,
 	/* nav */
 	M_NEXTMSG,
 	M_PREVMSG
@@ -260,7 +258,6 @@ private:
 	BMenuItem *deleteNext;
 	BMenuItem *fSpelling;
 	BMenu *saveAddrMenu;
-	BMenu *fAccountMenu;
 	ButtonBar *fButtonBar;
 	BmapButton *fSendButton;
 	BmapButton *fSaveButton;
@@ -282,7 +279,6 @@ private:
 	bool fDraft;
 	bool fChanged;
 	
-	uint32		fChain;
 	entry_ref	fRepliedMail;
 };
 

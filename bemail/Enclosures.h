@@ -58,7 +58,6 @@ All rights reserved.
 #define ENCLOSE_TEXT		"Enclosures:"
 #define ENCLOSE_TEXT_H		 7
 #define ENCLOSE_TEXT_V		 3
-#define ENCLOSE_FIELD_H		 67
 #define ENCLOSE_FIELD_V		 3
 
 class TListView;

@@ -81,7 +81,7 @@ typedef struct {
 	BFile *file;
 	BList *enclosures;
 	sem_id *stop_sem;
-} reader;
+} reader_info;
 
 enum ENCLOSURE_TYPE {
 	TYPE_ENCLOSURE = 100,
@@ -105,10 +105,11 @@ typedef struct {
 	node_ref node;
 } hyper_text;
 
-bool get_semaphore(BWindow*, sem_id*);
-bool insert(reader*, char*, int32, bool);
-bool parse_header(char*, char*, off_t, char*, reader*, off_t*);
-bool strip_it(char*, int32, reader*);
+bool acquire_window_sem(BWindow *, sem_id *);
+status_t release_window_sem(BWindow *, sem_id *);
+bool insert(reader_info *, char*, int32, bool);
+bool parse_header(char *, char *, off_t, char *, reader_info *, off_t *);
+bool strip_it(char *, int32, reader_info *);
 
 class TSavePanel;
 
@@ -155,9 +156,9 @@ public:
 	void ClearList();
 	void LoadMessage(BFile*, bool, bool, const char*);
 	void Open(hyper_text*);
-	static status_t	Reader(reader*);
-	status_t Save(BMessage*, bool makeNewFile = true);
-	void SaveBeFile(BFile*, char*, ssize_t);
+	static status_t	Reader(reader_info *);
+	status_t Save(BMessage *, bool makeNewFile = true);
+	void SaveBeFile(BFile *, char *, ssize_t);
 	void StopLoad();
 	void AddAsContent(MailMessage*, bool);
 	void CheckSpelling(int32 start, int32 end,

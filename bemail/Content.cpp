@@ -1340,9 +1340,6 @@ void TTextView::ClearList()
 void TTextView::LoadMessage(BFile *file, bool quote_it, bool close,
 							const char *text)
 {
-	reader			*info;
-	attr_info		a_info;
-
 	Window()->Unlock();
 	StopLoad();		
 	Window()->Lock();
@@ -1354,16 +1351,20 @@ void TTextView::LoadMessage(BFile *file, bool quote_it, bool close,
 	if (text)
 		Insert(text, strlen(text));
 
-	info = (reader *)malloc(sizeof(reader));
+	reader_info *info;
+	info = (reader_info *)malloc(sizeof(reader_info));
 	info->header = fHeader;
 	info->raw = fRaw;
 	info->quote = quote_it;
 	info->incoming = fIncoming;
 	info->close = close;
-	if (file->GetAttrInfo(B_MAIL_ATTR_MIME, &a_info) == B_NO_ERROR)
+
+	attr_info attrInfo;
+	if (file->GetAttrInfo(B_MAIL_ATTR_MIME, &attrInfo) == B_NO_ERROR)
 		info->mime = true;
 	else
 		info->mime = false;
+
 	info->view = this;
 	info->enclosures = fEnclosures;
 	info->file = file;
@@ -1480,7 +1481,7 @@ void TTextView::Open(hyper_text *enclosure)
 
 //--------------------------------------------------------------------
 
-status_t TTextView::Reader(reader *info)
+status_t TTextView::Reader(reader_info *info)
 {
 	char		*msg;
 	int32		len;
@@ -1492,6 +1493,8 @@ status_t TTextView::Reader(reader *info)
 	info->file->Seek(0, 0);
 	size = info->file->Read(msg, size);
 	len = header_len(info->file);
+	
+	// show the header?
 	if ((info->header) && (len)) {
 		if (!strip_it(msg, len, info))
 			goto done;
@@ -1519,13 +1522,13 @@ status_t TTextView::Reader(reader *info)
 	else if (!parse_header(msg, msg, size, NULL, info, NULL))
 		goto done;
 
-	if (get_semaphore(info->view->Window(), info->stop_sem)) {
+	if (acquire_window_sem(info->view->Window(), info->stop_sem)) {
 		info->view->Select(0, 0);
 		info->view->MakeSelectable(true);
 		if (!info->incoming)
 			info->view->MakeEditable(true);
-		info->view->Window()->Unlock();
-		release_sem(*(info->stop_sem));
+
+		release_window_sem(info->view->Window(),info->stop_sem);
 	}
 
 done:;
@@ -1880,7 +1883,14 @@ void TTextView::AddAsContent(MailMessage *mail, bool wrap)
 
 //--------------------------------------------------------------------
 
-bool get_semaphore(BWindow *window, sem_id *sem)
+status_t release_window_sem(BWindow *window, sem_id *sem)
+{
+	window->Unlock();
+	return release_sem(*sem);
+}
+
+
+bool acquire_window_sem(BWindow *window, sem_id *sem)
 {
 	if (!window->Lock())
 		return false;
@@ -1893,7 +1903,7 @@ bool get_semaphore(BWindow *window, sem_id *sem)
 
 //--------------------------------------------------------------------
 
-bool insert(reader *info, char *line, int32 count, bool hyper)
+bool insert(reader_info *info, char *line, int32 count, bool hyper)
 {
 	uint32			mode;
 	BFont			font;
@@ -1912,11 +1922,10 @@ bool insert(reader *info, char *line, int32 count, bool hyper)
 		style.runs[0].color = normal_color;
 
 	if (count) {
-		if (!get_semaphore(info->view->Window(), info->stop_sem))
+		if (!acquire_window_sem(info->view->Window(), info->stop_sem))
 			return false;
 		info->view->Insert(line, count, &style);
-		info->view->Window()->Unlock();
-		release_sem(*info->stop_sem);
+		release_window_sem(info->view->Window(), info->stop_sem);
 	}
 	return true;
 }
@@ -1924,7 +1933,7 @@ bool insert(reader *info, char *line, int32 count, bool hyper)
 //--------------------------------------------------------------------
 
 bool parse_header(char *base, char *data, off_t size, char *boundary,
-				  reader *info, off_t *processed)
+				  reader_info *info, off_t *processed)
 {
 	bool			is_bfile;
 	bool			is_text;
@@ -2269,27 +2278,27 @@ const char *urlPrefixes[] = {
 };
 
 
-
-
-bool strip_it(char* data, int32 data_len, reader *info)
+bool strip_it(char* data, int32 data_len, reader_info *info)
 {
 	bool			bracket = false;
 	char			line[522];
 	int32			count = 0;
 	int32			index;
-	int32			loop;
 	int32			type;
 	hyper_text		*enclosure;
 
-	for (loop = 0; loop < data_len; loop++) {
-		if ((info->quote) && ((!loop) || ((loop) && (data[loop - 1] == '\n')))) {
+	for (int32 loop = 0; loop < data_len; loop++)
+	{
+		if ((info->quote) && ((!loop) || ((loop) && (data[loop - 1] == '\n'))))
+		{
 			strcpy(&line[count], QUOTE);
 			count += strlen(QUOTE);
 		}
-		if ((!info->raw) && (loop) && (data[loop - 1] == '\n')
-				&& (data[loop] == '.'))
+		if (!info->raw && loop && data[loop - 1] == '\n' && data[loop] == '.')
 			continue;
-		if ((!info->raw) && (info->incoming) && (loop < data_len - 7)) {
+
+		if (!info->raw && info->incoming && (loop < data_len - 7))
+		{
 			type = 0;
 
 			//
@@ -2305,12 +2314,11 @@ bool strip_it(char* data, int32 data_len, reader *info)
 			//
 			//	Not a URL? check for mailto.
 			//
-			if (type == 0 &&
-				!cistrncmp(&data[loop], "mailto:", strlen("mailto:")))
+			if (type == 0 && !cistrncmp(&data[loop], "mailto:", strlen("mailto:")))
 					type = TYPE_MAILTO;
 
-			if (type) {
-				//index = 0;
+			if (type)
+			{
 				if (type == TYPE_URL)
 					index = strcspn(data+loop, " <>\"\r");
 				else
@@ -2358,7 +2366,8 @@ bool strip_it(char* data, int32 data_len, reader *info)
 				continue;
 			}
 		}
-		if ((!info->raw) && (info->mime) && (data[loop] == '=')) {
+		if (!info->raw && info->mime && data[loop] == '=')
+		{
 			if ((loop) && (loop < data_len - 1) && (data[loop + 1] == '\r'))
 				loop += 2;
 			else
@@ -2367,7 +2376,8 @@ bool strip_it(char* data, int32 data_len, reader *info)
 		else if (data[loop] != '\r')
 			line[count++] = data[loop];
 
-		if ((count > 511) || ((count) && (loop == data_len - 1))) {
+		if ((count > 511) || ((count) && (loop == data_len - 1)))
+		{
 			if (!insert(info, line, count, false))
 				return false;
 			count = 0;

@@ -52,14 +52,20 @@ All rights reserved.
 #include <fs_info.h>
 #include <map>
 
+#include <MailSettings.h>
+
 #include "Mail.h"
 #include "Header.h"
 #include "Utilities.h"
 #include "QueryMenu.h"
 #include "FieldMsg.h"
 
+extern uint32 gDefaultChain;
+
 const char	*kDateLabel = "Date:";
-	
+const uint32 kMsgFrom = 'hFrm';
+
+
 ssize_t	FetchAttribute(const char *attribute, const BNode &file,
 	BString &result);	
 
@@ -85,10 +91,11 @@ struct evil {
 
 //====================================================================
 
-THeaderView::THeaderView(BRect rect, BRect wind_rect, bool incoming,
-		BFile *file, bool resending)
-	:BBox(rect, "m_header", B_FOLLOW_LEFT_RIGHT, B_WILL_DRAW,
-			B_PLAIN_BORDER),
+THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
+	BFile *file, bool resending)
+	:	BBox(rect, "m_header", B_FOLLOW_LEFT_RIGHT, B_WILL_DRAW, B_PLAIN_BORDER),
+		fAccountMenu(NULL),
+		fChain(gDefaultChain),
 		fBcc(NULL),
 		fCc(NULL),
 		fIncoming(incoming),
@@ -100,37 +107,38 @@ THeaderView::THeaderView(BRect rect, BRect wind_rect, bool incoming,
 		fDate(NULL)
 {
 	char		string[20];
-	float		offset;
-	BMenuField	*field;
 	BRect		r;
 	BMessage	*msg;
 
-
-	BFont		font = *be_plain_font;
+	BFont font = *be_plain_font;
 	font.SetSize(FONT_SIZE);
 	SetFont(&font);
-	offset = font.StringWidth("Enclosures: ") + 12;
-	
-	if (!fIncoming)	{
+	float x = font.StringWidth("Enclosures: ") + 9;
+	float y = TO_FIELD_V;
+
+	if (!fIncoming)
+	{
 		InitEmailCompletion();
 		InitGroupCompletion();
 	}
-	if ((fIncoming) && (!resending)) {
-		r.Set(offset - font.StringWidth(FROM_TEXT) - 11, TO_FIELD_V,
-			  wind_rect.Width() - SEPERATOR_MARGIN,
-			  TO_FIELD_V + TO_FIELD_HEIGHT);
-			sprintf(string, FROM_TEXT);
+	if (fIncoming && !resending)
+	{
+		r.Set(x - font.StringWidth(FROM_TEXT) - 11, y,
+			  windowRect.Width() - SEPERATOR_MARGIN, y + TO_FIELD_HEIGHT);
+		sprintf(string, FROM_TEXT);
 	}
-	else {
-		r.Set(offset - 11, TO_FIELD_V,
-			  wind_rect.Width() - SEPERATOR_MARGIN,
-			  TO_FIELD_V + TO_FIELD_HEIGHT);
+	else
+	{
+		r.Set(x - 11, y,
+			  windowRect.Width() - SEPERATOR_MARGIN, y + TO_FIELD_HEIGHT);
 		string[0] = 0;
 	}
+	y += FIELD_HEIGHT;
 	fTo = new TTextControl(r, string, new BMessage(TO_FIELD),
 		fIncoming, resending, B_FOLLOW_LEFT_RIGHT);
 
-	if (!fIncoming) {
+	if (!fIncoming)
+	{
 		fTo->SetChoiceList(&emailList);
 		fTo->SetAutoComplete(true);
 	}
@@ -138,7 +146,8 @@ THeaderView::THeaderView(BRect rect, BRect wind_rect, bool incoming,
 	(msg = new BMessage(FIELD_CHANGED))->AddInt32("bitmask", FIELD_TO);
 	fTo->SetModificationMessage(msg);
 	
-	if ((!fIncoming) || (resending)) {
+	BMenuField	*field;
+	if (!fIncoming || resending) {
 		r.right = r.left + 8;
 		r.left = r.right - be_plain_font->StringWidth(TO_TEXT) - 30;
 		r.top -= 1;
@@ -150,9 +159,70 @@ THeaderView::THeaderView(BRect rect, BRect wind_rect, bool incoming,
 		AddChild(field);
 	}
 
-	r.Set(offset - font.StringWidth(SUBJECT_TEXT) - 11, SUBJECT_FIELD_V,
-		  wind_rect.Width() - SEPERATOR_MARGIN,
-		  SUBJECT_FIELD_V + TO_FIELD_HEIGHT);
+	//	"From:" accounts Menu
+	if (!fIncoming)
+	{
+		fAccountMenu = new BPopUpMenu(B_EMPTY_STRING);
+		//fAccountMenu->SetRadioMode(true);
+		MailSettings settings;
+		BList chains;
+		if (settings.OutboundChains(&chains) >= B_OK)
+		{
+			BMessage *msg;
+			bool marked = false;
+			for (int32 i = 0;i < chains.CountItems();i++)
+			{
+				MailChain *chain = (MailChain *)chains.ItemAt(i);
+				BString name = chain->Name();
+				if ((msg = chain->MetaData()) != NULL)
+				{
+					name << ":   " << msg->FindString("real_name")
+						 << "  <" << msg->FindString("reply_to") << ">";
+				}
+				BMenuItem *item = new BMenuItem(name.String(),msg = new BMessage(kMsgFrom));
+
+				msg->AddInt32("id",chain->ID());
+
+				if (gDefaultChain == chain->ID())
+				{
+					item->SetMarked(true);
+					marked = true;
+				}
+				fAccountMenu->AddItem(item);
+				delete chain;
+			}
+			if (!marked)
+			{
+				BMenuItem *item = fAccountMenu->ItemAt(0);
+				if (item != NULL)
+				{
+					item->SetMarked(true);
+					fChain = item->Message()->FindInt32("id");
+				}
+				else
+				{
+					fAccountMenu->AddItem(item = new BMenuItem("<none>",NULL));
+					item->SetEnabled(false);
+					fChain = ~0UL;
+				}
+				// default chain is invalid, set to marked
+				gDefaultChain = fChain;
+			}
+		}
+		r.Set(x - font.StringWidth(FROM_TEXT) - 11, y - 1,
+				windowRect.Width() - SEPERATOR_MARGIN, y + TO_FIELD_HEIGHT);
+		y += FIELD_HEIGHT;
+		field = new BMenuField(r, "account", "From:", fAccountMenu,B_FOLLOW_TOP,
+								B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
+		field->SetFont(&font);
+		field->SetDivider(font.StringWidth("From:") + 11);
+		//menu->SetAlignment(B_ALIGN_RIGHT);
+		AddChild(field);
+	}
+
+	r.Set(x - font.StringWidth(SUBJECT_TEXT) - 11, y,
+		  windowRect.Width() - SEPERATOR_MARGIN, y + TO_FIELD_HEIGHT);
+	y += FIELD_HEIGHT;
 	fSubject = new TTextControl(r, SUBJECT_TEXT, new BMessage(SUBJECT_FIELD),
 				fIncoming, false, B_FOLLOW_LEFT_RIGHT);
 	AddChild(fSubject);
@@ -162,10 +232,10 @@ THeaderView::THeaderView(BRect rect, BRect wind_rect, bool incoming,
 	if (fResending)
 		fSubject->SetEnabled(false);
 	
-	if (!fIncoming) {
-		r.Set(offset - 11, CC_FIELD_V,
-			  CC_FIELD_H + CC_FIELD_WIDTH,
-			  CC_FIELD_V + CC_FIELD_HEIGHT);
+	if (!fIncoming)
+	{
+		r.Set(x - 11, y,
+			  CC_FIELD_H + CC_FIELD_WIDTH, y + CC_FIELD_HEIGHT);
 		fCc = new TTextControl(r, "", new BMessage(CC_FIELD),
 											fIncoming, false);
 		fCc->SetChoiceList(&emailList);
@@ -185,8 +255,8 @@ THeaderView::THeaderView(BRect rect, BRect wind_rect, bool incoming,
 		field->SetEnabled(true);
 		AddChild(field);
 
-		r.Set(BCC_FIELD_H + be_plain_font->StringWidth(BCC_TEXT), BCC_FIELD_V,
-		  wind_rect.Width() - SEPERATOR_MARGIN, BCC_FIELD_V + BCC_FIELD_HEIGHT);
+		r.Set(BCC_FIELD_H + be_plain_font->StringWidth(BCC_TEXT), y,
+		  windowRect.Width() - SEPERATOR_MARGIN, y + BCC_FIELD_HEIGHT);
 		fBcc = new TTextControl(r, "", new BMessage(BCC_FIELD),
 						fIncoming, false, B_FOLLOW_LEFT_RIGHT);
 		fBcc->SetChoiceList(&emailList);
@@ -204,9 +274,14 @@ THeaderView::THeaderView(BRect rect, BRect wind_rect, bool incoming,
 		field->SetDivider(0.0);
 		field->SetEnabled(true);
 		AddChild(field);
-	} else {
-		r.left = offset - font.StringWidth(kDateLabel) - 10;
-		r.OffsetBy(0.0, fSubject->Frame().Height() + 1);
+		
+		y += FIELD_HEIGHT;
+	}
+	else
+	{
+		r.Set(x - font.StringWidth(kDateLabel) - 10, y + 4,
+			  windowRect.Width(), y + TO_FIELD_HEIGHT + 1);
+		y += TO_FIELD_HEIGHT + 5;
 		fDate = new BStringView(r, "", "");
 		AddChild(fDate);	
 		fDate->SetFont(&font);	
@@ -214,6 +289,7 @@ THeaderView::THeaderView(BRect rect, BRect wind_rect, bool incoming,
 
 		LoadMessage(file);
 	}
+	ResizeTo(Bounds().Width(),y + 2);
 }
 
 //--------------------------------------------------------------------
@@ -333,31 +409,46 @@ THeaderView::InitGroupCompletion()
 
 void THeaderView::MessageReceived(BMessage *msg)
 {
-	BMessage	*message;
-	BTextView	*text_view;
-
-	switch (msg->what) {
+	switch (msg->what)
+	{
 		case B_SIMPLE_DATA:
-			text_view = (BTextView *)fTo->ChildAt(0);
+		{
+			BTextView *text_view = (BTextView *)fTo->ChildAt(0);
+
 			if (text_view->IsFocus())
 				fTo->MessageReceived(msg);
-			else if (!fIncoming) {
+			else if (!fIncoming)
+			{
 				text_view = (BTextView *)fCc->ChildAt(0);
 				if (text_view->IsFocus())
 					fCc->MessageReceived(msg);
-				else {
+				else
+				{
 					text_view = (BTextView *)fBcc->ChildAt(0);
 					if (text_view->IsFocus())
 						fBcc->MessageReceived(msg);
-					else {
-						message = new BMessage(*msg);
-						message->what = REFS_RECEIVED;
-						Window()->PostMessage(message, Window());
-						delete message;
+					else
+					{
+						BMessage message(*msg);
+						message.what = REFS_RECEIVED;
+						Window()->PostMessage(&message, Window());
 					}
 				}
 			}
 			break;
+		}
+
+		case kMsgFrom:
+		{
+			BMenuItem *item;
+			if (msg->FindPointer("source", (void **)&item) >= B_OK)
+				item->SetMarked(true);
+
+			uint32 chain;
+			if (msg->FindInt32("id",(int32 *)&chain) >= B_OK)
+				fChain = chain;
+			break;
+		}
 	}
 }
 
@@ -383,6 +474,9 @@ void THeaderView::AttachedToWindow(void)
 		fCc->SetTarget(Looper());
 	if (fBcc)
 		fBcc->SetTarget(Looper());
+	if (fAccountMenu)
+		fAccountMenu->SetTargetForItems(this);
+
 	BBox::AttachedToWindow();
 }
 
@@ -709,9 +803,8 @@ status_t THeaderView::LoadMessage(BFile *file)
 	}
 
 	free(header);
-	sprintf(theString, "%s  %s", kDateLabel, dateStr);
+	sprintf(theString, "%s   %s", kDateLabel, dateStr);
 	fDate->SetText(theString);
-
 
 	//	
 	//	Set contents of header fields

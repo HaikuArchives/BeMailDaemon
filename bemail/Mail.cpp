@@ -59,6 +59,7 @@ All rights reserved.
 #include <fs_info.h>
 
 #include <MailMessage.h>
+#include <MailSettings.h>
 
 #ifndef BONE
 #include <netdb.h>
@@ -78,8 +79,6 @@ All rights reserved.
 #include "QueryMenu.h"
 #include "FieldMsg.h"
 #include "Words.h"
-
-#include <MailSettings.h>
 
 const char *kUndoStrings[] = {
 	"Undo",
@@ -855,8 +854,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 			fResending(resending),
 			fSent(false),
 			fDraft(false),
-			fChanged(false),
-			fChain(gDefaultChain)
+			fChanged(false)
 {
 	bool		done = false;
 	char		str[256];
@@ -1014,7 +1012,6 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 	item->SetTarget(be_app);
 	menu_bar->AddItem(menu);
 
-
 	//
 	//	Message Menu
 	//
@@ -1056,7 +1053,8 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 		fFile->Read(header, len);
 		get_recipients(&recipients, header, len, true);
 		list = recipients;
-		while (1) {
+		while (true)
+		{
 			if ((!list[index]) || (list[index] == ',')) {
 				if (!list[index])
 					done = true;
@@ -1111,7 +1109,6 @@ skip:			if (!done) {
 	}
 	menu_bar->AddItem(menu);
 
-
 	//
 	//	Enclosures Menu
 	//
@@ -1121,47 +1118,6 @@ skip:			if (!done) {
 		menu->AddItem(fRemove = new BMenuItem("Remove",
 									new BMessage(M_REMOVE), 'T'));
 		menu_bar->AddItem(menu);
-	}
-
-	//
-	//	Accounts Menu
-	//
-	if (!fIncoming) {
-		fAccountMenu = new BMenu("Account");
-		fAccountMenu->SetRadioMode(true);
-		MailSettings settings;
-		BList chains;
-		if (settings.OutboundChains(&chains) >= B_OK) {
-			BMessage *msg;
-			bool marked = false;
-			for (int32 i = 0;i < chains.CountItems();i++) {
-				MailChain *chain = (MailChain *)chains.ItemAt(i);
-				BMenuItem *item = new BMenuItem(chain->Name(),msg = new BMessage(M_ACCOUNT));
-
-				msg->AddInt32("id",chain->ID());
-
-				if (gDefaultChain == chain->ID()) {
-					item->SetMarked(true);
-					marked = true;
-				}
-				fAccountMenu->AddItem(item);
-				delete chain;
-			}
-			if (!marked) {
-				BMenuItem *item = fAccountMenu->ItemAt(0);
-				if (item != NULL) {
-					item->SetMarked(true);
-					fChain = item->Message()->FindInt32("id");
-				} else {
-					fAccountMenu->AddItem(item = new BMenuItem("<none>",NULL));
-					item->SetEnabled(false);
-					fChain = ~0UL;
-				}
-				// default chain is invalid, set to marked
-				gDefaultChain = fChain;
-			}
-		}
-		menu_bar->AddItem(fAccountMenu);
 	}
 
 	Lock();
@@ -1188,19 +1144,12 @@ skip:			if (!done) {
 	else
 		fButtonBar = NULL;
 	
-	r.top = height+bbheight;
-	if (!fIncoming)
-		r.bottom = height + bbheight + HEADER_HEIGHT + 1;
-	else
-		r.bottom = height + bbheight + MIN_HEADER_HEIGHT + 1;
+	r.top = r.bottom = height + bbheight;
 	fHeaderView = new THeaderView(r, rect, fIncoming, fFile, resending);
 
 	r = Frame();
 	r.OffsetTo(0, 0);
-	if (fIncoming)
-		r.top = height + bbheight + MIN_HEADER_HEIGHT;
-	else
-		r.top = height + bbheight + HEADER_HEIGHT;
+	r.top = fHeaderView->Frame().bottom - 1;
 	fContentView = new TContentView(r, fIncoming, fFile, const_cast<BFont *>(font));
 		// TContentView needs to be properly const, for now cast away constness
 
@@ -1211,21 +1160,23 @@ skip:			if (!done) {
 	AddChild(fContentView);
 	Unlock();
 
-	if (to) {
+	if (to)
+	{
 		Lock();
 		fHeaderView->fTo->SetText(to);
 		Unlock();
 	}
 
 	SetSizeLimits(WIND_WIDTH, RIGHT_BOUNDARY,
-				  HEADER_HEIGHT + ENCLOSURES_HEIGHT + height + 50, RIGHT_BOUNDARY);
+				  fHeaderView->Bounds().Height() + ENCLOSURES_HEIGHT + height + 60,
+				  RIGHT_BOUNDARY);
 
 	AddShortcut('n', B_COMMAND_KEY, new BMessage(M_NEW));
-
 
 	// 
 	// 	If auto-signature, add signature to the text here.
 	//
+
 	if (!fIncoming && strcmp(signature, SIG_NONE) != 0) {
 		if( strcmp(signature, SIG_RANDOM) == 0 )
 			PostMessage( M_RANDOM_SIG );
@@ -1632,18 +1583,6 @@ void TMailWindow::MessageReceived(BMessage* msg)
 		case CHANGE_FONT:
 			PostMessage(msg, fContentView);
 			break;
-
-		case M_ACCOUNT:
-		{
-			BMenuItem *item;
-			if (msg->FindPointer("source", (void **)&item) >= B_OK)
-				item->SetMarked(true);
-
-			uint32 chain;
-			if (msg->FindInt32("id",(int32 *)&chain) >= B_OK)
-				fChain = chain;
-			break;
-		}
 
 		case M_NEW:
 			message = new BMessage(M_NEW);
@@ -2098,15 +2037,15 @@ TMailWindow::AddEnclosure(BMessage *msg)
 	if ((fEnclosuresView == NULL) && (!fIncoming)) {
 		BRect r;
 		r.left = 0;
-		r.top = fHeaderView->Frame().top + HEADER_HEIGHT;
+		r.top = fHeaderView->Frame().bottom - 1;
 		r.right = Frame().Width() + 2;
 		r.bottom = r.top + ENCLOSURES_HEIGHT;
+		fHeaderView->ResizeBy(0, ENCLOSURES_HEIGHT);
 
 		fEnclosuresView = new TEnclosuresView(r, Frame());
 		AddChild(fEnclosuresView, fContentView);
 		fContentView->ResizeBy(0, -ENCLOSURES_HEIGHT);
 		fContentView->MoveBy(0, ENCLOSURES_HEIGHT);
-
 	}
 
 	if ((fEnclosuresView) && (msg->HasRef("refs"))) {
@@ -2471,7 +2410,7 @@ void TMailWindow::CopyMessage( entry_ref *ref, TMailWindow *src )
 	fContentView->fTextView->SetText( src->fContentView->fTextView->Text(), src->fContentView->fTextView->TextLength() );
 }
 
-void TMailWindow::Reply(entry_ref *ref, TMailWindow *wind, bool all)
+void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, bool all)
 {
 	char		*to = NULL;
 	char		*cc;
@@ -2526,19 +2465,19 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *wind, bool all)
 			for (int32 i = 0;i < chains.CountItems();i++) {
 				MailChain *chain = (MailChain *)chains.ItemAt(i);
 				if (!strcmp(chain->Name(),str))
-					fChain = chain->ID();
+					fHeaderView->fChain = chain->ID();
 
 				delete chain;
 			}
-			if (BMenuItem *item = fAccountMenu->FindItem(str))
+			if (BMenuItem *item = fHeaderView->fAccountMenu->FindItem(str))
 				item->SetMarked(true);
 			free(str);
 		}
 		
-		wind->fContentView->fTextView->GetSelection(&start, &finish);
+		window->fContentView->fTextView->GetSelection(&start, &finish);
 		if (start != finish) {
 			str = (char *)malloc(finish - start + 1);
-			wind->fContentView->fTextView->GetText(start, finish - start, str);
+			window->fContentView->fTextView->GetText(start, finish - start, str);
 			if (str[strlen(str) - 1] != '\n') {
 				str[strlen(str)] = '\n';
 				finish++;
@@ -2654,8 +2593,8 @@ status_t TMailWindow::Send(bool now)
 			while ((item = (TListItem *)fEnclosuresView->fList->ItemAt(index++)) != NULL)
 				mail->Attach(item->Ref());
 		}
-		if (fChain != ~0UL)
-			mail->SendViaAccount(fChain);
+		if (fHeaderView->fChain != ~0UL)
+			mail->SendViaAccount(fHeaderView->fChain);
 
 		result = mail->Send(now);
 		
@@ -2830,6 +2769,7 @@ status_t TMailWindow::SaveAsDraft( void )
 //	Open *another* message in the existing mail window.  Some code here is 
 //	duplicated from various constructors.  
 //
+
 status_t TMailWindow::OpenMessage(entry_ref *ref)
 {
 	

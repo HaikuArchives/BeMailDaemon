@@ -60,14 +60,14 @@ TEnclosuresView::TEnclosuresView(BRect rect, BRect wind_rect)
 	c.red = c.green = c.blue = VIEW_COLOR;
 	SetViewColor(c);
 
-	BFont v_font = *be_plain_font;
-	v_font.SetSize(FONT_SIZE);
+	BFont font = *be_plain_font;
+	font.SetSize(FONT_SIZE);
 	font_height fHeight;
-	v_font.GetHeight(&fHeight);
+	font.GetHeight(&fHeight);
 	fOffset = 12;
 	
 	BRect r;
-	r.left = ENCLOSE_FIELD_H;
+	r.left = ENCLOSE_TEXT_H + font.StringWidth("Enclosures: ") + 5;
 	r.top = ENCLOSE_FIELD_V;
 	r.right = wind_rect.right - wind_rect.left - B_V_SCROLL_BAR_WIDTH - 9;
 	r.bottom = Frame().Height() - 8;
