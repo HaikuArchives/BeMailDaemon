@@ -7,7 +7,9 @@ if pwd | grep " ";
   exit 1;
 fi
 
-RETURN=`alert "There can only be ONE version of mail_daemon on the system at one time (see the enclosed README file for why).  Choose 'Backup' if you wish to keep your old mail_daemon, E-mail preferences app, and BeMail, and this is the first time you're installing the Mail Daemon Replacement.  Otherwise, you should choose 'Purge' to clear the other versions from your system." "Purge" "Backup" "Don't do anything!"`
+RETURN=`alert "There can only be ONE version of mail_daemon on the system at one time (see the enclosed README file for why).
+
+Choose 'Backup' if you wish to keep your old mail_daemon, E-mail preferences app, and BeMail, and this is the first time you're installing the Mail Daemon Replacement.  Otherwise, you should choose 'Purge' to clear the other versions from your system." "Purge" "Backup" "Don't do anything!"`
 
 if [[ $RETURN = Purge ]]
 then
@@ -41,7 +43,9 @@ copyattr -d -m bin/AGMSBayesianSpamServer ~/config/bin/AGMSBayesianSpamServer
 mkdir -p ~/config/settings/AGMSBayesianSpam
 if test -e "${HOME}/config/settings/AGMSBayesianSpam/AGMSBayesianSpam Database";
   then
-    alert "The spam database file (${HOME}/config/settings/AGMSBayesianSpam/AGMSBayesianSpam Database) already exists.  You can manually replace it with the SampleSpamDatabase if you wish to.  However, if you have customized your spam words (recommended so that it recognizes what YOUR genuine mail and spam look like) then you probably want to keep using your existing database.";
+    alert "The spam database file (${HOME}/config/settings/AGMSBayesianSpam/AGMSBayesianSpam Database) already exists.
+
+You can manually replace it with the SampleSpamDatabase if you wish to.  However, if you have customized your spam words (recommended so that it recognizes what YOUR genuine mail and spam look like) then you probably want to keep using your existing database.";
   else
     cp bin/SampleSpamDatabase "${HOME}/config/settings/AGMSBayesianSpam/AGMSBayesianSpam Database";
 fi
