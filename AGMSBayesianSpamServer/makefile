@@ -72,8 +72,8 @@ SYSTEM_INCLUDE_PATHS = ../include/public
 LOCAL_INCLUDE_PATHS = 
 
 #	specify the level of optimization that you desire
-#	NONE, SOME, FULL
-OPTIMIZE= FULL
+#	NONE, SOME, GOOD, FULL
+OPTIMIZE= GOOD
 
 #	specify any preprocessor symbols to be defined.  The symbols will not
 #	have their values set automatically; you must supply the value (if any)
