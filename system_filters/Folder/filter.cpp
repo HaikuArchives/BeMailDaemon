@@ -161,9 +161,10 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		{
 			BString error;
 			MDR_DIALECT_CHOICE (
-				error << "Unable to read whole message " <<
-					out_headers->FindString("Subject") << " to " << path.Path() <<
-					": " << strerror(err);
+				error << "Unable to read whole message from server, ignoring it.  "
+					<< "Subject \"" << out_headers->FindString("Subject")
+					<< "\", save to dir \"" << path.Path() <<
+					"\", error code: " << err << " " << strerror(err);
 			,
 				error << out_headers->FindString("Subject") << " のメッセージを " <<
 					path.Path() << "に保存中にエラーが発生しました" << strerror(err);
