@@ -64,6 +64,9 @@
  * rule chain can delete the message or otherwise manipulate it.
  *
  * $Log$
+ * Revision 1.83  2003/07/03 20:40:36  agmsmith
+ * Added Uncertain option for declassifying messages.
+ *
  * Revision 1.82  2003/06/16 14:57:13  agmsmith
  * Detect spam which uses mislabeled text attachments, going by the file name
  * extension.
@@ -412,6 +415,7 @@ static long long atoll (const char *str) {
 #include <PropertyInfo.h>
 #include <RadioButton.h>
 #include <Resources.h>
+#include <Screen.h>
 #include <ScrollBar.h>
 #include <String.h>
 #include <StringView.h>
@@ -892,6 +896,61 @@ typedef map<string, StatisticsRecord> StatisticsMap;
 
 
 /******************************************************************************
+ * An alert box asking how the user wants to mark messages.  There are buttons
+ * for each classification category, and a checkbox to mark all remaining N
+ * messages the same way.  And a cancel button.  To use it, first create the
+ * ClassificationChoicesWindow, specifying the input arguments.  Then call the
+ * Go method which will show the window, stuff the user's answer into your
+ * output arguments (class set to CL_MAX if the user cancels), and destroy the
+ * window.  Implemented because BAlert only allows 3 buttons, max!
+ */
+
+class ClassificationChoicesWindow : public BWindow
+{
+public:
+  /* Constructor and destructor. */
+  ClassificationChoicesWindow (BRect FrameRect,
+    const char *FileName, int NumberOfFiles);
+
+  /* BeOS virtual functions. */
+  virtual void MessageReceived (BMessage *MessagePntr);
+
+  /* Our methods. */
+  void Go (bool *BulkModeSelectedPntr,
+    ClassificationTypes *ChoosenClassificationPntr);
+
+  /* Various message codes for various buttons etc. */
+  static const uint32 MSG_CLASS_BUTTONS = 'ClB0';
+  static const uint32 MSG_CANCEL_BUTTON = 'Cncl';
+  static const uint32 MSG_BULK_CHECKBOX = 'BlkK';
+
+private:
+  /* Member variables. */
+  bool *m_BulkModeSelectedPntr;
+  ClassificationTypes *m_ChoosenClassificationPntr;
+};
+
+class ClassificationChoicesView : public BView
+{
+public:
+  /* Constructor and destructor. */
+  ClassificationChoicesView (BRect FrameRect,
+    const char *FileName, int NumberOfFiles);
+
+  /* BeOS virtual functions. */
+  virtual void AttachedToWindow ();
+  virtual void GetPreferredSize (float *width, float *height);
+
+private:
+  /* Member variables. */
+  const char *m_FileName;
+  int         m_NumberOfFiles;
+  float       m_PreferredBottomY;
+};
+
+
+
+/******************************************************************************
  * Due to deadlock problems with the BApplication posting scripting messages to
  * itself, we need to add a second Looper.  Its job is to just to convert
  * command line arguments and arguments from the Tracker (refs received) into a
@@ -910,7 +969,8 @@ public:
 
   void CommandArguments (int argc, char **argv);
   void CommandReferences (BMessage *MessagePntr,
-    bool BulkMode = false, bool BulkSpam = false);
+    bool BulkMode = false,
+    ClassificationTypes BulkClassification = CL_GENUINE);
   bool IsBusy ();
 
 private:
@@ -1876,7 +1936,8 @@ at: http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html\n\n"
 "Mr. Robinson, Tim Peters and the SpamBayes mailing list people then \
 developed the even better chi-squared scoring method.\n\n"
 
-"Icon courtesy of Isaac Yonemoto.\n\n"
+"Icon courtesy of Isaac Yonemoto, though it is no longer used since Hormel \
+doesn't want their meat product associated with junk e-mail.\n\n"
 
 "Released to the public domain, with no warranty.\n"
 "$Revision$\n"
@@ -2878,10 +2939,14 @@ status_t ABSApp::InstallThings (char *ErrorMessage)
   if (ErrorCode != B_OK)
     return ErrorCode;
 
-  if (!MimeType.IsInstalled ())
-    ErrorCode = MimeType.Install ();
+  MimeType.Delete ();
+  ErrorCode = MimeType.Install ();
   if (ErrorCode != B_OK)
+  {
+    sprintf (ErrorMessage, "Failed to install MIME type (%s) in the system",
+      MimeType.Type ());
     return ErrorCode;
+  }
 
   MimeType.SetShortDescription ("Spam Database");
   MimeType.SetLongDescription ("Bayesian Statistical Database for "
@@ -4710,6 +4775,239 @@ status_t ABSApp::TokenizeWhole (
 
 
 /******************************************************************************
+ * Implementation of the ClassificationChoicesView class, constructor,
+ * destructor and the rest of the member functions in mostly alphabetical
+ * order.
+ */
+
+ClassificationChoicesWindow::ClassificationChoicesWindow (
+  BRect FrameRect,
+  const char *FileName,
+  int NumberOfFiles)
+: BWindow (FrameRect, "Classification Choices", B_TITLED_WINDOW,
+    B_NOT_ZOOMABLE | B_NOT_RESIZABLE | B_ASYNCHRONOUS_CONTROLS),
+  m_BulkModeSelectedPntr (NULL),
+  m_ChoosenClassificationPntr (NULL)
+{
+  ClassificationChoicesView *SubViewPntr;
+
+  SubViewPntr = new ClassificationChoicesView (Bounds(),
+    FileName, NumberOfFiles);
+  AddChild (SubViewPntr);
+  SubViewPntr->ResizeToPreferred ();
+  ResizeTo (SubViewPntr->Frame().Width(), SubViewPntr->Frame().Height());
+}
+
+
+void ClassificationChoicesWindow::MessageReceived (BMessage *MessagePntr)
+{
+  BControl *ControlPntr;
+
+  if (MessagePntr->what >= MSG_CLASS_BUTTONS &&
+  MessagePntr->what < MSG_CLASS_BUTTONS + CL_MAX)
+  {
+    if (m_ChoosenClassificationPntr != NULL)
+      *m_ChoosenClassificationPntr =
+        (ClassificationTypes) (MessagePntr->what - MSG_CLASS_BUTTONS);
+    PostMessage (B_QUIT_REQUESTED); // Close and destroy the window.
+    return;
+  }
+
+  if (MessagePntr->what == MSG_BULK_CHECKBOX)
+  {
+    if (m_BulkModeSelectedPntr != NULL &&
+    MessagePntr->FindPointer ("source", (void **) &ControlPntr) == B_OK)
+      *m_BulkModeSelectedPntr = (ControlPntr->Value() == B_CONTROL_ON);
+    return;
+  }
+
+  if (MessagePntr->what == MSG_CANCEL_BUTTON)
+  {
+    PostMessage (B_QUIT_REQUESTED); // Close and destroy the window.
+    return;
+  }
+
+  BWindow::MessageReceived (MessagePntr);
+}
+
+
+void ClassificationChoicesWindow::Go (
+  bool *BulkModeSelectedPntr,
+  ClassificationTypes *ChoosenClassificationPntr)
+{
+  status_t  ErrorCode = 0;
+  BView    *MainViewPntr;
+  thread_id WindowThreadID;
+
+  m_BulkModeSelectedPntr = BulkModeSelectedPntr;
+  m_ChoosenClassificationPntr = ChoosenClassificationPntr;
+  if (m_ChoosenClassificationPntr != NULL)
+    *m_ChoosenClassificationPntr = CL_MAX;
+
+  Show (); // Starts the window thread running.
+
+  /* Move the window to the center of the screen it is now being displayed on
+  (have to wait for it to be showing). */
+
+  Lock ();
+  MainViewPntr = FindView ("ClassificationChoicesView");
+  if (MainViewPntr != NULL)
+  {
+    BRect   TempRect;
+    BScreen TempScreen (this);
+    float   X;
+    float   Y;
+
+    TempRect = TempScreen.Frame ();
+    X = TempRect.Width() / 2;
+    Y = TempRect.Height() / 2;
+    TempRect = MainViewPntr->Frame();
+    X -= TempRect.Width() / 2;
+    Y -= TempRect.Height() / 2;
+    MoveTo (ceilf (X), ceilf (Y));
+  }
+  Unlock ();
+
+  /* Wait for the window to go away. */
+
+  WindowThreadID = Thread ();
+  if (WindowThreadID >= 0)
+    // Delay until the window thread has died, presumably window deleted now.
+    wait_for_thread (WindowThreadID, &ErrorCode);
+}
+
+
+
+/******************************************************************************
+ * Implementation of the ClassificationChoicesView class, constructor,
+ * destructor and the rest of the member functions in mostly alphabetical
+ * order.
+ */
+
+ClassificationChoicesView::ClassificationChoicesView (
+  BRect FrameRect,
+  const char *FileName,
+  int NumberOfFiles)
+: BView (FrameRect, "ClassificationChoicesView",
+    B_FOLLOW_TOP | B_FOLLOW_LEFT, B_WILL_DRAW | B_NAVIGABLE_JUMP),
+  m_FileName (FileName),
+  m_NumberOfFiles (NumberOfFiles),
+  m_PreferredBottomY (ceilf (g_ButtonHeight * 10))
+{
+}
+
+
+void ClassificationChoicesView::AttachedToWindow ()
+{
+  BButton            *ButtonPntr;
+  BCheckBox          *CheckBoxPntr;
+  ClassificationTypes Classification;
+  float               Margin;
+  float               RowHeight;
+  float               RowTop;
+  BTextView          *TextViewPntr;
+  BRect               TempRect;
+  char                TempString [2048];
+  BRect               TextRect;
+  float               X;
+
+  SetViewColor (ui_color (B_PANEL_BACKGROUND_COLOR));
+
+  RowHeight = g_ButtonHeight;
+  if (g_CheckBoxHeight > RowHeight)
+    RowHeight = g_CheckBoxHeight;
+  RowHeight = ceilf (RowHeight * 1.1);
+
+  TempRect = Bounds ();
+  RowTop = TempRect.top;
+
+  /* Show the file name text. */
+
+  Margin = ceilf ((RowHeight - g_StringViewHeight) / 2);
+  TempRect = Bounds ();
+  TempRect.top = RowTop + Margin;
+  TextRect = TempRect;
+  TextRect.OffsetTo (0, 0);
+  TextRect.InsetBy (g_MarginBetweenControls, 2);
+  sprintf (TempString, "How do you want to classify the file named \"%s\"?",
+    m_FileName);
+  TextViewPntr = new BTextView (TempRect, "FileText", TextRect,
+    B_FOLLOW_TOP | B_FOLLOW_LEFT, B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE);
+  AddChild (TextViewPntr);
+  TextViewPntr->SetText (TempString);
+  TextViewPntr->MakeEditable (false);
+  TextViewPntr->SetViewColor (ui_color (B_PANEL_BACKGROUND_COLOR));
+  TextViewPntr->ResizeTo (TempRect.Width (),
+    3 + TextViewPntr->TextHeight (0, sizeof (TempString)));
+  RowTop = TextViewPntr->Frame().bottom + Margin;
+
+  /* Make the classification buttons. */
+
+  Margin = ceilf ((RowHeight - g_ButtonHeight) / 2);
+  TempRect = Bounds ();
+  TempRect.top = RowTop + Margin;
+  X = Bounds().left + g_MarginBetweenControls;
+  for (Classification = (ClassificationTypes) 0; Classification < CL_MAX;
+  Classification = (ClassificationTypes) ((int) Classification + 1))
+  {
+    TempRect = Bounds ();
+    TempRect.top = RowTop + Margin;
+    TempRect.left = X;
+    sprintf (TempString, "%s Button",
+      g_ClassificationTypeNames [Classification]);
+    ButtonPntr = new BButton (TempRect, TempString,
+      g_ClassificationTypeNames [Classification], new BMessage (
+      ClassificationChoicesWindow::MSG_CLASS_BUTTONS + Classification));
+    AddChild (ButtonPntr);
+    ButtonPntr->ResizeToPreferred ();
+    X = ButtonPntr->Frame().right + 3 * g_MarginBetweenControls;
+  }
+  RowTop += ceilf (RowHeight * 1.2);
+
+  /* Make the Cancel button. */
+
+  Margin = ceilf ((RowHeight - g_ButtonHeight) / 2);
+  TempRect = Bounds ();
+  TempRect.top = RowTop + Margin;
+  TempRect.left += g_MarginBetweenControls;
+  ButtonPntr = new BButton (TempRect, "Cancel Button",
+    "Cancel", new BMessage (ClassificationChoicesWindow::MSG_CANCEL_BUTTON));
+  AddChild (ButtonPntr);
+  ButtonPntr->ResizeToPreferred ();
+  X = ButtonPntr->Frame().right + g_MarginBetweenControls;
+
+  /* Make the checkbox for bulk operations. */
+
+  if (m_NumberOfFiles > 1)
+  {
+    Margin = ceilf ((RowHeight - g_CheckBoxHeight) / 2);
+    TempRect = Bounds ();
+    TempRect.top = RowTop + Margin;
+    TempRect.left = X;
+    sprintf (TempString, "Mark all %d remaining messages the same way.",
+      m_NumberOfFiles - 1);
+    CheckBoxPntr = new BCheckBox (TempRect, "BulkBox", TempString,
+      new BMessage (ClassificationChoicesWindow::MSG_BULK_CHECKBOX));
+    AddChild (CheckBoxPntr);
+    CheckBoxPntr->ResizeToPreferred ();
+  }
+  RowTop += RowHeight;
+
+  m_PreferredBottomY = RowTop;
+}
+
+
+void ClassificationChoicesView::GetPreferredSize (float *width, float *height)
+{
+  if (width != NULL)
+    *width = Bounds().Width();
+  if (height != NULL)
+    *height = m_PreferredBottomY;
+}
+
+
+
+/******************************************************************************
  * Implementation of the CommanderLooper class, constructor, destructor and the
  * rest of the member functions in mostly alphabetical order.
  */
@@ -4750,12 +5048,12 @@ void CommanderLooper::CommandArguments (int argc, char **argv)
 message to ourself (so that the original message can be returned to the caller,
 and if it is Tracker, it can close the file handles it has open).  Optionally
 allow preset classification rather than asking the user (set BulkMode to TRUE
-and specify the class with BulkSpam). */
+and specify the class with BulkClassification). */
 
 void CommanderLooper::CommandReferences (
   BMessage *MessagePntr,
   bool BulkMode,
-  bool BulkSpam)
+  ClassificationTypes BulkClassification)
 {
   entry_ref EntryRef;
   int       i;
@@ -4765,7 +5063,7 @@ void CommanderLooper::CommandReferences (
   for (i = 0; MessagePntr->FindRef ("refs", i, &EntryRef) == B_OK; i++)
     InternalMessage.AddRef ("refs", &EntryRef);
   InternalMessage.AddBool ("BulkMode", BulkMode);
-  InternalMessage.AddBool ("BulkSpam", BulkSpam);
+  InternalMessage.AddInt32 ("BulkClassification", BulkClassification);
 
   PostMessage (&InternalMessage);
 }
@@ -5041,29 +5339,29 @@ ErrorExit:
 
 /* Given a bunch of references to files, open the files.  If it's a database
 file, switch to using it as a database.  Otherwise, treat them as text files
-and add them to the database.  Prompt the user for the spam or genuine choice,
-with the option to bulk mark many files at once. */
+and add them to the database.  Prompt the user for the spam or genuine or
+uncertain (declassification) choice, with the option to bulk mark many files at
+once. */
 
 void CommanderLooper::ProcessRefs (BMessage *MessagePntr)
 {
-  bool        BulkMode = false;
-  bool        BulkSpam = false;
-  int         ButtonIndex;
-  BEntry      Entry;
-  entry_ref   EntryRef;
-  status_t    ErrorCode;
-  const char *ErrorTitle = "CommanderLooper::ProcessRefs";
-  int         i;
-  int32       NumberOfRefs = 0;
-  BPath       Path;
-  BMessage    ReplyMessage;
-  BMessage    ScriptingMessage;
-  BAlert     *SpamOrGenuineAlertPntr;
-  bool        TempBool;
-  BFile       TempFile;
-  int32       TempInt32;
-  char        TempString [PATH_MAX + 1024];
-  type_code   TypeCode;
+  bool                         BulkMode = false;
+  ClassificationTypes          BulkClassification = CL_GENUINE;
+  ClassificationChoicesWindow *ChoiceWindowPntr;
+  BEntry                       Entry;
+  entry_ref                    EntryRef;
+  status_t                     ErrorCode;
+  const char                  *ErrorTitle = "CommanderLooper::ProcessRefs";
+  int32                        NumberOfRefs = 0;
+  BPath                        Path;
+  int                          RefIndex;
+  BMessage                     ReplyMessage;
+  BMessage                     ScriptingMessage;
+  bool                         TempBool;
+  BFile                        TempFile;
+  int32                        TempInt32;
+  char                         TempString [PATH_MAX + 1024];
+  type_code                    TypeCode;
 
   ErrorCode = MessagePntr->GetInfo ("refs", &TypeCode, &NumberOfRefs);
   if (ErrorCode != B_OK || TypeCode != B_REF_TYPE || NumberOfRefs <= 0)
@@ -5075,10 +5373,13 @@ void CommanderLooper::ProcessRefs (BMessage *MessagePntr)
 
   if (MessagePntr->FindBool ("BulkMode", &TempBool) == B_OK)
     BulkMode = TempBool;
-  if (MessagePntr->FindBool ("BulkSpam", &TempBool) == B_OK)
-    BulkSpam = TempBool;
+  if (MessagePntr->FindInt32 ("BulkClassification", &TempInt32) == B_OK &&
+  TempInt32 >= 0 && TempInt32 < CL_MAX)
+    BulkClassification = (ClassificationTypes) TempInt32;
 
-  for (i = 0; MessagePntr->FindRef ("refs", i, &EntryRef) == B_OK; i++)
+  for (RefIndex = 0;
+  MessagePntr->FindRef ("refs", RefIndex, &EntryRef) == B_OK;
+  RefIndex++)
   {
     ScriptingMessage.MakeEmpty ();
     ScriptingMessage.what = 0; /* Haven't figured out what to do yet. */
@@ -5128,10 +5429,7 @@ void CommanderLooper::ProcessRefs (BMessage *MessagePntr)
 
     if (ScriptingMessage.what == 0)
     {
-      if (Entry.IsFile ())
-        sprintf (TempString, "Do you want to classify the \"%s\" file "
-          "as Spam or Genuine?", Path.Path ());
-      else
+      if (!Entry.IsFile ())
       {
         sprintf (TempString, "\"%s\" is not a file, can't do anything with it",
           Path.Path ());
@@ -5140,44 +5438,28 @@ void CommanderLooper::ProcessRefs (BMessage *MessagePntr)
         continue;
       }
 
-      if (BulkMode) /* If doing a whole bunch of identical classifications. */
-        ButtonIndex = (BulkSpam ? 2 : 1);
-      else /* Have to ask the user. */
+      if (!BulkMode) /* Have to ask the user. */
       {
-        SpamOrGenuineAlertPntr = new BAlert ("SpamChoice", TempString,
-          "Bulk/Cancel", "Genuine", "Spam", B_WIDTH_FROM_WIDEST,
-          B_OFFSET_SPACING, B_IDEA_ALERT);
-        if (SpamOrGenuineAlertPntr == NULL)
-          break; /* Probably can't show an error message either. */
-        SpamOrGenuineAlertPntr->SetShortcut (0, B_ESCAPE);
-        ButtonIndex = SpamOrGenuineAlertPntr->Go ();
-        if (ButtonIndex == 0)
-        {
-          sprintf (TempString, "There are %d remaining things to classify.  "
-            "Do you want to classify them all as Spam or Genuine, or do you "
-            "want to stop classifying?", (int) (NumberOfRefs - i));
-          SpamOrGenuineAlertPntr = new BAlert ("BulkChoice", TempString,
-            "Cancel", "All Genuine", "All Spam", B_WIDTH_FROM_WIDEST,
-            B_OFFSET_SPACING, B_WARNING_ALERT);
-          if (SpamOrGenuineAlertPntr == NULL)
-            break;
-          SpamOrGenuineAlertPntr->SetShortcut (0, B_ESCAPE);
-          ButtonIndex = SpamOrGenuineAlertPntr->Go ();
-          BulkMode = true;
-          BulkSpam = (ButtonIndex == 2);
-        }
+        ChoiceWindowPntr = new ClassificationChoicesWindow (
+          BRect (40, 40, 40 + 50 * g_MarginBetweenControls,
+          40 + g_ButtonHeight * 5), Path.Path (), NumberOfRefs - RefIndex);
+        ChoiceWindowPntr->Go (&BulkMode, &BulkClassification);
+        if (BulkClassification == CL_MAX)
+          break; /* Cancel was picked. */
       }
 
       /* Format the command for classifying the file. */
 
       ScriptingMessage.what = B_SET_PROPERTY;
 
-      if (ButtonIndex == 1)
+      if (BulkClassification == CL_GENUINE)
         ScriptingMessage.AddSpecifier (g_PropertyNames[PN_GENUINE]);
-      else if (ButtonIndex == 2)
+      else if (BulkClassification == CL_SPAM)
         ScriptingMessage.AddSpecifier (g_PropertyNames[PN_SPAM]);
-      else
-        break; /* Cancel button pressed or quit sent to dialog box. */
+      else if (BulkClassification == CL_UNCERTAIN)
+        ScriptingMessage.AddSpecifier (g_PropertyNames[PN_UNCERTAIN]);
+      else /* Broken code */
+        break;
       ScriptingMessage.AddString (g_DataName, Path.Path ());
     }
 
@@ -6211,7 +6493,7 @@ void ControlsView::Pulse ()
 DatabaseWindow::DatabaseWindow ()
 : BWindow (BRect (30, 30, 620, 400),
     "Alexander G. M. Smith's Bayesian Spam Database Server",
-    B_DOCUMENT_WINDOW, 0)
+    B_DOCUMENT_WINDOW, B_ASYNCHRONOUS_CONTROLS)
 {
   BRect TempRect;
 
@@ -6931,7 +7213,7 @@ void WordsView::RefsDroppedHere (BMessage *MessagePntr)
 
   if (g_CommanderLooperPntr != NULL)
     g_CommanderLooperPntr->CommandReferences (
-    MessagePntr, true /* BulkMode */, SpamExample /* BulkSpam */);
+    MessagePntr, true /* BulkMode */, SpamExample ? CL_SPAM : CL_GENUINE);
 }
 
 
