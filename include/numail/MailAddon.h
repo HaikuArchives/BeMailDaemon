@@ -1,9 +1,12 @@
 #ifndef ZOIDBERG_NUMAIL_ADDON_H
 #define ZOIDBERG_NUMAIL_ADDON_H
 class BMessage;
+class BView;
 class BPositionIO;
 class BPath;
 class BString;
+class BPositionIO;
+class BEntry;
 class StatusView;
 
 typedef enum
