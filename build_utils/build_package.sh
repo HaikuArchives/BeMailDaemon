@@ -55,11 +55,10 @@ for f in inbound_* outbound_* system_* ; do
 done
 
 cp -d documentation/read_us/* $BUILD_PATH
-
+cp build_utils/ExtraMenuLinksForR5Tracker.zip $BUILD_PATH/bin
 mkdir -p $BUILD_PATH/AGMSBayesianSpamDocumentation/pictures
 cp documentation/AGMSBayesianSpam/*html $BUILD_PATH/AGMSBayesianSpamDocumentation/
 cp documentation/AGMSBayesianSpam/pictures/*png $BUILD_PATH/AGMSBayesianSpamDocumentation/pictures
 
 
 mimeset -f $BUILD_PATH
-

@@ -38,6 +38,10 @@ copyattr -d -m bin/mail_daemon /system/servers/mail_daemon
 copyattr -d -m bin/E-mail /boot/beos/preferences/E-mail
 copyattr -d -m bin/BeMail /boot/beos/apps/BeMail
 
+mkdir -p ~/config/settings/Mail/Menu\ Links
+unzip -n bin/ExtraMenuLinksForR5Tracker.zip -d ~/config/settings/Mail/Menu\ Links
+rm bin/ExtraMenuLinksForR5Tracker.zip
+
 # Set up the spam classifier server.
 copyattr -d -m bin/AGMSBayesianSpamServer ~/config/bin/AGMSBayesianSpamServer
 mkdir -p ~/config/settings/AGMSBayesianSpam
@@ -56,8 +60,8 @@ sleep 1
 /system/Deskbar &
 sleep 1
 /system/servers/mail_daemon &
-sync
 
+sync
 alert "Installation Complete."
 
 # Prevent a second attempt to install since all our source files have been moved / deleted.

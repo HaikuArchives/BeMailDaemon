@@ -327,7 +327,10 @@ bool DeskbarView::CreateMenuLinks(BDirectory &directory,BPath &path)
 	if (status == B_OK)
 		return true;
 
-	// check if the directory has to be created (and do it in this case)
+	// Check if the directory has to be created (and do it in this case,
+	// filling it with some standard links).  Normally the installer will
+	// create the directory and fill it with links, so normally this doesn't
+	// get used.
 
 	BEntry entry(path.Path());
 	if (status != B_ENTRY_NOT_FOUND

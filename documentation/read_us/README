@@ -146,7 +146,7 @@ ADDON INSTALLATION.
    This filters out spam. If you want to know more (and you may) more
    documentation can be found in the directory with no spaces in its
    name: AGMSBayesianSpamDocumentation. It even has, unlike this, lots of
-   pretty pictures.
+   pretty pictures.  Also see the note about SampleSpamDatabase.
 
 HISTORY:
 
@@ -164,6 +164,7 @@ February 6 2003 - v2.0.0b9
 - Compensate for Yahoo! address inside the name goofyness, find "Joe" for the name when given: "Joe <joe@yahoo.com>" <joe@yahoo.com>
 - Added Koki's first batch of Japanese translations for text within MDR.
 - Fixed up word wrapping code to fall back to the user's preferred font if the system fixed width font didn't have as many of the characters used in the message.  Doesn't depend on character set choice now.
+- Added some more queries to the pop-up daemon menu and changed it to largely use a zip file so it will be easier to add new ones: Today's mail, mail from someone, mail with a subject containing something.
 
 January 22 2003 - v2.0.0b8
 - Date format changed slightly to make it compliant to RFC-822 (some other mail apps had problems understanding it).
