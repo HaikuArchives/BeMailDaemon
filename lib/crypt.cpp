@@ -38,9 +38,7 @@ _EXPORT bool set_passwd(BMessage *msg,const char *name,const char *password)
 	passwd_crypt((char *)password,buffer,length);
 
 	msg->RemoveName(name);
-	status_t status = msg->ReplaceData(name,B_RAW_TYPE,buffer,length);
-	if (status < B_OK)
-		status = msg->AddData(name,B_RAW_TYPE,buffer,length,false);
+	status_t status = msg->AddData(name,B_RAW_TYPE,buffer,length,false);
 
 	delete [] buffer;
 	return (status >= B_OK);
