@@ -55,7 +55,7 @@ void makeIndices()
 {
 	const char *stringIndices[] = {	"MAIL:account","MAIL:cc","MAIL:draft","MAIL:flags",
 									"MAIL:from","MAIL:name","MAIL:priority","MAIL:reply",
-									"MAIL:status","MAIL:subject","MAIL:to","MAIL:to",NULL};
+									"MAIL:status","MAIL:subject","MAIL:to","MAIL:to","MAIL:thread",NULL};
 
 	// add mail indices for all devices capable of querying
 
@@ -116,6 +116,29 @@ int main (int argc, const char **argv) {
 			ok = false;
 		}
 	}
+	
+	cnt = 0;
+	ok =true;
+	while (ok) {
+		if (info.FindString("attr:name", cnt, &result) == B_OK) {
+			cnt++;
+			if (strcmp(result, "MAIL:thread") == 0)
+				ok = false;
+		} else {	
+			info.AddString ("attr:name"        , "MAIL:thread");
+			info.AddString ("attr:public_name" , "Thread"     );
+			info.AddInt32  ("attr:type"        , B_STRING_TYPE );
+			info.AddBool   ("attr:editable"    , false         );
+			info.AddBool   ("attr:viewable"	   , true		   );
+			info.AddBool   ("attr:extra"	   , false		   );
+			info.AddInt32  ("attr:alignment"   , 0             );
+			info.AddInt32  ("attr:width"       , 20            );
+					
+			email_mime_type.SetAttrInfo(&info);
+			ok = false;
+		}
+	}
+	
 	makeIndices();
 
 	be_app->Run();

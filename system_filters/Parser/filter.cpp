@@ -32,8 +32,22 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 	//BFile *f = reinterpret_cast<BFile*>(*data);
 	//if (f) ParseRFC2822File(headers, f, fields);
 	   ParseRFC2822File(headers, **data, fields);
-	
-	headers->PrintToStream();
+	   
+	//----Thread messages
+	BString string = headers->FindString(B_MAIL_ATTR_SUBJECT);
+	int32 last_i = 0, index =0;
+	while (index < string.Length()) {
+		last_i = string.FindFirst(": ",index);
+		if (last_i < 0)
+			break;
+		if (string.FindFirst(' ',index) >= 5)
+			break;
+		if (string.FindFirst(' ',index) > last_i) {
+			string.Remove(0,last_i + 2);
+			index = 0;
+		}
+	}
+	headers->AddString("MAIL:thread",string.String());
 	
 	// name
 	BString h;
