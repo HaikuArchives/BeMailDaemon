@@ -20,7 +20,7 @@ class RuleFilterConfig : public BView {
 		int staging;
 };
 
-RuleFilterConfig::RuleFilterConfig(BMessage *settings) : BView(BRect(0,0,260,55),"rulefilter_config", B_FOLLOW_LEFT | B_FOLLOW_TOP, 0) {
+RuleFilterConfig::RuleFilterConfig(BMessage *settings) : BView(BRect(0,0,260,85),"rulefilter_config", B_FOLLOW_LEFT | B_FOLLOW_TOP, 0) {
 	SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
 	attr = new BTextControl(BRect(5,5,100,20),"attr","If ","header in lower case (e.g. subject)",NULL);
 	attr->SetDivider(be_plain_font->StringWidth("If "));
@@ -34,7 +34,7 @@ RuleFilterConfig::RuleFilterConfig(BMessage *settings) : BView(BRect(0,0,260,55)
 		regex->SetText(settings->FindString("regex"));
 	AddChild(regex);
 	
-	arg = new BTextControl(BRect(110,25,255,50),"arg",NULL,"this field is based on the Action",NULL);
+	arg = new BTextControl(BRect(5,55,255,80),"arg",NULL,"this field is based on the Action",NULL);
 	if (settings->HasString("argument"))
 		arg->SetText(settings->FindString("argument"));
 	AddChild(arg);
@@ -57,7 +57,7 @@ void RuleFilterConfig::AttachedToWindow() {
 	item = new BMenuItem("Delete Message", new BMessage('argd'));
 	item->SetTarget(this);
 	menu->AddItem(item);
-	BMenuField *field = new BMenuField(BRect(5,25,110,45),"do_what","Then ",menu,true);
+	BMenuField *field = new BMenuField(BRect(5,30,110,50),"do_what","Then ",menu,true);
 	if (staging >= 0) {
 		menu->ItemAt(staging)->SetMarked(true);
 		MessageReceived(menu->ItemAt(staging)->Message());
