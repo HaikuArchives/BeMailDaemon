@@ -151,6 +151,7 @@ November 24 2002 - v2.0.0b5
 - Check for IO errors while writing generic headers and copying existing MIME components.
 - New "Reply With" option for the Match Header filter.
 - New "Set As Read" option for the Match Header filter.
+- Old style name extraction fixed so that StripGook "joe@foo.com (Joe)" will return "Joe" rather than "Jo".
 
 November 20 2002 - v2.0.0b4
  - Zillions of bug fixes. Too much to mention, really
