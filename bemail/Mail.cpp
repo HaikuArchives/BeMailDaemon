@@ -368,7 +368,7 @@ TMailApp::MessageReceived(BMessage *msg)
 					break;
 				}
 				case M_FORWARD:
-				case M_FORWARD_WITH_ATTACHMENTS:
+				case M_FORWARD_WITHOUT_ATTACHMENTS:
 				{
 					TMailWindow	*sourceWindow;
 					if (msg->FindPointer("window", (void **)&sourceWindow) < B_OK
@@ -377,9 +377,8 @@ TMailApp::MessageReceived(BMessage *msg)
 
 					msg->FindRef("ref", &ref);
 					window = NewWindow();
-					if (window->Lock())
-					{
-						window->Forward(&ref, sourceWindow, type == M_FORWARD_WITH_ATTACHMENTS);
+					if (window->Lock()) {
+						window->Forward(&ref, sourceWindow, type == M_FORWARD);
 						window->Unlock();
 					}
 					sourceWindow->Unlock();
@@ -1440,7 +1439,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 		menu->AddSeparatorItem();
 
 		menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Forward","J) 転送"), new BMessage(M_FORWARD), 'J'));
-		menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Forward with Attachments","F) 添付ファイルを含めて転送"), new BMessage(M_FORWARD_WITH_ATTACHMENTS)));
+		menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Forward without Attachments","The opposite: F) 添付ファイルを含めて転送"), new BMessage(M_FORWARD_WITHOUT_ATTACHMENTS)));
 		menu->AddItem(menuItem = new BMenuItem(MDR_DIALECT_CHOICE ("Resend","   再送信"), new BMessage(M_RESEND)));
 		menu->AddItem(menuItem = new BMenuItem(MDR_DIALECT_CHOICE ("Copy to New","D) 新規メッセージへコピー"), new BMessage(M_COPY_TO_NEW), 'D'));
 
@@ -2112,18 +2111,19 @@ TMailWindow::MessageReceived(BMessage *msg)
 		{
 			uint32 buttons;
 			if (msg->FindInt32("buttons", (int32 *)&buttons) == B_OK
-				&& buttons == B_SECONDARY_MOUSE_BUTTON)
-			{
+				&& buttons == B_SECONDARY_MOUSE_BUTTON) {
 				BPopUpMenu menu("Forward", false, false);
-				menu.AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Forward","J) 転送"),new BMessage(M_FORWARD)));
-				menu.AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Forward with Attachments","F) 添付ファイルを含む転送"),new BMessage(M_FORWARD_WITH_ATTACHMENTS)));
+				menu.AddItem(new BMenuItem(MDR_DIALECT_CHOICE("Forward", "J) 転送"),
+					new BMessage(M_FORWARD)));
+				menu.AddItem(new BMenuItem(MDR_DIALECT_CHOICE("Forward without Attachments",
+					"The opposite: F) 添付ファイルを含む転送"),
+					new BMessage(M_FORWARD_WITHOUT_ATTACHMENTS)));
 
 				BPoint where;
 				msg->FindPoint("where", &where);
 
 				BMenuItem *item;
-				if ((item = menu.Go(where, false, false)) != NULL)
-				{
+				if ((item = menu.Go(where, false, false)) != NULL) {
 					item->SetTarget(this);
 					PostMessage(item->Message());
 				}
@@ -2134,7 +2134,7 @@ TMailWindow::MessageReceived(BMessage *msg)
 		// Fall Through
 		case M_REPLY_ALL:
 		case M_REPLY_TO_SENDER:
-		case M_FORWARD_WITH_ATTACHMENTS:
+		case M_FORWARD_WITHOUT_ATTACHMENTS:
 		case M_RESEND:
 		case M_COPY_TO_NEW:
 		{
@@ -2821,9 +2821,6 @@ TMailWindow::WindowActivated(bool status)
 void
 TMailWindow::Forward(entry_ref *ref, TMailWindow *window, bool includeAttachments)
 {
-	// ToDo: this is broken, fix me!
-	//return;
-
 	Zoidberg::Mail::Message *mail = window->Mail();
 	if (mail == NULL)
 		return;
@@ -2851,8 +2848,7 @@ TMailWindow::Forward(entry_ref *ref, TMailWindow *window, bool includeAttachment
 		}
 	}
 
-	if (fMail->CountComponents() > 1)
-	{
+	if (fMail->CountComponents() > 1) {
 		// if there are any enclosures to be added, first add the enclosures
 		// view to the window
 		AddEnclosure(NULL);
@@ -2865,10 +2861,12 @@ TMailWindow::Forward(entry_ref *ref, TMailWindow *window, bool includeAttachment
 	fFieldState = 0;
 }
 
+
 class HorizontalLine : public BView {
 	public:
-		HorizontalLine(BRect rect) : BView (rect,NULL,B_FOLLOW_ALL,B_WILL_DRAW) {}
-		virtual void Draw (BRect rect) {
+		HorizontalLine(BRect rect) : BView (rect, NULL, B_FOLLOW_ALL, B_WILL_DRAW) {}
+		virtual void Draw(BRect rect)
+		{
 			FillRect(rect,B_SOLID_HIGH);
 		}
 };
