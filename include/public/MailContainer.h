@@ -1,21 +1,5 @@
 #include <MailComponent.h>
 
-class HeaderedContainer : public MailHeaderComponent {
-	public:
-		HeaderedContainer(MailComponent *body = NULL);
-		
-		void SetBody(MailComponent *body);
-		MailComponent *Body();
-		
-		virtual status_t Instantiate(BDataIO *data, size_t length);
-		virtual status_t Render(BDataIO *render_to);
-	
-		virtual status_t MIMEType(BMimeType *mime);
-	private:
-		MailComponent *body_part;
-};
-	
-
 class MIMEMultipartContainer : public MailComponent {
 	public:
 		MIMEMultipartContainer(const char *boundary = NULL, const char *this_is_an_MIME_message_text = NULL);
@@ -25,14 +9,16 @@ class MIMEMultipartContainer : public MailComponent {
 		
 		void AddComponent(MailComponent *component);
 		MailComponent *GetComponent(int32 index);
+		int32 CountComponents() const;
 		
-		virtual status_t Instantiate(BDataIO *data, size_t length);
-		virtual status_t Render(BDataIO *render_to);
-		
-		virtual status_t MIMEType(BMimeType *mime);
+		virtual status_t Instantiate(BPositionIO *data, size_t length);
+		virtual status_t Render(BPositionIO *render_to);
 	private:
-		const char *boundary;
-		const char *MIME_message_warning;
+		const char *_boundary;
+		const char *_MIME_message_warning;
 		
-		BList components;
+		BPositionIO *_io_data;
+		
+		BList _components_in_raw;
+		BList _components_in_code;
 };

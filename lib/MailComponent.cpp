@@ -160,6 +160,8 @@ PlainTextBodyComponent::PlainTextBodyComponent(const char *text)
 	charset(B_ISO1_CONVERSION) {
 		if (text != NULL)
 			SetText(text);
+			
+		AddHeaderField("MIME-Version","1.0");
 }
 
 void PlainTextBodyComponent::SetEncoding(char encoding, int32 charset) {
@@ -169,8 +171,6 @@ void PlainTextBodyComponent::SetEncoding(char encoding, int32 charset) {
 
 void PlainTextBodyComponent::SetText(const char *text) {
 	this->text.SetTo(text);
-	
-	this->text.ReplaceAll("\r\n","\n");
 }
 
 void PlainTextBodyComponent::SetText(BDataIO *text) {
@@ -181,8 +181,6 @@ void PlainTextBodyComponent::SetText(BDataIO *text) {
 		buffer[buf_len] = 0;
 		this->text << buffer;
 	}
-	
-	this->text.ReplaceAll("\r\n","\n");
 }
 
 void PlainTextBodyComponent::AppendText(const char *text) {
@@ -194,7 +192,20 @@ const char *PlainTextBodyComponent::Text() {
 }
 
 status_t PlainTextBodyComponent::Instantiate(BPositionIO *data, size_t length) {
+	off_t position = data->Position();
 	MailComponent::Instantiate(data,length);
+	
+	length -= (data->Position() - position);
+	
+	if (HeaderField("MIME-Version") == NULL) {
+		text = "";
+		char buffer[255];
+		size_t buf_len;
+		for (int32 offset = 0; (buf_len = data->Read(buffer,((length - offset) >= 254) ? 254 : (length - offset))) > 0; offset += buf_len) { 
+			buffer[buf_len] = 0;
+			text << buffer;
+		}
+	}
 	
 	BString content_type = HeaderField("Content-Type");
 	content_type.Truncate(content_type.FindFirst("; ") + 2);
@@ -219,12 +230,10 @@ status_t PlainTextBodyComponent::Instantiate(BPositionIO *data, size_t length) {
 	size_t buf_len;
 	
 	BString alternate, alt2;
-	for (int32 offset = 0; (buf_len = data->Read(buffer,((length - offset) >= 254) ? 254 : (length - offset))) > 0; offset++) { 
+	for (int32 offset = 0; (buf_len = data->Read(buffer,((length - offset) >= 254) ? 254 : (length - offset))) > 0; offset += buf_len) { 
 		buffer[buf_len] = 0;
 		alternate << buffer;
 	}
-	
-	alternate.ReplaceAll("\r\n","\n");
 	
 	ssize_t len;
 	char *text = alt2.LockBuffer(alternate.Length()+1);
@@ -242,6 +251,8 @@ status_t PlainTextBodyComponent::Instantiate(BPositionIO *data, size_t length) {
 			strcpy(text,alternate.String());
 	}
 	alt2.UnlockBuffer(len+1);
+	
+	alt2.ReplaceAll("\r\n","\n");
 	
 	text = this->text.LockBuffer(len * 2);
 	int32 dest_len = len * 2;
@@ -283,7 +294,7 @@ status_t PlainTextBodyComponent::Render(BPositionIO *render_to) {
 	
 	MailComponent::Render(render_to);
 	
-	BString modified;
+	BString modified = this->text;
 	BString alt;
 	
 	int32 len = this->text.Length();
@@ -292,9 +303,9 @@ status_t PlainTextBodyComponent::Render(BPositionIO *render_to) {
 	int32 state;
 	convert_from_utf8(charset,this->text.String(),&len,raw,&dest_len,&state);
 	raw[dest_len] = 0;
-	alt.UnlockBuffer(dest_len + 1);
+	alt.UnlockBuffer();
 	
-	raw = modified.LockBuffer(alt.Length()+1);
+	raw = modified.LockBuffer((alt.Length()*3)+1);
 	switch (encoding) {
 		case 'b':
 			len = encode_base64(raw,alt.String(),alt.Length());
@@ -308,7 +319,7 @@ status_t PlainTextBodyComponent::Render(BPositionIO *render_to) {
 			len = alt.Length();
 			strcpy(raw,alt.String());
 	}
-	modified.UnlockBuffer(len+1);
+	modified.UnlockBuffer();
 	
 	//------Desperate bid to wrap lines
 	modified.ReplaceAll("\n","\r\n");
@@ -331,6 +342,8 @@ status_t PlainTextBodyComponent::Render(BPositionIO *render_to) {
 			curr_line_length = 0;
 		}
 	}
+	
+	modified << "\r\n";
 	
 	render_to->Write(modified.String(),modified.Length());
 	

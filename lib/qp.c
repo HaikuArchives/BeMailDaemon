@@ -29,7 +29,7 @@ _EXPORT ssize_t	decode_qp(char *out, const char *in, off_t length)
 				*dataout++ = (a<<4) + b;
 				datain += 3;
 				continue;
-			} else if (datain[1]==12 && datain[2]==10) {
+			} else if (datain[1]=='\r' && datain[2]=='\n') {
 				// strip =<CR><NL>
 				datain += 3;
 				continue;
