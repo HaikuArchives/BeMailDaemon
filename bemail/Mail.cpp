@@ -2987,7 +2987,7 @@ status_t TMailWindow::SaveAsDraft()
 
 	// Add the draft attribute for indexing
 	uint32 draftAttr = true;
-	draft.WriteAttr( "MAIL:draft", B_INT8_TYPE, 0, &draftAttr, sizeof(uint32) );
+	draft.WriteAttr( "MAIL:draft", B_INT32_TYPE, 0, &draftAttr, sizeof(uint32) );
 
 	// Add Attachment paths in attribute
 	if (fEnclosuresView != NULL)
