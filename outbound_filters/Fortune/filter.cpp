@@ -36,18 +36,25 @@ MDStatus FortuneFilter::ProcessMailMessage
 
 	FILE * fd;
 	char buffer[768];
+	BString result;
 	
 	fd = popen(fortune_file.String(), "r");
 	if (fd) {
 		(*io)->Seek(0, SEEK_END);
 		
-		(*io)->Write("\n", strlen("\n"));
-		(*io)->Write("--\n",strlen("--\n"));
-		(*io)->Write(settings->FindString("tag_line"),strlen(settings->FindString("tag_line")));
+		(*io)->Write("\r\n", strlen("\r\n"));
+		(*io)->Write("--\r\n",strlen("--\r\n"));
 		
-		while (fgets(buffer, 768, fd)) {
-			(*io)->Write(buffer, strlen(buffer));
-		}
+		result = settings->FindString("tag_line");
+		result.ReplaceAll("\n","\r\n");
+		(*io)->Write(result.String(), result.Length());
+		result = B_EMPTY_STRING;
+		
+		while (fgets(buffer, 768, fd))
+			result << buffer;
+			
+		result.ReplaceAll("\n","\r\n");
+		(*io)->Write(result.String(), result.Length());
 	} else {
 		printf("Damnit!\n");
 	}
