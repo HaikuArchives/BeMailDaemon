@@ -618,7 +618,6 @@ TTextView::TTextView(BRect frame, BRect text, bool incoming, Mail::Message *mail
 	fReady(false),
 	fYankBuffer(NULL),
 	fLastPosition(-1),
-//	fFile(NULL),
 	fMail(mail),
 	fFont(font),
 	fParent(view),
@@ -631,9 +630,6 @@ TTextView::TTextView(BRect frame, BRect text, bool incoming, Mail::Message *mail
 	fCursor(false),
 	fFirstSpellMark(NULL)
 {
-//	if (file)
-//		fFile = new BFile(*file);
-
 	BFont menuFont = *be_plain_font;
 	menuFont.SetSize(10);
 
@@ -692,8 +688,8 @@ TTextView::AttachedToWindow()
 	BTextView::AttachedToWindow();
 	fFont.SetSpacing(B_FIXED_SPACING);
 	SetFontAndColor(&fFont);
-	if (fMail != NULL)
-	{
+
+	if (fMail != NULL) {
 		LoadMessage(fMail, false, NULL);
 		if (fIncoming)
 			MakeEditable(false);
@@ -918,6 +914,7 @@ void
 TTextView::MakeFocus(bool focus)
 {
 	if (!focus) {
+		// ToDo: can someone please translate this? Otherwise I will remove it - axeld.
 		// MakeFocus(false) は、IM も Inactive になり、そのまま確定される。
 		// しかしこの場合、input_server が B_INPUT_METHOD_EVENT(B_INPUT_METHOD_STOPPED)
 		// を送ってこないまま矛盾してしまうので、やむを得ずここでつじつまあわせ処理している。
@@ -958,47 +955,37 @@ TTextView::MessageReceived(BMessage *msg)
 			int32 loop;
 			int32 start;
 
-			for (int32 index = 0;msg->FindRef("refs", index++, &ref) == B_NO_ERROR;)
-			{
-				BFile file(&ref, O_RDONLY);
-				if (file.InitCheck() == B_NO_ERROR)
-				{
+			for (int32 index = 0;msg->FindRef("refs", index++, &ref) == B_NO_ERROR;) {
+				BFile file(&ref, B_READ_ONLY);
+				if (file.InitCheck() == B_NO_ERROR) {
 					BNodeInfo node(&file);
 					char type[B_FILE_NAME_LENGTH];
 					node.GetType(type);
 
 					file.GetSize(&size);
-					if (!strncasecmp(type, "text/", 5) && size > 0)
-					{
+					if (!strncasecmp(type, "text/", 5) && size > 0) {
 						len += size;
 						char *text = (char *)malloc(size);
-						if (text == NULL)
-						{
+						if (text == NULL) {
 							puts("no memory!");
 							return;
 						}
-						if (file.Read(text, size) < B_OK)
-						{
+						if (file.Read(text, size) < B_OK) {
 							puts("could not read from file");
 							return;
 						}
-						if (!inserted)
-						{
+						if (!inserted) {
 							GetSelection(&start, &end);
 							Delete();
 							inserted = true;
 						}
 
 						int32 offset = 0;
-						for (loop = 0; loop < size; loop++)
-						{
-							if (text[loop] == '\n')
-							{
+						for (loop = 0; loop < size; loop++) {
+							if (text[loop] == '\n') {
 								Insert(&text[offset], loop - offset + 1);
 								offset = loop + 1;
-							}
-							else if (text[loop] == '\r')
-							{
+							} else if (text[loop] == '\r') {
 								text[loop] = '\n';
 								Insert(&text[offset], loop - offset + 1);
 								if ((loop + 1 < size)
@@ -1008,9 +995,7 @@ TTextView::MessageReceived(BMessage *msg)
 							}
 						}
 						free(text);
-					}
-					else
-					{
+					} else {
 						is_enclosure = true;
 						message.AddRef("refs", &ref);
 					}
@@ -1049,8 +1034,7 @@ TTextView::MessageReceived(BMessage *msg)
 		case B_NODE_MONITOR:
 		{
 			int32 opcode;
-			if (msg->FindInt32("opcode", &opcode) == B_NO_ERROR)
-			{
+			if (msg->FindInt32("opcode", &opcode) == B_NO_ERROR) {
 				dev_t device;
 				if (msg->FindInt32("device", &device) < B_OK)
 					break;
@@ -1059,18 +1043,14 @@ TTextView::MessageReceived(BMessage *msg)
 					break;
 
 				hyper_text *enclosure;
-				for (int32 index = 0;(enclosure = (hyper_text *)fEnclosures->ItemAt(index++)) != NULL;)
-				{
+				for (int32 index = 0;
+						(enclosure = (hyper_text *)fEnclosures->ItemAt(index++)) != NULL;) {
 					if (device == enclosure->node.device
-						&& inode == enclosure->node.node)
-					{
-						if (opcode == B_ENTRY_REMOVED)
-						{
+						&& inode == enclosure->node.node) {
+						if (opcode == B_ENTRY_REMOVED) {
 							enclosure->saved = false;
 							enclosure->have_ref = false;
-						}
-						else if (opcode == B_ENTRY_MOVED)
-						{
+						} else if (opcode == B_ENTRY_MOVED) {
 							enclosure->ref.device = device;
 							msg->FindInt64("to directory", &enclosure->ref.directory);
 
@@ -1093,18 +1073,15 @@ TTextView::MessageReceived(BMessage *msg)
 		case B_COPY_TARGET:
 		{
 			BMessage data;
-			if (msg->FindMessage("be:originator-data", &data) == B_OK)
-			{
+			if (msg->FindMessage("be:originator-data", &data) == B_OK) {
 				entry_ref directory;
 				const char *name;
 				hyper_text *enclosure;
 
 				if (data.FindPointer("enclosure", (void **)&enclosure) == B_OK 
-				  && msg->FindString("name", &name) == B_OK 
-				  && msg->FindRef("directory", &directory) == B_OK)
-				{
-					switch (enclosure->type)
-					{
+					&& msg->FindString("name", &name) == B_OK 
+					&& msg->FindRef("directory", &directory) == B_OK) {
+					switch (enclosure->type) {
 						case TYPE_ENCLOSURE:
 						case TYPE_BE_ENCLOSURE:
 						{
@@ -1130,16 +1107,12 @@ TTextView::MessageReceived(BMessage *msg)
 							BDirectory dir(&directory);	
 							BFile file(&dir, name, B_READ_WRITE);
 							if (file.InitCheck() == B_OK) {
-								
-								if (strcmp(replyType,"application/x-vnd.Be-bookmark") == 0)
-								{
+								if (strcmp(replyType,"application/x-vnd.Be-bookmark") == 0) {
 									// we got a request to create a bookmark, stuff
 									// it with the url attribute
 									file.WriteAttr("META:url", B_STRING_TYPE, 0, 
 													enclosure->name, strlen(enclosure->name) + 1);
-								}
-								else if (strcasecmp(replyType, "text/plain") == 0)
-								{
+								} else if (strcasecmp(replyType, "text/plain") == 0) {
 									// create a plain text file, stuff it with
 									// the url as text
 									file.Write(enclosure->name, strlen(enclosure->name));
@@ -1150,7 +1123,7 @@ TTextView::MessageReceived(BMessage *msg)
 							}
 							break;
 						}
-		
+
 						case TYPE_MAILTO:
 						{
 							//
@@ -1159,20 +1132,17 @@ TTextView::MessageReceived(BMessage *msg)
 							//  possible.
 							//
 							char *addrStart = enclosure->name;
-							while (true)
-							{
-								if (*addrStart == ':')
-								{
+							while (true) {
+								if (*addrStart == ':') {
 									addrStart++;
 									break;
 								}
 
-								if (*addrStart == '\0')
-								{
+								if (*addrStart == '\0') {
 									addrStart = enclosure->name;		
 									break;
 								}
-			
+
 								addrStart++;
 							}
 
@@ -1181,20 +1151,16 @@ TTextView::MessageReceived(BMessage *msg)
 								// drag recipient didn't ask for any specific type,
 								// create a bookmark file as default
 								replyType = "application/x-vnd.Be-bookmark";
-							
+
 							BDirectory dir(&directory);	
 							BFile file(&dir, name, B_READ_WRITE);
-							if (file.InitCheck() == B_OK)
-							{
-								if (strcmp(replyType, "application/x-person") == 0)
-								{
+							if (file.InitCheck() == B_OK) {
+								if (!strcmp(replyType, "application/x-person")) {
 									// we got a request to create a bookmark, stuff
 									// it with the address attribute
 									file.WriteAttr("META:email", B_STRING_TYPE, 0, 
 									  addrStart, strlen(enclosure->name) + 1);
-								}
-								else if (strcasecmp(replyType, "text/plain") == 0)
-								{
+								} else if (!strcasecmp(replyType, "text/plain")) {
 									// create a plain text file, stuff it with the
 									// email as text
 									file.Write(addrStart, strlen(addrStart));
@@ -1206,9 +1172,7 @@ TTextView::MessageReceived(BMessage *msg)
 							break;
 						}
 					}
-				}
-				else
-				{
+				} else {
 					//
 					// Assume this is handled by BTextView...		
 					// (Probably drag clipping.)
@@ -1218,47 +1182,43 @@ TTextView::MessageReceived(BMessage *msg)
 			}
 			break;
 		}
+
 		case B_INPUT_METHOD_EVENT:
-			{
-				int32 im_op;
-				//BMessenger("application/x-vnd.Geb-ViewIt").SendMessage(msg);
-				if(msg->FindInt32("be:opcode", &im_op)==B_OK){
-					switch(im_op){
-						case B_INPUT_METHOD_STARTED:
-							//printf("be:opcode=B_INPUT_METHOD_STARTED\n");
-							fInputMethodUndoState.replace = true;
-							fInputMethodUndoState.active = true;
-							break;
-						case B_INPUT_METHOD_STOPPED:
-							//printf("be:opcode=B_INPUT_METHOD_STOPPED\n");
-							fInputMethodUndoState.active = false;
-							// fInputMethodUndoBufferに溜まっている最後のデータがK_INSERTEDなら（これは確定文字列だから）正規のバッファへ追加
-							if (fInputMethodUndoBuffer.CountItems()>0){
-								KUndoItem *im_undo = fInputMethodUndoBuffer.ItemAt(fInputMethodUndoBuffer.CountItems()-1);
-								if (im_undo->History == K_INSERTED){
-									fUndoBuffer.MakeNewUndoItem();
-									fUndoBuffer.AddUndo(im_undo->RedoText, im_undo->Length, im_undo->Offset, im_undo->History, im_undo->CursorPos);
-									fUndoBuffer.MakeNewUndoItem();
-								}
-								fInputMethodUndoBuffer.MakeEmpty();
+		{
+			int32 im_op;
+			if (msg->FindInt32("be:opcode", &im_op) == B_OK){
+				switch (im_op) {
+					case B_INPUT_METHOD_STARTED:
+						fInputMethodUndoState.replace = true;
+						fInputMethodUndoState.active = true;
+						break;
+					case B_INPUT_METHOD_STOPPED:
+						fInputMethodUndoState.active = false;
+						if (fInputMethodUndoBuffer.CountItems() > 0) {
+							KUndoItem *undo = fInputMethodUndoBuffer.ItemAt(fInputMethodUndoBuffer.CountItems() - 1);
+							if (undo->History == K_INSERTED){
+								fUndoBuffer.MakeNewUndoItem();
+								fUndoBuffer.AddUndo(undo->RedoText, undo->Length,
+									undo->Offset, undo->History, undo->CursorPos);
+								fUndoBuffer.MakeNewUndoItem();
 							}
-							break;
-						case B_INPUT_METHOD_CHANGED:
-							//printf("be:opcode=B_INPUT_METHOD_CHANGED\n");
-							fInputMethodUndoState.active = true;
-							break;
-						case B_INPUT_METHOD_LOCATION_REQUEST:
-							//printf("be:opcode=B_INPUT_METHOD_LOCATION_REQUEST\n");
-							fInputMethodUndoState.active = true;
-							break;
-					}
+							fInputMethodUndoBuffer.MakeEmpty();
+						}
+						break;
+					case B_INPUT_METHOD_CHANGED:
+						fInputMethodUndoState.active = true;
+						break;
+					case B_INPUT_METHOD_LOCATION_REQUEST:
+						fInputMethodUndoState.active = true;
+						break;
 				}
-				this->BTextView::MessageReceived(msg);
 			}
+			BTextView::MessageReceived(msg);
+			break;
+		}
+
 		case M_REDO:
-			{
-				Redo();
-			}
+			Redo();
 			break;
 
 		default:
@@ -1270,93 +1230,82 @@ TTextView::MessageReceived(BMessage *msg)
 void
 TTextView::MouseDown(BPoint where)
 {
-	if (IsEditable())
-	{
+	if (IsEditable()) {
 		BPoint point;
 		uint32 buttons;
 		GetMouse(&point, &buttons);
-		if (gDictCount && (buttons == B_SECONDARY_MOUSE_BUTTON))
-		{
+		if (gDictCount && (buttons == B_SECONDARY_MOUSE_BUTTON)) {
 			int32 offset, start, end, length;
 			const char *text = Text();
 			offset = OffsetAt(where);
-			if (isalpha(text[offset]))
-			{
+			if (isalpha(text[offset])) {
 				length = TextLength();
-				
+
 				//Find start and end of word
 				//FindSpellBoundry(length, offset, &start, &end);
-				
+
 				char c;
 				bool isAlpha, isApost, isCap;
 				int32 first;
-				
+
 				for (first = offset;
 					(first >= 0) && (((c = text[first]) == '\'') || isalpha(c));
 					first--) {}
 				isCap = isupper(text[++first]);
-				
+
 				for (start = offset, c = text[start], isAlpha = isalpha(c), isApost = (c=='\'');
 					(start >= 0) && (isAlpha || (isApost
 					&& (((c = text[start+1]) != 's') || !isCap) && isalpha(c)
 					&& isalpha(text[start-1])));
 					start--, c = text[start], isAlpha = isalpha(c), isApost = (c == '\'')) {}
 				start++;
-				
+
 				for (end = offset, c = text[end], isAlpha = isalpha(c), isApost = (c == '\'');
 					(end < length) && (isAlpha || (isApost
 					&& (((c = text[end + 1]) != 's') || !isCap) && isalpha(c)));
 					end++, c = text[end], isAlpha = isalpha(c), isApost = (c == '\'')) {}
 
-				length = end-start;
+				length = end - start;
 				BString srcWord;
-				srcWord.SetTo(text+start, length);
-				
+				srcWord.SetTo(text + start, length);
+
 				bool		foundWord = false;
 				BList 		matches;
 				BString 	*string;
-				
+
 				BMenuItem *menuItem;
 				BPopUpMenu menu("Words", false, false);
-				
+
 				int32 matchCount;
 				for (int32 i = 0; i < gDictCount; i++)
 					matchCount = gWords[i]->FindBestMatches(&matches,
 						srcWord.String());
-				
-				if (matches.CountItems())
-				{
+
+				if (matches.CountItems()) {
 					sort_word_list(&matches, srcWord.String());
-					for (int32 i = 0; (string = (BString *)matches.ItemAt(i)) != NULL; i++)
-					{
+					for (int32 i = 0; (string = (BString *)matches.ItemAt(i)) != NULL; i++) {
 						menu.AddItem((menuItem = new BMenuItem(string->String(),NULL)));
-						if (strcasecmp(string->String(), srcWord.String()) == 0)
-						{
+						if (!strcasecmp(string->String(), srcWord.String())) {
 							menuItem->SetEnabled(false);
 							foundWord = true;
 						}
 						delete string;
 					}
-				}
-				else
-				{
+				} else {
 					(menuItem = new BMenuItem("No Matches",NULL))->SetEnabled(false);
 					menu.AddItem(menuItem);
 				}
-				
+
 				BMenuItem *addItem = NULL;
-				if (!foundWord && gUserDict >= 0)
-				{
+				if (!foundWord && gUserDict >= 0) {
 					menu.AddSeparatorItem();
 					addItem = new BMenuItem(MDR_DIALECT_CHOICE ("Add","追加"), NULL);
 					menu.AddItem(addItem);
 				}
-				
+
 				point = ConvertToScreen(where);
-				if ((menuItem = menu.Go(point, false, false)) != NULL)
-				{
-					if (menuItem == addItem)
-					{
+				if ((menuItem = menu.Go(point, false, false)) != NULL) {
+					if (menuItem == addItem) {
 						BString newItem(srcWord.String());
 						newItem << "\n";
 						gWords[gUserDict]->InitIndex();
@@ -1367,9 +1316,7 @@ TTextView::MouseDown(BPoint where)
 
 						if (fSpellCheck)
 							CheckSpelling(0, TextLength());
-					}
-					else
-					{
+					} else {
 						int32 len = strlen(menuItem->Label());
 						Select(start, start);
 						Delete(start, end);
@@ -1379,23 +1326,19 @@ TTextView::MouseDown(BPoint where)
 				}
 			}
 			return;
-		}
-		else if (fSpellCheck && IsEditable())
-		{
+		} else if (fSpellCheck && IsEditable()) {
 			int32 start, end;
-			
+
 			GetSelection(&start, &end);
 			FindSpellBoundry(1, start, &start, &end);
 			CheckSpelling(start, end);
 		}
-		
-	}
-	else	// is not editable, look for enclosures/links
-	{
+	} else {
+		// is not editable, look for enclosures/links
+
 		int32 clickOffset = OffsetAt(where);
 		int32 items = fEnclosures->CountItems();
-		for (int32 loop = 0; loop < items; loop++)
-		{
+		for (int32 loop = 0; loop < items; loop++) {
 			hyper_text *enclosure = (hyper_text*) fEnclosures->ItemAt(loop);
 			if (clickOffset < enclosure->text_start || clickOffset >= enclosure->text_end)
 				continue;
@@ -1422,35 +1365,28 @@ TTextView::MouseDown(BPoint where)
 			// If this is the primary button, wait to see if the user is going 
 			// to single click, hold, or drag.
 			//
-			if (buttons != B_SECONDARY_MOUSE_BUTTON)
-			{
+			if (buttons != B_SECONDARY_MOUSE_BUTTON) {
 				BPoint point = where;
 				bigtime_t popupDelay;
 				get_click_speed(&popupDelay);
 				popupDelay *= 2;
 				popupDelay += system_time();
-				while (buttons && abs((int)(point.x - where.x)) < 4 && 
-				  abs((int)(point.y - where.y)) < 4 && 
-				  system_time() < popupDelay)
-				{
+				while (buttons && abs((int)(point.x - where.x)) < 4
+					&& abs((int)(point.y - where.y)) < 4
+					&& system_time() < popupDelay) {
 					snooze(10000);
 					GetMouse(&point, &buttons);
-				}	
+				}
 
-				if (system_time() < popupDelay)
-				{
+				if (system_time() < popupDelay) {
 					//
 					// The user either dragged this or released the button.
 					// check if it was dragged.
 					//
-					if (!(abs((int)(point.x - where.x)) < 4 && 
-						  abs((int)(point.y - where.y)) < 4) && buttons)
-					{
+					if (!(abs((int)(point.x - where.x)) < 4
+						&& abs((int)(point.y - where.y)) < 4) && buttons)
 						drag = true;
-					}
-				}
-				else 
-				{
+				} else  {
 					//
 					//	The user held the button down.
 					//
@@ -1463,8 +1399,7 @@ TTextView::MouseDown(BPoint where)
 			// 	or held the button down on it for a while, 
 			//	pop up a context menu.
 			//
-			if (buttons == B_SECONDARY_MOUSE_BUTTON || held)
-			{
+			if (buttons == B_SECONDARY_MOUSE_BUTTON || held) {
 				//
 				// Right mouse click... Display a menu
 				//
@@ -1472,49 +1407,39 @@ TTextView::MouseDown(BPoint where)
 				ConvertToScreen(&point);
 
 				BMenuItem *item;
-				if ((enclosure->type != TYPE_ENCLOSURE) &&
-					(enclosure->type != TYPE_BE_ENCLOSURE))
+				if ((enclosure->type != TYPE_ENCLOSURE)
+					&& (enclosure->type != TYPE_BE_ENCLOSURE))
 					item = fLinkMenu->Go(point, true);
 				else
 					item = fEnclosureMenu->Go(point, true);
 
 				BMessage *msg;
-				if (item && (msg = item->Message()) != NULL)
-				{
-					if (msg->what == M_SAVE)
-					{
+				if (item && (msg = item->Message()) != NULL) {
+					if (msg->what == M_SAVE) {
 						if (fPanel)
 							fPanel->SetEnclosure(enclosure);
-						else
-						{
+						else {
 							fPanel = new TSavePanel(enclosure, this);
 							fPanel->Window()->Show();
 						}
-					}
-					else if (msg->what == M_COPY)
-					{
+					} else if (msg->what == M_COPY) {
 						// copy link location to clipboard
 						
-						if (be_clipboard->Lock())
-						{
+						if (be_clipboard->Lock()) {
 							be_clipboard->Clear();
-							
+
 							BMessage *clip;
-							if ((clip = be_clipboard->Data()) != NULL)
-							{
-								clip->AddData("text/plain",B_MIME_TYPE,
-												enclosure->name,strlen(enclosure->name));
+							if ((clip = be_clipboard->Data()) != NULL) {
+								clip->AddData("text/plain", B_MIME_TYPE,
+									enclosure->name, strlen(enclosure->name));
 								be_clipboard->Commit();
 							}
 							be_clipboard->Unlock();
 						}
-					}
-					else
+					} else
 						Open(enclosure);
 				}
-			}
-			else
-			{
+			} else {
 				//
 				// Left button.  If the user single clicks, open this link.  
 				// Otherwise, initiate a drag.
@@ -1523,8 +1448,7 @@ TTextView::MouseDown(BPoint where)
 					BMessage dragMessage(B_SIMPLE_DATA);
 					dragMessage.AddInt32("be:actions", B_COPY_TARGET);
 					dragMessage.AddString("be:types", B_FILE_MIME_TYPE);
-					switch (enclosure->type)
-					{
+					switch (enclosure->type) {
 						case TYPE_BE_ENCLOSURE:
 						case TYPE_ENCLOSURE:
 							//
@@ -1535,7 +1459,7 @@ TTextView::MouseDown(BPoint where)
 								enclosure->content_type ? enclosure->content_type : "");
 							dragMessage.AddString("be:clip_name", enclosure->name);
 							break;
-	
+
 						case TYPE_URL:
 							//
 							// URL.  The user can drag it into the tracker to 
@@ -1549,7 +1473,7 @@ TTextView::MouseDown(BPoint where)
 							
 							dragMessage.AddString("be:url", enclosure->name);
 							break;
-	
+
 						case TYPE_MAILTO:
 							//
 							// Mailto address.  The user can drag it into the
@@ -1572,7 +1496,7 @@ TTextView::MouseDown(BPoint where)
 							// (tracker won't.)
 							//	
 							dragMessage.AddString("be:clip_name", "Hyperlink");
-					};
+					}
 
 					BMessage data;
 					data.AddPointer("enclosure", enclosure);
@@ -1581,9 +1505,7 @@ TTextView::MouseDown(BPoint where)
 					BRegion selectRegion;
 					GetTextRegion(start, finish, &selectRegion);
 					DragMessage(&dragMessage, selectRegion.Frame(), this);
-				}
-				else
-				{
+				} else {
 					//
 					//	User Single clicked on the attachment.  Open it.
 					//
@@ -1602,24 +1524,21 @@ TTextView::MouseMoved(BPoint where, uint32 code, const BMessage *msg)
 {
 	int32 start = OffsetAt(where);
 
-	for (int32 loop = fEnclosures->CountItems(); loop-- > 0;)
-	{
+	for (int32 loop = fEnclosures->CountItems(); loop-- > 0;) {
 		hyper_text *enclosure = (hyper_text *)fEnclosures->ItemAt(loop);
-		if ((start >= enclosure->text_start) && (start < enclosure->text_end))
-		{
+		if ((start >= enclosure->text_start) && (start < enclosure->text_end)) {
 			if (!fCursor)
 				SetViewCursor(B_CURSOR_SYSTEM_DEFAULT);
 			fCursor = true;
 			return;
 		}
 	}
-	
-	if (fCursor)
-	{
+
+	if (fCursor) {
 		SetViewCursor(B_CURSOR_I_BEAM);
 		fCursor = false;
 	}
-	
+
 	BTextView::MouseMoved(where, code, msg);
 }
 
@@ -1627,21 +1546,18 @@ TTextView::MouseMoved(BPoint where, uint32 code, const BMessage *msg)
 void
 TTextView::ClearList()
 {
-	BEntry			entry;
-	hyper_text		*enclosure;
-
-	while ((enclosure = (hyper_text *)fEnclosures->FirstItem()) != NULL)
-	{
+	hyper_text *enclosure;
+	while ((enclosure = (hyper_text *)fEnclosures->FirstItem()) != NULL) {
 		fEnclosures->RemoveItem(enclosure);
+
 		if (enclosure->name)
 			free(enclosure->name);
 		if (enclosure->content_type)
 			free(enclosure->content_type);
 		if (enclosure->encoding)
 			free(enclosure->encoding);
-		if (enclosure->have_ref && !enclosure->saved)
-		{
-			entry.SetTo(&enclosure->ref);
+		if (enclosure->have_ref && !enclosure->saved) {
+			BEntry entry(&enclosure->ref);
 			entry.Remove();
 		}
 
@@ -1681,12 +1597,10 @@ TTextView::LoadMessage(Mail::Message *mail, bool quoteIt, const char *text)
 void
 TTextView::Open(hyper_text *enclosure)
 {
-	switch (enclosure->type)
-	{
+	switch (enclosure->type) {
 		case TYPE_URL:
 		{
-			const struct {const char *urlType, *handler; } handlerTable[] =
-			{
+			const struct {const char *urlType, *handler; } handlerTable[] = {
 				{"http",	B_URL_HTTP},
 				{"https",	B_URL_HTTPS},
 				{"ftp",		B_URL_FTP},
@@ -1704,21 +1618,18 @@ TTextView::Open(hyper_text *enclosure)
 			const char *handlerToLaunch = NULL;
 
 			const char *colonPos = strchr(enclosure->name, ':');
-			if (colonPos)
-			{
+			if (colonPos) {
 				int urlTypeLength = colonPos - enclosure->name;
-				
-				for (int32 index = 0; handlerTable[index].urlType; index++)
-				{
-					if (strncasecmp(enclosure->name, handlerTable[index].urlType, urlTypeLength) == 0)
-					{
+
+				for (int32 index = 0; handlerTable[index].urlType; index++) {
+					if (!strncasecmp(enclosure->name,
+							handlerTable[index].urlType, urlTypeLength)) {
 						handlerToLaunch = handlerTable[index].handler;
 						break;
 					}
 				}
 			}
-			if (handlerToLaunch)
-			{
+			if (handlerToLaunch) {
 				entry_ref appRef;
 				if (be_roster->FindApp(handlerToLaunch, &appRef) != B_OK)
 					handlerToLaunch = NULL;
@@ -1727,8 +1638,7 @@ TTextView::Open(hyper_text *enclosure)
 				handlerToLaunch = "application/x-vnd.Be-Bookmark";
 
 			status_t result = be_roster->Launch(handlerToLaunch, 1, &enclosure->name);
-			if ((result != B_NO_ERROR) && (result != B_ALREADY_RUNNING))
-			{
+			if (result != B_NO_ERROR && result != B_ALREADY_RUNNING) {
 				beep();
 				(new BAlert("", MDR_DIALECT_CHOICE ("There is no installed handler for URL links.","このURLリンクを扱えるアプリケーションが存在しません"),
 					"Sorry"))->Go();
@@ -1737,8 +1647,7 @@ TTextView::Open(hyper_text *enclosure)
 		}
 
 		case TYPE_MAILTO:
-			if (be_roster->Launch(B_MAIL_TYPE, 1, &enclosure->name) < B_OK)
-			{
+			if (be_roster->Launch(B_MAIL_TYPE, 1, &enclosure->name) < B_OK) {
 				char *argv[] = {"BeMail", enclosure->name};
 				be_app->ArgvReceived(2, argv);
 			}
@@ -1746,14 +1655,11 @@ TTextView::Open(hyper_text *enclosure)
 
 		case TYPE_ENCLOSURE:
 		case TYPE_BE_ENCLOSURE:
-			if (!enclosure->have_ref)
-			{
+			if (!enclosure->have_ref) {
 				BPath path;
-				if (find_directory(B_COMMON_TEMP_DIRECTORY, &path) == B_NO_ERROR)
-				{
+				if (find_directory(B_COMMON_TEMP_DIRECTORY, &path) == B_NO_ERROR) {
 					BDirectory dir(path.Path());
-					if (dir.InitCheck() == B_NO_ERROR)
-					{
+					if (dir.InitCheck() == B_NO_ERROR) {
 						char name[B_FILE_NAME_LENGTH];
 						char baseName[B_FILE_NAME_LENGTH];
 						strcpy(baseName, enclosure->name ? enclosure->name : "enclosure");
@@ -1775,9 +1681,9 @@ TTextView::Open(hyper_text *enclosure)
 					}
 				}
 			}
+
 			BMessenger tracker("application/x-vnd.Be-TRAK");
-			if (tracker.IsValid())
-			{
+			if (tracker.IsValid()) {
 				BMessage openMsg(B_REFS_RECEIVED);
 				openMsg.AddRef("refs", &enclosure->ref);
 				tracker.SendMessage(&openMsg);
@@ -1787,7 +1693,8 @@ TTextView::Open(hyper_text *enclosure)
 }
 
 
-status_t TTextView::Save(BMessage *msg, bool makeNewFile)
+status_t
+TTextView::Save(BMessage *msg, bool makeNewFile)
 {
 	const char		*name;
 	entry_ref		ref;
@@ -1805,10 +1712,8 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 	dir.SetTo(&ref);
 	result = dir.InitCheck();
 
-	if (result == B_OK)
-	{
-		if (makeNewFile)
-		{
+	if (result == B_OK) {
+		if (makeNewFile) {
 			//
 			// Search for the file and delete it if it already exists.
 			// (It may not, that's ok.)
@@ -1817,8 +1722,7 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 			if (dir.FindEntry(name, &entry) == B_NO_ERROR)
 				entry.Remove();
 			
-			if ((enclosure->have_ref) && (!enclosure->saved))
-			{
+			if ((enclosure->have_ref) && (!enclosure->saved)) {
 				entry.SetTo(&enclosure->ref);
 	
 				//
@@ -1837,11 +1741,9 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 				}
 			}
 					
-			if (result == B_NO_ERROR)
-			{
+			if (result == B_NO_ERROR) {
 				result = dir.CreateFile(name, &file);
-				if (result == B_NO_ERROR && enclosure->content_type)
-				{
+				if (result == B_NO_ERROR && enclosure->content_type) {
 					char type[B_MIME_TYPE_LENGTH];
 
 					if (!strcasecmp(enclosure->content_type,"message/rfc822"))
@@ -1855,9 +1757,7 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 					info.SetType(type);
 				}
 			}
-		}
-		else
-		{
+		} else {
 			//
 			// 	This file was dragged into the tracker or desktop.  The file 
 			//	already exists.
@@ -1865,17 +1765,16 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 			result = file.SetTo(&dir, name, B_WRITE_ONLY);
 		}
 	}
-	
+
 	if (enclosure->component == NULL)
 		result = B_ERROR;
 
-	if (result == B_NO_ERROR)
-	{
+	if (result == B_NO_ERROR) {
 		//
 		// Write the data
 		//
 		enclosure->component->GetDecodedData(&file);
-		
+
 		BEntry entry;
 		dir.FindEntry(name, &entry);
 		entry.GetRef(&enclosure->ref);
@@ -1888,8 +1787,7 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 		watch_node(&enclosure->node, B_WATCH_NAME, this);
 	}	
 
-	if (result != B_NO_ERROR)
-	{
+	if (result != B_NO_ERROR) {
 		beep();
 		MDR_DIALECT_CHOICE (
 			(new BAlert("", "An error occurred trying to save the enclosure.","Sorry"))->Go();,
@@ -1907,8 +1805,7 @@ TTextView::StopLoad()
 	Window()->Unlock();
 
 	thread_info	info;
-	if (fThread != 0 && get_thread_info(fThread, &info) == B_NO_ERROR)
-	{
+	if (fThread != 0 && get_thread_info(fThread, &info) == B_NO_ERROR) {
 		fStopLoading = true;
 		acquire_sem(fStopSem);
 		int32 result;
@@ -1928,20 +1825,20 @@ TTextView::AddAsContent(Mail::Message *mail, bool wrap, uint32 charset, mail_enc
 	if (mail == NULL)
 		return;
 
-	int32		textLen = TextLength();
-	const char	*text = Text();
+	int32 textLen = TextLength();
+	const char *text = Text();
 
 	Mail::TextComponent *body = mail->Body();
-	if (body == NULL)
-	{
+	if (body == NULL) {
 		if (mail->SetBody(body = new Mail::TextComponent()) < B_OK)
 			return;
 	}
 	body->SetEncoding(encoding,charset);
 	if (!wrap)
 		body->AppendText(text); //, textLen, mail_encoding);
-	else // Do word wrapping.
-	{
+	else {
+		// Do word wrapping.
+
 		BWindow	*window = Window();
 		BRect	saveTextRect = TextRect();
 		
@@ -1996,12 +1893,10 @@ TTextView::AddAsContent(Mail::Message *mail, bool wrap, uint32 charset, mail_enc
 		// hard-wrap, based on TextView's soft-wrapping
 		int32	numLines = CountLines();
 		char	*content = (char *)malloc(textLen + numLines * 72);	// more we'll ever need
-		if (content != NULL)
-		{
+		if (content != NULL) {
 			int32 contentLen = 0;
 
-			for (int32 i = 0; i < numLines; i++)
-			{
+			for (int32 i = 0; i < numLines; i++) {
 				int32 startOffset = OffsetAt(i);
 				int32 endOffset = OffsetAt(i + 1);
 				int32 lineLen = endOffset - startOffset;
@@ -2011,29 +1906,26 @@ TTextView::AddAsContent(Mail::Message *mail, bool wrap, uint32 charset, mail_enc
 
 				// add a newline to every line except for the ones
 				// that already end in newlines, and the last line
-				if ((text[endOffset - 1] != '\n') && (i < (numLines - 1)))
-				{
+				if ((text[endOffset - 1] != '\n') && (i < (numLines - 1))) {
 					content[contentLen++] = '\n';
-					
+
 					// count qoute level (to be able to wrap quotes correctly)
 
 					char *quote = QUOTE;
 					int32 level = 0;
-					for (int32 i = startOffset;i < endOffset;i++)
-					{
+					for (int32 i = startOffset; i < endOffset; i++) {
 						if (text[i] == *quote)
 							level++;
 						else if (text[i] != ' ' && text[i] != '\t')
 							break;
 					}
-					
+
 					// if there are too much quotes, try to preserve the quote color level
 					if (level > 10)
 						level = kNumQuoteColors * 3 + (level % kNumQuoteColors);
-						
+
 					int32 quoteLength = strlen(QUOTE);
-					for (;level-- > 0;)
-					{
+					while (level-- > 0) {
 						strcpy(content + contentLen,QUOTE);
 						contentLen += quoteLength;
 					}
@@ -2065,7 +1957,7 @@ TTextView::AddAsContent(Mail::Message *mail, bool wrap, uint32 charset, mail_enc
 
 
 TTextView::Reader::Reader(bool header, bool raw, bool quote, bool incoming, bool stripHeader,
-				bool mime, TTextView *view, Mail::Message *mail, BList *list, sem_id sem)
+	bool mime, TTextView *view, Mail::Message *mail, BList *list, sem_id sem)
 	:
 	fHeader(header),
 	fRaw(raw),
@@ -2085,14 +1977,12 @@ bool
 TTextView::Reader::ParseMail(Mail::Container *container, Mail::TextComponent *ignore)
 {
 	int32 count = 0;
-	for (int32 i = 0;i < container->CountComponents();i++)
-	{
+	for (int32 i = 0; i < container->CountComponents(); i++) {
 		if (fView->fStopLoading)
 			return false;
 
 		Mail::Component *component;
-		if ((component = container->GetComponent(i)) == NULL)
-		{
+		if ((component = container->GetComponent(i)) == NULL) {
 			if (fView->fStopLoading)
 				return false;
 
@@ -2100,7 +1990,7 @@ TTextView::Reader::ParseMail(Mail::Container *container, Mail::TextComponent *ig
 			memset(enclosure, 0, sizeof(hyper_text));
 
 			enclosure->type = TYPE_ENCLOSURE;
-			
+
 			char *name = "\n<Enclosure: could not handle>\n";
 
 			fView->GetSelection(&enclosure->text_start, &enclosure->text_end);
@@ -2116,16 +2006,13 @@ TTextView::Reader::ParseMail(Mail::Container *container, Mail::TextComponent *ig
 		if (component == ignore)
 			continue;
 
-		if (component->ComponentType() == Mail::MC_MULTIPART_CONTAINER)
-		{
+		if (component->ComponentType() == Mail::MC_MULTIPART_CONTAINER) {
 			Mail::MIMEMultipartContainer *c = dynamic_cast<Mail::MIMEMultipartContainer *>(container->GetComponent(i));
 			ASSERT(c != NULL);
 
 			if (!ParseMail(c,ignore))
 				count--;
-		}
-		else if (fIncoming)
-		{
+		} else if (fIncoming) {
 			hyper_text *enclosure = (hyper_text *)malloc(sizeof(hyper_text));
 			memset(enclosure, 0, sizeof(hyper_text));
 
@@ -2506,7 +2393,7 @@ TTextView::Reader::Run(void *_this)
 				free(bodyText);
 		}
 
-		if (!reader->ParseMail(mail,body))
+		if (!reader->ParseMail(mail, body))
 			goto done;
 
 		//reader->fView->fMail = mail;
@@ -2564,7 +2451,8 @@ TSavePanel::TSavePanel(hyper_text *enclosure, TTextView *view)
 }
 
 
-void TSavePanel::SendMessage(const BMessenger * /* messenger */, BMessage *msg)
+void
+TSavePanel::SendMessage(const BMessenger * /* messenger */, BMessage *msg)
 {
 	const char	*name = NULL;
 	BMessage	save(M_SAVE);
@@ -2579,7 +2467,8 @@ void TSavePanel::SendMessage(const BMessenger * /* messenger */, BMessage *msg)
 }
 
 
-void TSavePanel::SetEnclosure(hyper_text *enclosure)
+void
+TSavePanel::SetEnclosure(hyper_text *enclosure)
 {
 	fEnclosure = enclosure;
 	if (enclosure->name)
