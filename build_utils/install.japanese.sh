@@ -50,7 +50,8 @@ quit "application/x-vnd.agmsmith.AGMSBayesianSpamServer"
 rm -rf ~/config/add-ons/mail_daemon/*
 rm -f /system/servers/mail_daemon /boot/beos/preferences/E-mail /boot/beos/apps/BeMail
 rm -f ~/config/lib/libmail2.so ~/config/lib/libnumail2.so /system/lib/libmail.so
-rm -f "/boot/home/config/settings/Mail/New E-mail"
+rm -f "${HOME}/config/settings/Mail/New E-mail"
+rm -f "${HOME}/config/settings/Mail/Menu Links/T) 本日のメール"
 
 mkdir -p ~/config/add-ons/mail_daemon
 
@@ -72,7 +73,8 @@ mv -f -v "${HOME}/config/settings/Mail/Menu Links/Open Draft" "${HOME}/config/se
 mv -f -v "${HOME}/config/settings/Mail/Menu Links/Open Inbox Folder" "${HOME}/config/settings/Mail/Menu Links/I) 受信箱を開く"
 mv -f -v "${HOME}/config/settings/Mail/Menu Links/Open Mail Folder" "${HOME}/config/settings/Mail/Menu Links/M) 郵便箱を開く"
 mv -f -v "${HOME}/config/settings/Mail/Menu Links/Subject Contains…" "${HOME}/config/settings/Mail/Menu Links/S) 見出しで検索…"
-mv -f -v "${HOME}/config/settings/Mail/Menu Links/Received Today" "${HOME}/config/settings/Mail/Menu Links/R) 本日のメール"
+mv -f -v "${HOME}/config/settings/Mail/Menu Links/Received Today" "${HOME}/config/settings/Mail/Menu Links/R) 本日受信したメール"
+mv -f -v "${HOME}/config/settings/Mail/Menu Links/Sent Today" "${HOME}/config/settings/Mail/Menu Links/T) 本日送信したメール"
 
 # Set up the spam classifier server.
 copyattr -d -m bin/AGMSBayesianSpamServer ~/config/bin/AGMSBayesianSpamServer

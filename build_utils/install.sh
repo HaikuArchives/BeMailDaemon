@@ -30,7 +30,7 @@ quit "application/x-vnd.agmsmith.AGMSBayesianSpamServer"
 rm -rf ~/config/add-ons/mail_daemon/*
 rm -f /system/servers/mail_daemon /boot/beos/preferences/E-mail /boot/beos/apps/BeMail
 rm -f ~/config/lib/libmail2.so ~/config/lib/libnumail2.so /system/lib/libmail.so
-rm -f "/boot/home/config/settings/Mail/New E-mail"
+rm -f "${HOME}/config/settings/Mail/New E-mail"
 
 mkdir -p ~/config/add-ons/mail_daemon
 
@@ -47,12 +47,14 @@ copyattr -d -m bin/BeMail /boot/beos/apps/BeMail
 mkdir -p ~/config/settings/Mail/Menu\ Links
 unzip -o bin/ExtraMenuLinksForR5Tracker.zip -d ~/config/settings/Mail/Menu\ Links
 rm bin/ExtraMenuLinksForR5Tracker.zip
-rm -v "${HOME}/config/settings/Mail/Menu Links/F) 送信者を検索…"
-rm -v "${HOME}/config/settings/Mail/Menu Links/D) ドラフトを開く…"
-rm -v "${HOME}/config/settings/Mail/Menu Links/I) 受信箱を開く"
-rm -v "${HOME}/config/settings/Mail/Menu Links/M) 郵便箱を開く"
-rm -v "${HOME}/config/settings/Mail/Menu Links/S) 見出しで検索…"
-rm -v "${HOME}/config/settings/Mail/Menu Links/R) 本日のメール"
+rm -f -v "${HOME}/config/settings/Mail/Menu Links/F) 送信者を検索…"
+rm -f -v "${HOME}/config/settings/Mail/Menu Links/D) ドラフトを開く…"
+rm -f -v "${HOME}/config/settings/Mail/Menu Links/I) 受信箱を開く"
+rm -f -v "${HOME}/config/settings/Mail/Menu Links/M) 郵便箱を開く"
+rm -f -v "${HOME}/config/settings/Mail/Menu Links/S) 見出しで検索…"
+rm -f -v "${HOME}/config/settings/Mail/Menu Links/T) 本日のメール"
+rm -f -v "${HOME}/config/settings/Mail/Menu Links/R) 本日受信したメール"
+rm -f -v "${HOME}/config/settings/Mail/Menu Links/T) 本日送信したメール"
 
 # Set up the spam classifier server.
 copyattr -d -m bin/AGMSBayesianSpamServer ~/config/bin/AGMSBayesianSpamServer
@@ -78,7 +80,7 @@ ln -f -s -v "${HOME}/config/add-ons/mail_daemon/system_filters/New Mail Notifica
 # The word index files sometimes go corrupt.  Since they are regenerated if
 # they aren't there, this is fixed by just deleting the whole annoying
 # directory.
-rm -r /boot/beos/etc/word_index/
+rm -f -r /boot/beos/etc/word_index/
 
 # The old installer used to delete the developer's link to the libmail.so
 # library, so put it back.  Do for x86 and ppc, will do nothing if you don't
