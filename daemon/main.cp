@@ -45,6 +45,7 @@ class MailDaemonApp : public BApplication {
 		void RemoveDeskbarIcon();
 		void Pulse();
 		bool QuitRequested();
+		void ReadyToRun();
 		
 		void SendPendingMessages();
 		void GetNewMessages();
@@ -161,11 +162,14 @@ int main (int argc, const char **argv) {
 
 MailDaemonApp::MailDaemonApp(void)
   : BApplication("application/x-vnd.Be-POST" /* mail daemon sig */ )
-{	
+{
 	InstallDeskbarIcon();
 	
 	status = new StatusWindow(BRect(40,400,360,400),"Mail Status", settings_file.ShowStatusWindow());
 	auto_check = NULL;
+}
+
+void MailDaemonApp::ReadyToRun() {
 	UpdateAutoCheck(settings_file.AutoCheckInterval());
 
 	BVolume boot;
