@@ -14,6 +14,7 @@ class BStringItem;
 
 class MailChain;
 class Account;
+class Accounts;
 
 
 enum item_types
@@ -76,6 +77,9 @@ class Account
 		void		Delete(int32 type = IN_AND_OUTBOUND_TYPE);
 
 	private:
+		friend Accounts;
+		void		AddToListView();
+	private:
 		void		CreateInbound();
 		void		CreateOutbound();
 
@@ -90,6 +94,9 @@ class Accounts
 		static void NewAccount();
 		static void Save();
 		static void	Delete();
+
+	private:
+		static int Compare(const void *,const void *);
 };
 
 #endif	/* ACCOUNT_H */

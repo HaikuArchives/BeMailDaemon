@@ -32,16 +32,13 @@
 #include <Directory.h>
 #include <FindDirectory.h>
 #include <Path.h>
+#include <AppFileInfo.h>
 
 #include <MailSettings.h>
 
 #include <stdio.h>
 #include <string.h>
 
-const int kMajorVersion = 2;
-const int kMiddleVersion = 0;
-const int kMinorVersion = 0;
-const char *kVersionTag = "Development";
 
 const char *kEMail = "zoidberg@bug-br.org.br";
 const char *kMailto = "mailto:zoidberg@bug-br.org.br";
@@ -98,6 +95,38 @@ class AboutTextView : public BTextView
 	public:
 		AboutTextView(BRect rect) : BTextView(rect,NULL,rect.OffsetToCopy(B_ORIGIN),B_FOLLOW_NONE,B_WILL_DRAW)
 		{
+			int32 major = 0,middle = 0,minor = 0,variety = 0,internal = 1;
+
+			// get version information for app
+
+			app_info appInfo;
+			if (be_app->GetAppInfo(&appInfo) == B_OK)
+			{
+				BFile file(&appInfo.ref,B_READ_ONLY);
+				if (file.InitCheck() == B_OK)
+				{
+					BAppFileInfo info(&file);
+					if (info.InitCheck() == B_OK)
+					{
+						version_info versionInfo;
+						if (info.GetVersionInfo(&versionInfo,B_APP_VERSION_KIND) == B_OK)
+						{
+							major = versionInfo.major;
+							middle = versionInfo.middle;
+							minor = versionInfo.minor;
+							variety = versionInfo.variety;
+							internal = versionInfo.internal;
+						}
+					}
+				}
+			}
+			// prepare version variety string
+			const char *varietyStrings[] = {"Development","Alpha","Beta","Gamma","Golden master","Final"};
+			char varietyString[32];
+			strcpy(varietyString,varietyStrings[variety % 6]);
+			if (variety < 5)
+				sprintf(varietyString + strlen(varietyString),"/%li",internal);
+
 			char s[512];
 			sprintf(s,	"Mail Daemon Replacement\n\n"
 						"by Dr. Zoidberg Enterprises. All rights reserved.\n\n"
@@ -106,7 +135,7 @@ class AboutTextView : public BTextView
 						"Submit bug reports, feature requests, suggestions or money to:\n"
 						"%s\n\n"
 						"Project homepage at:\n%s",
-						kMajorVersion,kMiddleVersion,kMinorVersion,kVersionTag,
+						major,middle,minor,varietyString,
 						kEMail,kWebsite);
 
 			SetText(s);
@@ -361,16 +390,26 @@ void ConfigWindow::MakeHowToView()
 	if (resources)
 	{
 		size_t length;
-		void *buffer = resources->FindResource('BBMP',"bigIcon",&length);
+		char *buffer = (char *)resources->FindResource('ICON',101,&length);
 		if (buffer)
 		{
-			// Inflate and unarchive the bitmap
-			BMessage archive;
-			archive.Unflatten((char *)buffer);	
-
-			BBitmap *bitmap = new BBitmap(&archive);
+			BBitmap *bitmap = new BBitmap(BRect(0,0,63,63),B_CMAP8);
 			if (bitmap && bitmap->InitCheck() == B_OK)
+			{
+				// copy and enlarge a 32x32 8-bit bitmap
+				char *bits = (char *)bitmap->Bits();
+				for (int32 i = 0,j = -64;i < length;i++)
+				{
+					if ((i % 32) == 0)
+						j += 64;
+
+					char *b = bits + (i << 1) + j;
+					b[0] = b[1] = b[64] = b[65] = buffer[i];
+				}
 				fConfigView->AddChild(new BitmapView(bitmap));
+			}
+			else
+				delete bitmap;
 		}
 	}
 

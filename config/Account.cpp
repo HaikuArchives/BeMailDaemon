@@ -97,20 +97,10 @@ Account::Account(MailChain *inbound,MailChain *outbound)
 	else
 		label << "Unnamed";
 	fAccountItem = new AccountItem(label.String(),this,ACCOUNT_ITEM);
-	if (gListView)
-		gListView->AddItem(fAccountItem);
 
 	fInboundItem = new AccountItem("   · Incoming",this,INBOUND_ITEM);
-	if (fInbound && gListView)
-		gListView->AddItem(fInboundItem);
-
 	fOutboundItem = new AccountItem("   · Outgoing",this,OUTBOUND_ITEM);
-	if (fOutbound && gListView)
-		gListView->AddItem(fOutboundItem);
-
 	fFilterItem = new AccountItem("   · E-mail Filters",this,FILTER_ITEM);
-	if ((fOutbound || fInbound) && gListView)
-		gListView->AddItem(fFilterItem);
 }
 
 
@@ -128,6 +118,24 @@ Account::~Account()
 
 	delete fInbound;
 	delete fOutbound;
+}
+
+
+void Account::AddToListView()
+{
+	if (!gListView)
+		return;
+
+	gListView->AddItem(fAccountItem);
+
+	if (fInbound)
+		gListView->AddItem(fInboundItem);
+
+	if (fOutbound)
+		gListView->AddItem(fOutboundItem);
+
+	if (fOutbound || fInbound)
+		gListView->AddItem(fFilterItem);
 }
 
 
@@ -522,6 +530,18 @@ void Account::Delete(int32 type)
 //	#pragma mark -
 
 
+int Accounts::Compare(const void *_a, const void *_b)
+{
+	const char *a = (*(Account **)_a)->Name();
+	const char *b = (*(Account **)_b)->Name();
+
+	if (!a)
+		return b != 0;
+
+	return strcasecmp(a,b);
+}
+
+
 void Accounts::Create(BListView *listView, BView *configView)
 {
 	gListView = listView;
@@ -562,6 +582,12 @@ void Accounts::Create(BListView *listView, BView *configView)
 		gAccounts.AddItem(new Account(NULL,outChain));
 		outbound.RemoveItem(i);
 	}
+
+	// sort the list alphabetically
+	gAccounts.SortItems(Accounts::Compare);
+	
+	for (int32 i = 0;Account *account = (Account *)gAccounts.ItemAt(i);i++)
+		account->AddToListView();
 }
 
 
@@ -569,6 +595,7 @@ void Accounts::NewAccount()
 {
 	Account *account = new Account();
 	gAccounts.AddItem(account);
+	account->AddToListView();
 }
 
 
