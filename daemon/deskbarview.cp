@@ -175,20 +175,23 @@ void DeskbarView::Draw(BRect /*updateRect*/)
 	Sync();
 }
 
-void OpenFolder(const char* end)
+status_t OpenFolder(const char* end)
 {
 	BPath path;
 	find_directory(B_USER_DIRECTORY, &path);
 	path.Append(end);
 	
 	entry_ref ref;
-	if (get_ref_for_path(path.Path(),&ref) != B_OK) return;
-
+	if (get_ref_for_path(path.Path(),&ref) != B_OK) return B_NAME_NOT_FOUND;
+	if (!BEntry(&ref).Exists()) return B_NAME_NOT_FOUND;
+	
+	
 	BMessage open_mbox(B_REFS_RECEIVED);
 	open_mbox.AddRef("refs",&ref);
 	
 	BMessenger tracker("application/x-vnd.Be-TRAK");
 	tracker.SendMessage(&open_mbox);
+	return B_OK;
 }
 
 
@@ -309,8 +312,12 @@ void DeskbarView::Pulse()
 
 void DeskbarView::MouseUp(BPoint pos)
 {
-	if (fLastButtons & B_PRIMARY_MOUSE_BUTTON)
-		OpenFolder("mail/mailbox");
+	if (fLastButtons & B_PRIMARY_MOUSE_BUTTON) {
+		if (OpenFolder("mail/mailbox") != B_OK)
+		if (OpenFolder("mail/in") != B_OK)
+		if (OpenFolder("mail/INBOX") != B_OK)
+			OpenFolder("mail");
+	}
 
 	if (fLastButtons & B_TERTIARY_MOUSE_BUTTON)
 		Zoidberg::Mail::CheckMail(true);
