@@ -248,7 +248,21 @@ const char *MailMessage::BodyText() {
 	return _text_body->Text();
 }
 
-void MailMessage::RenderTo(BFile *file) {
+
+status_t MailMessage::SetBody(PlainTextBodyComponent *body) {
+	if (_text_body != NULL) {
+		return B_ERROR;
+//	removing doesn't exist for now
+//		RemoveComponent(_text_body);
+//		delete _text_body;
+	}
+	_text_body = body;
+
+	return B_OK;
+}
+
+
+status_t MailMessage::RenderTo(BFile *file) {
 	//------Copy in headers from _header_kludge_yikes
 	if (_header_kludge_yikes != NULL) {
 		type_code type;
@@ -328,10 +342,10 @@ void MailMessage::RenderTo(BFile *file) {
 	message_id << ">";
 	_body->AddHeaderField("Message-ID: ", message_id.String());
 	
-	_body->Render(file);
+	return _body->Render(file);
 }
 	
-void MailMessage::RenderTo(BDirectory *dir) {
+status_t MailMessage::RenderTo(BDirectory *dir) {
 	BString name;
 	name << "\"" << Subject() << "\": <" << To() << ">";
 	
@@ -349,7 +363,7 @@ void MailMessage::RenderTo(BDirectory *dir) {
 	BFile file;
 	dir->CreateFile(worker.String(),&file);
 	
-	RenderTo(&file);
+	return RenderTo(&file);
 }
 	
 void MailMessage::Send(bool send_now) {
@@ -366,6 +380,8 @@ void MailMessage::Send(bool send_now) {
 		MailDaemon::SendQueuedMail();
 		
 	delete via;
+	
+	return B_OK;
 }
 
 
