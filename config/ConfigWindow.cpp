@@ -15,12 +15,17 @@
 #include <CheckBox.h>
 #include <MenuField.h>
 #include <TextControl.h>
+#include <TextView.h>
 #include <MenuItem.h>
 #include <Screen.h>
 #include <PopUpMenu.h>
 #include <MenuBar.h>
 #include <TabView.h>
 #include <Box.h>
+#include <Bitmap.h>
+#include <Roster.h>
+#include <Resources.h>
+#include <Region.h>
 
 #include <Entry.h>
 #include <Directory.h>
@@ -31,6 +36,16 @@
 
 #include <stdio.h>
 #include <string.h>
+
+const int kMajorVersion = 2;
+const int kMiddleVersion = 0;
+const int kMinorVersion = 0;
+const char *kVersionTag = "Development";
+
+const char *kEMail = "zoidberg@bug-br.org.br";
+const char *kMailto = "mailto:zoidberg@bug-br.org.br";
+const char *kWebsite = "http://www.bug-br.org.br/zoidberg/";
+const rgb_color kLinkColor = {40,40,180};
 
 
 const uint32 kMsgAccountSelected = 'acsl';
@@ -43,6 +58,116 @@ const uint32 kMsgStatusLookChanged = 'lkch';
 const uint32 kMsgSaveSettings = 'svst';
 const uint32 kMsgRevertSettings = 'rvst';
 const uint32 kMsgCancelSettings = 'cnst';
+
+
+class BitmapView : public BView
+{
+	public:
+		BitmapView(BBitmap *bitmap) : BView(bitmap->Bounds(),NULL,B_FOLLOW_NONE,B_WILL_DRAW)
+		{
+			fBitmap = bitmap;
+
+			SetDrawingMode(B_OP_ALPHA);
+		}
+
+		~BitmapView()
+		{
+			delete fBitmap;
+		}
+
+		virtual void AttachedToWindow()
+		{
+			SetViewColor(Parent()->ViewColor());
+
+			MoveTo((Parent()->Bounds().Width() - Bounds().Width()) / 2,Frame().top);
+		}
+
+		virtual void Draw(BRect updateRect)
+		{
+			DrawBitmap(fBitmap,updateRect,updateRect);
+		}
+
+	private:
+		BBitmap *fBitmap;
+};
+
+
+class AboutTextView : public BTextView
+{
+	public:
+		AboutTextView(BRect rect) : BTextView(rect,NULL,rect.OffsetToCopy(B_ORIGIN),B_FOLLOW_NONE,B_WILL_DRAW)
+		{
+			char s[512];
+			sprintf(s,	"Mail Daemon Replacement\n\n"
+						"by Dr. Zoidberg Enterprises. All rights reserved.\n\n"
+						"Version %ld.%ld.%ld %s\n\n"
+						"See LICENSE file included in the installation package for more information.\n\n\n\n"
+						"Submit bug reports, feature requests, suggestions or money to:\n"
+						"%s\n\n"
+						"Project homepage at:\n%s",
+						kMajorVersion,kMiddleVersion,kMinorVersion,kVersionTag,
+						kEMail,kWebsite);
+
+			SetText(s);
+			MakeEditable(false);
+			MakeSelectable(false);
+
+			SetAlignment(B_ALIGN_CENTER);
+			SetStylable(true);
+
+			// aethetical changes
+			BFont font;
+			GetFont(&font);
+			font.SetSize(24);
+			SetFontAndColor(0,23,&font,B_FONT_SIZE);
+
+			// center the view vertically
+			rect = TextRect();  rect.OffsetTo(0,(Bounds().Height() - TextHeight(0,42)) / 2);
+			SetTextRect(rect);
+
+			// set the link regions
+			int start = strstr(s,kEMail) - s;
+			int finish = start + strlen(kEMail);
+			GetTextRegion(start,finish,&fMail);
+			SetFontAndColor(start,finish,NULL,0,&kLinkColor);
+
+			start = strstr(s,kWebsite) - s;
+			finish = start + strlen(kWebsite);
+			GetTextRegion(start,finish,&fWebsite);
+			SetFontAndColor(start,finish,NULL,0,&kLinkColor);
+		}
+
+		virtual void Draw(BRect updateRect)
+		{
+			BTextView::Draw(updateRect);
+			
+			BRect rect(fMail.Frame());
+			StrokeLine(BPoint(rect.left,rect.bottom-2),BPoint(rect.right,rect.bottom-2));
+			rect = fWebsite.Frame();
+			StrokeLine(BPoint(rect.left,rect.bottom-2),BPoint(rect.right,rect.bottom-2));
+		}
+
+		virtual void MouseDown(BPoint point)
+		{
+			if (fMail.Contains(point))
+			{
+				char *arg[] = {(char *)kMailto,NULL};
+				be_roster->Launch("text/x-email",1,arg);
+			}
+			else if (fWebsite.Contains(point))
+			{
+				char *arg[] = {(char *)kWebsite,NULL};
+				be_roster->Launch("text/html",1,arg);
+			}
+		}
+	
+	private:
+		BRegion	fWebsite,fMail;
+};
+
+
+//--------------------------------------------------------------------------------------
+//	#pragma mark -
 
 
 ConfigWindow::ConfigWindow()
@@ -94,6 +219,33 @@ ConfigWindow::ConfigWindow()
 	rect.left = fAccountsListView->Frame().right + B_V_SCROLL_BAR_WIDTH + 16;
 	rect.right -= 10;
 	view->AddChild(fConfigView = new CenterContainer(rect));
+
+	BResources *resources = BApplication::AppResources();
+	if (resources)
+	{
+		size_t length;
+		void *buffer = resources->FindResource('BBMP',"bigIcon",&length);
+		if (buffer)
+		{
+			// Inflate and unarchive the bitmap
+			BMessage archive;
+			archive.Unflatten((char *)buffer);	
+
+			BBitmap *bitmap = new BBitmap(&archive);
+			if (bitmap && bitmap->InitCheck() == B_OK)
+				fConfigView->AddChild(new BitmapView(bitmap));
+		}
+		delete resources;
+	}
+	rect.OffsetTo(B_ORIGIN);
+	BTextView *text = new BTextView(rect,NULL,rect,B_FOLLOW_NONE,B_WILL_DRAW);
+	text->SetViewColor(top->ViewColor());
+	text->SetAlignment(B_ALIGN_CENTER);
+	text->SetText("\n\nCreate a new account using the \"Add\" button.\n\nDelete accounts (or only the inbound/outbound) by using the \"Remove\" button on the selected item.\n\nSelect an item in the list to edit its configuration.");
+	rect = text->Bounds();
+	text->ResizeTo(rect.Width(),text->TextHeight(0,42));
+	text->SetTextRect(rect);
+	fConfigView->AddChild(text);
 
 	// general settings
 
@@ -181,6 +333,19 @@ ConfigWindow::ConfigWindow()
 	fAutoStartCheckBox = new BCheckBox(rect,"start daemon","Auto-Start Mail Daemon",NULL);
 	box->AddChild(fAutoStartCheckBox);
 
+	// about page
+
+	rect = tabView->Bounds();	rect.bottom -= tabView->TabHeight() + 4;
+	tabView->AddTab(view = new BView(rect,NULL,B_FOLLOW_ALL,0));
+	tabView->TabAt(2)->SetLabel("About");
+	view->SetViewColor(top->ViewColor());
+
+	AboutTextView *about = new AboutTextView(rect);
+	about->SetViewColor(top->ViewColor());
+	view->AddChild(about);
+
+	// save/cancel/revert buttons
+
 	top->AddChild(tabView);
 
 	rect = tabView->Frame();
@@ -207,8 +372,6 @@ ConfigWindow::ConfigWindow()
 	LoadSettings();
 
 	fAccountsListView->SetSelectionMessage(new BMessage(kMsgAccountSelected));
-//	fAccountsListView->Select(0);
-//	fAccountsListView->MakeFocus(true);
 }
 
 
@@ -318,16 +481,13 @@ bool ConfigWindow::QuitRequested()
 
 	Accounts::Delete();
 
-/*
-	// This here will leave us with some kind of zombie mail_daemon!
-
+	// start the mail_daemon if auto start was selected
 	if (fSaveSettings && fAutoStartCheckBox->Value() == B_CONTROL_ON
 		&& !be_roster->IsRunning("application/x-vnd.Be-POST"))
 	{
 		be_roster->Launch("application/x-vnd.Be-POST");
 	}
-*/
-	
+
 	be_app->PostMessage(B_QUIT_REQUESTED);
 	return true;
 }
@@ -364,107 +524,6 @@ void ConfigWindow::MessageReceived(BMessage *msg)
 			break;
 		}
 
-#ifdef NIX
-		case kMsgAccountSelected:
-		{
-			// apply settings of previously selected account
-			if (mLastSelectedAccount)
-				ApplySettings(mLastSelectedAccount->settings);
-
-			// apply settings of new account
-			mLastSelectedAccount = (AccountItem *)mAccountsLV->ItemAt(mAccountsLV->CurrentSelection());
-			if (mLastSelectedAccount)
-				SetToAccount(mLastSelectedAccount->settings);
-			else
-				DisableAccountControls();
-			break;
-		}
-		case MSG_ADD_ACCOUNT:
-		{
-			// create new account and apply its default settings
-			if (mLastSelectedAccount)
-				ApplySettings(mLastSelectedAccount->settings);
-			mLastSelectedAccount = new AccountItem(new MailAccount(), true);
-			mAccountsLV->AddItem(mLastSelectedAccount);
-			mAccountsLV->Select(mAccountsLV->IndexOf(mLastSelectedAccount));
-			SetToAccount(mLastSelectedAccount->settings);
-			mAccountNameTC->MakeFocus(true);
-			PostMessage(B_SELECT_ALL, mAccountNameTC->TextView());
-			break;
-		}
-		case MSG_REMOVE_ACCOUNT:
-		{
-			if (mLastSelectedAccount
-				&& mAccountsLV->RemoveItem(mLastSelectedAccount))
-			{
-				if (!mLastSelectedAccount->is_new)
-				{
-					mDeletedAccounts.AddItem((void *)mLastSelectedAccount->settings);
-				}
-				else
-				{
-					mLastSelectedAccount->settings->Delete();
-					delete mLastSelectedAccount->settings;
-					delete mLastSelectedAccount;
-				}
-				mLastSelectedAccount = NULL;
-			}
-			break;
-		}
-		case MSG_RESTORE_ACCOUNT:
-		{
-			// restore previous content of the account
-			if (mLastSelectedAccount)
-				SetToAccount(mLastSelectedAccount->settings);
-			break;
-		}
-		case MSG_ADDON_CHANGED:
-		{
-			// rebuild menu
-			BPopUpMenu *menu;
-			if (msg->FindPointer("auths",(void **)&menu) == B_OK)
-			{
-				mAuthTypePU->MenuBar()->RemoveItem(0L);
-				mAuthTypePU->MenuBar()->AddItem(menu);
-			}
-			if (msg->FindPointer("out_auths",(void **)&menu) == B_OK)
-			{
-				mOutAuthTypePU->MenuBar()->RemoveItem(0L);
-				mOutAuthTypePU->MenuBar()->AddItem(menu);
-			}
-			break;
-		}
-		case MSG_ACCOUNT_NAME_CHANGED:
-		{
-			if (mLastSelectedAccount)
-				ApplySettings(mLastSelectedAccount->settings);
-			break;
-		}
-		case MSG_LEAVE_MSG_CHANGED:
-		{
-			if (mLeaveOnServerCB->Value() == B_CONTROL_ON)
-			{
-				mDeleteOnServerCB->SetEnabled(true);
-			}
-			else
-			{
-				mDeleteOnServerCB->SetValue(B_CONTROL_OFF);
-				mDeleteOnServerCB->SetEnabled(false);
-			}
-			break;
-		}
-		case MSG_FETCH_MAIL_CHANGED:
-		{
-			// disable all incoming mail controls?
-			break;
-		}
-		case MSG_CONFIGURE_FILTERS:
-		{
-			if (mLastSelectedAccount)
-				(new FilterConfigWindow(this, mLastFilterWindowPos, mLastSelectedAccount->settings))->Show();
-			break;
-		}
-#endif
 		case kMsgIntervalUnitChanged:
 		{
 			int32 index;
@@ -498,139 +557,6 @@ void ConfigWindow::MessageReceived(BMessage *msg)
 	}
 }
 
-#ifdef NIX
-void ConfigWindow::DisableAccountControls()
-{
-	mAccountNameTC->SetText("");
-	mRealNameTC->SetText("");
-	mReturnAddressTC->SetText("");
-	mMailHostTC->SetText("");
-	mUserNameTC->SetText("");
-	mPasswordTC->SetText("");
-	mOutUserNameTC->SetText("");
-	mOutPasswordTC->SetText("");
-	mOutgoingMailHostTC->SetText("");
-
-	mAccountNameTC->SetEnabled(false);
-	mRealNameTC->SetEnabled(false);
-	mReturnAddressTC->SetEnabled(false);
-	mMailHostTC->SetEnabled(false);
-	mUserNameTC->SetEnabled(false);
-	mPasswordTC->SetEnabled(false);
-	mOutgoingMailHostTC->SetEnabled(false);
-	mOutUserNameTC->SetEnabled(false);
-	mOutPasswordTC->SetEnabled(false);
-
-	mServerTypePU->SetEnabled(false);
-	mAuthTypePU->SetEnabled(false);
-	mOutServerTypePU->SetEnabled(false);
-	mOutAuthTypePU->SetEnabled(false);
-
-	mLeaveOnServerCB->SetValue(B_CONTROL_OFF);
-	mDeleteOnServerCB->SetValue(B_CONTROL_OFF);
-
-	mLeaveOnServerCB->SetEnabled(false);
-	mDeleteOnServerCB->SetEnabled(false);
-	mFetchMailCB->SetEnabled(false);
-	
-//	mRestoreAccountB->SetEnabled(false);
-	mRemoveAccountB->SetEnabled(false);
-//	mConfigureFiltersB->SetEnabled(false);
-}
-
-// SetToAccount
-void ConfigWindow::SetToAccount(MailAccount *selected)
-{
-	if (selected)
-	{
-		// read in settings of the account
-		mAccountNameTC->SetText(selected->AccountName());
-		mRealNameTC->SetText(selected->RealName());
-		mReturnAddressTC->SetText(selected->ReturnAddress());
-		mMailHostTC->SetText(selected->MailHost());
-		mUserNameTC->SetText(selected->UserName());
-		mPasswordTC->SetText(selected->Password());
-
-		mAccountNameTC->SetEnabled(true);
-		mRealNameTC->SetEnabled(true);
-		mReturnAddressTC->SetEnabled(true);
-		mMailHostTC->SetEnabled(true);
-		mUserNameTC->SetEnabled(true);
-		mPasswordTC->SetEnabled(true);
-		mOutUserNameTC->SetEnabled(true);
-		mOutPasswordTC->SetEnabled(true);
-		mOutgoingMailHostTC->SetEnabled(true);
-
-		mServerTypePU->SetEnabled(true);
-		if (selected->MailProtocolAddOn())
-		{
-			if (BMenuItem *item = mServerTypePU->Menu()->FindItem(selected->MailProtocolAddOn()))
-				item->SetMarked(true);
-		}
-
-		mLeaveOnServerCB->SetEnabled(true);
-		mLeaveOnServerCB->SetValue(selected->LeaveMailOnServer() ? B_CONTROL_ON : B_CONTROL_OFF);
-		mDeleteOnServerCB->SetEnabled(true);
-		mDeleteOnServerCB->SetValue(selected->DeleteRemoteWhenLocal() ? B_CONTROL_ON : B_CONTROL_OFF);
-		mFetchMailCB->SetEnabled(true);
-		mFetchMailCB->SetValue(selected->FetchMail() ? B_CONTROL_ON : B_CONTROL_OFF);
-		if (mLeaveOnServerCB->Value() == B_CONTROL_ON)
-		{
-			mDeleteOnServerCB->SetEnabled(true);
-		}
-		else
-		{
-			mDeleteOnServerCB->SetValue(B_CONTROL_OFF);
-			mDeleteOnServerCB->SetEnabled(false);
-		}
-
-		mAuthTypePU->SetEnabled(true);
-		if (BMenuItem *item = mServerTypePU->Menu()->FindMarked())
-		{
-			BMessage *msg = item->Message();
-			BPopUpMenu *menu;
-			if (msg->FindPointer("auths",(void **)&menu) == B_OK)
-			{
-				if ((item = menu->ItemAt(selected->AuthIndex())))
-					item->SetMarked(true);
-				menu->SetFont(be_plain_font);
-				mAuthTypePU->MenuBar()->RemoveItem(0L);
-				mAuthTypePU->MenuBar()->AddItem(menu);
-			}
-		}
-
-		mOutServerTypePU->SetEnabled(true);
-		if (selected->OutgoingMailProtocolAddOn())
-		{
-			if (BMenuItem *item = mOutServerTypePU->Menu()->FindItem(selected->OutgoingMailProtocolAddOn()))
-				item->SetMarked(true);
-		}
-		
-		mOutAuthTypePU->SetEnabled(true);
-		if (BMenuItem *item = mOutServerTypePU->Menu()->FindMarked())
-		{
-			BMessage *msg = item->Message();
-			BPopUpMenu *menu;
-			if (msg->FindPointer("out_auths",(void **)&menu) == B_OK)
-			{
-				if ((item = menu->ItemAt(selected->OutboundAuthIndex())))
-					item->SetMarked(true);
-				menu->SetFont(be_plain_font);
-				mOutAuthTypePU->MenuBar()->RemoveItem(0L);
-				mOutAuthTypePU->MenuBar()->AddItem(menu);
-			}
-		}
-
-		mOutgoingMailHostTC->SetText(selected->OutgoingMailHost());
-		mOutUserNameTC->SetText(selected->OutboundUserName());
-		mOutPasswordTC->SetText(selected->OutboundPassword());
-
-//		mRestoreAccountB->SetEnabled(true);
-		mRemoveAccountB->SetEnabled(true);
-//		mConfigureFiltersB->SetEnabled(true);
-	}
-}
-#endif
 
 status_t ConfigWindow::SetToGeneralSettings(MailSettings *settings)
 {
@@ -695,46 +621,6 @@ status_t ConfigWindow::SetToGeneralSettings(MailSettings *settings)
 
 	return B_OK;
 }
-
-#ifdef NIX
-void ConfigWindow::ApplySettings(MailAccount *account)
-{
-	if (account)
-	{
-		// apply values of controls to acount
-		account->SetAccountName(mAccountNameTC->Text());
-		if (mLastSelectedAccount)
-		{
-			mLastSelectedAccount->SetText(mAccountNameTC->Text());
-			mAccountsLV->InvalidateItem(mAccountsLV->IndexOf(mLastSelectedAccount));
-		}
-		account->SetRealName(mRealNameTC->Text());
-		account->SetReturnAddress(mReturnAddressTC->Text());
-		account->SetMailHost(mMailHostTC->Text());
-		account->SetUserName(mUserNameTC->Text());
-		account->SetPassword(mPasswordTC->Text());
-		account->SetOutboundUserName(mOutUserNameTC->Text());
-		account->SetOutboundPassword(mOutPasswordTC->Text());
-
-		if (BMenuItem *item = mServerTypePU->Menu()->FindMarked())
-			account->SetMailProtocol(item->Label());
-
-		if (BMenuItem *item = mAuthTypePU->MenuBar()->SubmenuAt(0)->FindMarked())
-			account->SetAuth(mAuthTypePU->MenuBar()->SubmenuAt(0)->IndexOf(item));
-
-		account->SetLeaveMailOnServer(mLeaveOnServerCB->Value() == B_CONTROL_ON);
-		account->SetDeleteRemoteWhenLocal(mDeleteOnServerCB->Value() == B_CONTROL_ON);
-		account->SetOutgoingMailHost(mOutgoingMailHostTC->Text());
-		account->SetFetchMail(mFetchMailCB->Value() == B_CONTROL_ON);
-
-		if (BMenuItem *marked_item = mOutServerTypePU->Menu()->FindMarked())
-			account->SetOutgoingMailProtocol(marked_item->Label());
-
-		if (BMenuItem *item = mOutAuthTypePU->MenuBar()->SubmenuAt(0)->FindMarked())
-			account->SetOutboundAuth(mOutAuthTypePU->MenuBar()->SubmenuAt(0)->IndexOf(item));
-	}
-}
-#endif
 
 
 void ConfigWindow::RevertToLastSettings()
