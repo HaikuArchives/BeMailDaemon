@@ -62,7 +62,8 @@ All rights reserved.
 #define FONT_SIZE			11.0
 #define QUOTE				"> "
 
-enum MESSAGES {
+enum MESSAGES
+{
 	REFS_RECEIVED = 64,
 	LIST_INVOKED,
 	WINDOW_CLOSED,
@@ -71,7 +72,8 @@ enum MESSAGES {
 	PREFS_CHANGED
 };
 
-enum TEXT {
+enum TEXT
+{
 	SUBJECT_FIELD = REFS_RECEIVED + 64,
 	TO_FIELD,
 	ENCLOSE_FIELD,
@@ -80,7 +82,8 @@ enum TEXT {
 	NAME_FIELD
 };
 
-enum MENUS {
+enum MENUS
+{
 	/* app */
 	M_NEW = SUBJECT_FIELD + 64,
 	M_PREFS,
@@ -137,12 +140,14 @@ enum MENUS {
 	M_SAVE_POSITION
 };
 
-enum USER_LEVEL {
+enum USER_LEVEL
+{
 	L_BEGINNER = 0,
 	L_EXPERT
 };
 
-enum WINDOW_TYPES {
+enum WINDOW_TYPES
+{
 	MAIL_WINDOW = 0,
 	PREFS_WINDOW,
 	SIG_WINDOW
@@ -171,126 +176,129 @@ class TMailApp : public BApplication
 	public:
 		TMailApp();
 		~TMailApp();
-		virtual void AboutRequested();
-		virtual void ArgvReceived(int32, char **);
-		virtual void MessageReceived(BMessage *);
-		virtual bool QuitRequested();
-		virtual void ReadyToRun();
-		virtual void RefsReceived(BMessage *);
-		TMailWindow* FindWindow(const entry_ref &);
-		void FontChange();
-		TMailWindow* NewWindow(const entry_ref *rec = NULL, const char *to = NULL,
-			bool resend = false,BMessenger *msg = NULL);
+
+		virtual void	AboutRequested();
+		virtual void	ArgvReceived(int32, char **);
+		virtual void	MessageReceived(BMessage *);
+		virtual bool	QuitRequested();
+		virtual void	ReadyToRun();
+		virtual void	RefsReceived(BMessage *);
+
+		TMailWindow		*FindWindow(const entry_ref &);
+		void			FontChange();
+		TMailWindow		*NewWindow(const entry_ref *rec = NULL, const char *to = NULL,
+								bool resend = false,BMessenger *msg = NULL);
 
 		BFont fFont;
 
 	private:
 		void ClearPrintSettings();
 		
-		BList fWindowList;
-		int32 fWindowCount;
-		BFile *fPrefs;
+		BList		fWindowList;
+		int32		fWindowCount;
+		BFile		*fPrefs;
 		TPrefsWindow *fPrefsWindow;
 		TSignatureWindow *fSigWindow;
-		BMessenger *fTrackerMessenger;	// Talks to tracker window that
+		BMessenger	*fTrackerMessenger;	// Talks to tracker window that
 										// this was launched from.
-		bool fPrevBBPref;
+		bool		fPrevBBPref;
 };
 
 //--------------------------------------------------------------------
 
-class BMailMessage; // forward declaration
+class BMailMessage;
 
-class TMailWindow : public BWindow {
-public:
-	TMailWindow(BRect, const char *, const entry_ref *, const char *,
-		const BFont *font, bool, BMessenger*);
-	virtual ~TMailWindow();
-	virtual void FrameResized(float width, float height);
-	virtual void MenusBeginning();
-	virtual void MessageReceived(BMessage*);
-	virtual bool QuitRequested();
-	virtual void Show();
-	virtual void Zoom(BPoint, float, float);
-	virtual	void WindowActivated(bool state);
-
-	void SetTo(const char *mailTo, const char *subject, const char *ccTo = NULL,
-		const char *bccTo = NULL, const BString *body = NULL, BMessage *enclosures = NULL);
-	void AddSignature(BMailMessage*);
-	void Forward(entry_ref*);
-	void Print();
-	void PrintSetup();
-	void Reply(entry_ref*, TMailWindow*, uint32);
-	void CopyMessage(entry_ref *ref, TMailWindow *src);
-	status_t Send(bool);
-	status_t SaveAsDraft( void );
-	status_t OpenMessage(entry_ref*);
-
-	entry_ref* GetMailFile() const;
-	bool GetTrackerWindowFile(entry_ref *, bool dir) const;
-	void SaveTrackerPosition(entry_ref *);
-	void SetOriginatingWindow(BWindow *window);
-
-	void SetCurrentMessageRead();
-	void SetTrackerSelectionToCurrent();
-	TMailWindow* FrontmostWindow();
-	void UpdateViews();
+class TMailWindow : public BWindow
+{
+	public:
+		TMailWindow(BRect, const char *, const entry_ref *, const char *,
+			const BFont *font, bool, BMessenger*);
+		virtual ~TMailWindow();
+		virtual void FrameResized(float width, float height);
+		virtual void MenusBeginning();
+		virtual void MessageReceived(BMessage*);
+		virtual bool QuitRequested();
+		virtual void Show();
+		virtual void Zoom(BPoint, float, float);
+		virtual	void WindowActivated(bool state);
 	
-protected:
-	void AddEnclosure(BMessage *msg);
-	void BuildButtonBar();
-
-private:
-	entry_ref *fRef;			// Reference to currently displayed file
-	int32 fFieldState;
-	BFile *fFile;
-	BFilePanel *fPanel;
-	BMenuBar *fMenuBar;
-	BMenuItem *fAdd;
-	BMenuItem *fCut;
-	BMenuItem *fCopy;
-	BMenuItem *fHeader;
-	BMenuItem *fPaste;
-	BMenuItem *fPrint;
-	BMenuItem *fPrintSetup;
-	BMenuItem *fQuote;
-	BMenuItem *fRaw;
-	BMenuItem *fRemove;
-	BMenuItem *fRemoveQuote;
-	BMenuItem *fSendNow;
-	BMenuItem *fSendLater;
-	BMenuItem *fUndo;
-	BMenuItem *fNextMsg;
-	BMenuItem *fPrevMsg;
-	BMenuItem *fDeleteNext;
-	BMenuItem *fSpelling;
-	BMenu *fSaveAddrMenu;
-	ButtonBar *fButtonBar;
-	BmapButton *fSendButton;
-	BmapButton *fSaveButton;
-	BmapButton *fPrintButton;
-	BmapButton *fSigButton;
-	BRect fZoom;
-	TContentView *fContentView;
-	THeaderView *fHeaderView;
-	TEnclosuresView *fEnclosuresView;
-	TMenu *fSignature;
-	BMessenger *fTrackerMessenger;	// Talks to tracker window that
-									// this was launched from.
-	entry_ref fPrevRef, fNextRef;
-	bool fTrackerPositionSaved;
-	static BList sWindowList;
-	bool fSigAdded;
-	bool fIncoming;
-	bool fReplying;
-	bool fResending;
-	bool fSent;
-	bool fDraft;
-	bool fChanged;
-
-	char *fStartingText;	
-	entry_ref	fRepliedMail;
-	BMessenger	*fOriginatingWindow;
+		void SetTo(const char *mailTo, const char *subject, const char *ccTo = NULL,
+			const char *bccTo = NULL, const BString *body = NULL, BMessage *enclosures = NULL);
+		void AddSignature(BMailMessage*);
+		void Forward(entry_ref*);
+		void Print();
+		void PrintSetup();
+		void Reply(entry_ref*, TMailWindow*, uint32);
+		void CopyMessage(entry_ref *ref, TMailWindow *src);
+		status_t Send(bool);
+		status_t SaveAsDraft( void );
+		status_t OpenMessage(entry_ref*);
+	
+		entry_ref* GetMailFile() const;
+		bool GetTrackerWindowFile(entry_ref *, bool dir) const;
+		void SaveTrackerPosition(entry_ref *);
+		void SetOriginatingWindow(BWindow *window);
+	
+		void SetCurrentMessageRead();
+		void SetTrackerSelectionToCurrent();
+		TMailWindow* FrontmostWindow();
+		void UpdateViews();
+		
+	protected:
+		void AddEnclosure(BMessage *msg);
+		void BuildButtonBar();
+	
+	private:
+		entry_ref *fRef;			// Reference to currently displayed file
+		int32 fFieldState;
+		BFile *fFile;
+		BFilePanel *fPanel;
+		BMenuBar *fMenuBar;
+		BMenuItem *fAdd;
+		BMenuItem *fCut;
+		BMenuItem *fCopy;
+		BMenuItem *fHeader;
+		BMenuItem *fPaste;
+		BMenuItem *fPrint;
+		BMenuItem *fPrintSetup;
+		BMenuItem *fQuote;
+		BMenuItem *fRaw;
+		BMenuItem *fRemove;
+		BMenuItem *fRemoveQuote;
+		BMenuItem *fSendNow;
+		BMenuItem *fSendLater;
+		BMenuItem *fUndo;
+		BMenuItem *fNextMsg;
+		BMenuItem *fPrevMsg;
+		BMenuItem *fDeleteNext;
+		BMenuItem *fSpelling;
+		BMenu *fSaveAddrMenu;
+		ButtonBar *fButtonBar;
+		BmapButton *fSendButton;
+		BmapButton *fSaveButton;
+		BmapButton *fPrintButton;
+		BmapButton *fSigButton;
+		BRect fZoom;
+		TContentView *fContentView;
+		THeaderView *fHeaderView;
+		TEnclosuresView *fEnclosuresView;
+		TMenu *fSignature;
+		BMessenger *fTrackerMessenger;	// Talks to tracker window that
+										// this was launched from.
+		entry_ref fPrevRef, fNextRef;
+		bool fTrackerPositionSaved;
+		static BList sWindowList;
+		bool fSigAdded;
+		bool fIncoming;
+		bool fReplying;
+		bool fResending;
+		bool fSent;
+		bool fDraft;
+		bool fChanged;
+	
+		char *fStartingText;	
+		entry_ref	fRepliedMail;
+		BMessenger	*fOriginatingWindow;
 };
 
 //====================================================================
@@ -298,23 +306,24 @@ private:
 class TMenu: public BPopUpMenu
 {
 	public:
-		TMenu(const char *, const char *, int32, bool popup = false);
+		TMenu(const char *, const char *, int32, bool popup = false, bool addRandom = true);
 		~TMenu();
 						
-		virtual BPoint ScreenLocation(void);
-		virtual void AttachedToWindow();
-		void BuildMenu();
+		virtual BPoint	ScreenLocation(void);
+		virtual void	AttachedToWindow();
+
+		void			BuildMenu();
 	
 	private:
-		char *fAttribute;
-		char *fPredicate;
-		bool fPopup;
-		int32 fMessage;
+		char	*fAttribute;
+		char	*fPredicate;
+		bool	fPopup, fAddRandom;
+		int32	fMessage;
 };
 
 //====================================================================
 
-int32 header_len(BFile*);
+int32 header_len(BFile *);
 extern Words *gWords[MAX_DICTIONARIES];
 extern Words *gExactWords[MAX_DICTIONARIES];
 extern int32 gUserDict;

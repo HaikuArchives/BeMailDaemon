@@ -64,6 +64,7 @@ All rights reserved.
 
 #include <MailMessage.h>
 #include <MailAttachment.h>
+#include <mail_util.h>
 
 #include "Mail.h"
 #include "Content.h"
@@ -163,9 +164,6 @@ bool FilterHTMLTag(char *first,char **t,char *end)
 
 void FillInQouteTextRuns(BTextView *view,const char *line,int32 length,BFont &font,text_run_array *style,int32 maxStyles = 5)
 {
-	if (!gColoredQuotes)
-		return;
-
 	text_run *runs = style->runs;
 	int32 index = style->count;
 	bool begin = view->TextLength() == 0 || view->ByteAt(view->TextLength() - 1) == '\n';
@@ -1449,7 +1447,7 @@ void TTextView::LoadMessage(BFile *file, bool quoteIt, const char *text)
 
 	attr_info attrInfo;
 	TTextView::Reader *reader = new TTextView::Reader(fHeader, fRaw, quoteIt, fIncoming,
-				fFile->GetAttrInfo(B_MAIL_ATTR_MIME, &attrInfo) == B_OK,
+				text != NULL, fFile->GetAttrInfo(B_MAIL_ATTR_MIME, &attrInfo) == B_OK,
 				this, fFile, fEnclosures, fStopSem);
 
 	resume_thread(fThread = spawn_thread(Reader::Run, "reader", B_NORMAL_PRIORITY, reader));
@@ -1798,13 +1796,14 @@ void TTextView::AddAsContent(MailMessage *mail, bool wrap)
 //	#pragma mark -
 
 
-TTextView::Reader::Reader(bool header, bool raw, bool quote, bool incoming, bool mime, 
-				TTextView *view, BFile *file, BList *list, sem_id sem)
+TTextView::Reader::Reader(bool header, bool raw, bool quote, bool incoming, bool stripHeader,
+				bool mime, TTextView *view, BFile *file, BList *list, sem_id sem)
 	:
 	fHeader(header),
 	fRaw(raw),
 	fQuote(quote),
 	fIncoming(incoming),
+	fStripHeader(stripHeader),
 	fMime(mime),
 	fView(view),
 	fFile(file),
@@ -2024,7 +2023,7 @@ bool TTextView::Reader::Insert(const char *line, int32 count, bool isHyperLink, 
 	struct text_runs : text_run_array { text_run _runs[63]; } style;
 	style.count = 0;
 
-	if (!isHeader && !isHyperLink)
+	if (gColoredQuotes && !isHeader && !isHyperLink)
 		FillInQouteTextRuns(fView,line,count,font,&style,64);
 	else
 	{
@@ -2071,7 +2070,44 @@ status_t TTextView::Reader::Run(void *_this)
 	// show the header?
 	if (reader->fHeader && len)
 	{
-		if (!reader->Process(msg, len, true))
+	 	if (reader->fStripHeader)
+	 	{
+		 	const char *header = msg;
+		 	char *buffer = NULL;
+
+	 		while (strncmp(header,"\r\n",2))
+	 		{
+	 			const char *eol = header;
+	 			while ((eol = strstr(eol,"\r\n")) != NULL && isspace(eol[2]))
+	 				eol += 2;
+	 			if (eol == NULL)
+	 				break;
+
+	 			eol += 2;	// CR+LF belong to the line
+				size_t length = eol - header;
+
+		 		buffer = (char *)realloc(buffer,length + 1);
+		 		if (buffer == NULL)
+		 			goto done;
+	 		
+		 		memcpy(buffer,header,length);
+
+				length = rfc2047_to_utf8(&buffer, &length, length);
+
+		 		if (!strncasecmp(header,"Reply-To: ",10)
+		 			|| !strncasecmp(header,"To: ",4)
+		 			|| !strncasecmp(header,"From: ",6)
+		 			|| !strncasecmp(header,"Subject: ",8)
+		 			|| !strncasecmp(header,"Date: ",6))
+		 			reader->Process(buffer,length,true);
+
+		 		header = eol;
+	 		}
+	 		if (buffer)
+		 		free(buffer);
+	 		reader->Process("\r\n",2,true);
+	 	}
+	 	else if (!reader->Process(msg, len, true))
 			goto done;
 	}
 	if (reader->fRaw)

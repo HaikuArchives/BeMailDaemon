@@ -188,7 +188,7 @@ class TTextView : public BTextView
 		class Reader
 		{
 			public:
-				Reader(bool header,bool raw,bool quote,bool incoming,bool mime,
+				Reader(bool header,bool raw,bool quote,bool incoming,bool stripHeaders,bool mime,
 					TTextView *view,BFile *file,BList *list,sem_id sem);
 	
 				static status_t Run(void *);
@@ -205,6 +205,7 @@ class TTextView : public BTextView
 				bool fRaw;
 				bool fQuote;
 				bool fIncoming;
+				bool fStripHeader;
 				bool fMime;
 				TTextView *fView;
 				BFile *fFile;
