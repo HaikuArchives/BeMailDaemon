@@ -8,7 +8,8 @@ SUBDIRS = \
 	outbound_protocols \
 	inbound_filters \
 	outbound_filters \
-	system_filters
+	system_filters \
+	bemail
 
 default .DEFAULT :
 	-cp makefile-engine.MailD $(BUILDHOME)/etc/makefile-engine.MailD
