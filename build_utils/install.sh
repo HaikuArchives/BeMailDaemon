@@ -21,25 +21,16 @@ fi
 quit "application/x-vnd.Be-POST"
 quit "application/x-vnd.Be-TSKB"
 
-mkdir -p ~/config/add-ons/mail_daemon/protocols
-mkdir -p ~/config/add-ons/mail_daemon/filters
+rm -rf ~/config/add-ons/mail_daemon/*
 
 rm -f ~/config/lib/libmail2.so
-copyattr -d -m bin/libmail2.so ~/config/lib/libmail2.so
+copyattr -d -m bin/libnumail.so ~/config/lib/libnumail.so
 
-rm -f ~/config/add-ons/mail_daemon/protocols/{POP3,SMTP}
-copyattr -d -m bin/POP3 ~/config/add-ons/mail_daemon/protocols/POP3
-copyattr -d -m bin/SMTP ~/config/add-ons/mail_daemon/protocols/SMTP
-
-rm -f ~/config/add-ons/mail_daemon/filters/compatibility
-copyattr -d -m bin/compatibility ~/config/add-ons/mail_daemon/filters/compatibility
+copyattr -d -m -r bin/addons/* ~/config/add-ons/mail_daemon
 
 rm -f /boot/beos/system/servers/mail_daemon /boot/beos/preferences/E-mail
 copyattr -d -m bin/mail_daemon /boot/beos/system/servers/mail_daemon
 copyattr -d -m bin/E-mail /boot/beos/preferences/E-mail
-
-(cd $HOME/mail; mkindex MAIL:account)
-
 sleep 1
 /boot/beos/system/Deskbar &
 sleep 1
