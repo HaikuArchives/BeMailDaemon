@@ -441,6 +441,7 @@ void MailDaemonApp::GetNewMessages(BMessage *msg) {
 }
 
 void MailDaemonApp::SendPendingMessages(BMessage *msg) {
+	snooze(5e6);
 	BQuery query;
 	BVolume boot;
 	
