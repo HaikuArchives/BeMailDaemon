@@ -39,9 +39,19 @@ copyattr -d -m bin/mail_daemon /system/servers/mail_daemon
 copyattr -d -m bin/E-mail /boot/beos/preferences/E-mail
 copyattr -d -m bin/BeMail /boot/beos/apps/BeMail
 
+# Set up the files in the Menu Links directory.  They will appear in the pop-up
+# menu in the deskbar.  Overwrite existing ones, and remove ones in the wrong
+# language (left over from previous installs).  But don't delete any other ones
+# that the user may have custom made.
 mkdir -p ~/config/settings/Mail/Menu\ Links
-unzip -n bin/ExtraMenuLinksForR5Tracker.zip -d ~/config/settings/Mail/Menu\ Links
+unzip -o bin/ExtraMenuLinksForR5Tracker.zip -d ~/config/settings/Mail/Menu\ Links
 rm bin/ExtraMenuLinksForR5Tracker.zip
+rm -v "${HOME}/config/settings/Mail/Menu Links/F) 送信者を検索…"
+rm -v "${HOME}/config/settings/Mail/Menu Links/D) ドラフトを開く…"
+rm -v "${HOME}/config/settings/Mail/Menu Links/I) 受信箱を開く"
+rm -v "${HOME}/config/settings/Mail/Menu Links/M) 郵便箱を開く"
+rm -v "${HOME}/config/settings/Mail/Menu Links/S) 見出しで検索…"
+rm -v "${HOME}/config/settings/Mail/Menu Links/T) 本日のメール"
 
 # Set up the spam classifier server.
 copyattr -d -m bin/AGMSBayesianSpamServer ~/config/bin/AGMSBayesianSpamServer

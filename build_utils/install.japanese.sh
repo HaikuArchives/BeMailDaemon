@@ -59,8 +59,12 @@ copyattr -d -m bin/mail_daemon /system/servers/mail_daemon
 copyattr -d -m bin/E-mail /boot/beos/preferences/E-mail
 copyattr -d -m bin/BeMail /boot/beos/apps/BeMail
 
+# Set up the files in the Menu Links directory.  They will appear in the pop-up
+# menu in the deskbar.  Overwrite existing ones, and remove ones in the wrong
+# language (left over from previous installs).  But don't delete any other ones
+# that the user may have custom made.
 mkdir -p ~/config/settings/Mail/Menu\ Links
-unzip -n bin/ExtraMenuLinksForR5Tracker.zip -d ~/config/settings/Mail/Menu\ Links
+unzip -o bin/ExtraMenuLinksForR5Tracker.zip -d ~/config/settings/Mail/Menu\ Links
 rm bin/ExtraMenuLinksForR5Tracker.zip
 mv -f -v "${HOME}/config/settings/Mail/Menu Links/E-Mail From…" "${HOME}/config/settings/Mail/Menu Links/F) 送信者を検索…"
 mv -f -v "${HOME}/config/settings/Mail/Menu Links/Open Draft" "${HOME}/config/settings/Mail/Menu Links/D) ドラフトを開く…"
