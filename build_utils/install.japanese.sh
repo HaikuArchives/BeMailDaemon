@@ -121,18 +121,10 @@ mimeset -F -apps /system/servers/mail_daemon
 mimeset -F -apps /boot/beos/apps/BeMail
 mimeset -F -apps ~/config/bin/AGMSBayesianSpamServer
 
-# The daemon will reinstall the MIME type correctly if it isn't there.  This
-# also removes some cruft that accumulates in the MIME database - the related
-# attributes to display list sometimes gets a bit large and out of sync in the
-# different columns.
-rm ~/config/settings/beos_mime/text/x-email
-rm ~/config/settings/beos_mime/text/x-partial-email
-rm ~/config/settings/beos_mime/text/x-vnd.agmsmith.spam_probability_database
-
 sleep 1
 /system/Deskbar &
 sleep 1
-/system/servers/mail_daemon &
+/system/servers/mail_daemon -M &
 sleep 2
 
 # Create the MIME types and indices needed by the spam server.  Note that it

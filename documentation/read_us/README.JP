@@ -181,13 +181,14 @@ BEOS Mail Daemon Replacement v2.1.0 Release Candidate 2
 
 履歴：
 
-July 1 2003 - v2.1.0rc2
+July 2 2003 - v2.1.0rc2
 - Fixed some IMAP bugs.  Not all IMAP servers are the same, or even standard.
 - Wipe out the /boot/beos/etc/word_index/ directory when installing, since the corrupt spell checking indices crash BeMail, and they get automatically regenerated if they aren't there.
 - Installer now creates the symbolic link /boot/develop/lib/(x86|ppc)/libmail.so which the older installers accidentally deleted.
 - Added Robert Paciorek's central beep modification.  Use this notification method if you have several e-mail accounts and just want one beep when there's new mail in any of them (rather than separate beeps for each account with new mail).  Didn't add his RS232 CTS/RTS signal line toggling code that turns on a light plugged into the serial port - not that many users would use it and it would need preferences changes to choose a serial port, etc.  Contact him (http://www.bebits.com/devprofile/2771) if you want the modifications.
 - Changed POP protocol to remove the period escape code at the start of a line, rather than having the editor hide it.  This avoids slightly incorrect message size counts (two periods should count as one), and lots of other little related off by one problems.
 - Fixed multiple send bug.  If you create several new messages per second for the same outbound account, it fired off several sender threads, and ended up sending each message several times.  The threads fought over access to their configuration files (and other unrelated outbound configuration files for some reason), which often resulted in wiped out account settings and other weirdness.  Now uses only one sender thread per account.
+- Installer completely regenerates the MIME types for the applications and the data types text/x-email, text/x-partial-email so that the correct icons show up.  So if you had custom attributes registered for e-mail files, you'll have to re-enter them.  On a related note, the Daemon now takes a command line argument of "-M" to forcibly delete the old MIME types and rebuild them, plus the existing -E argument that exits immediately if you don't have the auto-run option turned on (so it can be simply started from the boot script).
 
 June 26 2003 - v2.1.0rc1
 - Added US-ASCII encoding and decoding, which also uses 7bit rather than quoted printable.

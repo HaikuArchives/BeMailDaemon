@@ -496,27 +496,31 @@ addAttribute(BMessage &msg,char *name,char *publicName,int32 type = B_STRING_TYP
 
 
 void
-makeMimeType()
+makeMimeType(bool remakeMIMETypes)
 {
-	// Add MIME database entries for the e-mail file types we handle.
+	// Add MIME database entries for the e-mail file types we handle.  Either
+	// do a full rebuild from nothing, or just add on the new attributes that
+	// we support which the regular BeOS mail daemon didn't have.
+
 	const char *types[2] = {"text/x-email","text/x-partial-email"};
 	BMimeType mime;
+	BMessage info;
 	
-	for (int8 i = 0; i < 2; i++) {
+	for (int i = 0; i < 2; i++) {
+		info.MakeEmpty();
 		mime.SetTo(types[i]);
 		if (mime.InitCheck() != B_OK) {
 			fputs("could not init mime type.\n",stderr);
 			return;
 		}
-	
-		BMessage info;
-		mime.GetAttrInfo(&info);
-		
-		if (!mime.IsInstalled()) {
+
+		if (!mime.IsInstalled() || remakeMIMETypes) {
 			// install the full mime type
-	
+			mime.Delete ();
 			mime.Install();
-	
+
+			// Set up the list of e-mail related attributes that Tracker will
+			// let you display in columns for e-mail messages.
 			addAttribute(info,B_MAIL_ATTR_NAME,"Name");
 			addAttribute(info,B_MAIL_ATTR_SUBJECT,"Subject");
 			addAttribute(info,B_MAIL_ATTR_TO,"To");
@@ -528,8 +532,8 @@ makeMimeType()
 			addAttribute(info,B_MAIL_ATTR_WHEN,"When",B_TIME_TYPE,true,false,150);
 			addAttribute(info,B_MAIL_ATTR_THREAD,"Thread");
 			addAttribute(info,B_MAIL_ATTR_ACCOUNT,"Account",B_STRING_TYPE,true,false,100);
-	
 			mime.SetAttrInfo(&info);
+
 			if (i == 0) {
 				mime.SetShortDescription("E-mail");
 				mime.SetLongDescription("Electronic Mail Message");
@@ -540,7 +544,8 @@ makeMimeType()
 				mime.SetPreferredApp("application/x-vnd.Be-POST");
 			}
 		} else {
-			// just add the related attribute types we use to the system
+			// Just add the e-mail related attribute types we use to the MIME system.
+			mime.GetAttrInfo(&info);
 			bool hasAccount = false, hasThread = false, hasSize = false;
 			const char *result;
 			for (int32 index = 0;info.FindString("attr:name",index,&result) == B_OK;index++) {
@@ -562,16 +567,22 @@ makeMimeType()
 			if (!hasAccount || !hasThread/* || !hasSize*/)
 				mime.SetAttrInfo(&info);
 		}
+		mime.Unset();
 	}
 }
 
 
 int main (int argc, const char **argv)
 {
+	bool remakeMIMETypes = false;
+
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i],"-E") == 0) {
 			if (!Zoidberg::Mail::Settings().DaemonAutoStarts())
 				return 0;
+		}
+		if (strcmp(argv[i],"-M") == 0) {
+			remakeMIMETypes = true;
 		}
 	}
 
@@ -580,7 +591,7 @@ int main (int argc, const char **argv)
 	// install MimeTypes, attributes, indices, and the
 	// system beep add startup
 
-	makeMimeType();	
+	makeMimeType(remakeMIMETypes);
 	makeIndices();
 	add_system_beep_event("New E-mail");
 
