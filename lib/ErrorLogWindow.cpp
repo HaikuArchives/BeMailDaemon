@@ -1,5 +1,6 @@
 #include <ScrollView.h>
 #include <TextView.h>
+#include <String.h>
 #include <limits.h>
 
 #include "ErrorLogWindow.h"
@@ -9,7 +10,7 @@ rgb_color notwhite = {255,255,200,255};
 
 class Error : public BView {
 	public:
-		Error(BRect rect,alert_type type,const char *message,rgb_color bkg);
+		Error(BRect rect,alert_type type,const char *tag,const char *message,bool timestamp,rgb_color bkg);
 		
 		void GetPreferredSize(float *width, float *height);
 		void Draw(BRect updateRect);
@@ -56,10 +57,10 @@ ErrorLogWindow::ErrorLogWindow(BRect rect, const char *name, window_type type) :
 	AddChild(new BScrollView("ErrorScroller",view,B_FOLLOW_ALL_SIDES,0,false,true));
 }
 
-void ErrorLogWindow::AddError(alert_type type,const char *message) {
+void ErrorLogWindow::AddError(alert_type type,const char *message,const char *tag,bool timestamp) {
 	Lock();
 	ErrorPanel *panel = (ErrorPanel *)(view);
-	Error *new_error = new Error(BRect(0,panel->add_next_at,panel->Bounds().right,panel->add_next_at+1),type,message,
+	Error *new_error = new Error(BRect(0,panel->add_next_at,panel->Bounds().right,panel->add_next_at+1),type,tag,message,timestamp,
 								 (panel->alerts_displayed++ % 2 == 0) ? white : notwhite);
 	new_error->ResizeToPreferred();
 	panel->add_next_at += new_error->Bounds().Height();
@@ -98,15 +99,38 @@ void ErrorLogWindow::FrameResized(float new_width, float new_height) {
 		panel->scroll->ScrollBar(B_VERTICAL)->SetRange(0,0);
 }
 
-Error::Error(BRect rect,alert_type atype,const char *message,rgb_color bkg) : BView(rect,"error",B_FOLLOW_LEFT | B_FOLLOW_RIGHT | B_FOLLOW_TOP,B_NAVIGABLE | B_WILL_DRAW | B_FRAME_EVENTS), type(atype) {
+Error::Error(BRect rect,alert_type atype,const char *tag,const char *message,bool timestamp,rgb_color bkg) : BView(rect,"error",B_FOLLOW_LEFT | B_FOLLOW_RIGHT | B_FOLLOW_TOP,B_NAVIGABLE | B_WILL_DRAW | B_FRAME_EVENTS), type(atype) {
 	SetViewColor(bkg);
 	SetLowColor(bkg);
+	
+	text_run_array array;
+	array.count = 1;
+	array.runs[0].offset = 0;
+	array.runs[0].font = *be_bold_font;
+	array.runs[0].color = HighColor();
+	
 	BTextView *view = new BTextView(BRect(20,0,rect.Width(),rect.Height()),"error_display",BRect(0,3,rect.Width() - 20 - 3,LONG_MAX),B_FOLLOW_ALL_SIDES);
 	view->SetLowColor(bkg);
 	view->SetViewColor(bkg);
 	view->SetText(message);
 	view->MakeSelectable(true);
+	view->SetStylable(true);
 	view->MakeEditable(false);
+	
+	if (tag != NULL)
+		view->Insert(0,tag,strlen(tag),&array);
+	
+	if (timestamp) {
+		array.runs[0].color = tint_color(ui_color(B_PANEL_BACKGROUND_COLOR),B_DARKEN_2_TINT);
+		array.runs[0].font.SetSize(9);
+		time_t thetime = time(NULL);
+		BString atime = asctime(localtime(&thetime));
+		atime.Prepend(" [");
+		atime.RemoveAll("\n");
+		atime.Append("]");
+		view->Insert(view->TextLength(),atime.String(),atime.Length(),&array);
+	}		
+	
 	float height,width;
 	width = view->Frame().Width();
 	height = view->TextHeight(0,view->CountLines()) + 3;
