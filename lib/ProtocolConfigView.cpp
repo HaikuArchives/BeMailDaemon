@@ -72,7 +72,7 @@ float FindWidestLabel(BView *view)
 
 
 //----------------Real code----------------------
-ProtocolConfigView::ProtocolConfigView(bool auth_methods, bool flavors, bool user, bool pass, bool host, bool leave_mail_on_server) : BView (BRect(0,0,100,20), "protocol_config_view", B_FOLLOW_LEFT | B_FOLLOW_TOP, B_WILL_DRAW) {
+ProtocolConfigView::ProtocolConfigView(uint32 options_mask) : BView (BRect(0,0,100,20), "protocol_config_view", B_FOLLOW_LEFT | B_FOLLOW_TOP, B_WILL_DRAW) {
 	BRect rect(5,5,245,25);
 	SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
 
@@ -82,22 +82,22 @@ ProtocolConfigView::ProtocolConfigView(bool auth_methods, bool flavors, bool use
 	gItemHeight = (int32)(fontHeight.ascent + fontHeight.descent + fontHeight.leading) + 13;
 	rect.bottom = rect.top - 2 + gItemHeight;
 
-	if (host)
+	if (options_mask & Z_HAS_HOSTNAME)
 		AddChild(AddTextField(rect,"host","Mail Host:"));
 	
-	if (user)
+	if (options_mask & Z_HAS_USERNAME)
 		AddChild(AddTextField(rect,"user","User Name:"));
 	
-	if (pass) {
+	if (options_mask & Z_HAS_PASSWORD) {
 		BTextControl *control = AddTextField(rect,"pass","Password:");
 		control->TextView()->HideTyping(true);
 		AddChild(control);
 	}
 	
-	if (flavors)
+	if (options_mask & Z_HAS_FLAVORS)
 		AddChild(AddMenuField(rect,"flavor","Connection Type:"));
 	
-	if (auth_methods)
+	if (options_mask & Z_HAS_AUTH_METHODS)
 		AddChild(AddMenuField(rect,"auth_method","Authentication Method:"));
 
 	// set divider
@@ -107,7 +107,7 @@ ProtocolConfigView::ProtocolConfigView(bool auth_methods, bool flavors, bool use
 			text->SetDivider(width + 6);
 	}
 
-	if (leave_mail_on_server) {
+	if (options_mask & Z_CAN_LEAVE_MAIL_ON_SERVER) {
 		AddChild(AddCheckBox(rect,"leave_mail_remote","Leave Mail On Server",new BMessage('lmos')));
 		BCheckBox *box = AddCheckBox(rect,"delete_remote_when_local","Delete Mail From Server When Deleted Locally");
 		box->SetEnabled(false);
@@ -167,8 +167,11 @@ void ProtocolConfigView::SetTo(BMessage *archive) {
 
 void ProtocolConfigView::AddFlavor(const char *label) {
 	BMenuField *menu = (BMenuField *)(FindView("flavor"));
-	if (menu != NULL)
+	if (menu != NULL) {
 		menu->Menu()->AddItem(new BMenuItem(label,NULL));
+		if (menu->Menu()->FindMarked() == NULL)
+			menu->Menu()->ItemAt(0)->SetMarked(true);
+	}
 }
 
 void ProtocolConfigView::AddAuthMethod(const char *label) {
@@ -179,6 +182,11 @@ void ProtocolConfigView::AddAuthMethod(const char *label) {
 			item->SetMessage(new BMessage('none'));
 			
 		menu->Menu()->AddItem(item);
+		
+		if (menu->Menu()->FindMarked() == NULL) {
+			menu->Menu()->ItemAt(0)->SetMarked(true);
+			MessageReceived(menu->Menu()->ItemAt(0)->Message());
+		}
 	}
 }
 

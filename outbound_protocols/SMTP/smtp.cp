@@ -32,8 +32,10 @@ SMTPProtocol::SMTPProtocol(BMessage *message, StatusView *view) :
 	fAuthType(0),
 	err(B_OK) {
 		BString error_msg;
-			
-		err = Open(_settings->FindString("server"),_settings->FindInt32("port"),true /* Use ESMTP. We need an option to configure it in the GUI. */);
+		
+		bool esmtp = (_settings->FindInt32("auth_method") == 1);
+		
+		err = Open(_settings->FindString("server"),_settings->FindInt32("port"),esmtp);
 		if (err < B_OK) {
 			error_msg << "Error while opening connection to " << _settings->FindString("server");
 			
@@ -368,7 +370,10 @@ MailFilter* instantiate_mailfilter(BMessage *settings,StatusView *status) {
 }
 
 BView* instantiate_config_panel(BMessage *settings) {
-	ProtocolConfigView *view = new ProtocolConfigView(false,false,true,true,true,false);
+	ProtocolConfigView *view = new ProtocolConfigView(Z_HAS_AUTH_METHODS | Z_HAS_USERNAME | Z_HAS_PASSWORD | Z_HAS_HOSTNAME);
+	
+	view->AddAuthMethod("None");
+	view->AddAuthMethod("ESMTP");
 	
 	BTextControl *control = (BTextControl *)(view->FindView("host"));
 	control->SetLabel("SMTP Host: ");
@@ -378,4 +383,3 @@ BView* instantiate_config_panel(BMessage *settings) {
 	
 	return view;
 }
-

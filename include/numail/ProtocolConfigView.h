@@ -1,9 +1,17 @@
 #include <View.h>
 
+typedef enum {
+	Z_HAS_AUTH_METHODS 			= 1,
+	Z_HAS_FLAVORS 				= 2,
+	Z_HAS_USERNAME 				= 4,
+	Z_HAS_PASSWORD 				= 8,
+	Z_HAS_HOSTNAME 				= 16,
+	Z_CAN_LEAVE_MAIL_ON_SERVER 	= 32
+} config_options;
+
 class ProtocolConfigView : public BView {
 	public:
-		ProtocolConfigView(bool auth_methods = false, bool flavors = false, bool user = true, bool pass = true, bool host = true, bool leave_mail_on_server = true);
-		
+		ProtocolConfigView(uint32 options_mask = Z_HAS_FLAVORS | Z_HAS_USERNAME | Z_HAS_PASSWORD | Z_HAS_HOSTNAME);
 		void SetTo(BMessage *archive);
 		
 		void AddFlavor(const char *label);

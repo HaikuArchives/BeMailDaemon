@@ -184,7 +184,7 @@ status_t POP3Protocol::GetHeader(int32 message, BPositionIO *write_to) {
 	return RetrieveInternal(cmd.String(),message,write_to, false);
 }
 
-status_t POP3Protocol::RetrieveInternal(const char *command, int32 message, BPositionIO *write_to, bool post_progress) {
+status_t POP3Protocol::RetrieveInternal(const char *command, int32, BPositionIO *write_to, bool post_progress) {
 	BString content = "";
 	
 	if( SendCommand(command) != B_OK)
@@ -363,7 +363,7 @@ MailFilter *instantiate_mailfilter(BMessage *settings, StatusView *view) {
 }
 
 BView* instantiate_config_panel(BMessage *settings) {
-	ProtocolConfigView *view = new ProtocolConfigView(true);
+	ProtocolConfigView *view = new ProtocolConfigView(Z_HAS_USERNAME | Z_HAS_AUTH_METHODS | Z_HAS_PASSWORD | Z_HAS_HOSTNAME | Z_CAN_LEAVE_MAIL_ON_SERVER);
 	view->AddAuthMethod("Plain Text");
 	view->AddAuthMethod("APOP");
 	

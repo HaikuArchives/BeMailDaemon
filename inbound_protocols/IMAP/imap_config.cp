@@ -10,7 +10,7 @@ class IMAPConfig : public ProtocolConfigView {
 		virtual	status_t Archive(BMessage *into, bool deep = true) const;
 };
 
-IMAPConfig::IMAPConfig(BMessage *archive) : ProtocolConfigView() {
+IMAPConfig::IMAPConfig(BMessage *archive) : ProtocolConfigView(Z_HAS_USERNAME | Z_HAS_PASSWORD | Z_HAS_HOSTNAME | Z_CAN_LEAVE_MAIL_ON_SERVER) {
 	BRect frame = ChildAt(CountChildren() - 1)->Frame();
 	frame.top += 25;
 	frame.bottom += 25;
