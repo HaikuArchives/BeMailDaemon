@@ -1,6 +1,6 @@
 /* ConfigWindow - main eMail config window
 **
-** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+** Copyright 2001-2003 Dr. Zoidberg Enterprises. All rights reserved.
 */
 
 
@@ -211,20 +211,15 @@ class AboutTextView : public BTextView
 
 		virtual void MouseDown(BPoint point)
 		{
-			if (fMail.Contains(point))
-			{
+			if (fMail.Contains(point)) {
 				char *arg[] = {(char *)kMailto,NULL};
 				be_roster->Launch("text/x-email",1,arg);
-			}
-			else if (fBugsite.Contains(point))
-			{
+			} else if (fBugsite.Contains(point)) {
 				char *arg[] = {(char *)kBugsite,NULL};
 				be_roster->Launch("text/html",1,arg);
-			}
-			else if (fWebsite.Contains(point))
-			{
-				char *arg[] = {(char *)kWebsite,NULL};
-				be_roster->Launch("text/html",1,arg);
+			} else if (fWebsite.Contains(point)) {
+				char *arg[] = {(char *)kWebsite, NULL};
+				be_roster->Launch("text/html", 1, arg);
 			}
 		}
 	
@@ -330,7 +325,7 @@ ConfigWindow::ConfigWindow()
 	}
 	tile.left = tile.right + 5;  tile.right = rect.right;
 	tile.OffsetBy(0,-1);
-	fIntervalUnitField = new BMenuField(tile,"frequency",B_EMPTY_STRING,frequencyPopUp);
+	fIntervalUnitField = new BMenuField(tile,"frequency", B_EMPTY_STRING, frequencyPopUp);
 	fIntervalUnitField->SetDivider(0.0);
 	box->AddChild(fIntervalUnitField);
 
@@ -387,7 +382,7 @@ ConfigWindow::ConfigWindow()
 		if (i == 0)
 			item->SetMarked(true);
 	}
-	rect.OffsetBy(0,height + 6);
+	rect.OffsetBy(0, height + 6);
 	fStatusLookField = new BMenuField(rect,"status look",
 		MDR_DIALECT_CHOICE ("Window Look:","ウィンドウ外観："),lookPopUp);
 	fStatusLookField->SetDivider(labelWidth);
@@ -397,11 +392,11 @@ ConfigWindow::ConfigWindow()
 	workspacesPopUp->AddItem(item = new BMenuItem(
 		MDR_DIALECT_CHOICE ("Current Workspace","使用中ワークスペース"),
 		msg = new BMessage(kMsgStatusWorkspaceChanged)));
-	msg->AddInt32("StatusWindowWorkSpace",0);
+	msg->AddInt32("StatusWindowWorkSpace", 0);
 	workspacesPopUp->AddItem(item = new BMenuItem(
 		MDR_DIALECT_CHOICE ("All Workspaces","全てのワークスペース"),
 		msg = new BMessage(kMsgStatusWorkspaceChanged)));
-	msg->AddInt32("StatusWindowWorkSpace",-1);
+	msg->AddInt32("StatusWindowWorkSpace", -1);
 
 	rect.OffsetBy(0,height + 6);
 	fStatusWorkspaceField = new BMenuField(rect,"status workspace",
@@ -424,7 +419,7 @@ ConfigWindow::ConfigWindow()
 	stringView->ResizeToPreferred();
 	// BStringView::ResizeToPreferred() changes the width, so that the
 	// alignment has no effect anymore
-	stringView->ResizeTo(rect.Width(),stringView->Bounds().Height());
+	stringView->ResizeTo(rect.Width(), stringView->Bounds().Height());
 
 	rect.left += 100;  rect.right -= 100;
 	rect.OffsetBy(0,height + 1);
@@ -435,14 +430,13 @@ ConfigWindow::ConfigWindow()
 	button->SetTarget(BMessenger("application/x-vnd.Be-TRAK"));
 
 	BPath path;
-	find_directory(B_USER_SETTINGS_DIRECTORY,&path);
+	find_directory(B_USER_SETTINGS_DIRECTORY, &path);
 	path.Append("Mail/Menu Links");
 	BEntry entry(path.Path());
-	if (entry.InitCheck() == B_OK && entry.Exists())
-	{
+	if (entry.InitCheck() == B_OK && entry.Exists()) {
 		entry_ref ref;
 		entry.GetRef(&ref);
-		msg->AddRef("refs",&ref);
+		msg->AddRef("refs", &ref);
 	}
 	else
 		button->SetEnabled(false);
@@ -481,7 +475,7 @@ ConfigWindow::ConfigWindow()
 	float w,h;
 	saveButton->GetPreferredSize(&w,&h);
 	saveButton->ResizeTo(w,h);
-	saveButton->MoveTo(rect.right - w,rect.top);
+	saveButton->MoveTo(rect.right - w, rect.top);
 	top->AddChild(saveButton);
 
 	BButton *cancelButton = new BButton(rect,"cancel",
@@ -529,7 +523,8 @@ ConfigWindow::~ConfigWindow()
 }
 
 
-void ConfigWindow::MakeHowToView()
+void
+ConfigWindow::MakeHowToView()
 {
 	BResources *resources = BApplication::AppResources();
 	if (resources)
@@ -582,7 +577,8 @@ void ConfigWindow::MakeHowToView()
 }
 
 
-void ConfigWindow::LoadSettings()
+void
+ConfigWindow::LoadSettings()
 {
 	Accounts::Delete();
 	Accounts::Create(fAccountsListView,fConfigView);
@@ -612,7 +608,8 @@ void ConfigWindow::LoadSettings()
 }
 
 
-void ConfigWindow::SaveSettings()
+void
+ConfigWindow::SaveSettings()
 {
 	// remove config views
 	((CenterContainer *)fConfigView)->DeleteChildren();
@@ -623,8 +620,7 @@ void ConfigWindow::SaveSettings()
 	float interval;
 	sscanf(fIntervalControl->Text(),"%f",&interval);
 	float multiplier = 0;
-	switch (fIntervalUnitField->Menu()->IndexOf(fIntervalUnitField->Menu()->FindMarked()))
-	{
+	switch (fIntervalUnitField->Menu()->IndexOf(fIntervalUnitField->Menu()->FindMarked())) {
 		case 1:		// minutes
 			multiplier = 60;
 			break;
@@ -639,19 +635,32 @@ void ConfigWindow::SaveSettings()
 
 	// apply and save general settings
 	Mail::Settings settings;
-	if (fSaveSettings)
-	{
+	if (fSaveSettings) {
 		settings.SetAutoCheckInterval(time * 1e6);
 		settings.SetCheckOnlyIfPPPUp(fPPPActiveCheckBox->Value() == B_CONTROL_ON);
 		settings.SetSendOnlyIfPPPUp(fPPPActiveSendCheckBox->Value() == B_CONTROL_ON);
 		settings.SetDaemonAutoStarts(fAutoStartCheckBox->Value() == B_CONTROL_ON);
+
+		// status mode (alway, fetching/retrieving, ...)
 		int32 index = fStatusModeField->Menu()->IndexOf(fStatusModeField->Menu()->FindMarked());
 		settings.SetShowStatusWindow(index);
+
+		// status look (border style, ...)
 		index = fStatusLookField->Menu()->IndexOf(fStatusLookField->Menu()->FindMarked());
 		settings.SetStatusWindowLook(index);
-	}
-	else
-	{
+		
+		// status workspaces
+		index = fStatusWorkspaceField->Menu()->IndexOf(fStatusWorkspaceField->Menu()->FindMarked());
+		uint32 workspaces = 0;
+		if (index == 0) {
+			// current workspace
+			workspaces = Workspaces();
+				// ToDo: correct would be to ask the status window which workspace it is on
+		} else
+			workspaces = B_ALL_WORKSPACES;
+			
+		settings.SetStatusWindowWorkspaces(workspaces);
+	} else {
 		// restore status window look
 		settings.SetStatusWindowLook(settings.StatusWindowLook());
 	}
@@ -673,7 +682,8 @@ void ConfigWindow::SaveSettings()
 }
 
 
-bool ConfigWindow::QuitRequested()
+bool
+ConfigWindow::QuitRequested()
 {
 	SaveSettings();
 
@@ -684,15 +694,14 @@ bool ConfigWindow::QuitRequested()
 }
 
 
-void ConfigWindow::MessageReceived(BMessage *msg)
+void
+ConfigWindow::MessageReceived(BMessage *msg)
 {
-	switch (msg->what)
-	{
+	switch (msg->what) {
 		case kMsgAccountSelected:
 		{
 			int32 index;
-			if (msg->FindInt32("index",&index) != B_OK || index < 0)
-			{
+			if (msg->FindInt32("index", &index) != B_OK || index < 0) {
 				// deselect current item
 				((CenterContainer *)fConfigView)->DeleteChildren();
 				MakeHowToView();
@@ -711,11 +720,9 @@ void ConfigWindow::MessageReceived(BMessage *msg)
 		case kMsgRemoveAccount:
 		{
 			int32 index = fAccountsListView->CurrentSelection();
-			if (index >= 0)
-			{
+			if (index >= 0) {
 				AccountItem *item = (AccountItem *)fAccountsListView->ItemAt(index);
-				if (item)
-				{
+				if (item) {
 					item->account->Remove(item->type);
 					MakeHowToView();
 				}
@@ -766,7 +773,8 @@ void ConfigWindow::MessageReceived(BMessage *msg)
 }
 
 
-status_t ConfigWindow::SetToGeneralSettings(Mail::Settings *settings)
+status_t
+ConfigWindow::SetToGeneralSettings(Mail::Settings *settings)
 {
 	if (!settings)
 		return B_BAD_VALUE;
@@ -781,20 +789,17 @@ status_t ConfigWindow::SetToGeneralSettings(Mail::Settings *settings)
 	char text[25];
 	text[0] = 0;
 	int timeIndex = 0;
-	if (interval >= 60)
-	{
+	if (interval >= 60) {
 		timeIndex = 1;
-		sprintf(text,"%ld",interval / (60));
+		sprintf(text, "%ld", interval / (60));
 	}
-	if (interval >= (60*60))
-	{
+	if (interval >= (60*60)) {
 		timeIndex = 2;
-		sprintf(text,"%ld",interval / (60*60));
+		sprintf(text, "%ld", interval / (60*60));
 	}
-	if (interval >= (60*60*24))
-	{
+	if (interval >= (60*60*24)) {
 		timeIndex = 3;
-		sprintf(text,"%ld",interval / (60*60*24));
+		sprintf(text, "%ld", interval / (60*60*24));
 	}
 	fIntervalControl->SetText(text);
 
@@ -826,7 +831,8 @@ status_t ConfigWindow::SetToGeneralSettings(Mail::Settings *settings)
 }
 
 
-void ConfigWindow::RevertToLastSettings()
+void
+ConfigWindow::RevertToLastSettings()
 {
 	// revert general settings
 	Mail::Settings settings;
