@@ -253,48 +253,17 @@ status_t Component::GetDecodedData(BPositionIO *) {return B_OK;}
 status_t Component::SetDecodedData(BPositionIO *) {return B_OK;}
 
 status_t
-Component::SetToRFC822(BPositionIO *data, size_t /*length*/, bool /* parse_now */)
+Component::SetToRFC822(BPositionIO *data, size_t /*length*/, bool /*parse_now*/)
 {
 	headers.MakeEmpty();
 
-	char *	buf = NULL;
-	size_t	buflen = 0;
-	int32	len;
-	//
-	// Parse the header.
-	// Code similar to ParseFilter::ProcessMailMessage so fix it if
-	// you change this function.
-	//
-	while ((len = readfoldedline(*data, &buf, &buflen)) >= 2)
-	{
-		--len; // Don't include the \n at the end of the buffer.
-
-		// convert to UTF-8
-		len = rfc2047_to_utf8(&buf, &buflen, len);
-
-		// terminate
-		buf[len] = 0;
-
-		const char *delimiter = strstr(buf, ":");
-		if (delimiter == NULL)
-			continue;
-
-		BString header(buf, delimiter - buf);
-		header.CapitalizeEachWord(); //-------Unified case for later fetch
-
-		delimiter++; // Skip the colon.
-		while (isspace (*delimiter))
-			delimiter++; // Skip over leading white space and tabs.  To do: (comments in brackets).
-		headers.AddString(header.String(),delimiter);
-	}
-	if (buf)
-		free(buf);
-
-	return B_OK;
+	// Only parse the header here
+	return parse_header(headers, *data);
 }
 
 
-status_t Component::RenderToRFC822(BPositionIO *render_to) {
+status_t
+Component::RenderToRFC822(BPositionIO *render_to) {
 	int32 charset = B_ISO1_CONVERSION;
 	int8 encoding = quoted_printable;
 	const char *key, *value;
