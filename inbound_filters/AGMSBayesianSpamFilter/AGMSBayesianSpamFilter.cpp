@@ -11,6 +11,11 @@
  * Public Domain 2002, by Alexander G. M. Smith, no warranty.
  *
  * $Log$
+ * Revision 1.15  2003/07/06 13:30:33  agmsmith
+ * Make sure that the spam filter doesn't auto-train the message twice
+ * when it gets a partially downloaded e-mail (will just train on the
+ * partial one, ignore the complete message when it gets downloaded).
+ *
  * Revision 1.14  2003/05/27 17:12:59  nwhitehorn
  * Massive refactoring of the Protocol/ChainRunner/Filter system. You can probably
  * examine its scope by examining the number of files changed. Regardless, this is
@@ -104,7 +109,7 @@ static const char *kServerSignature =
 AGMSBayesianSpamFilter::AGMSBayesianSpamFilter (BMessage *settings)
 	:	Mail::Filter (settings),
 		fAddSpamToSubject (true),
-		fAutoTraining (false),
+		fAutoTraining (true),
 		fGenuineCutoffRatio (0.05f),
 		fHeaderOnly (false),
 		fLaunchAttemptCount (0),
@@ -427,7 +432,7 @@ descriptive_name (
 	char *buffer)
 {
 	bool		addMarker = true;
-	bool		autoTraining = false;
+	bool		autoTraining = true;
 	float		cutoffRatio = 0.95f;
 	bool		tempBool;
 	float		tempFloat;

@@ -3,6 +3,11 @@
  * settings related to the add-on, but not the server.
  *
  * $Log$
+ * Revision 1.6  2003/02/08 21:54:17  agmsmith
+ * Updated the AGMSBayesianSpamServer documentation to match the current
+ * version.  Also removed the Beep options from the spam filter, now they
+ * are turned on or off in the system sound preferences.
+ *
  * Revision 1.5  2002/12/18 02:27:45  agmsmith
  * Added uncertain classification as suggested by BiPolar.
  *
@@ -101,7 +106,7 @@ AGMSBayesianSpamFilterConfig::AGMSBayesianSpamFilterConfig (BMessage *settings)
 			B_FOLLOW_LEFT | B_FOLLOW_TOP, 0),
 		fAddSpamToSubject (true),
 		fAddSpamToSubjectCheckBoxPntr (NULL),
-		fAutoTraining (false),
+		fAutoTraining (true),
 		fAutoTrainingCheckBoxPntr (NULL),
 		fGenuineCutoffRatio (0.05f),
 		fGenuineCutoffRatioTextBoxPntr (NULL),
