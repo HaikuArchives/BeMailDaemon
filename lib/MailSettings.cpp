@@ -311,43 +311,4 @@ uint32 MailSettings::DefaultOutboundChainID() {
 void MailSettings::SetDefaultOutboundChainID(uint32 to) {
 	if (data.ReplaceInt32("DefaultOutboundChainID",to))
 		data.AddInt32("DefaultOutboundChainID",to);
-	
-	//------Note that once we have our own BMailMessage, this can be swiftly relegated
-	//      to the dustbin of history
-	
-	/*--------Hack!!! Hack!!! Hack!!!------------*/
-//#ifdef HACK
-	MailChain new_acc(to);
-	if (new_acc.InitCheck() < B_OK)
-		return;
-
-	create_directory("/boot/home/config/settings/Mail/MailPop/",0777);
-	create_directory("/boot/home/config/settings/Mail/MailSmtp/",0777);
-	BFile old_daemon("/boot/home/config/settings/Mail/MailPop/MailPop1",B_READ_WRITE | B_CREATE_FILE | B_ERASE_FILE);
-
-	BMessage old_settings;
-	old_settings.AddString("Version_info","V1.00");
-	old_settings.AddString("pop_user_name",B_EMPTY_STRING);
-	old_settings.AddString("pop_password",B_EMPTY_STRING);
-	old_settings.AddString("pop_host",B_EMPTY_STRING);
-	const char *string = new_acc.MetaData()->FindString("real_name");
-	old_settings.AddString("pop_real_name",string ? string : B_EMPTY_STRING);
-	string = new_acc.MetaData()->FindString("reply_to");
-	old_settings.AddString("pop_reply_to",string ? string : B_EMPTY_STRING);
-	old_settings.AddInt32("pop_days",0);
-	old_settings.AddInt32("pop_interval",0);
-	old_settings.AddInt32("pop_start",0);
-	old_settings.AddInt32("pop_end",0);
-	
-	old_settings.Flatten(&old_daemon);
-	
-	old_daemon.SetTo("/boot/home/config/settings/Mail/MailSmtp/MailSmtp1",B_READ_WRITE | B_CREATE_FILE | B_ERASE_FILE);
-	old_settings.MakeEmpty();
-	
-	old_settings.AddString("Version_info","V1.00");
-	old_settings.AddString("smtp_host","foo.bar.com"/* B_EMPTY_STRING will trigger an error */);
-	
-	old_settings.Flatten(&old_daemon);
-	/*-------Phew! Hackage is done!-------------*/
-//#endif
 }
