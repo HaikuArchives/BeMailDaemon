@@ -152,6 +152,8 @@ HISTORY:
 
 June 27 2003 - v2.1.0rc2
 - Fixed some IMAP bugs.  Not all IMAP servers are the same, or even standard.
+- Wipe out the /boot/beos/etc/word_index/ directory when installing, since the corrupt spell checking indices crash BeMail, and they get automatically regenerated if they aren't there.
+- Installer now creates the symbolic link /boot/develop/lib/(x86|ppc)/libmail.so which the older installers accidentally deleted.
 
 June 26 2003 - v2.1.0rc1
 - Added US-ASCII encoding and decoding, which also uses 7bit rather than quoted printable.

@@ -95,6 +95,25 @@ ln -f -s -v "${HOME}/config/add-ons/mail_daemon/system_filters/Inbox" "${HOME}/c
 ln -f -s -v "${HOME}/config/add-ons/mail_daemon/system_filters/Outbox" "${HOME}/config/add-ons/mail_daemon/system_filters/送信箱"
 ln -f -s -v "${HOME}/config/add-ons/mail_daemon/system_filters/New Mail Notification" "${HOME}/config/add-ons/mail_daemon/system_filters/着信通知方法"
 
+# Various fixups...
+# The word index files sometimes go corrupt.  Since they are regenerated if
+# they aren't there, this is fixed by just deleting the whole annoying
+# directory.
+rm -r /boot/beos/etc/word_index/
+# And the old installer used to delete the developer's link to the libmail.so
+# library, so put it back.  Do for x86 and ppc, will do nothing if you don't
+# have that development system installed (ln will fail harmlessly).
+if test -e "/boot/develop/lib/x86/libmail.so";	then
+	echo "/boot/develop/lib/x86/libmail.so already exists, no need to fix.";
+else
+	ln -v -s /boot/beos/system/lib/libmail.so /boot/develop/lib/x86/libmail.so
+fi
+if test -e "/boot/develop/lib/ppc/libmail.so";	then
+	echo "/boot/develop/lib/ppc/libmail.so already exists, no need to fix.";
+else
+	ln -v -s /boot/beos/system/lib/libmail.so /boot/develop/lib/ppc/libmail.so
+fi
+
 sleep 1
 /system/Deskbar &
 sleep 1
