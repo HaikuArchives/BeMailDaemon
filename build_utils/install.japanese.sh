@@ -50,6 +50,7 @@ quit "application/x-vnd.agmsmith.AGMSBayesianSpamServer"
 rm -rf ~/config/add-ons/mail_daemon/*
 rm -f /system/servers/mail_daemon /boot/beos/preferences/E-mail /boot/beos/apps/BeMail
 rm -f ~/config/lib/libmail2.so ~/config/lib/libnumail2.so /system/lib/libmail.so
+rm -f "/boot/home/config/settings/Mail/New E-mail"
 
 mkdir -p ~/config/add-ons/mail_daemon
 
