@@ -80,6 +80,7 @@ class UpdateHandler : public BHandler {
 						nodes[watcher.node] = strdup(_prot->mailboxes[i]);
 						watch_node(&watcher,B_WATCH_DIRECTORY,this);
 					}
+					((Mail::ChainRunner *)(Looper()))->ResetProgress();
 				} break;
 			
 			case B_NODE_MONITOR: {
