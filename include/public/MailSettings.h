@@ -3,7 +3,6 @@
 
 #include <Archivable.h>
 #include <List.h>
-#include <E-mail.h>
 #include <Message.h>
 
 class BPath;

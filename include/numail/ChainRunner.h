@@ -16,7 +16,8 @@ class MailCallback {
 class ChainRunner {
 	public:
 		ChainRunner(MailChain *chain);
-		
+		~ChainRunner();
+
 		//----Callback functions. Callback objects will be deleted for you.
 		
 		void RegisterMessageCallback(MailCallback *callback);

@@ -179,13 +179,11 @@ void ProtocolConfigView::AddFlavor(const char *label) {
 	}
 }
 
-void ProtocolConfigView::AddAuthMethod(const char *label) {
+void ProtocolConfigView::AddAuthMethod(const char *label,bool needUserPassword) {
 	BMenuField *menu = (BMenuField *)(FindView("auth_method"));
 	if (menu != NULL) {
-		BMenuItem *item = new BMenuItem(label,new BMessage('some'));
-		if (strcmp(label,"None") == 0)
-			item->SetMessage(new BMessage('none'));
-			
+		BMenuItem *item = new BMenuItem(label,new BMessage(needUserPassword ? 'some' : 'none'));
+
 		menu->Menu()->AddItem(item);
 		
 		if (menu->Menu()->FindMarked() == NULL) {

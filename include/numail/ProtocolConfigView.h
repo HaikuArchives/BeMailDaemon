@@ -15,8 +15,8 @@ class ProtocolConfigView : public BView {
 		void SetTo(BMessage *archive);
 		
 		void AddFlavor(const char *label);
-		void AddAuthMethod(const char *label);
-		
+		void AddAuthMethod(const char *label,bool needUserPassword = true);
+
 		virtual	status_t Archive(BMessage *into, bool deep = true) const;
 		virtual	void GetPreferredSize(float *width, float *height);
 		virtual	void AttachedToWindow();

@@ -2,6 +2,8 @@
 #include <Message.h>
 #include <Alert.h>
 #include <TextControl.h>
+#include <Entry.h>
+#include <Path.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -11,6 +13,8 @@
 #include <status.h>
 #include <ProtocolConfigView.h>
 #include <base64.h>
+#include <MailSettings.h>
+#include <ChainRunner.h>
 
 #include "smtp.h"
 #include "md5.h"
@@ -32,7 +36,7 @@ SMTPProtocol::SMTPProtocol(BMessage *message, StatusView *view) :
 	fAuthType(0),
 	err(B_OK) {
 		BString error_msg;
-		
+		message->PrintToStream();
 		bool esmtp = (_settings->FindInt32("auth_method") == 1);
 		
 		err = Open(_settings->FindString("server"),_settings->FindInt32("port"),esmtp);
@@ -118,6 +122,7 @@ status_t SMTPProtocol::Open(const char *server, int port, bool esmtp) {
 	{
 		const char* res = fLog.String();
 		char* p;
+		printf("result: '%s'\n",res);
 		if((p=::strstr(res,"250-AUTH")))
 		{
 			if(::strstr(p,"LOGIN"))
@@ -136,9 +141,79 @@ status_t SMTPProtocol::Open(const char *server, int port, bool esmtp) {
 }
 
 status_t SMTPProtocol::Login(const char * _login, const char * password) {
-	if (fAuthType==0)
-		return B_OK;
-	
+	if (fAuthType == 0) {
+		if (_settings->FindInt32("auth_method") == 2) {
+
+			//*** POP3 authentification ***
+
+			// find the POP3 filter of the other chain - identify by name...
+			MailSettings mailSettings;
+			BList chains;
+			if (mailSettings.InboundChains(&chains) >= B_OK)
+			{
+				ChainRunner *parent;
+				_settings->FindPointer("chain_runner",(void **)&parent);
+				MailChain *chain = NULL;
+				for (int i = chains.CountItems();i-- > 0;)
+				{
+					chain = (MailChain *)chains.ItemAt(i);
+					if (chain != NULL && !strcmp(chain->Name(),parent->Chain()->Name()))
+						break;
+					chain = NULL;
+				}
+				if (chain != NULL)
+				{
+					// found mail chain! let's check for the POP3 protocol
+					BMessage msg;
+					entry_ref ref;
+					if (chain->GetFilter(0,&msg,&ref) >= B_OK)
+					{
+						BPath path(&ref);
+						if (path.InitCheck() >= B_OK && !strcmp(path.Leaf(),"POP3"))
+						{
+							// protocol matches, go execute it!
+		
+							image_id image = load_add_on(path.Path());
+							puts(path.Path());
+
+							fLog = "Cannot load POP3 add-on";
+							if (image >= B_OK)
+							{
+								MailFilter *(* instantiate)(BMessage *,StatusView *);
+								status_t status = get_image_symbol(image,"instantiate_mailfilter",B_SYMBOL_TYPE_TEXT,(void **)&instantiate);
+								if (status >= B_OK)
+								{
+									ChainRunner runner(chain);
+									msg.AddPointer("chain_runner",&runner);
+									msg.AddInt32("chain",chain->ID());
+
+									// instantiating and deleting should be enough
+									MailFilter *filter = (*instantiate)(&msg,status_view);
+									delete filter;
+
+									return B_OK;
+								}
+								else
+									fLog = "Cannot run POP3 add-on, symbol not found";
+								unload_add_on(image);
+							}
+						}
+						else
+							fLog = "POP3 protocol is not used";
+					}
+					else
+						fLog = "Could not get inbound protocol";
+				}
+				else
+					fLog = "Cannot find inbound chain";
+			}
+			else
+				fLog = "Cannot get inbound chains";
+			return B_ERROR;
+		} else
+			return B_OK;
+	}
+
 	const char* login = _login;		
 	char hex_digest[33];
 	BString out;
@@ -372,9 +447,10 @@ MailFilter* instantiate_mailfilter(BMessage *settings,StatusView *status) {
 BView* instantiate_config_panel(BMessage *settings) {
 	ProtocolConfigView *view = new ProtocolConfigView(Z_HAS_AUTH_METHODS | Z_HAS_USERNAME | Z_HAS_PASSWORD | Z_HAS_HOSTNAME);
 	
-	view->AddAuthMethod("None");
+	view->AddAuthMethod("None",false);
 	view->AddAuthMethod("ESMTP");
-	
+	view->AddAuthMethod("POP3 before SMTP",false);
+
 	BTextControl *control = (BTextControl *)(view->FindView("host"));
 	control->SetLabel("SMTP Host: ");
 	//control->SetDivider(be_plain_font->StringWidth("SMTP Host: "));

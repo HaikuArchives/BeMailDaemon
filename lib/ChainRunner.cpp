@@ -36,6 +36,15 @@ ChainRunner::ChainRunner(MailChain *chain) :
 	//------do absolutely nothing--------
 }
 
+ChainRunner::~ChainRunner()
+{
+	// clean up if the chain have not been run at all
+	for (int32 i = message_cb.CountItems();i-- > 0;)
+		delete (MailCallback *)message_cb.ItemAt(i);
+	for (int32 i = process_cb.CountItems();i-- > 0;)
+		delete (MailCallback *)process_cb.ItemAt(i);
+}
+
 void ChainRunner::RegisterMessageCallback(MailCallback *callback) {
 	message_cb.AddItem(callback);
 }

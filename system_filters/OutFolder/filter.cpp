@@ -3,6 +3,8 @@
 #include <Entry.h>
 #include <NodeInfo.h>
 
+#include <E-mail.h>
+
 #include <MailAddon.h>
 #include <NodeMessage.h>
 #include <ChainRunner.h>
