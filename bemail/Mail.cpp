@@ -2735,6 +2735,8 @@ TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 			fContentView->fTextView->Insert((const char *)QUOTE);
 		}
 		fContentView->fTextView->GoToLine(0);
+		if (strlen (preamble) > 0)
+			fContentView->fTextView->Insert(preamble);
 	}
 	else
 		fContentView->fTextView->LoadMessage(mail, true, preamble);
