@@ -18,30 +18,26 @@ namespace Mail {
 // convert_from_utf8 so that they can also convert from UTF-8 to UTF-8 by
 // specifying the MDR_UTF8_CONVERSION constant as the conversion operation.
 
-status_t MDR_convert_to_utf8 (uint32 srcEncoding, const char *src,
+status_t MDR_convert_to_utf8(uint32 srcEncoding, const char *src,
 	int32 *srcLen, char *dst, int32 *dstLen, int32 *state,
 	char substitute = B_SUBSTITUTE);
 
-status_t MDR_convert_from_utf8 (uint32 dstEncoding, const char *src,
+status_t MDR_convert_from_utf8(uint32 dstEncoding, const char *src,
 	int32 *srcLen, char *dst, int32 *dstLen, int32 *state,
 	char substitute = B_SUBSTITUTE);
 
 
-void TrimWhite (BString &string);
+void trim_white_space(BString &string);
 // Remove leading and trailing white space from the string.
 
-void StripGook (BString* header);
-// Given a header field (usually the From: e-mail address) with gobbledygook in
-// it, find the longest human-readable phrase (usually the person's name).
-
-void SubjectToThread (BString &string);
+void SubjectToThread(BString &string);
 // Convert a subject to the core words (remove the extraneous RE: re: etc).
 
-time_t ParseDateWithTimeZone (const char *DateString);
+time_t ParseDateWithTimeZone(const char *DateString);
 // Converts a date to a time.  Handles time zones too, unlike parsedate.
 
 ssize_t rfc2047_to_utf8(char **buffer, size_t *bufLen, size_t strLen = 0);
-ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, char encoding);
+ssize_t utf8_to_rfc2047(char **bufp, ssize_t length,uint32 charset, char encoding);
 // convert (in place) RFC 2047-style escape sequences ("=?...?.?...?=")
 // in the first strLen characters of *buffer into UTF-8, and return the
 // length of the converted string or an error code less than 0 on error.
@@ -80,6 +76,15 @@ ssize_t readfoldedline(BPositionIO &in, char **buffer, size_t *buflen);
 //   start with a buffer of size *buflen
 
 extern status_t parse_header(BMessage &headers, BPositionIO &input);
+
+extern void extract_address(BString &address);
+	// retrieves the mail address only from an address header formatted field
+
+extern void extract_address_name(BString &address);
+	// Given a header field (usually the From: e-mail address) with gobbledygook in
+	// it, find the longest human-readable phrase (usually the person's name).
+
+extern void get_address_list(BList &list, const char *string, void (*cleanupFunc)(BString &) = NULL);
 
 }	// namespace Mail
 }	// namespace Zoidberg
