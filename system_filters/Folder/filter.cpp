@@ -156,8 +156,6 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		
 		BString name = attributes.FindString("MAIL:subject");
 		name.ReplaceAll('/','_');
-		name.ReplaceAll('[','_');
-		name.ReplaceAll(']','_');
 		
 		name << ": <" << attributes.FindString("MAIL:from") << ">";
 		
