@@ -30,7 +30,7 @@ TYPE= APP
 #	if two source files with the same name (source.c or source.cpp)
 #	are included from different directories.  Also note that spaces
 #	in folder names do not work well with this makefile.
-SRCS= main.cp deskbarview.cp QueryMenu.cpp LEDAnimation.cpp
+SRCS= main.cp deskbarview.cp LEDAnimation.cpp
 
 #	specify the resource files to use
 #	full path or a relative path to the resource file can be used.
@@ -51,7 +51,7 @@ RSRCS= mail_daemon.rsrc
 #		naming scheme you need to specify the path to the library
 #		and it's name
 #		library: my_lib.a entry: my_lib.a or path/my_lib.a
-LIBS= be ../lib/libmail.so
+LIBS= be tracker ../lib/libmail.so
 
 #	specify additional paths to directories following the standard
 #	libXXX.so or libXXX.a naming scheme.  You can specify full paths
@@ -69,7 +69,7 @@ SYSTEM_INCLUDE_PATHS = ../include ../include/numail ../include/support ../includ
 #	additional paths to look for local headers
 #	thes use the form: #include "header"
 #	source file directories are automatically included
-LOCAL_INCLUDE_PATHS = 
+LOCAL_INCLUDE_PATHS =
 
 #	specify the level of optimization that you desire
 #	NONE, SOME, FULL
@@ -80,7 +80,7 @@ OPTIMIZE= SOME
 #	to use.  For example, setting DEFINES to "DEBUG=1" will cause the
 #	compiler option "-DDEBUG=1" to be used.  Setting DEFINES to "DEBUG"
 #	would pass "-DDEBUG" on the compiler's command line.
-DEFINES= 
+DEFINES=
 
 #	specify special warning levels
 #	if unspecified default warnings will be used

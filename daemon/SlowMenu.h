@@ -3,7 +3,7 @@ Open Tracker License
 
 Terms and Conditions
 
-Copyright (c) 1991-2001, Be Incorporated. All rights reserved.
+Copyright (c) 1991-2000, Be Incorporated. All rights reserved.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
@@ -26,55 +26,51 @@ Except as contained in this notice, the name of Be Incorporated shall not be
 used in advertising or otherwise to promote the sale, use or other dealings in
 this Software without prior written authorization from Be Incorporated.
 
-BeMail(TM), Tracker(TM), Be(R), BeOS(R), and BeIA(TM) are trademarks or registered trademarks
+Tracker(TM), Be(R), BeOS(R), and BeIA(TM) are trademarks or registered trademarks
 of Be Incorporated in the United States and other countries. Other brand product
 names are registered trademarks or trademarks of their respective holders.
 All rights reserved.
 */
 
-#ifndef _QUERY_MENU
-#define _QUERY_MENU
+#ifndef __SLOW_MENU__
+#define __SLOW_MENU__
 
-#include <Locker.h>
-#include <PopUpMenu.h>
+#include <Menu.h>
+#include <MenuItem.h>
+#include <Debug.h>
 
-class BLooper;
-class BQuery;
-class BVolume;
-class QHandler;
+// SlowMenu is a convenience class that makes it easier to
+// use the AddDynamicItem callback to implement a menu that can
+// checks periodically between creating new items and quits
+// early if needed
 
-class QueryMenu : public BPopUpMenu {
-	friend QHandler;
+namespace BPrivate {
+
+class BSlowMenu : public BMenu {
+public:
+	BSlowMenu(const char *title, menu_layout layout = B_ITEMS_IN_COLUMN);
+
+protected:
+	virtual bool StartBuildingItemList();
+		// set up state to start building the item list
+		// returns false if setup failed
+	virtual bool AddNextItem() = 0;
+		// returns false if done
+	virtual void DoneBuildingItemList() = 0;
+		// default version adds items from itemList to menu and deletes
+		// the list; override to sort items first, etc.
 	
-	public:
-		QueryMenu(const char *title, bool popUp=false,
-			bool radioMode = false, bool autoRename = false);
-		virtual ~QueryMenu(void);
-		
-		virtual BPoint ScreenLocation(void);
-		virtual status_t SetTargetForItems(BHandler *handler);
-		virtual status_t SetTargetForItems(BMessenger messenger);
-		status_t SetPredicate(const char *expr, BVolume *vol = NULL);
-	
-	protected:
-		virtual void EntryCreated(const entry_ref &ref, ino_t node);
-		virtual void EntryRemoved(ino_t node);
-		virtual void RemoveEntries(void);
-		
-		BHandler *fTargetHandler;
-		static BLooper *fQueryLooper;
-		
-	private:
-		virtual void DoQueryMessage(BMessage *msg);
-		static int32 query_thread(void *data);
-		int32 QueryThread(void);
-	
-		BLocker fQueryLock;
-		BQuery *fQuery;
-		QHandler *fQueryHandler;
-		bool fCancelQuery;
-		bool fPopUp;
-		static int32 fMenuCount;
+	virtual void ClearMenuBuildingState() = 0;
+
+protected:
+	virtual bool AddDynamicItem(add_state state);
+		// this is the callback from BMenu, you shouldn't need to override this
+
+	bool fMenuBuilt;
 };
 
-#endif // #ifndef _QUERY_MENU
+} // namespace BPrivate
+
+using namespace BPrivate;
+
+#endif

@@ -1,7 +1,14 @@
+#ifndef DESKBAR_VIEW_H
+#define DESKBAR_VIEW_H
+/* DeskbarView - main_daemon's deskbar menu and view
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
 #include <View.h>
-#include <Message.h>
-#include <PopUpMenu.h>
-#include <Query.h>
+
+#include "NavMenu.h"
+
 
 enum MDDeskbarIcon {
 	NO_MAIL = 0,
@@ -10,39 +17,48 @@ enum MDDeskbarIcon {
 
 enum MDDeskbarMessages {
 	MD_CHECK_SEND_NOW = 'MDra',
-	MD_SET_DEFAULT_ACCOUNT,
+	MD_CHECK_FOR_MAILS,
+	MD_SEND_MAILS,
 	MD_OPEN_NEW,
-	MD_OPEN_MAILBOX,
-	MD_OPEN_MAIL_FOLDER,
-	MD_OPEN_PREFS,
-	MD_OPEN_NEW_MAIL_QUERY
+	MD_OPEN_PREFS
 };
+
+class BPopUpMenu;
+class BQuery;
+class BDirectory;
+class BEntry;
+class BPath;
 
 class _EXPORT DeskbarView : public BView {
-public:
-				DeskbarView (BRect frame);
-				DeskbarView (BMessage *data);	
+	public:
+		DeskbarView (BRect frame);
+		DeskbarView (BMessage *data);	
 
-				~DeskbarView();
-	
-	void		Draw(BRect updateRect);
-	virtual	void AttachedToWindow();
-	static 		DeskbarView *Instantiate(BMessage *data);
-				status_t Archive(BMessage *data, bool deep = true) const;
-	void	 	MouseDown(BPoint);
-	void	 	MouseUp(BPoint);
-	void		MessageReceived(BMessage *message);
-	void		ChangeIcon(int32 icon);
-	void		Pulse();
+		virtual ~DeskbarView();
 
-private:
-	BBitmap 		*fIcon;
-	int32			fCurrentIconState;
-	BPopUpMenu		*pop_up;
-	BMenu			*default_menu;
-	BMenuItem		*new_messages_item;
+		virtual void		Draw(BRect updateRect);
+		virtual void		AttachedToWindow();
+		static DeskbarView *Instantiate(BMessage *data);
+		virtual	status_t	Archive(BMessage *data, bool deep = true) const;
+		virtual void	 	MouseDown(BPoint);
+		virtual void	 	MouseUp(BPoint);
+		virtual void		MessageReceived(BMessage *message);
+		virtual void		Pulse();
+
+		void				ChangeIcon(int32 icon);
+
+	private:
+		bool		CreateMenuLinks(BDirectory &,BPath &);
+		void		CreateNewMailQuery(BEntry &);
+		BPopUpMenu	*BuildMenu();
 	
-	BQuery *query;
-	int32 new_messages;
-	int32 buttons;
+		BBitmap		*fIcon;
+		int32		fCurrentIconState;
+	
+		BQuery		*fNewMailQuery;
+		int32		fNewMessages;
+
+		int32		fLastButtons;
 };
+
+#endif	/* DESKBAR_VIEW_H */
