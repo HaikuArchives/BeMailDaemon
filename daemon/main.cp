@@ -158,7 +158,7 @@ MailDaemonApp::MailDaemonApp(void)
 	InstallDeskbarIcon();
 	
 	status = new StatusWindow(BRect(40,400,360,400),"Mail Status", settings_file.ShowStatusWindow());
-	auto_check = new BMessageRunner(be_app_messenger,new BMessage('moto'),0LL,0);
+	auto_check = NULL;
 	UpdateAutoCheck(settings_file.AutoCheckInterval());
 
 	BVolume boot;
@@ -200,11 +200,19 @@ void MailDaemonApp::UpdateAutoCheck(bigtime_t interval)
 {
 	if (interval > 0)
 	{
-		auto_check->SetInterval(interval);
-		auto_check->SetCount(-1);
+		if (auto_check != NULL)
+		{
+			auto_check->SetInterval(interval);
+			auto_check->SetCount(-1);
+		}
+		else
+			auto_check = new BMessageRunner(be_app_messenger,new BMessage('moto'),interval);
 	}
 	else
-		auto_check->SetCount(0);
+	{
+		delete auto_check;
+		auto_check = NULL;
+	}
 }
 
 
