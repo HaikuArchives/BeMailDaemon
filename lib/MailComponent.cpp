@@ -30,9 +30,7 @@ uint32 MailComponent::ComponentType()
 	BMimeType type, super;
 	MIMEType(&type);
 	type.GetSupertype(&super);
-	
-	puts(type.Type());
-	
+		
 	//---------ATT-This code *desperately* needs to be improved
 	if (super == "multipart") {
 		if (type == "multipart/x-bfile")
