@@ -24,6 +24,8 @@
 #include <status.h>
 #include <mail_util.h>
 
+#include <MDRLanguage.h>
+
 using namespace Zoidberg;
 
 struct mail_header_field
@@ -246,7 +248,9 @@ Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::StatusView *statu
 
 BView* instantiate_config_panel(BMessage *settings, BMessage *meta_data)
 {
-	Mail::FileConfigView *view = new Mail::FileConfigView("Destination Folder:","path",true,"/boot/home/mail/in");
+	Mail::FileConfigView *view = new Mail::FileConfigView(
+		MDR_DIALECT_CHOICE ("Destination Folder:","受信箱フォルダー："),
+		"path",true,"/boot/home/mail/in");
 	view->SetTo(settings,meta_data);
 
 	return view;

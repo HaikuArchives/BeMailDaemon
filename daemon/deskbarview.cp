@@ -382,8 +382,9 @@ DeskbarView::BuildMenu()
 	BPopUpMenu *menu = new BPopUpMenu(B_EMPTY_STRING,false,false);
 	menu->SetFont(be_plain_font);
 	
-	menu->AddItem(new BMenuItem("Create New Message" B_UTF8_ELLIPSIS,new BMessage(MD_OPEN_NEW)));
-
+	menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE (
+		"Create New Message","新規メッセージ作成")B_UTF8_ELLIPSIS,
+		new BMessage(MD_OPEN_NEW)));
 	menu->AddSeparatorItem();
 
 	BMessenger tracker(kTrackerSignature);
@@ -512,11 +513,13 @@ DeskbarView::BuildMenu()
 		new BMessage(MD_SEND_MAILS)));
 	}
 	else
-		menu->AddItem(new BMenuItem("Check For Mail Now",new BMessage(MD_CHECK_SEND_NOW)));
+		menu->AddItem(new BMenuItem(
+			MDR_DIALECT_CHOICE ("Check For Mail Now","メールチェック"),
+			new BMessage(MD_CHECK_SEND_NOW)));
 
 	menu->AddSeparatorItem();
 	menu->AddItem(new BMenuItem(
-		MDR_DIALECT_CHOICE ("Edit Preferences","プログラム設定") B_UTF8_ELLIPSIS,
+		MDR_DIALECT_CHOICE ("Edit Preferences","メール環境設定") B_UTF8_ELLIPSIS,
 		new BMessage(MD_OPEN_PREFS)));
 	menu->AddItem(new BMenuItem(
 		MDR_DIALECT_CHOICE ("Quit","終了"),

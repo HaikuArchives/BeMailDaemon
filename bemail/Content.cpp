@@ -1379,7 +1379,7 @@ TTextView::MouseDown(BPoint where)
 				if (!foundWord && gUserDict >= 0)
 				{
 					menu.AddSeparatorItem();
-					addItem = new BMenuItem("Add", NULL);
+					addItem = new BMenuItem(MDR_DIALECT_CHOICE ("Add","追加"), NULL);
 					menu.AddItem(addItem);
 				}
 				

@@ -48,6 +48,8 @@ All rights reserved.
 #include "Mail.h"
 #include "Signature.h"
 
+#include <MDRLanguage.h>
+
 extern BRect		signature_window;
 extern int32		level;
 extern const char	*kUndoStrings[];
@@ -57,7 +59,7 @@ extern const char	*kRedoStrings[];
 //====================================================================
 
 TSignatureWindow::TSignatureWindow(BRect rect)
-	: BWindow(rect, "Signatures", B_TITLED_WINDOW, 0),
+	: BWindow (rect, MDR_DIALECT_CHOICE ("Signatures","サイン"), B_TITLED_WINDOW, 0),
 	fFile(NULL)
 {
 	BMenu		*menu;
@@ -67,28 +69,28 @@ TSignatureWindow::TSignatureWindow(BRect rect)
 	BRect r = Bounds();
 	/*** Set up the menus ****/
 	menu_bar = new BMenuBar(r, "MenuBar");
-	menu = new BMenu("Signature");
-	menu->AddItem(fNew = new BMenuItem("New", new BMessage(M_NEW), 'N'));
-	fSignature = new TMenu("Open", INDEX_SIGNATURE, M_SIGNATURE);
+	menu = new BMenu(MDR_DIALECT_CHOICE ("Signature","サイン"));
+	menu->AddItem(fNew = new BMenuItem(MDR_DIALECT_CHOICE ("New","新規"), new BMessage(M_NEW), 'N'));
+	fSignature = new TMenu(MDR_DIALECT_CHOICE ("Open","開く"), INDEX_SIGNATURE, M_SIGNATURE);
 	menu->AddItem(new BMenuItem(fSignature));
 	menu->AddSeparatorItem();
-	menu->AddItem(fSave = new BMenuItem("Save", new BMessage(M_SAVE), 'S'));
-	menu->AddItem(fDelete = new BMenuItem("Delete", new BMessage(M_DELETE), 'T'));
+	menu->AddItem(fSave = new BMenuItem(MDR_DIALECT_CHOICE ("Save","保存"), new BMessage(M_SAVE), 'S'));
+	menu->AddItem(fDelete = new BMenuItem(MDR_DIALECT_CHOICE ("Delete","削除"), new BMessage(M_DELETE), 'T'));
 	menu->AddSeparatorItem();
-	menu->AddItem(new BMenuItem("Close", new BMessage(B_CLOSE_REQUESTED), 'W'));
+	menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Close","閉じる"), new BMessage(B_CLOSE_REQUESTED), 'W'));
 	menu_bar->AddItem(menu);
 
-	menu = new BMenu("Edit");
-	menu->AddItem(fUndo = new BMenuItem("Undo", new BMessage(B_UNDO), 'Z'));
+	menu = new BMenu(MDR_DIALECT_CHOICE ("Edit","編集"));
+	menu->AddItem(fUndo = new BMenuItem(MDR_DIALECT_CHOICE ("Undo","元に戻す"), new BMessage(B_UNDO), 'Z'));
 	fUndo->SetTarget(NULL, this);
 	menu->AddSeparatorItem();
-	menu->AddItem(fCut = new BMenuItem("Cut", new BMessage(B_CUT), 'X'));
+	menu->AddItem(fCut = new BMenuItem(MDR_DIALECT_CHOICE ("Cut","切り取り"), new BMessage(B_CUT), 'X'));
 	fCut->SetTarget(NULL, this);
-	menu->AddItem(fCopy = new BMenuItem("Copy", new BMessage(B_COPY), 'C'));
+	menu->AddItem(fCopy = new BMenuItem(MDR_DIALECT_CHOICE ("Copy","コピー"), new BMessage(B_COPY), 'C'));
 	fCopy->SetTarget(NULL, this);
-	menu->AddItem(fPaste = new BMenuItem("Paste", new BMessage(B_PASTE), 'V'));
+	menu->AddItem(fPaste = new BMenuItem(MDR_DIALECT_CHOICE ("Paste","貼り付け"), new BMessage(B_PASTE), 'V'));
 	fPaste->SetTarget(NULL, this);
-	menu->AddItem(item = new BMenuItem("Select All", new BMessage(M_SELECT), 'A'));
+	menu->AddItem(item = new BMenuItem(MDR_DIALECT_CHOICE ("Select All","全てを選択"), new BMessage(M_SELECT), 'A'));
 	item->SetTarget(NULL, this);
 	menu_bar->AddItem(menu);
 
@@ -221,8 +223,10 @@ TSignatureWindow::MessageReceived(BMessage* msg)
 				else {
 					fFile = NULL;
 					beep();
-					(new BAlert("", "An error occurred trying to open this signature.",
-						"Sorry"))->Go();
+					(new BAlert("", MDR_DIALECT_CHOICE (
+						"An error occurred trying to open this signature.",
+						"サインを開く時にエラーが発生しました。"),
+						MDR_DIALECT_CHOICE ("Sorry","動作不可")))->Go();
 				}
 			}
 			break;
@@ -276,9 +280,12 @@ TSignatureWindow::Clear()
 
 	if (IsDirty()) {
 		beep();
-		result = (new BAlert("", "Save changes to signature?",
-				"Don't save", "Cancel", "Save", B_WIDTH_AS_USUAL,
-				B_WARNING_ALERT))->Go();
+		result = (new BAlert("", 
+			MDR_DIALECT_CHOICE ("Save changes to signature?","変更したサインを保存しますか？"),
+			MDR_DIALECT_CHOICE ("Don't save","保存しない"),
+			MDR_DIALECT_CHOICE ("Cancel","中止"),
+			MDR_DIALECT_CHOICE ("Save","保存する"),
+			B_WIDTH_AS_USUAL, B_WARNING_ALERT))->Go();
 		if (result == 1)
 			return false;
 		if (result == 2)
@@ -367,8 +374,10 @@ TSignatureWindow::Save()
 
 err_exit:
 	beep();
-	(new BAlert("", "An error occurred trying to save this signature.",
-			"Sorry"))->Go();
+	(new BAlert("", MDR_DIALECT_CHOICE (
+		"An error occurred trying to save this signature.",
+		"サインを保存しようとした時にエラーが発生しました。"),
+		MDR_DIALECT_CHOICE ("Sorry","動作不可")))->Go();
 }
 
 

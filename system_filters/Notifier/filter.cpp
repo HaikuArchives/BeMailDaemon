@@ -14,6 +14,8 @@
 #include <ChainRunner.h>
 #include <status.h>
 
+#include <MDRLanguage.h>
+
 #include "ConfigView.h"
 
 using namespace Zoidberg;
@@ -82,9 +84,20 @@ void NotifyCallback::Callback(MDStatus result) {
 		
 	if (strategy & alert) {
 		BString text;
-		text << "You have " << num_messages << " new message" << ((num_messages != 1) ? "s" : "")
-			 << " for " << chain->Name() << ".";
-		Mail::ShowAlert("New Messages", text.String());
+		text << MDR_DIALECT_CHOICE ("You have ","新しいメッセージ")
+		<< num_messages
+		<< MDR_DIALECT_CHOICE (" new message","件届いています。")
+		<< MDR_DIALECT_CHOICE (
+			((num_messages != 1) ? "s" : ""),
+			"" /* Does Japanese have a plural postfix for numbers?  I assume
+			not so don't append anything to the word "message". */
+			)
+		<< " for "
+		<< chain->Name()
+		<< ".";
+		Mail::ShowAlert(
+			MDR_DIALECT_CHOICE ("New Messages","新着メッセージ"),
+			text.String());
 	}
 	
 	if (strategy & blink_leds)

@@ -1103,10 +1103,10 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 	{
 		menu->AddSeparatorItem();
 		menu->AddItem(fQuote =new BMenuItem(
-			MDR_DIALECT_CHOICE ("Quote","Quoteをつける"),
+			MDR_DIALECT_CHOICE ("Quote","引用をつける"),
 			new BMessage(M_QUOTE), B_RIGHT_ARROW));
 		menu->AddItem(fRemoveQuote = new BMenuItem(
-			MDR_DIALECT_CHOICE ("Remove Quote","Quoteを削除"),
+			MDR_DIALECT_CHOICE ("Remove Quote","引用を削除"),
 			new BMessage(M_REMOVE_QUOTE), B_LEFT_ARROW));
 		fSignature = new TMenu(
 			MDR_DIALECT_CHOICE ("Add Signature", "サインを追加"),
@@ -1374,7 +1374,7 @@ TMailWindow::BuildButtonBar()
 		bbar->AddDivider(5);
 		fPrintButton = bbar->AddButton(MDR_DIALECT_CHOICE ("Print","印刷"), 16, new BMessage(M_PRINT));
 		fPrintButton->SetEnabled(false);
-		bbar->AddButton("Trash", 0, new BMessage(M_DELETE));
+		bbar->AddButton(MDR_DIALECT_CHOICE ("Trash","ゴミ箱"), 0, new BMessage(M_DELETE));
 	}
 	else
 	{
@@ -1388,8 +1388,8 @@ TMailWindow::BuildButtonBar()
 		bbar->AddButton(MDR_DIALECT_CHOICE ("Next","次"), 24, new BMessage(M_NEXTMSG));
 		bbar->AddButton(MDR_DIALECT_CHOICE ("Previous","前"), 20, new BMessage(M_PREVMSG));
 	}
-	bbar->AddButton(MDR_DIALECT_CHOICE ("Inbox","Inboxフォルダー"), 36, new BMessage(M_OPEN_MAIL_BOX));
-	bbar->AddButton(MDR_DIALECT_CHOICE ("Mail","Mailフォルダー"), 32, new BMessage(M_OPEN_MAIL_FOLDER));
+	bbar->AddButton(MDR_DIALECT_CHOICE ("Inbox","Inbox"), 36, new BMessage(M_OPEN_MAIL_BOX));
+	bbar->AddButton(MDR_DIALECT_CHOICE ("Mail","Mail"), 32, new BMessage(M_OPEN_MAIL_FOLDER));
 	bbar->AddDivider(5);
 	
 	bbar->SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
@@ -1802,7 +1802,9 @@ void TMailWindow::MessageReceived(BMessage *msg)
 				if (!(new BAlert("", MDR_DIALECT_CHOICE (
 					"Are you sure you want to move this message to the trash?",
 					"このメッセージを削除してもよろしいですか？"),
-					"Cancel", "Trash", NULL, B_WIDTH_AS_USUAL, B_OFFSET_SPACING,
+					MDR_DIALECT_CHOICE ("Cancel","中止"),
+					MDR_DIALECT_CHOICE ("Trash","削除"),
+					NULL, B_WIDTH_AS_USUAL, B_OFFSET_SPACING,
 					B_WARNING_ALERT))->Go())
 					break;
 			}

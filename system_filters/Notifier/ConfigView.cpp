@@ -13,6 +13,8 @@
 #include <String.h>
 #include <Message.h>
 
+#include <MDRLanguage.h>
+
 #include <MailAddon.h>
 
 const uint32 kMsgNotifyMethod = 'nomt';
@@ -31,13 +33,19 @@ ConfigView::ConfigView()
 	BRect frame(5,2,250,itemHeight + 2);
 	BPopUpMenu *menu = new BPopUpMenu(B_EMPTY_STRING,false,false);
 
-	const char *notifyMethods[] = {"Beep","Alert","Keyboard LEDs","Central Alert"};
+	const char *notifyMethods[] = {
+		MDR_DIALECT_CHOICE ("Beep","音"),
+		MDR_DIALECT_CHOICE ("Alert","警告メッセージ"),
+		MDR_DIALECT_CHOICE ("Keyboard LEDs","キーボードLED"),
+		MDR_DIALECT_CHOICE ("Central Alert","セントラル警告")};
 	for (int32 i = 0,j = 1;i < 4;i++,j *= 2)
 		menu->AddItem(new BMenuItem(notifyMethods[i],new BMessage(kMsgNotifyMethod)));
 
-	BMenuField *field = new BMenuField(frame,"notify","Method:",menu);
+	BMenuField *field = new BMenuField(frame,"notify",
+		MDR_DIALECT_CHOICE ("Method:","方法："),menu);
 	field->ResizeToPreferred();
-	field->SetDivider(field->StringWidth("Method:") + 6);
+	field->SetDivider(field->StringWidth(
+		MDR_DIALECT_CHOICE ("Method:","方法：")) + 6);
 	AddChild(field);
 
 	ResizeToPreferred();
