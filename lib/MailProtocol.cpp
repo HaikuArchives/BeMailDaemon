@@ -45,8 +45,7 @@ MailProtocol::MailProtocol(BMessage* settings) : MailFilter(settings) {
 	settings->FindPointer("chain_runner",(void **)&parent);
 	parent->Chain()->MetaData()->FindFlat("manifest",manifest); //---no error checking, because if it doesn't exist, it will stay empty anyway
 	
-	if (settings->FindBool("delete_remote_when_local"))
-		parent->RegisterProcessCallback(new DeletePass(this));
+	parent->RegisterProcessCallback(new DeletePass(this));
 };
 
 MailProtocol::~MailProtocol() {
@@ -110,35 +109,37 @@ DeletePass::DeletePass(MailProtocol *home) : us(home) {
 							puts("Done\n");
 
 void DeletePass::Callback(MDStatus status) {
-	StringList query_contents;
-	BQuery fido;
-	BVolume boot;
-	entry_ref entry;
-	BVolumeRoster().GetBootVolume(&boot);
+	if (us->settings->FindBool("delete_remote_when_local")) {
+		StringList query_contents;
+		BQuery fido;
+		BVolume boot;
+		entry_ref entry;
+		BVolumeRoster().GetBootVolume(&boot);
+		
+		fido.SetVolume(&boot);
+		fido.PushAttr("MAIL:chain");
+		fido.PushInt32(us->settings->FindInt32("chain"));
+		fido.PushOp(B_EQ);
+		fido.Fetch();
+		
+		BString uid;
+		while (fido.GetNextRef(&entry) == B_OK) {
+			BNode(&entry).ReadAttrString("MAIL:unique_id",&uid);
+			query_contents.AddItem(uid.String());
+		}
 	
-	fido.SetVolume(&boot);
-	fido.PushAttr("MAIL:chain");
-	fido.PushInt32(us->settings->FindInt32("chain"));
-	fido.PushOp(B_EQ);
-	fido.Fetch();
-	
-	BString uid;
-	while (fido.GetNextRef(&entry) == B_OK) {
-		BNode(&entry).ReadAttrString("MAIL:unique_id",&uid);
-		query_contents.AddItem(uid.String());
+		dump_stringlist(query_contents);
+		dump_stringlist((*(us->manifest)));
+		
+		StringList to_delete;
+		query_contents.NotHere(*(us->manifest),&to_delete);
+		dump_stringlist(to_delete);
+		
+		for (int32 i = 0; i < to_delete.CountItems(); i++)
+			us->DeleteMessage(to_delete[i]);
+		
+		*(us->unique_ids) -= to_delete;
 	}
-
-	dump_stringlist(query_contents);
-	dump_stringlist((*(us->manifest)));
-	
-	StringList to_delete;
-	query_contents.NotHere(*(us->manifest),&to_delete);
-	dump_stringlist(to_delete);
-	
-	for (int32 i = 0; i < to_delete.CountItems(); i++)
-		us->DeleteMessage(to_delete[i]);
-	
-	*(us->unique_ids) -= to_delete;
 	
 	if (us->parent->Chain()->MetaData()->ReplaceFlat("manifest",us->unique_ids) < B_OK)
 		us->parent->Chain()->MetaData()->AddFlat("manifest",us->unique_ids);
