@@ -11,6 +11,10 @@
  * Public Domain 2002, by Alexander G. M. Smith, no warranty.
  *
  * $Log$
+ * Revision 1.2  2002/11/03 02:10:10  agmsmith
+ * Reset version number in SourceForge to match old version number,
+ * but it didn't work.
+ *
  * Revision 1.1  2002/11/03 02:06:15  agmsmith
  * Added initial version to SourceForge.
  *
