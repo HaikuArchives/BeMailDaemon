@@ -63,6 +63,7 @@ All rights reserved.
 #include <Roster.h>
 
 #include <MailMessage.h>
+#include <MailAttachment.h>
 #include <base64.h>
 
 #include "Mail.h"
@@ -1649,11 +1650,16 @@ bool TTextView::Reader::ParseMail(MailContainer *container,PlainTextBodyComponen
 //				c = new MailComponent();
 
 			BString name;
-			if (!get_parameter(component->HeaderField("Content-Type"),"name=",&name)
-				&& !get_parameter(component->HeaderField("Content-Disposition"),"name=",&name))
-				name << "untitled";
+			char fileName[B_FILE_NAME_LENGTH];
+			strcpy(fileName,"untitled");
+			if (MailAttachment *attachment = dynamic_cast<MailAttachment *>(component))
+				attachment->FileName(fileName);
 
-			BPath path(name.String());
+//			if (!get_parameter(component->HeaderField("Content-Type"),"name=",&name)
+//				&& !get_parameter(component->HeaderField("Content-Disposition"),"name=",&name))
+//				name << "untitled";
+
+			BPath path(fileName);
 			enclosure->name = strdup(path.Leaf());
 			
 			BMimeType type;

@@ -15,6 +15,7 @@ class _EXPORT AttributedMailAttachment;
 #include <base64.h>
 #include <NodeMessage.h>
 
+#include <stdio.h>
 //--------------SimpleMailAttachment-No attributes or awareness of the file system at large-----
 
 SimpleMailAttachment::SimpleMailAttachment()
@@ -50,6 +51,7 @@ SimpleMailAttachment::~SimpleMailAttachment() {
 }
 
 status_t SimpleMailAttachment::FileName(char *text) {
+puts("SimpleMailAttachment::FileName()");
 	BMessage content_type;
 	HeaderField("Content-Type",&content_type);
 	
@@ -301,6 +303,7 @@ mail_encoding AttributedMailAttachment::Encoding() {
 }
 
 status_t AttributedMailAttachment::FileName(char *name) {
+puts("AttributedMailAttachment::FileName()");
 	return _data->FileName(name);
 }
 	

@@ -6,7 +6,13 @@
 #include <MailContainer.h>
 #include <MailComponent.h>
 
-class SimpleMailAttachment : public MailComponent {
+class MailAttachment {
+	public:
+		virtual status_t FileName(char *name) = 0;
+		virtual void SetFileName(const char *name) = 0;
+};
+
+class SimpleMailAttachment : public MailComponent, public MailAttachment {
 	public:
 		SimpleMailAttachment();
 		
@@ -37,7 +43,7 @@ class SimpleMailAttachment : public MailComponent {
 		mail_encoding _encoding;
 };
 
-class AttributedMailAttachment : public MIMEMultipartContainer {
+class AttributedMailAttachment : public MIMEMultipartContainer, public MailAttachment {
 	public:
 		AttributedMailAttachment(BFile *file, bool delete_when_done);
 		AttributedMailAttachment(entry_ref *ref);
