@@ -30,9 +30,8 @@ MDStatus RuleFilter::ProcessMailMessage
 	BPositionIO** , BEntry* entry,
 	BMessage* io_headers, BPath* io_folder, BString* 
 ) {
-	const char* data;
-	io_headers->FindString(attribute,&data);
-	if (data == NULL)
+	const char *data;
+	if (io_headers->FindString(attribute,&data) < B_OK)
 		return MD_OK; //----That field doesn't exist? NO match
 
 	if (!matcher.Match(data))
