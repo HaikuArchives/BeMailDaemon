@@ -348,6 +348,12 @@ status_t MailMessage::Render(BPositionIO *file) {
 			j = recipients.Length();
 			
 		recipients.CopyInto(little,i,j - i);
+		
+		if ((little.FindFirst('(') >= 0) && (little.FindFirst(')') > 0)) {
+			int32 first = little.FindFirst('(');
+			little.Remove(first,little.FindFirst(')') - first);
+		}
+		
 		TrimWhite(little);
 		rec.AddItem(little.String());
 		i = j;
