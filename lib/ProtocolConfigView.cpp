@@ -21,6 +21,7 @@ class _EXPORT ProtocolConfigView;
 
 BTextControl *AddTextField (BRect &rect, const char *name, const char *label);
 BMenuField *AddMenuField (BRect &rect, const char *name, const char *label);
+float FindWidestLabel(BView *view);
 
 static float gItemHeight;
 

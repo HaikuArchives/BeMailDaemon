@@ -21,30 +21,7 @@ struct CharsetConversionEntry
 	uint32 flavor;
 };
 
-static const CharsetConversionEntry charsets[] =
-{
-	{"iso-8859-1",  B_ISO1_CONVERSION},
-	{"iso-8859-2",  B_ISO2_CONVERSION},
-	{"iso-8859-3",  B_ISO3_CONVERSION},
-	{"iso-8859-4",  B_ISO4_CONVERSION},
-	{"iso-8859-5",  B_ISO5_CONVERSION},
-	{"iso-8859-6",  B_ISO6_CONVERSION},
-	{"iso-8859-7",  B_ISO7_CONVERSION},
-	{"iso-8859-8",  B_ISO8_CONVERSION},
-	{"iso-8859-9",  B_ISO9_CONVERSION},
-	{"iso-8859-10", B_ISO10_CONVERSION},
-	{"iso-2022-jp", B_JIS_CONVERSION},
-	{"koi8-r",      B_KOI8R_CONVERSION},
-	{"iso-8859-13", B_ISO13_CONVERSION},
-	{"iso-8859-14", B_ISO14_CONVERSION},
-	{"iso-8859-15", B_ISO15_CONVERSION},
-	{"Windows-1251",B_MS_WINDOWS_1251_CONVERSION},
-	{"Windows-1252",B_MS_WINDOWS_CONVERSION},
-	{"dos-866",     B_MS_DOS_866_CONVERSION},
-	{"dos-437",     B_MS_DOS_CONVERSION},
-	{"euc-kr",      B_EUC_KR_CONVERSION},
-	{"x-mac-roman", B_MAC_ROMAN_CONVERSION}
-};
+extern const CharsetConversionEntry charsets[21];
 
 MailComponent::MailComponent() {}
 		

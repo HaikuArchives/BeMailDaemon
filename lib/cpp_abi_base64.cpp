@@ -16,6 +16,6 @@ ssize_t encode_base64__local_abi(char *out, char *in, off_t length) {
 	return encode_base64(out,in,length);
 }
 
-ssize_t decode_base64__local_abi(char *out, char *in, off_t length, bool replace_cr) {
+ssize_t decode_base64__local_abi(char *out, char *in, off_t length, bool /*replace_cr*/) {
 	return decode_base64(out,in,length);
 }

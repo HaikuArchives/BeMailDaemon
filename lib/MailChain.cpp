@@ -47,7 +47,7 @@ status_t MailChain::Load(BMessage* settings)
 		delete meta_data;
 		
 	meta_data = new BMessage;
-	if (settings->HasMessage("meta_data"));
+	if (settings->HasMessage("meta_data"))
 		settings->FindMessage("meta_data",meta_data);
 	
 	const char* n;
@@ -132,8 +132,8 @@ status_t MailChain::Archive(BMessage* archive, bool deep) const
 		
 		int32 i=1;
 		for(i=0;
-			(settings = (BMessage*)filter_settings.ItemAt(i))
-			&&  (ref = (entry_ref*)filter_addons.ItemAt(i));
+			((settings = (BMessage*)filter_settings.ItemAt(i)) != NULL)
+			&&  ((ref = (entry_ref*)filter_addons.ItemAt(i)) != NULL);
 			++i)
 		{
 		//------ATT-WTF?

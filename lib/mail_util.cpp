@@ -71,9 +71,9 @@ _EXPORT ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 	
 	//---------Whew! Now for RFC compliant mail
 	for (head = tail = string;
-		(charset = strstr(tail, "=?"))
-		&& ((encoding = strchr(charset + 2, '?')) != NULL
-			&& encoding[1] && encoding[2] == '?' && encoding[3])
+		((charset = strstr(tail, "=?")) != NULL)
+		&& (((encoding = strchr(charset + 2, '?')) != NULL)
+			&& (encoding[1] != NULL) && (encoding[2] == '?') && (encoding[3] != NULL))
 		&& (end = strstr(encoding + 3, "?=")) != NULL;
 		// found "=?...charset...?e?...text...?=   (e == encoding)
 		//        ^charset       ^encoding    ^end
@@ -439,7 +439,7 @@ _EXPORT ssize_t nextfoldedline(const char** header, char **buffer, size_t *bufle
 	ssize_t cnt = 0;
 	int c;
 	
-	while ((c=*(*header)++))
+	while ((c=*(*header)++) != 0)
 	{
 		if (buf == NULL || cnt>=len)
 		{
@@ -511,7 +511,7 @@ _EXPORT void StripGook(BString* header)
 		const char *p1 = NULL, *p2 = NULL;
 		
 		switch (i){
-		case 0: if ((p1 = strchr(start,'(')))
+		case 0: if ((p1 = strchr(start,'(')) != NULL)
 				{
 					size_t nest = 1;
 					for (p2=p1+1; p2<stop && nest; ++p2)
@@ -527,7 +527,7 @@ _EXPORT void StripGook(BString* header)
 				if (p2) --p2;
 				break;
 		case 2: p1 = strchr(start,'"');
-				if (p1 && (p2 = strchr(p1+1,'"'))) { ++p1; --p2; }
+				if ((p1 != NULL) && ((p2 = strchr(p1+1,'"')) != NULL)) { ++p1; --p2; }
 				break;
 		case 3: p1 = start;
 				if (name.Length()==0) p2=stop;

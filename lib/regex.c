@@ -5737,12 +5737,14 @@ weak_alias (__regexec, regexec)
 _EXPORT size_t
 regerror (errcode, preg, errbuf, errbuf_size)
     int errcode;
-    const regex_t *preg;
+    const regex_t *preg; 
     char *errbuf;
     size_t errbuf_size;
 {
   const char *msg;
   size_t msg_size;
+
+  preg = NULL; //---make mwcc stop complaining
 
   if (errcode < 0
       || errcode >= (int) (sizeof (re_error_msgid)

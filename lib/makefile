@@ -126,6 +126,9 @@ MACHINE=$(shell uname -m)
 ifneq ($(MACHINE),BePC)
 	SRCS += regex.c
 	DEFINES += STDC_HEADERS=1
+	COMPILER_FLAGS += -w iserr
+else
+	COMPILER_FLAGS += -Werror
 endif
 
 ifeq ($(CHECK_MEM), true)
