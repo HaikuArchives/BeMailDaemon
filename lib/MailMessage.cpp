@@ -808,7 +808,7 @@ Message::RenderTo(BDirectory *dir)
 
 	int32 tries = 30;
 	bool exists;
-	while ((exists = dir->Contains(worker.String())) && --tries > 0) {
+	while (((exists = dir->Contains(worker.String())) == true) /* pacify mwcc */ && (--tries > 0)) {
 		srand(rand());
 		uniquer += (rand() >> 16) - 16384;
 
