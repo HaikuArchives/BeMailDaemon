@@ -28,6 +28,22 @@ status_t MailDaemon::SendQueuedMail() {
 	return B_OK;
 }
 
+int32 MailDaemon::CountNewMessages(bool wait_for_fetch_completion) {
+	BMessenger daemon("application/x-vnd.Be-POST");
+	if (!daemon.IsValid())
+		return B_MAIL_NO_DAEMON;
+	
+	BMessage reply;
+	BMessage first('mnum');
+	
+	if (wait_for_fetch_completion)
+		first.AddBool("wait_for_fetch_done",true);
+		
+	daemon.SendMessage(&first,&reply);	
+		
+	return reply.FindInt32("num_new_messages");
+}
+
 status_t MailDaemon::Quit() {
 	BMessenger daemon("application/x-vnd.Be-POST");
 	if (!daemon.IsValid())
