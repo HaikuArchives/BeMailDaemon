@@ -116,6 +116,10 @@ void DeskbarView::AttachedToWindow()
 		fNewMailQuery->PushAttr("BEOS:TYPE");
 		fNewMailQuery->PushString("text/x-email");
 		fNewMailQuery->PushOp(B_EQ);
+		fNewMailQuery->PushAttr("BEOS:TYPE");
+		fNewMailQuery->PushString("text/x-partial-email");
+		fNewMailQuery->PushOp(B_EQ);
+		fNewMailQuery->PushOp(B_OR);
 		fNewMailQuery->PushOp(B_AND);
 		fNewMailQuery->Fetch();
 		
@@ -368,7 +372,7 @@ void DeskbarView::CreateNewMailQuery(BEntry &query)
 	if(file.InitCheck() != B_OK)
 		return;
 
-	BString string("((" B_MAIL_ATTR_STATUS "==\"[nN][eE][wW]\")&&(BEOS:TYPE==\"text/x-email\"))");
+	BString string("((" B_MAIL_ATTR_STATUS "==\"[nN][eE][wW]\")&&((BEOS:TYPE==\"text/x-email\")||(BEOS:TYPE==\"text/x-partial-email\")))");
 	file.WriteAttrString("_trk/qrystr",&string);
 	string = "E-mail";
 	file.WriteAttrString("_trk/qryinitmime", &string);

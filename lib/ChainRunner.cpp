@@ -43,6 +43,13 @@ struct filter_image {
 
 BList running_chains, running_chain_pointers;
 	
+_EXPORT ChainRunner *Mail::GetRunner(int32 chain_id, Mail::StatusWindow *status,bool self_destruct) {
+	if (running_chains.HasItem((void *)(chain_id)))
+		return (ChainRunner *)running_chain_pointers.ItemAt(running_chains.IndexOf((void *)(chain_id)));
+		
+	return new ChainRunner(Mail::GetChain(chain_id),status,self_destruct,true,self_destruct);
+}
+
 void unload(void *id);
 
 namespace {
@@ -209,7 +216,7 @@ void ChainRunner::MessageReceived(BMessage *msg) {
 				
 				delete image->settings;
 				
-				//unload_add_on(image->id);
+				unload_add_on(image->id);
 				
 				delete image;
 			}
@@ -245,6 +252,55 @@ void ChainRunner::MessageReceived(BMessage *msg) {
 			_statview->SetMaximum(msg->FindInt32("bytes"));
 			get_messages(&list); }
 			break;
+		case 'GTSM': {
+			const char *uid;
+			status_t err;
+			msg->FindString("uid",&uid);
+			BEntry *entry = new BEntry(msg->FindString("into"));
+			_statview->SetTotalItems(1);
+			_statview->SetMaximum(msg->FindInt32("bytes"));
+			BPositionIO *file = new BFile(entry, B_READ_WRITE | B_CREATE_FILE);
+			BPath *folder = new BPath;
+			BMessage *headers = new BMessage;
+			headers->AddBool("ENTIRE_MESSAGE",true);
+			
+			for (int32 j = 0; j < addons.CountItems(); j++) {
+				struct filter_image *current = (struct filter_image *)(addons.ItemAt(j));
+				
+				err = current->filter->ProcessMailMessage(&file,entry,headers,folder,uid);
+				if (err != B_OK)
+					break;
+			}
+			
+			call_cbs(message_cb,err);
+			
+			delete file;
+			delete entry;
+			delete headers;
+			delete folder;
+		
+			call_cbs(process_cb,err);
+			
+			if (save_chain) {
+				entry_ref addon;
+				BMessage settings;
+				for (int32 i = 0; i < addons.CountItems(); i++) {
+					filter_image *image = (filter_image *)(addons.ItemAt(i));
+					
+					BMessage *temp = new BMessage(*(image->settings));
+					temp->RemoveName("chain");
+					_chain->GetFilter(i,&settings,&addon);
+					_chain->SetFilter(i,*temp,addon);
+					
+					delete temp;
+				}
+				
+				_chain->Save();
+			}
+			
+			ResetProgress();
+			break;
+		}
 	}
 }
 
@@ -324,6 +380,14 @@ void ChainRunner::GetMessages(StringList *list,size_t bytes) {
 	BMessage *msg = new BMessage('GETM');
 	msg->AddFlat("messages",list);
 	msg->AddInt32("bytes",bytes);
+	PostMessage(msg);
+}
+
+void ChainRunner::GetSingleMessage(const char *uid, size_t length, BPath *into) {
+	BMessage *msg = new BMessage('GTSM');
+	msg->AddString("uid",uid);
+	msg->AddInt32("bytes",length);
+	msg->AddString("into",into->Path());
 	PostMessage(msg);
 }
 

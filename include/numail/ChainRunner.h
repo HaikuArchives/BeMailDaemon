@@ -56,7 +56,9 @@ class ChainRunner : public BLooper {
 		
 		void Stop();
 		void ReportProgress(int bytes, int messages, const char *message = NULL);
+		void ResetProgress(const char *message = NULL);
 		void GetMessages(StringList *list, size_t bytes);
+		void GetSingleMessage(const char *uid, size_t length, BPath *into);
 		bool QuitRequested();
 		
 		void ShowError(const char *error);
@@ -81,6 +83,8 @@ class ChainRunner : public BLooper {
 		
 		uint32	_reserved[5];
 };
+
+ChainRunner *GetRunner(int32 chain_id, Mail::StatusWindow *status,bool self_destruct = true);
 
 }	// namespace Mail
 }	// namespace Zoidberg

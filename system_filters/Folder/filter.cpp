@@ -12,6 +12,10 @@
 #include <NodeInfo.h>
 #include <E-mail.h>
 #include <Path.h>
+#include <Roster.h>
+#include <CheckBox.h>
+#include <TextControl.h>
+#include <StringView.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,6 +65,7 @@ class FolderFilter : public Mail::Filter
 	BDirectory destination;
 	int32 chain_id;
 	int fNumberOfFilesSaved;
+	int size_limit;
 
   public:
 	FolderFilter(BMessage*,Mail::ChainRunner *);
@@ -76,11 +81,15 @@ class FolderFilter : public Mail::Filter
 
 FolderFilter::FolderFilter(BMessage* msg,Mail::ChainRunner *runner)
 	: Mail::Filter(msg),
-	chain_id(msg->FindInt32("chain"))
+	chain_id(msg->FindInt32("chain")), size_limit(0)
 {
 	fNumberOfFilesSaved = 0;
 	dest_string = runner->Chain()->MetaData()->FindString("path");
+	create_directory(dest_string.String(),0777);
 	destination = dest_string.String();
+	
+	if (msg->FindInt32("size_limit",(long *)&size_limit) != B_OK)
+		size_limit = 0;
 }
 
 
@@ -98,6 +107,7 @@ FolderFilter::~FolderFilter ()
 
 status_t FolderFilter::InitCheck(BString* err)
 {
+	
 	status_t ret = destination.InitCheck();
 
 	if (ret==B_OK) return B_OK;
@@ -110,7 +120,7 @@ status_t FolderFilter::InitCheck(BString* err)
 	}
 }
 
-status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* out_headers, BPath*, const char* io_uid)
+status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* out_headers, BPath*loc, const char* io_uid)
 {
 	time_t			dateAsTime;
 	const time_t   *datePntr;
@@ -130,13 +140,18 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		else
 			path.Append(string);
 	}
+	
+	if (loc != NULL && loc->Path() != NULL && strcmp(loc->Path(),"") != 0)
+		path.Append(loc->Path());
 
 	create_directory(path.Path(),0777);
 	dir.SetTo(path.Path());
 
 	BNode node(e);
+	status_t err = 0;
+	if (out_headers->FindBool("ENTIRE_MESSAGE") || !out_headers->HasInt32("SIZE") || (size_limit >= out_headers->FindInt32("SIZE")) || size_limit == 0)
+		err = (*io)->Seek(0,SEEK_END);
 
-	status_t err = (*io)->Seek(0,SEEK_END);
 	if (err < 0)
 	{
 		BString error;
@@ -150,7 +165,13 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	}
 
 	BNodeInfo info(&node);
-	info.SetType(B_MAIL_TYPE);
+	node.Sync();
+	off_t size;
+	node.GetSize(&size);
+	if ((out_headers->HasInt32("SIZE") && size == out_headers->FindInt32("SIZE")) || out_headers->FindBool("ENTIRE_MESSAGE") || !out_headers->HasInt32("SIZE"))
+		info.SetType(B_MAIL_TYPE);
+	else
+		info.SetType("text/x-partial-email");
 
 	BMessage attributes;
 
@@ -184,14 +205,21 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 			break;
 		}
 	}
-
+	
+	if (out_headers->HasInt32("SIZE"))
+		attributes.AddInt32("MAIL:fullsize",out_headers->FindInt32("SIZE"));
+		
 	// add "New" status, if the status hasn't been set already
 	if (attributes.FindString(B_MAIL_ATTR_STATUS,&buf) < B_OK)
 		attributes.AddString(B_MAIL_ATTR_STATUS,"New");
 
 	node << attributes;
-
-	err = e->MoveTo(&dir);
+	
+	err = B_OK;
+	
+	if (!out_headers->FindBool("ENTIRE_MESSAGE"))
+		err = e->MoveTo(&dir);
+	
 	if (err != B_OK)
 	{
 		BString error;
@@ -256,6 +284,12 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		printf("could not rename mail (%s)! (should be: %s)\n",strerror(err),worker.String());
 
 	fNumberOfFilesSaved++;
+	if (out_headers->FindBool("ENTIRE_MESSAGE")) {
+		entry_ref ref;
+		e->GetRef(&ref);
+		be_roster->Launch(&ref);
+	}
+		
 	return B_OK;
 }
 
@@ -265,14 +299,66 @@ Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::ChainRunner *run)
 	return new FolderFilter(settings,run);
 }
 
+class FolderConfig : public BView {
+	public:
+		FolderConfig(BMessage *settings, BMessage *meta_data) :  BView(BRect(0,0,50,50),"folder_config",B_FOLLOW_ALL_SIDES,0) {
+			view = new Mail::FileConfigView(
+				MDR_DIALECT_CHOICE ("Destination Folder:","受信箱："),
+				"path",true,"/boot/home/mail/in");
+			view->SetTo(settings,meta_data);
+			view->ResizeToPreferred();
+			
+			partial_box = new BCheckBox(BRect(view->Frame().left, view->Frame().bottom + 5, view->Frame().left  + 18 + be_plain_font->StringWidth("Partially download messages larger than"),view->Frame().bottom + 25),
+							"size_if","Partially download messages larger than",new BMessage('SIZF'));
+			size = new BTextControl(BRect(view->Frame().left + 20 + be_plain_font->StringWidth("Partially download messages larger than"), view->Frame().bottom + 5, view->Frame().left + 42 + be_plain_font->StringWidth("Partially download messages larger than "),view->Frame().bottom + 25),
+									"size","","",NULL);
+			AddChild(new BStringView(BRect(view->Frame().left + 42 + be_plain_font->StringWidth("Partially download messages larger than "),view->Frame().bottom + 5, view->Frame().right,view->Frame().bottom+21),"kb", "KB"));
+			size->SetDivider(0);
+			if (settings->HasInt32("size_limit")) {
+				BString kb;
+				kb << int32(settings->FindInt32("size_limit")/1024);
+				size->SetText(kb.String());
+				partial_box->SetValue(B_CONTROL_ON);
+			} else
+				size->SetEnabled(false);
+			AddChild(view);
+			SetViewColor(216,216,216);
+			AddChild(partial_box);
+			AddChild(size);
+			ResizeToPreferred();
+		}
+		void MessageReceived(BMessage *msg) {
+			if (msg->what != 'SIZF')
+				return;
+			
+			size->SetEnabled(partial_box->Value());
+		}
+		void AttachedToWindow() {
+			partial_box->SetTarget(this);
+		}
+		void GetPreferredSize(float *width, float *height) {
+			view->GetPreferredSize(width,height);
+			*height += 25;
+			*width += 10;
+		}
+		status_t Archive(BMessage *into, bool) const {
+			view->Archive(into);
+			if (partial_box->Value())
+				into->AddInt32("size_limit",atoi(size->Text()) * 1024);
+				
+			return B_OK;
+		}
+			
+			
+	private:
+		Mail::FileConfigView *view;
+		BTextControl *size;
+		BCheckBox *partial_box;
+};
 
 BView* instantiate_config_panel(BMessage *settings, BMessage *meta_data)
 {
-	Mail::FileConfigView *view = new Mail::FileConfigView(
-		MDR_DIALECT_CHOICE ("Destination Folder:","受信箱："),
-		"path",true,"/boot/home/mail/in");
-	view->SetTo(settings,meta_data);
 
-	return view;
+	return new FolderConfig(settings,meta_data);
 }
 

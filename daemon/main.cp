@@ -21,6 +21,7 @@
 #include <Query.h>
 #include <ChainRunner.h>
 #include <NodeMonitor.h>
+#include <Path.h>
 
 #include <string.h>
 #include <stdio.h>
@@ -57,6 +58,8 @@ class MailDaemonApp : public BApplication {
 		virtual ~MailDaemonApp();
 
 		virtual void MessageReceived(BMessage *msg);
+		virtual	void RefsReceived(BMessage *a_message);
+		
 		virtual void Pulse();
 		virtual bool QuitRequested();
 		virtual void ReadyToRun();
@@ -84,6 +87,29 @@ class MailDaemonApp : public BApplication {
 };
 
 
+void MailDaemonApp::RefsReceived(BMessage *a_message) {
+	entry_ref ref;
+	BNode node;
+	int32 id;
+	BString uid;
+	size_t size;
+	BPath path;
+	//status->Show();
+	for (int32 i = 0; a_message->FindRef("refs",i,&ref) == B_OK; i++) {
+		node.SetTo(&ref);
+		if (node.ReadAttrString("MAIL:unique_id",&uid) < 0)
+			continue;
+		if (node.ReadAttr("MAIL:chain",B_INT32_TYPE,0,&id,sizeof(id)) < 0)
+			continue;
+		if (node.ReadAttr("MAIL:fullsize",B_INT32_TYPE,0,&size,sizeof(size)) < 0)
+			size = -1;
+		
+		path.SetTo(&ref);
+		printf("Fetching the rest of the message %s (%d bytes)\n",uid.String(),size);
+		Mail::GetRunner(id,status)->GetSingleMessage(uid.String(),size,&path);
+	}
+}
+	
 MailDaemonApp::MailDaemonApp(void)
 	: BApplication("application/x-vnd.Be-POST" /* mail daemon sig */ )
 {
@@ -108,6 +134,10 @@ void MailDaemonApp::ReadyToRun() {
 	query->PushAttr("BEOS:TYPE");
 	query->PushString("text/x-email");
 	query->PushOp(B_EQ);
+	query->PushAttr("BEOS:TYPE");
+	query->PushString("text/x-partial-email");
+	query->PushOp(B_EQ);
+	query->PushOp(B_OR);
 	query->PushOp(B_AND);
 	query->Fetch();
 	
