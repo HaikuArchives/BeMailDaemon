@@ -232,7 +232,9 @@ TMailApp::~TMailApp()
 
 void TMailApp::AboutRequested()
 {
-	(new BAlert("", "BeMail\nBy Robert Polic", "Close"))->Go();
+	(new BAlert("", "BeMail\nBy Robert Polic\n\n"
+					"Extensively modified by Axel Dörfler"
+					" and the Dr. Zoidberg crew", "Close"))->Go();
 }
 
 //--------------------------------------------------------------------
@@ -1112,6 +1114,7 @@ skip:			if (!done) {
 	//
 	if (!fIncoming) {
 		menu = new BMenu("Accounts");
+		menu->SetRadioMode(true);
 		MailSettings settings;
 		BList chains;
 		if (settings.OutboundChains(&chains) >= B_OK) {
@@ -1617,6 +1620,9 @@ void TMailWindow::MessageReceived(BMessage* msg)
 
 		case M_ACCOUNT:
 		{
+			BMenuItem *item;
+			msg->FindPointer("source",&item);
+			item->SetMarked(true);
 			uint32 chain;
 			if (msg->FindInt32("id",(int32 *)&chain) >= B_OK) {
 				fChain = chain;
