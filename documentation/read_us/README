@@ -150,9 +150,10 @@ ADDON INSTALLATION.
 
 HISTORY:
 
-May 1 2003 - v2.0.1b3
+May 8 2003 - v2.0.1b3
 - Added US-ASCII encoding and decoding, which also uses 7bit rather than quoted printable.
 - Remove leading and trailing spaces from the thread string (subject minus the Re: etc bits), since some other mail software likes adding a trailing space, which messes up the thread sorting.
+- Replace NUL bytes after conversion to UTF-8 with the substitute character.  This is because the BeOS ISO-2022-JP to UTF-8 conversion sometimes gets it wrong and inserts a NUL.
 
 April 13 2003 - v2.0.1b2
 - Make the encoding menu slide around when resizing the window.  Can only do it for reading a mail message, not when composing, since pop-up menus don't resize (a BeOS bug).

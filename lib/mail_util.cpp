@@ -83,21 +83,19 @@ status_t MDR_convert_to_utf8 (
 	int32 *state,
 	char substitute)
 {
-	int32 copyAmount;
+	int32    copyAmount;
+	char    *originalDst = dst;
+	status_t returnCode = -1;
 
-	if (srcEncoding == MDR_UTF8_CONVERSION)
-	{
+	if (srcEncoding == MDR_UTF8_CONVERSION) {
 		copyAmount = *srcLen;
 		if (*dstLen < copyAmount)
 			copyAmount = *dstLen;
 		memcpy (dst, src, copyAmount);
 		*srcLen = copyAmount;
 		*dstLen = copyAmount;
-		return B_OK;
-	}
-
-	if (srcEncoding == MDR_US_ASCII_CONVERSION)
-	{
+		returnCode = B_OK;
+	} else if (srcEncoding == MDR_US_ASCII_CONVERSION) {
 		int32 i;
 		unsigned char letter;
 		copyAmount = *srcLen;
@@ -116,11 +114,26 @@ status_t MDR_convert_to_utf8 (
 		}
 		*srcLen = copyAmount;
 		*dstLen = copyAmount;
-		return B_OK;
-	}
+		returnCode = B_OK;
+	} else
+		returnCode = convert_to_utf8 (srcEncoding, src, srcLen,
+			dst, dstLen, state, substitute);
 
-	return convert_to_utf8 (srcEncoding, src, srcLen, dst, dstLen, state,
-		substitute);
+	if (returnCode == B_OK) {
+		// Replace spurious NUL bytes, which should normally not be in the
+		// output of the decoding (not normal UTF-8 characters, and no NULs are
+		// in our usual input strings).  They happen for some odd ISO-2022-JP
+		// byte pair combinations which are improperly handled by the BeOS
+		// routines.  Like "\e$ByD\e(B" where \e is the ESC character $1B, the
+		// first ESC $ B switches to a Japanese character set, then the next
+		// two bytes "yD" specify a character, then ESC ( B switches back to
+		// the ASCII character set.  The UTF-8 conversion yields a NUL byte.
+		int32 i;
+		for (i = 0; i < *dstLen; i++)
+			if (originalDst[i] == 0)
+				originalDst[i] = substitute;
+	}
+	return returnCode;
 }
 
 
