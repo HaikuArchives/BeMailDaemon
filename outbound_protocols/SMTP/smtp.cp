@@ -30,10 +30,15 @@
 #include <MDRLanguage.h>
 
 #ifdef BONE
-#include <sys/socket.h>
-#include <arpa/inet.h>
+	#ifdef _KERNEL_MODE
+		#undef _KERNEL_MODE
+		#include <sys/socket.h>
+		#include <sys/select.h>
+		#define _KERNEL_MODE 1
+	#endif
+	#include <arpa/inet.h>
 #else
-#include <socket.h>
+	#include <socket.h>
 #endif
 
 using namespace Zoidberg;
