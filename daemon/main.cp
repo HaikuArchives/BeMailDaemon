@@ -43,6 +43,8 @@ class MailDaemonApp : public BApplication {
 		void SendPendingMessages();
 		void GetNewMessages();
 	private:
+		void UpdateAutoCheck(bigtime_t interval);
+
 		BMessageRunner *auto_check;
 		MailSettings settings_file;
 		
@@ -152,7 +154,8 @@ MailDaemonApp::MailDaemonApp(void)
 	InstallDeskbarIcon();
 	
 	status = new StatusWindow(BRect(40,400,360,400),"Mail Status", settings_file.ShowStatusWindow());
-	auto_check = new BMessageRunner(be_app_messenger,new BMessage('moto'),settings_file.AutoCheckInterval());
+	auto_check = new BMessageRunner(be_app_messenger,new BMessage('moto'),1000000L);
+	UpdateAutoCheck(settings_file.AutoCheckInterval());
 
 	BVolume boot;
 	BQuery *query = new BQuery;
@@ -188,6 +191,19 @@ MailDaemonApp::~MailDaemonApp()
 	delete auto_check;
 }
 
+
+void MailDaemonApp::UpdateAutoCheck(bigtime_t interval)
+{
+	if (interval > 0)
+	{
+		auto_check->SetInterval(interval);
+		auto_check->SetCount(-1);
+	}
+	else
+		auto_check->SetCount(0);
+}
+
+
 void MailDaemonApp::MessageReceived(BMessage *msg) {
 	switch (msg->what) {
 		case 'moto':
@@ -219,7 +235,7 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 			break;
 		case 'mrrs':
 			settings_file.Reload();
-			auto_check->SetInterval(settings_file.AutoCheckInterval());
+			UpdateAutoCheck(settings_file.AutoCheckInterval());
 			status->SetShowCriterion(settings_file.ShowStatusWindow());
 			break;
 		case 'shst':	// when to show the status window
