@@ -69,8 +69,6 @@ void extract(char **dest, const char *source);
 void get_recipients(char **dest, Mail::Message *mail, bool all);
 void verify_recipients(char **);
 int32 linelen(char*, int32, bool);
-bool get_parameter(const char *src, char *param, BString *dest);
-char* find_boundary(char *, char *, int32);
 
 #ifdef __cplusplus
 }
