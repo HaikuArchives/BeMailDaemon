@@ -434,6 +434,7 @@ status_t AttributedMailAttachment::SetToRFC822(BPositionIO *data, size_t length,
 
 	int32		len;
 	int32		index = 0;
+	int64		buf_length;
 	type_code	code;
 	char		*name;
 	len = ((BMallocIO *)(_attributes_attach->GetDecodedData()))->BufferLength();
@@ -446,15 +447,15 @@ status_t AttributedMailAttachment::SetToRFC822(BPositionIO *data, size_t length,
 		memcpy(&code, &start[index], sizeof(type_code));
 		code = B_BENDIAN_TO_HOST_INT32(code);
 		index += sizeof(type_code);
-		memcpy(&length, &start[index], sizeof(length));
-		length = B_BENDIAN_TO_HOST_INT64(length);
-		index += sizeof(length);
-		swap_data(code, &start[index], length, B_SWAP_BENDIAN_TO_HOST);
-		_attributes.AddData(name, code, &start[index], length);
-		index += length;
+		memcpy(&buf_length, &start[index], sizeof(buf_length));
+		buf_length = B_BENDIAN_TO_HOST_INT64(buf_length);
+		index += sizeof(buf_length);
+		swap_data(code, &start[index], buf_length, B_SWAP_BENDIAN_TO_HOST);_attributes.AddData(name, code, &start[index], buf_length);
+		index += buf_length;
 	}
 	
 	free(start);
+	
 	
 	return B_OK;
 }
