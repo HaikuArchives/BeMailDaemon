@@ -134,7 +134,8 @@ class NoopWorker : public BHandler {
 				
 				uid = us->inbox_name;
 				uid << '/' << response[2][1]();
-				list.AddItem(uid.String());
+				if (!us->unique_ids->HasItem(uid.String()))
+					list.AddItem(uid.String());
 			}
 			
 			(*us->unique_ids) += list;
