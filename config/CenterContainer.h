@@ -21,6 +21,7 @@ class CenterContainer : public BView
 
 		void			Layout();
 		void			SetSpacing(float spacing);
+		void			DeleteChildren();
 
 	private:
 		float			fSpacing, fWidth, fHeight;

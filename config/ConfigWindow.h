@@ -30,15 +30,13 @@ class ConfigWindow : public BWindow
 		virtual void	MessageReceived(BMessage* msg);
 
 	private:
+		void			MakeHowToView();
+
 		void			LoadSettings();
 		void			SaveSettings();
 
 		status_t		SetToGeneralSettings(MailSettings *general);
 		void			RevertToLastSettings();
-
-//		void		DisableAccountControls();
-//		void		SetToAccount(MailAccount *selected);
-//		void		ApplySettings(MailAccount *to_account);
 
 	private:
 		BListView		*fAccountsListView;

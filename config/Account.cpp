@@ -354,25 +354,13 @@ int32 Account::Type() const
 }
 
 
-void Account::RemoveConfigViews()
-{
-	// remove old config views
-	for (int32 i = gConfigView->CountChildren();i-- > 0;)
-	{
-		BView *view = gConfigView->ChildAt(i);
-		if (gConfigView->RemoveChild(view))
-			delete view;
-	}
-}
-
-
 void Account::Selected(int32 type)
 {
 	if (!gConfigView)
 		return;
 	
 	gConfigView->Hide();
-	RemoveConfigViews();
+	((CenterContainer *)gConfigView)->DeleteChildren();
 
 	switch (type)
 	{
@@ -465,7 +453,7 @@ void Account::Remove(int32 type)
 {
 	// this should only be called if necessary, but if it's used
 	// in the GUI, this will always be the case
-	RemoveConfigViews();
+	((CenterContainer *)gConfigView)->DeleteChildren();
 
 	switch (type)
 	{

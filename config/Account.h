@@ -79,8 +79,6 @@ class Account
 		void		CreateInbound();
 		void		CreateOutbound();
 
-		void		RemoveConfigViews();
-
 		MailChain	*fSettings, *fInbound, *fOutbound;
 		AccountItem	*fAccountItem, *fInboundItem, *fOutboundItem, *fFilterItem;
 };

@@ -82,3 +82,15 @@ void CenterContainer::SetSpacing(float spacing)
 	Layout();
 }
 
+
+void CenterContainer::DeleteChildren()
+{
+	// remove all child views
+	for (int32 i = CountChildren();i-- > 0;)
+	{
+		BView *view = ChildAt(i);
+		if (RemoveChild(view))
+			delete view;
+	}
+}
+

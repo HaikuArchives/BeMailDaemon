@@ -220,32 +220,7 @@ ConfigWindow::ConfigWindow()
 	rect.right -= 10;
 	view->AddChild(fConfigView = new CenterContainer(rect));
 
-	BResources *resources = BApplication::AppResources();
-	if (resources)
-	{
-		size_t length;
-		void *buffer = resources->FindResource('BBMP',"bigIcon",&length);
-		if (buffer)
-		{
-			// Inflate and unarchive the bitmap
-			BMessage archive;
-			archive.Unflatten((char *)buffer);	
-
-			BBitmap *bitmap = new BBitmap(&archive);
-			if (bitmap && bitmap->InitCheck() == B_OK)
-				fConfigView->AddChild(new BitmapView(bitmap));
-		}
-		delete resources;
-	}
-	rect.OffsetTo(B_ORIGIN);
-	BTextView *text = new BTextView(rect,NULL,rect,B_FOLLOW_NONE,B_WILL_DRAW);
-	text->SetViewColor(top->ViewColor());
-	text->SetAlignment(B_ALIGN_CENTER);
-	text->SetText("\n\nCreate a new account using the \"Add\" button.\n\nDelete accounts (or only the inbound/outbound) by using the \"Remove\" button on the selected item.\n\nSelect an item in the list to edit its configuration.");
-	rect = text->Bounds();
-	text->ResizeTo(rect.Width(),text->TextHeight(0,42));
-	text->SetTextRect(rect);
-	fConfigView->AddChild(text);
+	MakeHowToView();
 
 	// general settings
 
@@ -380,6 +355,39 @@ ConfigWindow::~ConfigWindow()
 }
 
 
+void ConfigWindow::MakeHowToView()
+{
+	BResources *resources = BApplication::AppResources();
+	if (resources)
+	{
+		size_t length;
+		void *buffer = resources->FindResource('BBMP',"bigIcon",&length);
+		if (buffer)
+		{
+			// Inflate and unarchive the bitmap
+			BMessage archive;
+			archive.Unflatten((char *)buffer);	
+
+			BBitmap *bitmap = new BBitmap(&archive);
+			if (bitmap && bitmap->InitCheck() == B_OK)
+				fConfigView->AddChild(new BitmapView(bitmap));
+		}
+	}
+
+	BRect rect = fConfigView->Bounds();
+	BTextView *text = new BTextView(rect,NULL,rect,B_FOLLOW_NONE,B_WILL_DRAW);
+	text->SetViewColor(fConfigView->Parent()->ViewColor());
+	text->SetAlignment(B_ALIGN_CENTER);
+	text->SetText("\n\nCreate a new account using the \"Add\" button.\n\nDelete accounts (or only the inbound/outbound) by using the \"Remove\" button on the selected item.\n\nSelect an item in the list to edit its configuration.");
+	rect = text->Bounds();
+	text->ResizeTo(rect.Width(),text->TextHeight(0,42));
+	text->SetTextRect(rect);
+	fConfigView->AddChild(text);
+	
+	static_cast<CenterContainer *>(fConfigView)->Layout();
+}
+
+
 void ConfigWindow::LoadSettings()
 {
 	Accounts::Delete();
@@ -501,7 +509,12 @@ void ConfigWindow::MessageReceived(BMessage *msg)
 		{
 			int32 index;
 			if (msg->FindInt32("index",&index) != B_OK || index < 0)
+			{
+				// deselect current item
+				((CenterContainer *)fConfigView)->DeleteChildren();
+				MakeHowToView();
 				break;
+			}
 			AccountItem *item = (AccountItem *)fAccountsListView->ItemAt(index);
 			if (item)
 				item->account->Selected(item->type);
@@ -519,7 +532,12 @@ void ConfigWindow::MessageReceived(BMessage *msg)
 			{
 				AccountItem *item = (AccountItem *)fAccountsListView->ItemAt(index);
 				if (item)
-					item->account->Remove(item->type);
+				{
+					int32 type = item->type;
+					item->account->Remove(type);
+					if (type == ACCOUNT_ITEM)
+						MakeHowToView();
+				}
 			}
 			break;
 		}
