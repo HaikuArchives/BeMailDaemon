@@ -181,8 +181,10 @@ BEOS Mail Daemon Replacement v2.0.1 Beta 2
 
 履歴：
 
-March 2 2003 - v2.0.1b2
+March 31 2003 - v2.0.1b2
 - Make the encoding menu slide around when resizing the window.  Can only do it for reading a mail message, not when composing, since pop-up menus don't resize (a BeOS bug).
+- Changed encoding to work on a per-word basis to reduce the chance of making words longer than the 75 character RFC2047 limit.  Of course, typing in a Japanese subject line with no spaces will still result in a long word.
+- Changed header encoding to base64 rather than quoted-printable for Asian languages, for cell phone system compatability.
 
 February 20 2003 - v2.0.1b1
 - Yet more Japanese translations, courtesy of Jun Suzki this time.

@@ -371,46 +371,61 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 	struct word {
 		BString	convertedWord;
 		bool	unprintable;
+		bool	priorSpaces;
+		bool	isQuote;
+		bool	hasTrailingQuote;
 	};
 	struct word *currentWord;
 	BList words;
 
 	// Break the header into words.  White space characters (including tabs and
-	// newlines) separate the words.  The number of spaces doesn't matter, we
-	// just treat runs as one.  Except for quoted strings, where we treat the
-	// whole quote as a "word" so that the spaces don't get lost.
+	// newlines) separate the words, as do double quote marks.  That sometimes
+	// means no space between words, when you get things like name="blort" in
+	// the MIME headers (we treat it as the two words: name= and "blort" with
+	// no space before the "blort" word).  The reader is supposed to ignore the
+	// white space between encoded words, which can be inserted so that older
+	// mail parsers don't have overly long line length problems.  Quoted
+	// strings get special treatment - the whole quote is one "word" so that
+	// the spaces don't get lost, but we put the quote marks outside the
+	// encoded part of the word so that MIME headers are still parsed
+	// correctly.
 
 	const char *source = *bufp;
 	const char *bufEnd = *bufp + length;
+	bool quoted = false;
+	bool spacesBefore = false;
 
 	while (source < bufEnd) {
 		if (isspace (*source)) {
 			// Skip leading spaces, spaces between words.
 			source++;
+			spacesBefore = true;
 			continue;
 		}
-		bool quoted = (*source == '"');
+		quoted = (*source == '"');
+		if (quoted)
+			source++; // Won't include starting quote in the converted text.
 
 		currentWord = new struct word;
 		currentWord->unprintable = false;
-		int wordEnd;
+		currentWord->priorSpaces = spacesBefore;
+		currentWord->isQuote = quoted;
 
 		// Find the end of the word.  Leave wordEnd pointing just after the
 		// last character in the word.
 
-		for (wordEnd = quoted ? 1 : 0; source + wordEnd < bufEnd; wordEnd++) {
+		int wordEnd;
+		for (wordEnd = 0; source + wordEnd < bufEnd; wordEnd++) {
 			if (quoted) {
 				if (source[wordEnd] == '"')
 					break;
 			} else {
-				if (isspace(source[wordEnd]))
+				if (isspace(source[wordEnd]) || source[wordEnd] == '"')
 					break;
 			}
 		}
-		if (quoted && source[wordEnd] == '"')
-			wordEnd++;
-				// Include the trailing quote (if present) in the quoted "word"
-				// but don't include the trailing space for regular words.
+		bool trailingQuote = (quoted && source[wordEnd] == '"');
+		currentWord->hasTrailingQuote = trailingQuote;
 
 		// Convert the word from UTF-8 to the desired character set.  The
 		// converted version also includes the escape codes to return to ASCII
@@ -418,9 +433,10 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 		// which means it will need special treatment later.
 
 		int32 state = 0;
-		int32 originalLength = wordEnd;
-		int32 convertedLength = originalLength * 5; // Some character sets bloat up quite a bit, even 5 times.
+		int32 originalLength = wordEnd; // Can be zero for quote followed by quote.
+		int32 convertedLength = originalLength * 5 + 1; // Some character sets bloat up quite a bit, even 5 times.
 		char *convertedBuffer = currentWord->convertedWord.LockBuffer (convertedLength);
+
 		MDR_convert_from_utf8 (charset, source, &originalLength,
 			convertedBuffer, &convertedLength, &state);
 
@@ -430,9 +446,12 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 				currentWord->unprintable = true;
 
 		currentWord->convertedWord.UnlockBuffer (convertedLength);
-		words.AddItem(currentWord);
 
+		words.AddItem(currentWord);
 		source += wordEnd;
+		if (trailingQuote)
+			source++;
+		spacesBefore = false;
 	}
 
 	// Combine adjacent words which contain unprintable text so that the
@@ -444,10 +463,13 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 	struct word *run;
 
 	for (int32 i = 0; (currentWord = (struct word *) words.ItemAt (i)) != NULL; i++) {
+		if (currentWord->isQuote)
+			continue; // Don't combine quoted words, their quotes need to be outside.
 		for (int32 g = i+1; (run = (struct word *) words.ItemAt (g)) != NULL; g++) {
-			if (run->unprintable && currentWord->unprintable &&
+			if (!run->isQuote && run->unprintable && currentWord->unprintable &&
 				(currentWord->convertedWord.Length() + run->convertedWord.Length() <= 53)) {
-				currentWord->convertedWord << ' ';
+				if (run->priorSpaces)
+					currentWord->convertedWord.Append (" ");
 				currentWord->convertedWord.Append (run->convertedWord);
 				words.RemoveItem(g);
 				delete run;
@@ -457,7 +479,7 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 		}
 	}
 
-	const char *charset_dec = NULL;
+	const char *charset_dec = "none-bug";
 	for (int32 i = 0; charsets[i].charset != NULL; i++) {
 		if (charsets[i].flavor == charset) {
 			charset_dec = charsets[i].charset;
@@ -470,14 +492,12 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 	// standards.
 
 	BString rfc2047;
-	bool firstTime = true;
 
 	while ((currentWord = (struct word *)words.RemoveItem(0L)) != NULL) {
-		if (firstTime)
-			firstTime = false;
-		else // Put just a regular space between the words.
+		if (currentWord->priorSpaces)
 			rfc2047 << " ";
-
+		if (currentWord->isQuote)
+			rfc2047 << "\"";
 		if ((encoding != quoted_printable && encoding != base64) ||
 		!currentWord->unprintable) {
 			rfc2047.Append (currentWord->convertedWord);
@@ -509,6 +529,8 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 			if (encoding == quoted_printable || encoding == base64)
 				free(encoded);
 		}
+		if (currentWord->hasTrailingQuote)
+			rfc2047.Append ("\"");
 		delete currentWord;
 	}
 
