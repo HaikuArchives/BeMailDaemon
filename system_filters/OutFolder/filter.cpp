@@ -42,6 +42,8 @@ class DiskProducer : public MailFilter
 	);
 };
 
+#include <Path.h>
+#include <stdio.h>
 DiskProducer::DiskProducer(BMessage* msg,StatusView*status)
 : MailFilter(msg),
   src_string(msg->FindString("source_path")),
@@ -50,7 +52,7 @@ DiskProducer::DiskProducer(BMessage* msg,StatusView*status)
 	entry_ref entry;
 	mail_flags flags;
 	BNode node;
-	
+
 	size_t total_size = 0;
 	off_t worker;
 	
@@ -59,9 +61,8 @@ DiskProducer::DiskProducer(BMessage* msg,StatusView*status)
 	while (source.GetNextRef(&entry) == B_OK) {
 		node.SetTo(&entry);
 		
-		node.ReadAttr(B_MAIL_ATTR_FLAGS,B_INT32_TYPE,0,&flags,4);
-		
-		if (flags & B_MAIL_PENDING) {
+		if (node.ReadAttr(B_MAIL_ATTR_FLAGS,B_INT32_TYPE,0,&flags,4) >= B_OK
+			&& flags & B_MAIL_PENDING) {
 			entries_to_send.AddItem(new entry_ref(entry));
 			
 			node.GetSize(&worker);
