@@ -25,6 +25,8 @@ class FileControl : public BView
 		void SetText(const char *pathOfFile);
 		const char *Text() const;
 
+		void SetEnabled(bool enabled);
+
 		virtual	void GetPreferredSize(float *width, float *height);
 
 	private:

@@ -1,5 +1,6 @@
 #ifndef ZOIDBERG_NUMAIL_ADDON_H
 #define ZOIDBERG_NUMAIL_ADDON_H
+
 class BMessage;
 class BView;
 class BPositionIO;
@@ -67,7 +68,7 @@ class MailFilter
 	(
 		BPositionIO** io_message, BEntry* io_entry,
 		BMessage* io_headers, BPath* io_folder, BString* io_uid
-	)=0;
+	) = 0;
 	// Filters a message.  On input and output, the arguments
 	// are expected to be as below; however it is allowed for
 	// the MailFilter to alter any of these values as nece-
@@ -121,6 +122,11 @@ extern "C" _EXPORT const char *pretty_name;
 // This is the name that config associates with your addon.
 // If you do not define it, config simply uses your addon's
 // leaf name.
+
+extern "C" _EXPORT status_t descriptive_name(BMessage *msg, char *buffer);
+// the config panel will show this name in the chains filter
+// list if this function returns B_OK.
+// The buffer is as big as B_FILE_NAME_LENGTH.
 
 // standard MailFilters:
 //

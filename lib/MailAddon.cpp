@@ -5,8 +5,12 @@ class _EXPORT MailFilter;
 #include "MailAddon.h"
 
 
-MailFilter::MailFilter(BMessage *) {
+MailFilter::MailFilter(BMessage *)
+{
 	//----do nothing-----
 }
 
-MailFilter::~MailFilter(){}
+MailFilter::~MailFilter()
+{
+}
+

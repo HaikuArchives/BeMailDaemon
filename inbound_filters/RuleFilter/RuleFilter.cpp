@@ -7,10 +7,13 @@
 
 class StatusView;
 
+_EXPORT const char *pretty_name = "Match Header";
+
+
 RuleFilter::RuleFilter(BMessage *settings) : MailFilter(settings) {
 	settings->FindString("attribute",&attribute);
-	
-	const char *regex;
+
+	const char *regex = NULL;	
 	settings->FindString("regex",&regex);
 	matcher.SetPattern(regex,true);
 	
@@ -29,10 +32,9 @@ MDStatus RuleFilter::ProcessMailMessage
 ) {
 	const char* data;
 	io_headers->FindString(attribute,&data);
-	puts("got data");
 	if (data == NULL)
 		return MD_OK; //----That field doesn't exist? NO match
-	puts(data);
+
 	if (!matcher.Match(data))
 		return MD_OK; //-----There wasn't an error. We're just not supposed to do anything
 		
@@ -54,6 +56,29 @@ MDStatus RuleFilter::ProcessMailMessage
 	}
 	
 	return MD_OK;
+}
+
+status_t descriptive_name(BMessage *settings, char *buffer) {
+	const char *attribute = NULL;
+	settings->FindString("attribute",&attribute);
+	const char *regex = NULL;
+	settings->FindString("regex",&regex);
+
+	if (!attribute || strlen(attribute) > 15)
+		return B_ERROR;
+	sprintf(buffer, "Match \"%s\"", attribute);
+
+	if (!regex)
+		return B_OK;
+
+	char reg[20];
+	strncpy(reg, regex, 16);
+	if (strlen(regex) > 15)
+		strcpy(reg + 15, "...");
+
+	sprintf(buffer + strlen(buffer), " against \"%s\"", reg);
+
+	return B_OK;
 }
 
 MailFilter* instantiate_mailfilter(BMessage* settings,StatusView *)

@@ -52,8 +52,7 @@ class FilterConfigView : public BBox
 		virtual void DetachedFromWindow();
 		virtual void AttachedToWindow();
 
-	private:
-		friend ProtocolsConfigView;
+	protected:
 		friend FiltersConfigView;
 
 		void		Load(BMessage *msg,entry_ref *ref);

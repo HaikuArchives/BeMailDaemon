@@ -509,6 +509,31 @@ class DragListView : public BListView
 };
 
 
+void GetPrettyDescriptiveName(BPath &path, char *name, BMessage *msg = NULL)
+{
+	strcpy(name, path.Leaf());
+
+	image_id image = load_add_on(path.Path());
+	if (image < B_OK)
+		return;
+
+	const char **pretty_name = NULL;
+	if (get_image_symbol(image,"pretty_name",B_SYMBOL_TYPE_DATA,(void **)&pretty_name) == B_OK)
+		strcpy(name, *pretty_name);
+
+	if (msg)
+	{
+		status_t (* descriptive_name)(BMessage *,char *);
+		if (get_image_symbol(image,"descriptive_name",B_SYMBOL_TYPE_TEXT,(void **)&descriptive_name) == B_OK)
+			(*descriptive_name)(msg,name);
+	}
+	unload_add_on(image);
+}
+
+
+//	#pragma mark -
+
+
 FiltersConfigView::FiltersConfigView(BRect rect,Account *account)
 	:	BBox(rect),
 		fAccount(account),
@@ -588,6 +613,15 @@ void FiltersConfigView::SelectFilter(int32 index)
 	if (fFilterView)
 	{
 		Parent()->RemoveChild(fFilterView);
+		
+		// update the name in the list
+		BStringItem *item = (BStringItem *)fListView->ItemAt(fFilterView->fIndex - fFirst);
+
+		char name[B_FILE_NAME_LENGTH];
+		BPath path(fFilterView->fEntryRef);
+		GetPrettyDescriptiveName(path, name, fFilterView->fMessage);
+		item->SetText(name);
+
 		delete fFilterView;
 		fFilterView = NULL;
 	}
@@ -652,8 +686,11 @@ void FiltersConfigView::SetTo(MailChain *chain)
 		entry_ref ref;
 		if (chain->GetFilter(i,&msg,&ref) == B_OK)
 		{
-			BPath path(&ref);
-			fListView->AddItem(new BStringItem(path.Leaf()));
+			char name[B_FILE_NAME_LENGTH];
+			BPath addon(&ref);
+			GetPrettyDescriptiveName(addon, name, &msg);
+
+			fListView->AddItem(new BStringItem(name));
 		}
 	}
 	fChain = chain;
@@ -685,8 +722,8 @@ void FiltersConfigView::SetTo(MailChain *chain)
 	while (dir.GetNextRef(&ref) == B_OK)
 	{
 		char name[B_FILE_NAME_LENGTH];
-		BEntry entry(&ref);
-		entry.GetName(name);
+		BPath path(&ref);
+		GetPrettyDescriptiveName(path, name);
 
 		BMenuItem *item;
 		BMessage *msg;
@@ -726,10 +763,12 @@ void FiltersConfigView::MessageReceived(BMessage *msg)
 				break;
 
 			BMessage msg;
-			if (fChain->AddFilter(fChain->CountFilters() - fLast,msg,ref) >= B_OK)
+			if (fChain->AddFilter(fChain->CountFilters() - fLast, msg, ref) >= B_OK)
 			{
+				char name[B_FILE_NAME_LENGTH];
 				BPath path(&ref);
-				fListView->AddItem(new BStringItem(path.Leaf()));
+				GetPrettyDescriptiveName(path, name, &msg);
+				fListView->AddItem(new BStringItem(name));
 			}
 			break;
 		}

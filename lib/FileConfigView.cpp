@@ -30,11 +30,12 @@ FileControl::FileControl(BRect rect,const char *name,const char *label,const cha
 	GetFontHeight(&fontHeight);
 	float itemHeight = (int32)(fontHeight.ascent + fontHeight.descent + fontHeight.leading) + 13;
 	float labelWidth = StringWidth("Select" B_UTF8_ELLIPSIS) + 20;
-	rect.left = 5;  rect.right -= labelWidth;
-	rect.bottom = rect.top - 2 + itemHeight;
-	rect.OffsetBy(0,4);
+	rect = Bounds();
+	rect.right -= labelWidth;
+	rect.top = 4;	rect.bottom = itemHeight + 2;
 	fText = new BTextControl(rect,"file_path",label,pathOfFile,NULL);
-	fText->SetDivider(fText->StringWidth(label) + 6);
+	if (label)
+		fText->SetDivider(fText->StringWidth(label) + 6);
 	AddChild(fText);
 
 	rect.left = rect.right + 6;
@@ -117,6 +118,13 @@ const char *FileControl::Text() const
 }
 
 
+void FileControl::SetEnabled(bool enabled)
+{
+	fText->SetEnabled(enabled);
+	fButton->SetEnabled(enabled);
+}
+
+
 void FileControl::GetPreferredSize(float *width, float *height)
 {
 	*width = fButton->Frame().right + 5;
@@ -129,7 +137,7 @@ void FileControl::GetPreferredSize(float *width, float *height)
 
 
 FileConfigView::FileConfigView(const char *label,const char *name,bool useMeta,const char *defaultPath,uint32 flavors)
-		:	FileControl(BRect(0,0,255,10),name,label,defaultPath,flavors),
+		:	FileControl(BRect(5,0,255,10),name,label,defaultPath,flavors),
 		fUseMeta(useMeta),
 		fName(name)
 {
