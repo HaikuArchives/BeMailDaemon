@@ -1933,11 +1933,13 @@ bool TTextView::Reader::ParseMail(MailContainer *container,PlainTextBodyComponen
 		MailComponent *component;
 		/*if (container->ManualGetComponent(c,i) == B_OK)
 			component = c;
-		else*/ if ((component = container->GetComponent(i)) == NULL
-				|| component == ignore)
+		else*/ if ((component = container->GetComponent(i)) == NULL)
 			continue;
 
 		count++;
+		if (component == ignore)
+			continue;
+
 		if (component->ComponentType() == MC_MULTIPART_CONTAINER)
 		{
 			MIMEMultipartContainer *c = (MIMEMultipartContainer *)container->GetComponent(i);
