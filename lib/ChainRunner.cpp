@@ -137,14 +137,22 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 	
 	BDirectory tmp("/tmp");
 	
-	while (last_result != MD_NO_MORE_MESSAGES) { //------Message loop. Break with a MD_NO_MORE_MESSAGES
+	while (last_result != MD_NO_MORE_MESSAGES)
+	{
+		// set last_result to match the break condition, to prevent
+		// infinite loops (yes, they do happen...)
+		last_result = MD_NO_MORE_MESSAGES;
+
 		char *path = tempnam("/tmp","mail_temp_");
-		BPositionIO *file = new BFile(path, B_READ_WRITE | B_CREATE_FILE);
 		BEntry *entry = new BEntry(path);
 		free(path);
+		BPositionIO *file = new BFile(entry, B_READ_WRITE | B_CREATE_FILE);
 		BPath *folder = new BPath;
 		BMessage *headers = new BMessage;
 		BString uid = B_EMPTY_STRING;
+
+		if (file->InitCheck() < B_OK)
+			goto err;
 
 		for (int32 i = 0; chain->GetFilter(i,&settings,&addon) >= B_OK; i++) {			
 			if (addons.CountItems() <= i) { //------eek! not enough filters? load the addon
@@ -215,7 +223,7 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 		delete entry;
 		delete headers;
 		delete folder;
-		if(err)
+		if (err)
 			break;
 	}
 	
