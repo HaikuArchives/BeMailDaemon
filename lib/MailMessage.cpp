@@ -819,12 +819,13 @@ Message::RenderTo(BDirectory *dir)
 	// order of date.
 	time (&currentTime);
 	localtime_r (&currentTime, &timeFields);
-	sprintf (numericDateString, "%04d.%02d.%02d.%02d.%02d",
+	sprintf (numericDateString, "%04d.%02d.%02d.%02d.%02d.%02d",
 		timeFields.tm_year + 1900,
 		timeFields.tm_mon + 1,
 		timeFields.tm_mday,
 		timeFields.tm_hour,
-		timeFields.tm_min);
+		timeFields.tm_min,
+		timeFields.tm_sec);
 	name << " - " << numericDateString;
 
 	worker = From();

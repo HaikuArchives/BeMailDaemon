@@ -201,12 +201,13 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		(const void **) &datePntr, &dateSize) == B_OK)
 		dateAsTime = *datePntr;
 	localtime_r (&dateAsTime, &timeFields);
-	sprintf (numericDateString, "%04d.%02d.%02d.%02d.%02d",
+	sprintf (numericDateString, "%04d.%02d.%02d.%02d.%02d.%02d",
 		timeFields.tm_year + 1900,
 		timeFields.tm_mon + 1,
 		timeFields.tm_mday,
 		timeFields.tm_hour,
-		timeFields.tm_min);
+		timeFields.tm_min,
+		timeFields.tm_sec);
 	name << " - " << numericDateString;
 
 	worker = attributes.FindString ("MAIL:from");
