@@ -44,8 +44,8 @@ void unload(void *id);
 
 ChainRunner::ChainRunner(Mail::Chain *chain, Mail::StatusWindow *status,
 			bool self_destruct_when_done, bool save_chain_when_done,
-			bool destruct_chain_when_done) : 
-  BLooper(chain->Name()), _chain(chain), _status(status), destroy_self(self_destruct_when_done), save_chain(save_chain_when_done), destroy_chain(destruct_chain_when_done) {
+			bool destruct_chain_when_done) :
+	BLooper(chain->Name()), _chain(chain), destroy_self(self_destruct_when_done), destroy_chain(destruct_chain_when_done), save_chain(save_chain_when_done), _status(status) {
 	//------do absolutely nothing--------
 }
 
@@ -221,7 +221,6 @@ void ChainRunner::MessageReceived(BMessage *msg) {
 void ChainRunner::get_messages(StringList *list) {
 	const char *uid;
 	
-	int i = 0;
 	status_t err = B_OK;
 	BDirectory tmp("/tmp");
 	

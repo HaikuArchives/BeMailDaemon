@@ -193,7 +193,8 @@ void Mail::DeletePass::Callback(status_t /*status*/) {
 
 Mail::MessageDeletion::MessageDeletion(Protocol *home, const char *uid, bool delete_anyway) :
 	us(home),
-	message_id(uid), always(delete_anyway) {}
+	always(delete_anyway),
+	message_id(uid) {}
 
 void Mail::MessageDeletion::Callback(status_t result) {
 	#if DEBUG
