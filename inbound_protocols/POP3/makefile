@@ -138,7 +138,7 @@ ifeq ($(shell ls 2>/dev/null -1 /boot/develop/headers/be/bone/bone_api.h), /boot
 	LIBS = be bnetapi ../../lib/libnumail.so  
 endif
 
-INSTALL_DIR=/boot/home/config/add-ons/mail_daemon/inbound_protocols/
+INSTALL_DIR=/boot/home/config/add-ons/mail_daemon/inbound_protocols
 
 ## include the makefile-engine
 include $(BUILDHOME)/etc/makefile-engine.MailD

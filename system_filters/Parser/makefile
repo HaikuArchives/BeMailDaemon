@@ -132,7 +132,7 @@ ifeq ($(CHECK_MEM), true)
 	COMPILER_FLAGS += -fcheck-memory-usage -DDEBUG=1 -D_NO_INLINE_ASM=1 -D_KERNEL_MODE=1
 endif
 
-INSTALL_DIR := /boot/home/config/add-ons/mail_daemon/system_filters/
+INSTALL_DIR := /boot/home/config/add-ons/mail_daemon/system_filters
 
 ## include the makefile-engine
 include $(BUILDHOME)/etc/makefile-engine.MailD

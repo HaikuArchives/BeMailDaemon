@@ -132,7 +132,7 @@ ifeq ($(CHECK_MEM), true)
 endif
 
 
-INSTALL_DIR := /boot/home/config/add-ons/mail_daemon/system_filters/
+INSTALL_DIR := /boot/home/config/add-ons/mail_daemon/system_filters
 
 ## include the makefile-engine
 include $(BUILDHOME)/etc/makefile-engine.MailD
