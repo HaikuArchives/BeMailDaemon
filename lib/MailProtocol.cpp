@@ -30,14 +30,6 @@ using Zoidberg::Mail::Protocol;
 
 namespace Zoidberg {
 namespace Mail {
-class DeletePass : public Mail::ChainCallback {
-	public:
-		DeletePass(Protocol *home);
-		virtual void Callback(status_t result);
-		
-	private:
-		Protocol *us;
-};
 
 class ManifestAdder : public Mail::ChainCallback {
 	public:
@@ -95,12 +87,18 @@ Protocol::Protocol(BMessage* settings, ChainRunner *run) : Filter(settings), run
 	
 	manifest = new StringList;
 	runner->Chain()->MetaData()->FindFlat("manifest",manifest); //---no error checking, because if it doesn't exist, it will stay empty anyway
-	runner->RegisterProcessCallback(new DeletePass(this));
 }
 
 Protocol::~Protocol() {
+	if (manifest != NULL) {
+		BMessage *meta_data = runner->Chain()->MetaData();
+		meta_data->RemoveName("manifest");
+		if (settings->FindBool("leave_mail_on_server"))
+			meta_data->AddFlat("manifest",manifest);
+	}
 	delete unique_ids;
-	delete manifest;
+	if (manifest != NULL)
+		delete manifest;
 };
 
 
@@ -169,23 +167,6 @@ void Protocol::_ReservedProtocol2() {}
 void Protocol::_ReservedProtocol3() {}
 void Protocol::_ReservedProtocol4() {}
 void Protocol::_ReservedProtocol5() {}
-
-
-//	#pragma mark -
-
-
-Mail::DeletePass::DeletePass(Protocol *home) : us(home) {
-	//--do nothing, and do it well
-}
-
-void Mail::DeletePass::Callback(status_t /*status*/) {
-	if ((us->unique_ids != NULL) && (us->InitCheck() == B_OK)) {
-		BMessage *meta_data = us->runner->Chain()->MetaData();
-		meta_data->RemoveName("manifest");
-		if (us->settings->FindBool("leave_mail_on_server"))
-			meta_data->AddFlat("manifest",us->unique_ids);
-	}
-}
 
 
 //	#pragma mark -
