@@ -150,14 +150,18 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	BNode node(e);
 	status_t err = 0;
 	if (out_headers->FindBool("ENTIRE_MESSAGE") || !out_headers->HasInt32("SIZE") || (size_limit >= out_headers->FindInt32("SIZE")) || size_limit == 0)
-		err = (*io)->Seek(0,SEEK_END);
+		err = (*io)->Seek(0,SEEK_END); // Force protocol to read the whole message.
 
 	if (err < 0)
 	{
 		BString error;
 		MDR_DIALECT_CHOICE (
-			error << "An error occurred while saving the message " << out_headers->FindString("Subject") << " to " << path.Path() << ": " << strerror(err);
-			,error << out_headers->FindString("Subject") << " のメッセージを " <<  path.Path() << "に保存中にエラーが発生しました" << strerror(err);
+			error << "Unable to read whole message " <<
+				out_headers->FindString("Subject") << " to " << path.Path() <<
+				": " << strerror(err);
+			,
+			error << out_headers->FindString("Subject") << " のメッセージを " <<
+				path.Path() << "に保存中にエラーが発生しました" << strerror(err);
 		)
 		Mail::ShowAlert(MDR_DIALECT_CHOICE ("Folder Error","フォルダエラー"),error.String(),MDR_DIALECT_CHOICE ("OK","了解"),B_WARNING_ALERT);
 
@@ -170,9 +174,13 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	node.GetSize(&size);
 	// Note - sometimes the actual message size is a few bytes more than the
 	// registered size, so use >= when testing.
-	if ((out_headers->HasInt32("SIZE") && size >= out_headers->FindInt32("SIZE")) || out_headers->FindBool("ENTIRE_MESSAGE") || !out_headers->HasInt32("SIZE"))
+	if ((out_headers->HasInt32("SIZE") && size >= out_headers->FindInt32("SIZE")) || out_headers->FindBool("ENTIRE_MESSAGE") || !out_headers->HasInt32("SIZE"))	{
 		info.SetType(B_MAIL_TYPE);
-	else
+		// A little fixup for incorrect registered sizes, so that the full
+		// length attribute gets written correctly later.
+		if (out_headers->HasInt32("SIZE"))
+			out_headers->ReplaceInt32("SIZE", size);
+	} else
 		info.SetType("text/x-partial-email");
 
 	BMessage attributes;
@@ -226,8 +234,12 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	{
 		BString error;
 		MDR_DIALECT_CHOICE (
-			error << "An error occurred while saving the message " << out_headers->FindString("Subject") << " to " << path.Path() << ": " << strerror(err);
-			,error << out_headers->FindString("Subject") << " のメッセージを " <<  path.Path() << "に保存中にエラーが発生しました" << strerror(err);
+			error << "An error occurred while moving the message " <<
+				out_headers->FindString("Subject") << " to " << path.Path() <<
+				": " << strerror(err);
+			,
+			error << out_headers->FindString("Subject") << " のメッセージを " <<
+				path.Path() << "に保存中にエラーが発生しました" << strerror(err);
 		)
 		Mail::ShowAlert(MDR_DIALECT_CHOICE ("Folder Error","フォルダエラー"),error.String(),MDR_DIALECT_CHOICE ("OK","了解"),B_WARNING_ALERT);
 
