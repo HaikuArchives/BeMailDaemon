@@ -11,9 +11,7 @@
 #include <MailAddon.h>
 #include <MailSettings.h>
 
-#if _BUILDING_mail
-#define _IMPEXP_MAIL
-#else
+#if B_BEOS_VERSION_DANO
 #define _IMPEXP_MAIL
 #endif
 
