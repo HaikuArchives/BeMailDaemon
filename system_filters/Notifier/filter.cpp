@@ -20,16 +20,18 @@
 
 using namespace Zoidberg;
 
+class NotifyFilter;
 
 class NotifyCallback : public Mail::ChainCallback {
 	public:
-		NotifyCallback (int32 notification_method, Mail::Chain *us);
+		NotifyCallback (int32 notification_method, Mail::Chain *us,NotifyFilter *ref2);
 		virtual void Callback(status_t result);
 		
 		uint32 num_messages;
 	private:
 		Mail::Chain *chain;
 		int32 strategy;
+		NotifyFilter *parent;
 };
 
 class NotifyFilter : public Mail::Filter
@@ -44,16 +46,18 @@ class NotifyFilter : public Mail::Filter
 	);
 	
   private:
+  	friend class NotifyCallback;
+  	
   	NotifyCallback *callback;
+  	Mail::ChainRunner *_runner;
+  	int32 strategy;
 };
 
 
 NotifyFilter::NotifyFilter(BMessage* msg,Mail::ChainRunner *runner)
-	: Mail::Filter(msg)
+	: Mail::Filter(msg), _runner(runner), callback(NULL)
 {
-	callback = new NotifyCallback(msg->FindInt32("notification_method"),runner->Chain());
-	
-	runner->RegisterProcessCallback(callback);
+	strategy = msg->FindInt32("notification_method");
 }
 
 status_t NotifyFilter::InitCheck(BString* err)
@@ -63,20 +67,27 @@ status_t NotifyFilter::InitCheck(BString* err)
 
 status_t NotifyFilter::ProcessMailMessage(BPositionIO**, BEntry*, BMessage*headers, BPath*, const char*)
 {
+	if (callback == NULL) {
+		callback = new NotifyCallback(strategy,_runner->Chain(),this);
+		_runner->RegisterProcessCallback(callback);
+	}
+	
 	if (!headers->FindBool("ENTIRE_MESSAGE"))	
 		callback->num_messages ++;
 	
 	return B_OK;
 }
 
-NotifyCallback::NotifyCallback (int32 notification_method, Mail::Chain *us) : 
+NotifyCallback::NotifyCallback (int32 notification_method, Mail::Chain *us,NotifyFilter *ref2) : 
 	strategy(notification_method),
 	chain(us),
-	num_messages(0)
+	num_messages(0), parent(ref2)
 {
 }
 
 void NotifyCallback::Callback(status_t result) {
+	parent->callback = NULL;
+	
 	if (num_messages == 0)
 		return;
 	
