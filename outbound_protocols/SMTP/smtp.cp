@@ -253,6 +253,7 @@ SMTPProtocol::POP3Authentification()
 					if (status >= B_OK)
 					{
 						msg.AddInt32("chain", chain->ID());
+						msg.AddBool("login_and_do_nothing_else_of_any_importance",true);
 
 						// instantiating and deleting should be enough
 						Mail::Filter *filter = (*instantiate)(&msg, runner);

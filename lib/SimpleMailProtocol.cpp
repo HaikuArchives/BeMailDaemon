@@ -66,7 +66,10 @@ status_t SimpleProtocol::Init() {
 		runner->Stop();
 		return error;
 	}
-		
+	
+	if (settings->FindBool("login_and_do_nothing_else_of_any_importance"))
+		return error;
+	
 	error = UniqueIDs();
 	if (error < B_OK) {
 		runner->Stop();
