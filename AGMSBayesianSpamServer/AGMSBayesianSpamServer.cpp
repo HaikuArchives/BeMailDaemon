@@ -74,6 +74,10 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
+ * Revision 1.67  2002/11/25 20:39:39  agmsmith
+ * Don't need to massage the MIME type since the mail library now does
+ * the lower case conversion and converts TEXT to text/plain too.
+ *
  * Revision 1.66  2002/11/20 22:57:12  nwhitehorn
  * PPC Compatibility Fixes
  *
@@ -1926,7 +1930,7 @@ void ABSApp::DefaultSettings ()
 
   m_IgnorePreviousClassification = false;
   g_ServerMode = false;
-  m_PurgeAge = 1000;
+  m_PurgeAge = 2000;
   m_PurgePopularity = 3;
   m_TokenizeMode = TM_ANY_TEXT_HEADER;
 
