@@ -26,12 +26,14 @@ class _EXPORT MailChain;
 MailChain::MailChain(uint32 i)
 : id(i), meta_data(NULL), direction(inbound), settings_ct(0), addons_ct(0) 
 {
+	name[0] = 0;
 	Reload();
 }
 
 MailChain::MailChain(BMessage* settings)
 : id(settings->FindInt32("id")), meta_data(NULL), direction(inbound), settings_ct(0), addons_ct(0)
 {
+	name[0] = 0;
 	Load(settings);
 }
 
@@ -40,11 +42,11 @@ MailChain::~MailChain() {
 	if (meta_data != NULL)
 		delete meta_data;
 		
-	for (int32 i = 0; i < settings_ct; i++)
-		delete filter_settings.ItemAt(i);
+	for (int32 i = 0; filter_settings.ItemAt(i); i++)
+		delete (BMessage *)filter_settings.ItemAt(i);
 		
-	for (int32 i = 0; i < addons_ct; i++)
-		delete filter_addons.ItemAt(i);
+	for (int32 i = 0; filter_addons.ItemAt(i); i++)
+		delete (entry_ref *)filter_addons.ItemAt(i);
 }
 
 status_t MailChain::Load(BMessage* settings)
@@ -277,6 +279,8 @@ status_t MailChain::Reload()
 	
 	// open
 	BFile settings(path.Path(),B_READ_ONLY);
+	ret = settings.InitCheck();
+	
 	if (ret != B_OK)
 	{
 		BMessage empty;

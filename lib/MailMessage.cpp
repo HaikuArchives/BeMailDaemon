@@ -27,6 +27,7 @@ MailMessage::MailMessage(BPositionIO *mail_file)
             :_bcc(NULL)
             ,_num_components(0)
             ,_body(NULL)
+            ,_chain_id(0)
             , _text_body(NULL)
 {
 	MailSettings settings;
@@ -368,7 +369,8 @@ status_t MailMessage::Render(BPositionIO *file) {
 	
 	file->Seek(-2,SEEK_CUR); //-----Remove division between headers
 	
-	return _body->Render(file);
+	err = _body->Render(file);
+	return err;
 }
 	
 status_t MailMessage::RenderTo(BDirectory *dir) {
@@ -407,7 +409,7 @@ status_t MailMessage::Send(bool send_now) {
 	if (status >= B_OK && send_now)
 		status = MailDaemon::SendQueuedMail();
 		
-	delete dir;		
+	delete dir;	
 	delete via;
 	
 	return status;

@@ -64,5 +64,5 @@ _EXPORT ssize_t	encode_qp(register char *out, register const char *in, register 
 			out[g++] = in[i];
 	}
 
-	return g;
+	return (g-1);
 }
