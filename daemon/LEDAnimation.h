@@ -26,7 +26,8 @@ private:
 	//!Animation thread ID.
 		thread_id			fThread;
 	//!Thread running flag.
-			bool			fRunning;
+			volatile bool	fRunning;
 			uint32			fOrigModifiers;
 };
+
 #endif

@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <malloc.h>
 
+#include <E-mail.h>
 #include <MailSettings.h>
 #include <MailDaemon.h>
 
@@ -105,7 +106,7 @@ void DeskbarView::AttachedToWindow()
 		BVolumeRoster().GetBootVolume(&boot);
 		fNewMailQuery->SetTarget(this);
 		fNewMailQuery->SetVolume(&boot);
-		fNewMailQuery->PushAttr("MAIL:status");
+		fNewMailQuery->PushAttr(B_MAIL_ATTR_STATUS);
 		fNewMailQuery->PushString("New");
 		fNewMailQuery->PushOp(B_EQ);
 		fNewMailQuery->PushAttr("BEOS:TYPE");
@@ -357,7 +358,7 @@ void DeskbarView::CreateNewMailQuery(BEntry &query)
 	if(file.InitCheck() != B_OK)
 		return;
 
-	BString string("((MAIL:status==\"[nN][eE][wW]\")&&(BEOS:TYPE==\"text/x-email\"))");
+	BString string("((" B_MAIL_ATTR_STATUS "==\"[nN][eE][wW]\")&&(BEOS:TYPE==\"text/x-email\"))");
 	file.WriteAttrString("_trk/qrystr",&string);
 	string = "E-mail";
 	file.WriteAttrString("_trk/qryinitmime", &string);

@@ -25,7 +25,9 @@
 #include <stdio.h>
 #include <errno.h>
 
+#include <E-mail.h>
 #include <MailSettings.h>
+#include <MailMessage.h>
 #include <status.h>
 
 #include "deskbarview.h"
@@ -81,7 +83,7 @@ class MailDaemonApp : public BApplication {
 
 
 MailDaemonApp::MailDaemonApp(void)
-  : BApplication("application/x-vnd.Be-POST" /* mail daemon sig */ )
+	: BApplication("application/x-vnd.Be-POST" /* mail daemon sig */ )
 {
 	InstallDeskbarIcon();
 	
@@ -98,7 +100,7 @@ void MailDaemonApp::ReadyToRun() {
 	BVolumeRoster().GetBootVolume(&boot);
 	query->SetTarget(this);
 	query->SetVolume(&boot);
-	query->PushAttr("MAIL:status");
+	query->PushAttr(B_MAIL_ATTR_STATUS);
 	query->PushString("New");
 	query->PushOp(B_EQ);
 	query->PushAttr("BEOS:TYPE");
@@ -270,38 +272,43 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 	BApplication::MessageReceived(msg);
 }
 
-void MailDaemonApp::InstallDeskbarIcon() {
+
+void
+MailDaemonApp::InstallDeskbarIcon()
+{
 	BDeskbar deskbar;
 
-	if(deskbar.HasItem( "mail_daemon" ) == false) {
+	if (!deskbar.HasItem("mail_daemon")) {
 		BRoster roster;
 		entry_ref ref;
 		
-		status_t status = roster.FindApp( "application/x-vnd.Be-POST" , &ref);
-		if (status)
-		{
+		status_t status = roster.FindApp("application/x-vnd.Be-POST", &ref);
+		if (status < B_OK) {
 			fprintf(stderr, "Can't find application to tell deskbar: %s\n", strerror(status));
 			return;
 		}
-		
-		//DeskbarView *view = new DeskbarView(BRect(0,0,15,15));
-		//status = deskbar.AddItem(view);
+
 		status = deskbar.AddItem(&ref);
-		if (status)
-		{
+		if (status < B_OK) {
 			fprintf(stderr, "Can't add deskbar replicant: %s\n", strerror(status));
 			return;
 		}
 	}
 }
 
-void MailDaemonApp::RemoveDeskbarIcon() {
+
+void
+MailDaemonApp::RemoveDeskbarIcon()
+{
 	BDeskbar deskbar;
-	if( deskbar.HasItem( "mail_daemon" ))
-		deskbar.RemoveItem( "mail_daemon" );
+	if (deskbar.HasItem("mail_daemon"))
+		deskbar.RemoveItem("mail_daemon");
 }
 
-bool MailDaemonApp::QuitRequested() {
+
+bool
+MailDaemonApp::QuitRequested()
+{
 	RemoveDeskbarIcon();
 	return true;
 }
@@ -368,9 +375,10 @@ void MailDaemonApp::Pulse() {
 
 void makeIndices()
 {
-	const char *stringIndices[] = {	"MAIL:account","MAIL:cc","MAIL:draft","MAIL:flags",
-									"MAIL:from","MAIL:name","MAIL:priority","MAIL:reply",
-									"MAIL:status","MAIL:subject","MAIL:to","MAIL:to","MAIL:thread",NULL};
+	const char *stringIndices[] = {	B_MAIL_ATTR_ACCOUNT,B_MAIL_ATTR_CC,"MAIL:draft",
+									B_MAIL_ATTR_FLAGS,B_MAIL_ATTR_FROM,B_MAIL_ATTR_NAME,
+									B_MAIL_ATTR_PRIORITY,B_MAIL_ATTR_REPLY,B_MAIL_ATTR_STATUS,
+									B_MAIL_ATTR_SUBJECT,B_MAIL_ATTR_TO,B_MAIL_ATTR_THREAD, NULL};
 
 	// add mail indices for all devices capable of querying
 
@@ -386,8 +394,78 @@ void makeIndices()
 		for (;stringIndices[i];i++)
 			fs_create_index(device,stringIndices[i],B_STRING_TYPE,0);
 
-		fs_create_index(device,"MAIL:when",B_INT32_TYPE,0);
+		fs_create_index(device,B_MAIL_ATTR_WHEN,B_INT32_TYPE,0);
 		fs_create_index(device,"MAIL:chain",B_INT32_TYPE,0);
+	}
+}
+
+
+void
+addAttribute(BMessage &msg,char *name,char *publicName,int32 type = B_STRING_TYPE,bool viewable = true,bool editable = false,int32 width = 200)
+{
+	msg.AddString("attr:name",name); 
+	msg.AddString("attr:public_name",publicName); 
+	msg.AddInt32("attr:type",type); 
+	msg.AddBool("attr:viewable",viewable); 
+	msg.AddBool("attr:editable",editable);
+	msg.AddInt32("attr:width",width);
+	msg.AddInt32("attr:alignment",B_ALIGN_LEFT); 
+}
+
+
+void
+makeMimeType()
+{
+	// Add MAIL:account attribute if necessary
+	BMimeType mime("text/x-email");
+
+	if (mime.InitCheck() != B_OK) {
+		fputs("could not init mime type.\n",stderr);
+		return;
+	}
+
+	BMessage info;
+	mime.GetAttrInfo(&info);
+
+	if (!mime.IsInstalled()) {
+		// install the full mime type
+
+		mime.Install();
+
+		addAttribute(info,B_MAIL_ATTR_NAME,"Name");
+		addAttribute(info,B_MAIL_ATTR_SUBJECT,"Subject");
+		addAttribute(info,B_MAIL_ATTR_TO,"To");
+		addAttribute(info,B_MAIL_ATTR_CC,"Cc");
+		addAttribute(info,B_MAIL_ATTR_FROM,"From");
+		addAttribute(info,B_MAIL_ATTR_REPLY,"Reply To");
+		addAttribute(info,B_MAIL_ATTR_STATUS,"Status");
+		addAttribute(info,B_MAIL_ATTR_PRIORITY,"Priority",B_STRING_TYPE,true,true,40);
+		addAttribute(info,B_MAIL_ATTR_WHEN,"When",B_TIME_TYPE,true,false,150);
+		addAttribute(info,B_MAIL_ATTR_THREAD,"Thread");
+		addAttribute(info,B_MAIL_ATTR_ACCOUNT,"Account",B_STRING_TYPE,true,false,100);
+
+		mime.SetAttrInfo(&info);
+		mime.SetShortDescription("E-mail");
+		mime.SetPreferredApp("application/x-vnd.Be-MAIL");
+	} else {
+		// just add the types we add to the system
+
+		bool hasAccount = false, hasThread = false;
+		const char *result;
+		for (int32 index = 0;info.FindString("attr:name",index,&result) == B_OK;index++) {
+			if (!strcmp(result,B_MAIL_ATTR_ACCOUNT))
+				hasAccount = true;
+			if (!strcmp(result,B_MAIL_ATTR_THREAD))
+				hasThread = true;
+		}
+	
+		if (!hasAccount)
+			addAttribute(info,B_MAIL_ATTR_ACCOUNT,"Account",B_STRING_TYPE,true,false,100);
+		if (!hasThread)
+			addAttribute(info,B_MAIL_ATTR_THREAD,"Thread");
+
+		if (!hasAccount || !hasThread)
+			mime.SetAttrInfo(&info);
 	}
 }
 
@@ -402,62 +480,11 @@ int main (int argc, const char **argv)
 	}
 
 	Zoidberg::Mail::MailDaemonApp app;
-	
+
 	// install MimeTypes, attributes, indices, and the
 	// system beep add startup
 
-	// Add MAIL:account attribute if necessary
-	BMimeType email_mime_type("text/x-email");
-	BMessage info;
-	
-	email_mime_type.GetAttrInfo(&info);
-
-	bool ok = true;
-	int32 cnt = 0;
-	const char * result;
-	 
-	while (ok) {
-		if (info.FindString("attr:name", cnt, &result) == B_OK) {
-			cnt++;
-			if (strcmp(result, "MAIL:account") == 0)
-				ok = false;
-		} else {	
-			info.AddString ("attr:name"        , "MAIL:account");
-			info.AddString ("attr:public_name" , "Account"     );
-			info.AddInt32  ("attr:type"        , B_STRING_TYPE );
-			info.AddBool   ("attr:editable"    , false         );
-			info.AddBool   ("attr:viewable"	   , true		   );
-			info.AddBool   ("attr:extra"	   , false		   );
-			info.AddInt32  ("attr:alignment"   , 0             );
-			info.AddInt32  ("attr:width"       , 20            );
-					
-			email_mime_type.SetAttrInfo(&info);
-			ok = false;
-		}
-	}
-	
-	cnt = 0;
-	ok = true;
-	while (ok) {
-		if (info.FindString("attr:name", cnt, &result) == B_OK) {
-			cnt++;
-			if (strcmp(result, "MAIL:thread") == 0)
-				ok = false;
-		} else {	
-			info.AddString ("attr:name"        , "MAIL:thread");
-			info.AddString ("attr:public_name" , "Thread"     );
-			info.AddInt32  ("attr:type"        , B_STRING_TYPE );
-			info.AddBool   ("attr:editable"    , false         );
-			info.AddBool   ("attr:viewable"	   , true		   );
-			info.AddBool   ("attr:extra"	   , false		   );
-			info.AddInt32  ("attr:alignment"   , 0             );
-			info.AddInt32  ("attr:width"       , 20            );
-					
-			email_mime_type.SetAttrInfo(&info);
-			ok = false;
-		}
-	}
-	
+	makeMimeType();	
 	makeIndices();
 	add_system_beep_event("New E-mail");
 

@@ -3,6 +3,7 @@
 #include <InterfaceDefs.h>
 
 #define SNOOZE_TIME 150000
+#include <stdio.h>
 
 /***********************************************************
  * Constructor
@@ -28,10 +29,13 @@ LEDAnimation::~LEDAnimation()
 void
 LEDAnimation::Start()
 {
-	if(fThread>=0)
+	// don't do anything if the thread is already running
+	if (fThread >= 0)
 		return;
+
 	fOrigModifiers = ::modifiers();
 	::set_keyboard_locks(0);
+	fRunning = true;
 	fThread = ::spawn_thread(AnimationThread,"LED thread",B_NORMAL_PRIORITY,this);
 	::resume_thread(fThread);
 }
@@ -42,9 +46,13 @@ LEDAnimation::Start()
 void
 LEDAnimation::Stop()
 {
+	// don't do anything if the thread doesn't run
+	if (fThread < 0)
+		return;
+
 	fRunning = false;
-	status_t err;
-	::wait_for_thread(fThread,&err);
+	status_t result;
+	::wait_for_thread(fThread,&result);
 
 	::set_keyboard_locks(fOrigModifiers);
 }
@@ -56,9 +64,8 @@ int32
 LEDAnimation::AnimationThread(void* data)
 {
 	LEDAnimation *anim = (LEDAnimation*)data;
-	anim->fRunning = true;
 	
-	while(anim->fRunning)
+	while (anim->fRunning)
 	{
 		LED(B_NUM_LOCK,true);	
 		LED(B_NUM_LOCK,false);
