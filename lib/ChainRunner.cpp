@@ -42,8 +42,6 @@ struct filter_image {
 	image_id		id;
 };
 
-void unload(void *id);
-
 BLocker list_lock("mdr_chainrunner_lock");
 BList running_chains, running_chain_pointers;
 	
@@ -98,6 +96,7 @@ ChainRunner::ChainRunner(Mail::Chain *chain, Mail::StatusWindow *status,
 	destroy_chain(destructChain),
 	save_chain(saveChain),
 	_status(status),
+	_statview(NULL),
 	suicide(false)
 {
 	static DeathFilter *filter = NULL;
@@ -116,19 +115,42 @@ ChainRunner::ChainRunner(Mail::Chain *chain, Mail::StatusWindow *status,
 
 ChainRunner::~ChainRunner()
 {
-	// clean up if the chain have not been run at all
-	/*for (int32 i = message_cb.CountItems();i-- > 0;)
+	//--- Delete any remaining callbacks
+	for (int32 i = message_cb.CountItems();i-- > 0;)
 		delete (Mail::ChainCallback *)message_cb.ItemAt(i);
 	for (int32 i = process_cb.CountItems();i-- > 0;)
 		delete (Mail::ChainCallback *)process_cb.ItemAt(i);
 	for (int32 i = chain_cb.CountItems();i-- > 0;)
-		delete (Mail::ChainCallback *)chain_cb.ItemAt(i);*/
+		delete (Mail::ChainCallback *)chain_cb.ItemAt(i);
 	
+	//--- Delete any filter images
+	for (int32 i = 0; i < addons.CountItems(); i++) {
+		filter_image *image = (filter_image *)(addons.ItemAt(i));			
+		delete image->filter;
+		delete image->settings;
+
+		unload_add_on(image->id);
+
+		delete image;
+	}
+	
+	//--- Remove ourselves from the window if we haven't been already
+	if ((_status != NULL) && (_statview != NULL)) {
+		_status->Lock();
+		if (_statview->Window())
+			_status->RemoveView(_statview);
+		else
+			delete _statview;
+		_status->Unlock();
+	}
+	
+	//--- Remove ourselves from the lists
 	list_lock.Lock();
 	running_chains.RemoveItem((void *)(_chain->ID()));
 	running_chain_pointers.RemoveItem(this);
 	list_lock.Unlock();
-			
+	
+	//--- And delete our chain			
 	if (destroy_chain)
 		delete _chain;
 }
@@ -216,7 +238,7 @@ ChainRunner::MessageReceived(BMessage *msg)
 			_status->Unlock();
 
 			BMessage settings;
-			for (int32 i = 0; _chain->GetFilter(i,&settings,&addon) >= B_OK; i++) {			
+			for (int32 i = 0; _chain->GetFilter(i,&settings,&addon) >= B_OK; i++) {
 				struct filter_image *image = new struct filter_image;
 				BPath path(&addon);
 				Mail::Filter *(* instantiate)(BMessage *,Mail::ChainRunner *);
@@ -289,13 +311,17 @@ ChainRunner::MessageReceived(BMessage *msg)
 
 				delete image;
 			}
-
-			if (_status != NULL) {
+			
+			addons.MakeEmpty();
+			
+			if ((_status != NULL) && (_statview != NULL)) {
 				_status->Lock();
 				if (_statview->Window())
 					_status->RemoveView(_statview);
 				else
 					delete _statview;
+				
+				_statview = NULL;
 				_status->Unlock();
 			}				
 			
