@@ -12,6 +12,8 @@
 
 #include <FileConfigView.h>
 
+#include <MDRLanguage.h>
+
 using namespace Zoidberg;
 
 
@@ -27,12 +29,12 @@ ConfigView::ConfigView()
 
 	BRect rect(5,4,250,25);
 	rect.bottom = rect.top - 2 + itemHeight;
-	Mail::FileConfigView *fview = new Mail::FileConfigView("Fortune File:","fortune_file",false,"/boot/beos/etc/fortunes/default",B_FILE_NODE);
+	Mail::FileConfigView *fview = new Mail::FileConfigView(MDR_DIALECT_CHOICE ("Fortune File:","予言ファイル:"),"fortune_file",false,"/boot/beos/etc/fortunes/default",B_FILE_NODE);
 	AddChild(fview);
 	
 	rect.top = rect.bottom + 8;
 	rect.bottom = rect.top - 2 + itemHeight;
-	BTextControl * control = new BTextControl(rect,"tag_line","Tag Line:",NULL,NULL);
+	BTextControl * control = new BTextControl(rect,"tag_line",MDR_DIALECT_CHOICE ("Tag Line:","見出し:"),NULL,NULL);
 	control->SetDivider(control->StringWidth(control->Label()) + 6);
 	AddChild(control);
 
