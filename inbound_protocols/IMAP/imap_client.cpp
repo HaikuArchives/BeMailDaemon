@@ -131,7 +131,7 @@ IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Rem
 		#ifdef IMAPSSL
 			port = use_ssl ? 993 : 143;
 		#else
-			port = 143
+			port = 143;
 		#endif
 
 //-----Open TCP link	
