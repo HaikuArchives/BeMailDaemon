@@ -41,7 +41,7 @@ private:
 	BString			fLog;
 	int32			fNumMessages;
 	size_t			fMailDropSize;
-	map<int,int>    sizes; 
+	BList			sizes;
 };
 
 #endif	/* ZOIDBERG_POP3_H */
