@@ -3076,32 +3076,70 @@ status_t TMailWindow::OpenMessage(entry_ref *ref)
 		delete fFile;
 		return err;
 	}
-	fMail = new Mail::Message(fRef);
+	char mimeType[256];
+	BNodeInfo fileInfo(fFile);
+	fileInfo.GetType(mimeType);
+
+	// Check if it's a draft file, which contains only the text, and has the
+	// from, to, bcc, attachments listed as attributes.
+	if (!strcmp(kDraftType, mimeType))
+	{
+		BNode node(fRef);
+		off_t size;
+		BString string;
+		
+		fMail = new Mail::Message; // Not really used much, but still needed.
+
+		// Load the raw UTF-8 text from the file.
+		fFile->GetSize(&size);
+		fContentView->fTextView->SetText(fFile, 0, size);
+
+		// Restore Fields from attributes
+		if (ReadAttrString(&node, B_MAIL_ATTR_TO, &string) == B_OK)
+			fHeaderView->fTo->SetText(string.String());
+		if (ReadAttrString(&node, B_MAIL_ATTR_SUBJECT, &string) == B_OK)
+			fHeaderView->fSubject->SetText(string.String());
+		if (ReadAttrString(&node, B_MAIL_ATTR_CC, &string) == B_OK)
+			fHeaderView->fCc->SetText(string.String());
+		if (ReadAttrString(&node, "MAIL:bcc", &string) == B_OK)
+			fHeaderView->fBcc->SetText(string.String());
+
+		// Restore attachments
+		if (ReadAttrString(&node, "MAIL:attachments", &string) == B_OK)
+		{
+			BMessage msg(REFS_RECEIVED);
+			entry_ref enc_ref;
+
+			char *s = strtok((char *)string.String(), ":");
+			while (s)
+			{
+				BEntry entry(s, true);
+				if (entry.Exists())
+				{
+					entry.GetRef(&enc_ref);
+					msg.AddRef("refs", &enc_ref);
+				}
+				s = strtok(NULL, ":");
+			}
+			AddEnclosure(&msg);
+		}
+		PostMessage(RESET_BUTTONS);
+		fIncoming = false;
+		fDraft = true;
+	}
+	else // A real mail message, parse its headers to get from, to, etc.
+	{
+		fMail = new Mail::Message(fRef);
+		fIncoming = true;
+		fHeaderView->LoadMessage(fMail);
+	}
+
 	err = fMail->InitCheck();
 	if (err < B_OK)
 	{
 		delete fMail;
 		fMail = NULL;
 		return err;
-	}
-
-	char mimeType[256];
-	BNodeInfo fileInfo(fFile);
-	fileInfo.GetType(mimeType);
-	
-	// Check if it's a draft file
-	if (!strcmp(kDraftType, mimeType))
-	{
-		off_t size;
-		fFile->GetSize(&size);
-		fContentView->fTextView->SetText(fFile, 0, size);
-		fIncoming = false;
-		fDraft = true;
-	}
-	else
-	{
-		fIncoming = true;
-		fHeaderView->LoadMessage(fMail);
 	}
 
 	SetTitleForMessage();
@@ -3170,42 +3208,6 @@ skip:			if (!done)
 		fContentView->fTextView->SetText("", (int32)0);
 
 		fContentView->fTextView->LoadMessage(fMail, false, NULL);
-	}
-	else	// not an incoming message
-	{
-		BString string;
-
-		// Restore Fields from attributes
-
-		BNode node(fRef);
-
-		fHeaderView->fTo->SetText(fMail->To());
-		fHeaderView->fSubject->SetText(fMail->Subject());
-		fHeaderView->fCc->SetText(fMail->CC());
-
-		if (ReadAttrString(&node, "MAIL:bcc", &string) == B_OK)
-			fHeaderView->fBcc->SetText(string.String());
-
-		// Restore attachments
-		if (ReadAttrString(&node, "MAIL:attachments", &string) == B_OK)
-		{
-			BMessage msg(REFS_RECEIVED);
-			entry_ref enc_ref;
-
-			char *s = strtok((char *)string.String(), ":");
-			while (s)
-			{
-				BEntry entry(s, true);
-				if (entry.Exists())
-				{
-					entry.GetRef(&enc_ref);
-					msg.AddRef("refs", &enc_ref);
-				}
-				s = strtok(NULL, ":");
-			}
-			AddEnclosure(&msg);
-		}
-		PostMessage(RESET_BUTTONS);
 	}
 	
 	return B_OK;
