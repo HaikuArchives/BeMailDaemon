@@ -1577,8 +1577,8 @@ void TMailWindow::MenusBeginning()
 
 	fPrint->SetEnabled(fContentView->fTextView->TextLength());
 
-	textView = dynamic_cast<BTextView *>(CurrentFocus());
-	if (dynamic_cast<TTextControl *>(textView->Parent()) != NULL)
+	textView = dynamic_cast<BTextView *>(CurrentFocus());	
+	if ((NULL != textView) && (dynamic_cast<TTextControl *>(textView->Parent()) != NULL))
 	{
 		// one of To:, Subject:, Account:, Cc:, Bcc:
 		textView->GetSelection(&start, &finish);
