@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <sys/utsname.h>
 #include <ctype.h>
+#include <parsedate.h>
 
 #ifdef BONE
 	#ifdef _KERNEL_MODE
@@ -41,6 +42,7 @@ namespace Mail {
 #include <MailAttachment.h>
 #include <MailSettings.h>
 #include <MailDaemon.h>
+#include <mail_util.h>
 #include <StringList.h>
 
 using namespace Zoidberg;
@@ -93,7 +95,7 @@ Message::~Message()
 {
 	if (_bcc != NULL)
 		free(_bcc);
-	
+
 	delete _body;
 	delete fData;
 }
@@ -109,7 +111,7 @@ Message *
 Message::ReplyMessage(reply_to_mode replyTo, bool accountFromMail, const char *quoteStyle)
 {
 	Mail::Message *to_return = new Mail::Message;
-	
+
 	// Set ReplyTo:
 
 	if (replyTo == MD_REPLY_TO_ALL) {
@@ -142,7 +144,7 @@ Message::ReplyMessage(reply_to_mode replyTo, bool accountFromMail, const char *q
 			}
 		}
 
-		if (string.Length() > 0)	
+		if (string.Length() > 0)
 			to_return->SetCC(string.String());
 	} else if (replyTo == MD_REPLY_TO_SENDER || ReplyTo() == NULL)
 		to_return->SetTo(From());
@@ -171,7 +173,7 @@ Message::ReplyMessage(reply_to_mode replyTo, bool accountFromMail, const char *q
 
 	return to_return;
 }
-	
+
 
 Message *
 Message::ForwardMessage(bool accountFromMail, bool includeAttachments)
@@ -295,7 +297,7 @@ void Message::SetBCC(const char *bcc) {
 }
 
 
-status_t 
+status_t
 Message::GetName(char *name, int32 maxLength) const
 {
 	if (name == NULL || maxLength <= 0)
@@ -313,7 +315,7 @@ Message::GetName(char *name, int32 maxLength) const
 }
 
 
-status_t 
+status_t
 Message::GetName(BString *name) const
 {
 	char *buffer = name->LockBuffer(B_FILE_NAME_LENGTH);
@@ -350,24 +352,24 @@ Message::SendViaAccount(const char *account_name)
 {
 	BList chains;
 	Mail::OutboundChains(&chains);
-	
+
 	for (int32 i = 0; i < chains.CountItems(); i++) {
 		if (strcmp(((Mail::Chain *)(chains.ItemAt(i)))->Name(),account_name) == 0) {
 			SendViaAccount(((Mail::Chain *)(chains.ItemAt(i)))->ID());
 			break;
 		}
 	}
-	
+
 	while (chains.CountItems() > 0)
 		delete (Mail::Chain *)chains.RemoveItem(0L);
 }
 
-	
+
 void
 Message::SendViaAccount(int32 chain_id)
 {
 	_chain_id = chain_id;
-	
+
 	Mail::Chain chain(_chain_id);
 	BString from;
 	from << '\"' << chain.MetaData()->FindString("real_name") << "\" <" << chain.MetaData()->FindString("reply_to") << '>';
@@ -382,7 +384,7 @@ Message::Account() const
 }
 
 
-status_t 
+status_t
 Message::GetAccountName(char *account,int32 maxLength) const
 {
 	if (account == NULL || maxLength <= 0)
@@ -400,7 +402,7 @@ Message::GetAccountName(char *account,int32 maxLength) const
 }
 
 
-status_t 
+status_t
 Message::GetAccountName(BString *account) const
 {
 	char *buffer = account->LockBuffer(B_FILE_NAME_LENGTH);
@@ -427,7 +429,7 @@ Message::AddComponent(Mail::Component *component)
 		MIMEMultipartContainer *container = dynamic_cast<MIMEMultipartContainer *>(_body);
 		if (container == NULL)
 			return B_MISMATCHED_VALUES; //---This really needs a B_WTF constant...
-		
+
 		status = container->AddComponent(component);
 	}
 
@@ -477,18 +479,18 @@ void Message::Attach(entry_ref *ref, bool includeAttributes)
 	else
 		AddComponent(new SimpleAttachment(ref));
 }
-		
+
 bool Message::IsComponentAttachment(int32 i) {
 	if ((i >= _num_components) || (_num_components == 0))
 		return false;
-		
+
 	if (_num_components == 1)
 		return _body->IsAttachment();
-	
+
 	MIMEMultipartContainer *container = dynamic_cast<MIMEMultipartContainer *>(_body);
 	if (container == NULL)
 		return false; //-----This should never, ever, ever, ever, happen
-	
+
 	Mail::Component *component = container->GetComponent(i);
 	if (component == NULL)
 		return false;
@@ -500,10 +502,10 @@ void Message::SetBodyTextTo(const char *text) {
 		_text_body = new Mail::TextComponent;
 		AddComponent(_text_body);
 	}
-	
+
 	_text_body->SetText(text);
-}	
-	
+}
+
 
 Mail::TextComponent *Message::Body()
 {
@@ -557,7 +559,7 @@ Mail::TextComponent *Message::RetrieveTextBody(Mail::Component *component)
 					if (body != NULL)
 						return body;
 					break;
-					
+
 				case MC_MULTIPART_CONTAINER:
 					body = RetrieveTextBody(container->GetComponent(i));
 					if (body != NULL)
@@ -673,7 +675,7 @@ Message::RenderToRFC822(BPositionIO *file)
 		}
 		else if (!string && (flat[i] == ',' || flat[i] == '\0')) {
 			little.SetTo(flat + j,i - j);
-			
+
 			int32 first,last;
 			if ((first = little.FindFirst('(')) >= 0 && (last = little.FindFirst(')')) > 0)
 				little.Remove(first,last + 1 - first);
@@ -695,13 +697,13 @@ Message::RenderToRFC822(BPositionIO *file)
 			little.Prepend("<");
 			little.Append(">");
 		}
-		
+
 		if (i)
 			recipients << ',';
 		recipients << little;
 	}
 
-	// add the date field	
+	// add the date field
 	int32 creationTime = time(NULL);
 	{
 		char date[128];
@@ -720,7 +722,7 @@ Message::RenderToRFC822(BPositionIO *file)
 
 		SetHeaderField("Date", date);
 	}
-	
+
 	/* add a message-id */
 	BString message_id;
 	/* empirical evidence indicates message id must be enclosed in
@@ -729,7 +731,7 @@ Message::RenderToRFC822(BPositionIO *file)
 	message_id << "<";
 	message_id << system_time();
 	message_id << "-BeMail@";
-	
+
 	#if BONE
 		utsname uinfo;
 		uname(&uinfo);
@@ -742,13 +744,13 @@ Message::RenderToRFC822(BPositionIO *file)
 
 	message_id << ">";
 	SetHeaderField("Message-ID", message_id.String());
-	
+
 	status_t err = Mail::Component::RenderToRFC822(file);
 	if (err < B_OK)
 		return err;
-	
+
 	file->Seek(-2, SEEK_CUR); //-----Remove division between headers
-	
+
 	err = _body->RenderToRFC822(file);
 	if (err < B_OK)
 		return err;
@@ -760,9 +762,9 @@ Message::RenderToRFC822(BPositionIO *file)
 
 	if (BFile *attributed = dynamic_cast <BFile *>(file)) {
 		attributed->WriteAttrString(B_MAIL_ATTR_RECIPIENTS,&recipients);
-		
+
 		BString attr;
-		
+
 		attr = To();
 		attributed->WriteAttrString(B_MAIL_ATTR_TO,&attr);
 		attr = CC();
@@ -788,28 +790,61 @@ Message::RenderToRFC822(BPositionIO *file)
 
 		BNodeInfo(attributed).SetType(B_MAIL_TYPE);
 	}
-	
+
 	return B_OK;
 }
-	
+
 
 status_t
 Message::RenderTo(BDirectory *dir)
 {
-	BString name = Subject();
-	name.Prepend("\"");
-	name << "\": <" << To();
-	name.Truncate(222);	// reserve space for the uniquer
-	name << ">";
-	name.ReplaceAll('/','\\');
+	time_t		currentTime;
+	char		numericDateString [40];
+	struct tm   timeFields;
+	BString		worker;
 
-	BString worker;
+	// Generate a file name for the outgoing message.  See also
+	// FolderFilter::ProcessMailMessage which does something similar for
+	// incoming messages.
+
+	BString name = Subject();
+	SubjectToThread (name); // Extract the core subject words.
+	if (name.Length() <= 0)
+		name = "No Subject";
+	if (name[0] == '.')
+		name[0] = '_'; // Avoid hidden files, starting with a dot.
+
+	// Convert the date into a year-month-day fixed digit width format, so that
+	// sorting by file name will give all the messages with the same subject in
+	// order of date.
+	time (&currentTime);
+	localtime_r (&currentTime, &timeFields);
+	sprintf (numericDateString, "%04d.%02d.%02d.%02d.%02d",
+		timeFields.tm_year + 1900,
+		timeFields.tm_mon + 1,
+		timeFields.tm_mday,
+		timeFields.tm_hour,
+		timeFields.tm_min);
+	name << " - " << numericDateString;
+
+	worker = From();
+	StripGook (&worker);
+	name << " - " << worker;
+
+	name.Truncate(222);	// reserve space for the uniquer
+
+	// Get rid of annoying characters which are hard to use in the shell.
+	name.ReplaceAll('/','_');
+	name.ReplaceAll('\'','_');
+	name.ReplaceAll('"','_');
+
 	int32 uniquer = time(NULL);
-	worker << name << uniquer;
+	worker = name;
 
 	int32 tries = 30;
 	bool exists;
-	while (((exists = dir->Contains(worker.String())) == true) /* pacify mwcc */ && (--tries > 0)) {
+	while (((exists = dir->Contains(worker.String())) == true) /* pacify mwcc */ &&
+		(--tries > 0)) {
 		srand(rand());
 		uniquer += (rand() >> 16) - 16384;
 
@@ -827,7 +862,7 @@ Message::RenderTo(BDirectory *dir)
 
 	return RenderToRFC822(&file);
 }
-	
+
 
 status_t
 Message::Send(bool send_now)
@@ -838,7 +873,7 @@ Message::Send(bool send_now)
 		via = new Mail::Chain(Mail::Settings().DefaultOutboundChainID());
 		SendViaAccount(via->ID());
 	}
-	
+
 	create_directory(via->MetaData()->FindString("path"),0777);
 	BDirectory directory(via->MetaData()->FindString("path"));
 
@@ -850,7 +885,7 @@ Message::Send(bool send_now)
 #ifdef BONE
 			int s = socket(AF_INET, SOCK_DGRAM, 0);
 			bsppp_status_t ppp_status;
-		
+
 			strcpy(ppp_status.if_name, "ppp0");
 			if (ioctl(s, BONE_SERIAL_PPP_GET_STATUS, &ppp_status, sizeof(ppp_status)) != 0) {
 				close(s);
@@ -871,7 +906,7 @@ Message::Send(bool send_now)
 			status = Mail::SendQueuedMail();
 		}
 	}
-	
+
 	return status;
 }
 

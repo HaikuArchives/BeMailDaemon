@@ -22,13 +22,14 @@
 #include <NodeMessage.h>
 #include <ChainRunner.h>
 #include <status.h>
+#include <mail_util.h>
 
 using namespace Zoidberg;
 
 struct mail_header_field
 {
 	const char *rfc_name;
-	
+
 	const char *attr_name;
 	type_code attr_type;
 	// currently either B_STRING_TYPE and B_TIME_TYPE
@@ -56,7 +57,7 @@ class FolderFilter : public Mail::Filter
 	BString dest_string;
 	BDirectory destination;
 	int32 chain_id;
-	
+
   public:
 	FolderFilter(BMessage*);
 	virtual status_t InitCheck(BString *err);
@@ -81,7 +82,7 @@ FolderFilter::FolderFilter(BMessage* msg)
 status_t FolderFilter::InitCheck(BString* err)
 {
 	status_t ret = destination.InitCheck();
-	
+
 	if (ret==B_OK) return B_OK;
 	else
 	{
@@ -94,8 +95,15 @@ status_t FolderFilter::InitCheck(BString* err)
 
 MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* out_headers, BPath*, BString* io_uid)
 {
-	BDirectory dir;
-	
+	time_t			dateAsTime;
+	const time_t   *datePntr;
+	ssize_t			dateSize;
+	char			numericDateString [40];
+	struct tm   	timeFields;
+	BString			worker;
+
+	BDirectory		dir;
+
 	BPath path = dest_string.String();
 	if (out_headers->HasString("DESTINATION")) {
 		const char *string;
@@ -105,37 +113,37 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		else
 			path.Append(string);
 	}
-		
+
 	create_directory(path.Path(),0777);
 	dir.SetTo(path.Path());
 
 	BNode node(e);
-	
+
 	status_t err = (*io)->Seek(0,SEEK_END);
 	if (err < 0)
 	{
 		BString error;
 		error << "An error occurred while saving the message " << out_headers->FindString("Subject") << " to " << path.Path() << ": " << strerror(err);
-		
+
 		Mail::ShowAlert("Folder Error",error.String(),"OK",B_WARNING_ALERT);
-		
+
 		return MD_ERROR;
 	}
-	
+
 	BNodeInfo info(&node);
 	info.SetType(B_MAIL_TYPE);
-	
+
 	BMessage attributes;
-	
+
 	attributes.AddString("MAIL:unique_id",io_uid->String());
 	attributes.AddString("MAIL:account",Mail::Chain(chain_id).Name());
 	attributes.AddInt32("MAIL:chain",chain_id);
-	
+
 	size_t length = (*io)->Position();
 	length -= out_headers->FindInt32(B_MAIL_ATTR_HEADER);
 	if (attributes.ReplaceInt32(B_MAIL_ATTR_CONTENT,length) != B_OK)
 		attributes.AddInt32(B_MAIL_ATTR_CONTENT,length);
-	
+
 	const char *buf;
 	time_t when;
 	for (int i = 0; gDefaultFields[i].rfc_name; ++i)
@@ -143,15 +151,16 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		out_headers->FindString(gDefaultFields[i].rfc_name,&buf);
 		if (buf == NULL)
 			continue;
-		
+
 		switch (gDefaultFields[i].attr_type){
 		case B_STRING_TYPE:
 			attributes.AddString(gDefaultFields[i].attr_name, buf);
 			break;
-		
+
 		case B_TIME_TYPE:
-			when = parsedate(buf, time((time_t *)NULL));
-			if (when == -1) when = time((time_t *)NULL);
+			when = Mail::ParseDateWithTimeZone (buf);
+			if (when == -1)
+				when = time (NULL); // Use current time if it's undecodable.
 			attributes.AddData(B_MAIL_ATTR_WHEN, B_TIME_TYPE, &when, sizeof(when));
 			break;
 		}
@@ -160,31 +169,59 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	// add "New" status, if the status hasn't been set already
 	if (attributes.FindString(B_MAIL_ATTR_STATUS,&buf) < B_OK)
 		attributes.AddString(B_MAIL_ATTR_STATUS,"New");
-	
+
 	node << attributes;
-	
+
 	err = e->MoveTo(&dir);
 	if (err != B_OK)
 	{
 		BString error;
 		error << "An error occurred while saving the message " << out_headers->FindString("Subject") << " to " << path.Path() << ": " << strerror(err);
-		
+
 		Mail::ShowAlert("Folder Error",error.String(),"OK",B_WARNING_ALERT);
-		
+
 		return MD_ERROR;
 	}
-	
-	BString name = attributes.FindString("MAIL:subject");
-	
-	name << ": <" << attributes.FindString("MAIL:from");
-	name.Truncate(222);
-	name << ">";
-	name.ReplaceAll('/', '_');
-	
-	BString worker;
-	int32 uniquer = time(NULL);
-	worker << name << uniquer;
 
+	// Generate a file name for the incoming message.  See also
+	// Message::RenderTo which does a similar thing for outgoing messages.
+
+	BString name = attributes.FindString("MAIL:subject");
+	Mail::SubjectToThread (name); // Extract the core subject words.
+	if (name.Length() <= 0)
+		name = "No Subject";
+	if (name[0] == '.')
+		name[0] = '_'; // Avoid hidden files, starting with a dot.
+
+	// Convert the date into a year-month-day fixed digit width format, so that
+	// sorting by file name will give all the messages with the same subject in
+	// order of date.
+	dateAsTime = 0;
+	if (attributes.FindData (B_MAIL_ATTR_WHEN, B_TIME_TYPE,
+		(const void **) &datePntr, &dateSize) == B_OK)
+		dateAsTime = *datePntr;
+	localtime_r (&dateAsTime, &timeFields);
+	sprintf (numericDateString, "%04d.%02d.%02d.%02d.%02d",
+		timeFields.tm_year + 1900,
+		timeFields.tm_mon + 1,
+		timeFields.tm_mday,
+		timeFields.tm_hour,
+		timeFields.tm_min);
+	name << " - " << numericDateString;
+
+	worker = attributes.FindString ("MAIL:from");
+	Mail::StripGook (&worker);
+	name << " - " << worker;
+
+	name.Truncate(222);	// reserve space for the uniquer
+
+	// Get rid of annoying characters which are hard to use in the shell.
+	name.ReplaceAll('/','_');
+	name.ReplaceAll('\'','_');
+	name.ReplaceAll('"','_');
+
+	int32 uniquer = time(NULL);
+	worker = name;
 	int32 tries = 20;
 	while ((err = e->Rename(worker.String())) == B_FILE_EXISTS && --tries > 0) {
 		srand(rand());

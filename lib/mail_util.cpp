@@ -16,6 +16,7 @@
 #include <regex.h>
 #include <ctype.h>
 #include <errno.h>
+#include <parsedate.h>
 
 #include <mail_encoding.h>
 
@@ -895,6 +896,64 @@ _EXPORT void SubjectToThread (BString &string)
 	}
 }
 
+
+
+// Converts a date to a time.  Handles numeric time zones too, unlike
+// parsedate.  Returns -1 if it fails.
+
+_EXPORT time_t ParseDateWithTimeZone (const char *DateString)
+{
+	time_t	currentTime;
+	time_t	dateAsTime;
+	char	tempDateString [80];
+	char	tempZoneString [6];
+	time_t	zoneDeltaTime;
+	int		zoneIndex;
+	char   *zonePntr;
+
+	// See if we can remove the time zone portion.  parsedate understands time
+	// zone 3 letter names, but doesn't understand the numeric +9999 time zone
+	// format.  To do: see if a newer parsedate exists.
+	strncpy (tempDateString, DateString, sizeof (tempDateString));
+	tempDateString[sizeof (tempDateString) - 1] = 0;
+
+	for (zoneIndex = strlen (tempDateString); zoneIndex >= 0; zoneIndex--)
+	{
+		zonePntr = tempDateString + zoneIndex;
+		if (zonePntr[0] == '+' || zonePntr[0] == '-')
+		{
+			if (zonePntr[1] >= '0' && zonePntr[1] <= '9' &&
+				zonePntr[2] >= '0' && zonePntr[2] <= '9' &&
+				zonePntr[3] >= '0' && zonePntr[3] <= '9' &&
+				zonePntr[4] >= '0' && zonePntr[4] <= '9')
+				break;
+		}
+	}
+	if (zoneIndex >= 0)
+	{
+		// Remove the zone from the date string and any following time zone
+		// letter codes.
+		memcpy (tempZoneString, zonePntr, 5);
+		tempZoneString [5] = 0;
+		zonePntr[0] = 0; // Cut off the zone and the rest of the date string after it.
+	}
+	else // No numeric time zone found.
+		strcpy (tempZoneString, "+0000");
+
+	time (&currentTime);
+	dateAsTime = parsedate (DateString, currentTime);
+	if (dateAsTime == (time_t) -1)
+		return -1; // Failure.
+
+	zoneDeltaTime = 60 * atol (tempZoneString + 3); // Get the last two digits - minutes.
+	tempZoneString[3] = 0;
+	zoneDeltaTime += atol (tempZoneString + 1) * 60 * 60; // Get the first two digits - hours.
+	if (tempZoneString[0] == '-')
+		zoneDeltaTime = 0 - zoneDeltaTime;
+	dateAsTime += zoneDeltaTime;
+	
+	return dateAsTime;
+}
 
 }	// namespace Mail
 }	// namespace Zoidberg
