@@ -20,9 +20,13 @@ class ConfigView : public BView
 	public:
 		ConfigView();
 		void SetTo(BMessage *archive);
-
 		virtual	status_t Archive(BMessage *into, bool deep = true) const;
+
+		virtual void AttachedToWindow();
+		virtual void MessageReceived(BMessage *msg);
 		virtual	void GetPreferredSize(float *width, float *height);
+
+		void UpdateNotifyText();
 };
 
 #endif	/* CONFIG_VIEW */

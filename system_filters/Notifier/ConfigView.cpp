@@ -7,10 +7,19 @@
 #include "ConfigView.h"
 
 #include <CheckBox.h>
+#include <PopUpMenu.h>
+#include <MenuItem.h>
+#include <MenuField.h>
 #include <String.h>
 #include <Message.h>
 
 #include <MailAddon.h>
+
+
+_EXPORT const char *pretty_name = "New Mail Notification";
+
+const uint32 kMsgNotifyMethod = 'nomt';
+
 
 ConfigView::ConfigView()
 	:	BView(BRect(0,0,10,10),"notifier_config",B_FOLLOW_LEFT | B_FOLLOW_TOP,0)
@@ -20,54 +29,109 @@ ConfigView::ConfigView()
 	// determine font height
 	font_height fontHeight;
 	GetFontHeight(&fontHeight);
-	float itemHeight = (int32)(fontHeight.ascent + fontHeight.descent + fontHeight.leading) + 2;
+	float itemHeight = (int32)(fontHeight.ascent + fontHeight.descent + fontHeight.leading) + 6;
 	
-	BRect frame(5,4,250,itemHeight + 2);
-	BCheckBox *checkBox = new BCheckBox(frame,"beep","Beep",NULL);
-	AddChild(checkBox);
-	checkBox->ResizeToPreferred();
-	
-	frame = checkBox->Frame();
-	frame.left = frame.right + 5;
-	frame.right = 250;
-	AddChild(checkBox = new BCheckBox(frame,"alert","Alert",NULL));
-	checkBox->ResizeToPreferred();
-	
-	frame = checkBox->Frame();
-	frame.left = frame.right + 5;
-	frame.right = 250;
-	AddChild(checkBox = new BCheckBox(frame,"blink","Keyboard LEDs",NULL));
-	checkBox->ResizeToPreferred();
-	
+	BRect frame(5,2,250,itemHeight + 2);
+	BPopUpMenu *menu = new BPopUpMenu(B_EMPTY_STRING,false,false);
+
+	const char *notifyMethods[] = {"Beep","Alert","Keyboard LEDs","Central Alert"};
+	for (int32 i = 0,j = 1;i < 4;i++,j *= 2)
+		menu->AddItem(new BMenuItem(notifyMethods[i],new BMessage(kMsgNotifyMethod)));
+
+	BMenuField *field = new BMenuField(frame,"notify","Method:",menu);
+	field->ResizeToPreferred();
+	field->SetDivider(field->StringWidth("Method:") + 6);
+	AddChild(field);
+
 	ResizeToPreferred();
 }		
+
+
+void ConfigView::AttachedToWindow()
+{
+	if (BMenuField *field = dynamic_cast<BMenuField *>(FindView("notify")))
+		field->Menu()->SetTargetForItems(this);
+}
 
 
 void ConfigView::SetTo(BMessage *archive)
 {
 	int32 method = archive->FindInt32("notification_method");
-	if (method <= 0)
+	if (method < 0)
 		method = 1;
-	
-	if (method & do_beep)
-		((BCheckBox *)(FindView("beep")))->SetValue(B_CONTROL_ON);
-	if (method & /*big_doozy_*/alert)
-		((BCheckBox *)(FindView("alert")))->SetValue(B_CONTROL_ON);
-	if (method & blink_leds)
-		((BCheckBox *)(FindView("blink")))->SetValue(B_CONTROL_ON);
+
+	BMenuField *field;
+	if ((field = dynamic_cast<BMenuField *>(FindView("notify"))) == NULL)
+		return;
+
+	for (int32 i = field->Menu()->CountItems();i-- > 0;)
+	{
+		BMenuItem *item = field->Menu()->ItemAt(i);
+		item->SetMarked((method & (1L << i)) != 0);
+	}
+	UpdateNotifyText();
+}
+
+
+void ConfigView::UpdateNotifyText()
+{
+	BMenuField *field;
+	if ((field = dynamic_cast<BMenuField *>(FindView("notify"))) == NULL)
+		return;
+
+	BString label;
+	for (int32 i = field->Menu()->CountItems();i-- > 0;)
+	{
+		BMenuItem *item = field->Menu()->ItemAt(i);
+		if (!item->IsMarked())
+			continue;
+
+		if (label != "")
+			label.Prepend(" + ");
+		label.Prepend(item->Label());
+	}
+	if (label == "")
+		label = "none";
+	field->MenuItem()->SetLabel(label.String());
+}
+
+
+void ConfigView::MessageReceived(BMessage *msg)
+{
+	switch (msg->what)
+	{
+		case kMsgNotifyMethod:
+		{
+		msg->PrintToStream();
+			BMenuItem *item;
+			if (msg->FindPointer("source",(void **)&item) < B_OK)
+				break;
+			
+			item->SetMarked(!item->IsMarked());
+			UpdateNotifyText();
+			break;
+		}
+		default:
+			BView::MessageReceived(msg);
+	}
 }
 
 
 status_t ConfigView::Archive(BMessage *into,bool) const
 {
 	int32 method = 0;
-	if (((BCheckBox *)(FindView("beep")))->Value() == B_CONTROL_ON)
-		method |= do_beep;
-	if (((BCheckBox *)(FindView("alert")))->Value() == B_CONTROL_ON)
-		method |= /*big_doozy_*/alert;
-	if (((BCheckBox *)(FindView("blink")))->Value() == B_CONTROL_ON)
-		method |= blink_leds;
-		
+
+	BMenuField *field;
+	if ((field = dynamic_cast<BMenuField *>(FindView("notify"))) != NULL)
+	{
+		for (int32 i = field->Menu()->CountItems();i-- > 0;)
+		{
+			BMenuItem *item = field->Menu()->ItemAt(i);
+			if (item->IsMarked())
+				method |= 1L << i;
+		}
+	}
+
 	if (into->ReplaceInt32("notification_method",method) != B_OK)
 		into->AddInt32("notification_method",method);
 
