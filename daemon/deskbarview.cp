@@ -243,13 +243,6 @@ void DeskbarView::MessageReceived(BMessage *message)
 			}
 			break;
 		}
-		case MD_LAUNCH_IN_TRACKER:
-		{
-			BMessenger tracker(kTrackerSignature);
-			message->what = B_REFS_RECEIVED;
-			tracker.SendMessage(message);
-		}
-		break;
 		default:
 			BView::MessageReceived(message);
 	}
@@ -400,49 +393,50 @@ BPopUpMenu *DeskbarView::BuildMenu()
 			count++;
 
 			path.SetTo(&ref);
-			BEntry entry(&ref,true);
-			if(entry.InitCheck() != B_OK)
+			BEntry entry(&ref, true);
+
+			// do we want to use the NavMenu, or just an ordinary BMenuItem?
+			// we are using the NavMenu only for directories and queries
+			bool useNavMenu = false;
+
+			// dereference symlinks further (links to links should also work)
+			while (entry.IsSymLink())
 			{
-				//If we can't initialize the entry.. put the name in and disable it
-				//this happens with symlinks -> /nonexistant
-				menu->AddItem(item = new BMenuItem(path.Leaf(), msg = new BMessage(MD_LAUNCH_IN_TRACKER)));
-				item->SetEnabled(false);
-				msg->AddRef("refs", &ref);
-				continue;
+				entry.GetRef(&ref);
+				if (entry.SetTo(&ref, true) < B_OK)
+					break;
+			}
+			// update entry_ref
+			entry.GetRef(&ref);
+
+			if (entry.InitCheck() == B_OK)
+			{
+				if (entry.IsDirectory())
+					useNavMenu = true;
+				else if (entry.IsFile())
+				{
+					// Files should use the BMenuItem unless they are queries
+					char mimeString[B_MIME_TYPE_LENGTH];
+					BNode node(&entry);
+					BNodeInfo info(&node);
+					if (info.GetType(mimeString) == B_OK
+						&& strcmp(mimeString, "application/x-vnd.Be-query") == 0)
+						useNavMenu = true;
+				}
 			}
 
-			bool fUseNavMenu = false;
-			//do we want to use the NavMenu, or just an ordinary BMenuItem?
+			msg = new BMessage(B_REFS_RECEIVED);
+			msg->AddRef("refs", &ref);
 			
-			if(entry.IsDirectory())
-				fUseNavMenu = true;
-			else if(entry.IsFile())
+			if (useNavMenu)
 			{
-				//Files should use the BMenuItem unless they are queries
-				char mimeString[B_MIME_TYPE_LENGTH];
-				BNode node(&entry);
-				BNodeInfo info(&node);
-				if(info.GetType(mimeString) == B_OK)
-					if(strcmp(mimeString, "application/x-vnd.Be-query") == 0)
-						fUseNavMenu = true;
-			}
-			
-			entry.GetRef(&ref);
-			//make ref now point to the dereferenced symlink instead of the symlink itself
-			//necessary for NavMenu i believe
-			if(fUseNavMenu)
-			{
-				menu->AddItem(item = new BMenuItem(
-					navMenu = new BNavMenu(path.Leaf(),B_REFS_RECEIVED,tracker),
-					msg = new BMessage(B_REFS_RECEIVED)));
+				item = new BMenuItem(navMenu = new BNavMenu(path.Leaf(),B_REFS_RECEIVED,tracker), msg);
 				navMenu->SetNavDir(&ref);
-				msg->AddRef("refs", &ref);
 			}
 			else
-			{
-				menu->AddItem(item = new BMenuItem(path.Leaf(), msg = new BMessage(MD_LAUNCH_IN_TRACKER)));
-				msg->AddRef("refs", &ref);
-			}
+				item = new BMenuItem(path.Leaf(), msg);
+
+			menu->AddItem(item);
 		}
 		if (count > 0)
 			menu->AddSeparatorItem();

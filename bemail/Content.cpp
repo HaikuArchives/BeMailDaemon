@@ -75,10 +75,76 @@ extern	bool	header_flag;
 extern	uint32	gMailEncoding;
 
 
-inline bool
-IsInitialUTF8Byte(uchar b)	
-	{ return ((b & 0xC0) != 0x80); }
+inline bool IsInitialUTF8Byte(uchar b)	
+{
+	return ((b & 0xC0) != 0x80);
+}
+
+
+bool FilterHTMLTag(char *first,char **t,char *end)
+{
+	const char *newlineTags[] = {
+		"br",
+		"p","div",
+		NULL};
+
+	char *a = *t;
+
+	// no tag to filter
+	if (*first != '<')
+		return false;
+
+	a++;
+	if (*a == '/') a++;
+
+	// is the tag one of the newline tags?
+
+	bool newline = false;
+	for (int i = 0;newlineTags[i];i++)
+	{
+		int len = strlen(newlineTags[i]);
+		if (!strncasecmp(a,(char *)newlineTags[i],len) && !isalnum(*(a + len)))
+		{
+			newline = true;
+			break;
+		}
+	}
 	
+	// oh, it's not, so skip it!
+
+	if (!strncasecmp(a,"head",4))	// skip "head" completely
+	{
+		for(;*a && a < end;a++)
+		{
+			int c = *a;
+
+			if (c == '<')	// check for "/head"
+			{
+				a++;
+				if (*a == '/')
+				{
+					a++;
+					if (*a && !strncasecmp(a,"head",4))
+						break;
+				}
+			}
+			if (!*a)
+				break;
+		}
+	}
+
+	while(*a && *a != '>' && a < end) a++;
+	*t = a;
+
+	if (newline)
+	{
+		*first = '\n';
+		return false;
+	}
+	
+	return true;
+}
+
 
 //====================================================================
 //	#pragma mark -
@@ -131,7 +197,8 @@ void TContentView::MessageReceived(BMessage *msg)
 	entry_ref	ref;
 	off_t		size;
 
-	switch (msg->what) {
+	switch (msg->what)
+	{
 		case CHANGE_FONT:
 			msg->FindPointer("font", (void **)&font);
 			fTextView->SetFontAndColor(0, LONG_MAX, font);
@@ -151,20 +218,24 @@ void TContentView::MessageReceived(BMessage *msg)
 			str = (char *)malloc(finish + 1);
 			fTextView->GetText(new_start, finish, str);
 			offset = 0;
-			for (loop = 0; loop < finish; loop++) {
-				if (str[loop] == '\n') {
+			for (loop = 0; loop < finish; loop++)
+			{
+				if (str[loop] == '\n')
+				{
 					quote = (char *)realloc(quote, len + loop - offset + 1);
 					memcpy(&quote[len], &str[offset], loop - offset + 1);
 					len += loop - offset + 1;
 					offset = loop + 1;
-					if (offset < finish) {
+					if (offset < finish)
+					{
 						quote = (char *)realloc(quote, len + strlen(QUOTE));
 						memcpy(&quote[len], QUOTE, strlen(QUOTE));
 						len += strlen(QUOTE);
 					}
 				}
 			}
-			if (offset != finish) {
+			if (offset != finish)
+			{
 				quote = (char *)realloc(quote, len + (finish - offset));
 				memcpy(&quote[len], &str[offset], finish - offset);
 				len += finish - offset;
@@ -173,7 +244,8 @@ void TContentView::MessageReceived(BMessage *msg)
 
 			fTextView->Delete();
 			fTextView->Insert(quote, len);
-			if (start != new_start) {
+			if (start != new_start)
+			{
 				start += strlen(QUOTE);
 				len -= (start - new_start);
 			}
@@ -193,28 +265,30 @@ void TContentView::MessageReceived(BMessage *msg)
 			finish -= start;
 			str = (char *)malloc(finish + 1);
 			fTextView->GetText(start, finish, str);
-			for (loop = 0; loop < finish; loop++) {
-				if (strncmp(&str[loop], QUOTE, strlen(QUOTE)) == 0) {
+			for (loop = 0; loop < finish; loop++)
+			{
+				if (strncmp(&str[loop], QUOTE, strlen(QUOTE)) == 0)
+				{
 					finish -= strlen(QUOTE);
-					memcpy(&str[loop], &str[loop + strlen(QUOTE)],
-									finish - loop);
+					memcpy(&str[loop], &str[loop + strlen(QUOTE)], finish - loop);
 					removed += strlen(QUOTE);
 				}
-				while ((loop < finish) && (str[loop] != '\n')) {
+				while ((loop < finish) && (str[loop] != '\n'))
 					loop++;
-				}
+
 				if (loop == finish)
 					break;
 			}
-			if (removed) {
+			if (removed)
+			{
 				fTextView->Delete();
 				fTextView->Insert(str, finish);
 				new_start -= removed;
-				fTextView->Select(new_start - finish + (len - start) - 1,
-								  new_start);
+				fTextView->Select(new_start - finish + (len - start) - 1, new_start);
 			}
 			else
 				fTextView->Select(len, new_start);
+
 			fTextView->ScrollTo(r.LeftTop());
 			free(str);
 			break;
@@ -222,14 +296,16 @@ void TContentView::MessageReceived(BMessage *msg)
 		case M_SIGNATURE:
 			msg->FindRef("ref", &ref);
 			file.SetTo(&ref, O_RDWR);
-			if (file.InitCheck() == B_NO_ERROR) {
+			if (file.InitCheck() == B_NO_ERROR)
+			{
 				file.GetSize(&size);
 				str = (char *)malloc(size);
 				size = file.Read(str, size);
 				fTextView->GetSelection(&start, &finish);
 				text = fTextView->Text();
 				len = fTextView->TextLength();
-				if ((len) && (text[len - 1] != '\n')) {
+				if ((len) && (text[len - 1] != '\n'))
+				{
 					fTextView->Select(len, len);
 					fTextView->Insert(&new_line, 1);
 					len++;
@@ -240,7 +316,9 @@ void TContentView::MessageReceived(BMessage *msg)
 				fTextView->ScrollToSelection();
 				fTextView->Select(start, finish);
 				fTextView->ScrollToSelection();
-			} else {
+			}
+			else
+			{
 				beep();
 				(new BAlert("", "An error occurred trying to open this signature.",
 					"Sorry"))->Go();
@@ -1909,10 +1987,43 @@ status_t TTextView::Reader::Run(void *_this)
 		MailMessage *mail = new MailMessage(reader->fFile);
 
 		// at first, insert the mail body
+		PlainTextBodyComponent *body = NULL;
 		if (mail->BodyText())
-			reader->Process(mail->BodyText(), strlen(mail->BodyText()));
+		{
+			char *bodyText = const_cast<char *>(mail->BodyText());
+			int32 bodyLength = strlen(bodyText);
+			body = mail->Body();
+			bool isHTML = false;
 
-		if (!reader->ParseMail(mail,mail->Body()))
+			BMimeType type;
+			if (body->MIMEType(&type) == B_OK && type == "text/html")
+			{
+				// strip out HTML tags
+				char *t = bodyText, *a, *end = bodyText + bodyLength;
+				bodyText = (char *)malloc(strlen(bodyText) + 1);
+				isHTML = true;
+				
+				for(a = bodyText;*t;t++)
+				{
+					char c = *t;
+			
+					if (FilterHTMLTag(&c,&t,end))	// the tag filter
+						continue;
+			
+					*(a++) = c;
+				}
+			
+				*a = 0;
+				bodyLength = strlen(bodyText);
+				body = NULL;	// to add the HTML text as enclosure
+			}
+			reader->Process(bodyText, bodyLength);
+			
+			if (isHTML)
+				free(bodyText);
+		}
+
+		if (!reader->ParseMail(mail,body))
 		{
 			delete mail;
 			goto done;
