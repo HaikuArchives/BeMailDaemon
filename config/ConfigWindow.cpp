@@ -56,6 +56,7 @@ const uint32 kMsgShowStatusWindowChanged = 'shst';
 const uint32 kMsgStatusLookChanged = 'lkch';
 const uint32 kMsgStatusWorkspaceChanged = 'wsch';
 
+const uint32 kMsgApplySettings = 'apst';
 const uint32 kMsgSaveSettings = 'svst';
 const uint32 kMsgRevertSettings = 'rvst';
 const uint32 kMsgCancelSettings = 'cnst';
@@ -379,13 +380,19 @@ ConfigWindow::ConfigWindow()
 	BButton *cancelButton = new BButton(rect,"cancel","Cancel",new BMessage(kMsgCancelSettings));
 	cancelButton->GetPreferredSize(&w,&h);
 	cancelButton->ResizeTo(w,h);
-	cancelButton->MoveTo(saveButton->Frame().left - w - 20,rect.top);
+	cancelButton->MoveTo(saveButton->Frame().left - w - 5,rect.top);
 	top->AddChild(cancelButton);
+
+	BButton *applyButton = new BButton(rect,"apply","Apply",new BMessage(kMsgApplySettings));
+	applyButton->GetPreferredSize(&w,&h);
+	applyButton->ResizeTo(w,h);
+	applyButton->MoveTo(cancelButton->Frame().left - w - 20,rect.top);
+	top->AddChild(applyButton);
 
 	BButton *revertButton = new BButton(rect,"revert","Revert",new BMessage(kMsgRevertSettings));
 	revertButton->GetPreferredSize(&w,&h);
 	revertButton->ResizeTo(w,h);
-	revertButton->MoveTo(cancelButton->Frame().left - w - 6,rect.top);
+	revertButton->MoveTo(applyButton->Frame().left - w - 5,rect.top);
 	top->AddChild(revertButton);
 
 	LoadSettings();
@@ -471,6 +478,9 @@ void ConfigWindow::LoadSettings()
 
 void ConfigWindow::SaveSettings()
 {
+	// remove config views
+	((CenterContainer *)fConfigView)->DeleteChildren();
+
 	/*** save general settings ***/
 
 	// figure out time interval
@@ -517,17 +527,6 @@ void ConfigWindow::SaveSettings()
 
 	if (fSaveSettings)
 		Accounts::Save();
-}
-
-
-bool ConfigWindow::QuitRequested()
-{
-	// remove config views
-	((CenterContainer *)fConfigView)->DeleteChildren();
-
-	SaveSettings();
-
-	Accounts::Delete();
 
 	// start the mail_daemon if auto start was selected
 	if (fSaveSettings && fAutoStartCheckBox->Value() == B_CONTROL_ON
@@ -535,6 +534,14 @@ bool ConfigWindow::QuitRequested()
 	{
 		be_roster->Launch("application/x-vnd.Be-POST");
 	}
+}
+
+
+bool ConfigWindow::QuitRequested()
+{
+	SaveSettings();
+
+	Accounts::Delete();
 
 	be_app->PostMessage(B_QUIT_REQUESTED);
 	return true;
@@ -601,6 +608,11 @@ void ConfigWindow::MessageReceived(BMessage *msg)
 
 		case kMsgRevertSettings:
 			RevertToLastSettings();
+			break;
+		case kMsgApplySettings:
+			fSaveSettings = true;
+			SaveSettings();
+			MakeHowToView();
 			break;
 		case kMsgSaveSettings:
 			fSaveSettings = true;
