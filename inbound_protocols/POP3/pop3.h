@@ -5,13 +5,10 @@
 ** Copyright 2001-2002 Dr. Zoidberg Enterprises. All rights reserved.
 */
 
-
-#include <NetEndpoint.h>
 #include <String.h>
 #include <map>
 
 #include "SimpleMailProtocol.h"
-
 
 class POP3Protocol : public Zoidberg::Mail::SimpleProtocol {
   public:
@@ -37,7 +34,7 @@ protected:
 	void MD5Digest (unsigned char *in, char *out); // MD5 Digest
 	
 private:
-	BNetEndpoint	conn;
+	int				conn;
 	BString			fLog;
 	int32			fNumMessages;
 	size_t			fMailDropSize;

@@ -9,6 +9,9 @@
 #include <DataIO.h>
 #include <Alert.h>
 #include <Debug.h>
+#include <socket.h>
+#include <netdb.h>
+#include <errno.h>
 
 #include <status.h>
 #include <StringList.h>
@@ -40,7 +43,7 @@ POP3Protocol::~POP3Protocol()
 {
 	SendCommand("QUIT" CRLF);
 
-	conn.Close();
+	closesocket(conn);
 }
 
 
@@ -58,20 +61,44 @@ status_t POP3Protocol::Open(const char *server, int port, int)
 	error_msg << MDR_DIALECT_CHOICE ("Error while connecting to server ","サーバに接続中にエラーが発生しました ") << server;
 	if (port != 110)
 		error_msg << ":" << port;
+	
+	uint32 hostIP = inet_addr(server);  // first see if we can parse it as a numeric address
+	if ((hostIP == 0)||(hostIP == (uint32)-1)) {
+		struct hostent * he = gethostbyname(server);
+		hostIP = he ? *((uint32*)he->h_addr) : 0;
+	}
 
-	status_t err;
-	err = conn.Connect(server, port);
-
-	if (err != B_OK) {
+	if (hostIP == 0) {
 		error_msg << MDR_DIALECT_CHOICE (": Connection refused or host not found",": ：接続が拒否されたかサーバーが見つかりません");
 		pop3_error(error_msg.String());
 
-		return err;
+		return B_NAME_NOT_FOUND;
 	}
-
+	
+	conn = socket(AF_INET, SOCK_STREAM, 0);
+	if (conn >= 0) {
+		struct sockaddr_in saAddr;
+		memset(&saAddr, 0, sizeof(saAddr));
+		saAddr.sin_family      = AF_INET;
+		saAddr.sin_port        = htons(port);
+		saAddr.sin_addr.s_addr = hostIP;
+		int result = connect(conn, (struct sockaddr *) &saAddr, sizeof(saAddr));
+		if (result < 0) {
+			closesocket(conn);
+			conn = -1;
+			error_msg << ": " << strerror(errno);
+			pop3_error(error_msg.String());
+			return errno;
+		}
+	} else {
+		error_msg << ": Could not allocate socket.";
+		pop3_error(error_msg.String());
+		return B_ERROR;
+	}
+	
 	BString line;
 	if( ReceiveLine(line) <= 0) {
-		error_msg << ": " << conn.ErrorStr();
+		error_msg << ": " << strerror(errno);
 		pop3_error(error_msg.String());
 
 		return B_ERROR;
@@ -253,9 +280,21 @@ status_t POP3Protocol::RetrieveInternal(const char *command, int32 message,
 
 	if (SendCommand(command) != B_OK)
 		return B_ERROR;
+	
+	struct timeval tv;
+	struct fd_set fds; 
 
+	tv.tv_sec = long(POP3_RETRIEVAL_TIMEOUT / 1e6); 
+	tv.tv_usec = long(POP3_RETRIEVAL_TIMEOUT-(tv.tv_sec * 1e6)); 
+	
+	/* Initialize (clear) the socket mask. */ 
+	FD_ZERO(&fds);
+	
+	/* Set the socket in the mask. */ 
+	FD_SET(conn, &fds);
+	
 	while (cont) {
-		if (!conn.IsDataPending(POP3_RETRIEVAL_TIMEOUT)) {
+		if (select(32, &fds, NULL, NULL, &tv) == 0) {
 			// No data available, even after waiting a minute.
 			fLog = "POP3 timeout - no data received after a long wait.";
 			return B_ERROR;
@@ -263,11 +302,11 @@ status_t POP3Protocol::RetrieveInternal(const char *command, int32 message,
 		if (amountToReceive > bufSize - 1 - amountInBuffer)
 			amountToReceive = bufSize - 1 - amountInBuffer;
 
-		amountReceived = conn.Receive(buf + amountInBuffer, amountToReceive);
+		amountReceived = recv(conn,buf + amountInBuffer, amountToReceive,0);
 
 		if (amountReceived < 0) {
-			fLog = conn.ErrorStr();
-			return conn.Error();
+			fLog = strerror(errno);
+			return errno;
 		}
 		if (amountReceived == 0) {
 			fLog = "POP3 data supposedly ready to receive but not received!";
@@ -406,12 +445,29 @@ int32 POP3Protocol::ReceiveLine(BString &line) {
 	bool flag = false;
 
 	line = "";
+	
+	struct timeval tv;
+	struct fd_set fds; 
 
-	if (conn.IsDataPending(POP3_RETRIEVAL_TIMEOUT)) {
+	tv.tv_sec = long(POP3_RETRIEVAL_TIMEOUT / 1e6); 
+	tv.tv_usec = long(POP3_RETRIEVAL_TIMEOUT-(tv.tv_sec * 1e6)); 
+	
+	/* Initialize (clear) the socket mask. */ 
+	FD_ZERO(&fds);
+	
+	/* Set the socket in the mask. */ 
+	FD_SET(conn, &fds); 
+	int result = select(32, &fds, NULL, NULL, &tv);
+	
+	if (result < 0)
+		return result;
+	
+	if (result > 0) {
 		while (true) { // Hope there's an end of line out there else this gets stuck.
-			rcv = conn.Receive(&c,1);
+			rcv = recv(conn,&c,1,0);
 			if (rcv < 0)
-				return conn.Error(); //--An error!
+				return errno; //--An error!
+				
 			if((c == '\n') || (rcv == 0 /* EOF */))
 				break;
 
@@ -440,13 +496,25 @@ status_t POP3Protocol::SendCommand(const char* cmd) {
 	// Flush any accumulated garbage data before we send our command, so we
 	// don't misinterrpret responses from previous commands (that got left over
 	// due to bugs) as being from this command.
+	
+	struct timeval tv;
+	struct fd_set fds; 
 
-	while (conn.IsDataPending(1000 /* very short timeout, hangs with 0 in R5 */)) {
+	tv.tv_sec = long(1000 / 1e6); 
+	tv.tv_usec = long(1000-(tv.tv_sec * 1e6));  /* very short timeout, hangs with 0 in R5 */
+	
+	/* Initialize (clear) the socket mask. */ 
+	FD_ZERO(&fds);
+	
+	/* Set the socket in the mask. */ 
+	FD_SET(conn, &fds);
+	
+	while (select(32, &fds, NULL, NULL, &tv) > 0) {
 		int amountReceived;
 		char tempString [1025];
-		amountReceived = conn.Receive (tempString, sizeof (tempString) - 1);
+		amountReceived = recv (conn,tempString, sizeof (tempString) - 1,0);
 		if (amountReceived < 0)
-			return conn.Error();
+			return errno;
 		tempString [amountReceived] = 0;
 		printf ("POP3Protocol::SendCommand Bug!  Had to flush %d bytes: %s\n",
 			amountReceived, tempString);
@@ -454,11 +522,11 @@ status_t POP3Protocol::SendCommand(const char* cmd) {
 			break;
 	}
 
-	if (conn.Send(cmd, ::strlen(cmd)) < 0) {
-		fLog = conn.ErrorStr ();
+	if (send(conn,cmd, ::strlen(cmd),0) < 0) {
+		fLog = strerror(errno);
 		printf ("POP3Protocol::SendCommand Send \"%s\" failed, code %d: %s\n",
-			cmd, conn.Error(), fLog.String());
-		return conn.Error();
+			cmd, errno, fLog.String());
+		return errno;
 	}
 
 	fLog="";
