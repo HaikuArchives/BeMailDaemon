@@ -55,7 +55,10 @@ status_t WriteAttrString(BNode *node, const char *attr, const char *value)
 {
 	if (!value)
 		value = B_EMPTY_STRING;
-	return node->WriteAttr(attr, B_STRING_TYPE, 0, value, strlen(value) + 1);
+
+	ssize_t size = node->WriteAttr(attr, B_STRING_TYPE, 0, value, strlen(value) + 1);
+
+	return size >= 0 ? B_OK : size;
 }
 
 
@@ -68,10 +71,10 @@ status_t ReadAttrString(BNode *node, const char *attr, BString *value)
 	if (status < B_OK)
 		return status;
 
-	status = node->ReadAttr(attr, B_STRING_TYPE, 0, value->LockBuffer(attrInfo.size + 1), attrInfo.size);
+	ssize_t size = node->ReadAttr(attr, B_STRING_TYPE, 0, value->LockBuffer(attrInfo.size + 1), attrInfo.size);
 	value->UnlockBuffer();	
 
-	return status;
+	return size >= 0 ? B_OK : size;
 }
 
 

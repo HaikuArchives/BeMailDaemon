@@ -1412,7 +1412,7 @@ void TMailWindow::SetCurrentMessageRead()
 			&& !status.ICompare("New"))
 		{
 			node.RemoveAttr(B_MAIL_ATTR_STATUS);
-			WriteAttrString(&node,B_MAIL_ATTR_STATUS, "Read");
+			WriteAttrString(&node, B_MAIL_ATTR_STATUS, "Read");
 		}
 	}
 }
