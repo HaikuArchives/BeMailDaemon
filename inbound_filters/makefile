@@ -1,6 +1,7 @@
 # makefile for all sample code
 
 SUBDIRS = \
+	AGMSBayesianSpamFilter \
 	CompatibilityFilter \
 	RuleFilter
 
