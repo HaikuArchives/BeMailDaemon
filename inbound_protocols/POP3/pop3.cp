@@ -121,6 +121,12 @@ POP3Protocol::Open(const char *server, int port, int)
 	}
 
 	if (err < 0) {
+#ifdef BONE
+		close(conn);
+#else
+		closesocket(conn);
+#endif
+		conn = -1;
 		error_msg << ": " << strerror(err);
 		pop3_error(error_msg.String());
 
