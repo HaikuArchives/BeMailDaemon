@@ -15,3 +15,8 @@ _EXPORT status_t	check_for_mail(int32 * incoming_count) {
 _EXPORT status_t	send_queued_mail(void) {
 	return MailDaemon::SendQueuedMail();
 }
+
+_EXPORT int32		count_pop_accounts(void) {
+	BDirectory dir("/boot/home/config/settings/Mail/chains/inbound");
+	return dir.CountEntries();
+}
