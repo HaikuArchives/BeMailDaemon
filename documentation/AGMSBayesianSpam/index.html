@@ -7,6 +7,9 @@
 <META NAME="description" CONTENT="Documentation for AGMSBayesianSpam, for classifying incoming e-mail messages as spam (junk mail) or genuine.">
 <!--
 ; $Log$
+; Revision 1.7  2002/11/29 23:42:26  agmsmith
+; Describe the word display and what you can do with it.
+;
 ; Revision 1.6  2002/11/29 22:20:02  agmsmith
 ; Updated version numbers in the text
 ;
@@ -50,7 +53,7 @@
 <BR>Author: agmsmith@rogers.com (Alexander G. M. Smith)
 <BR>Uploader: agmsmith@rogers.com (Alexander G. M. Smith)
 <BR>Website: <A HREF="http://members.rogers.com/agmsmith/">http://members.rogers.com/agmsmith/</A>
-<BR>Version: 1.68
+<BR>Version: 1.73
 <BR>Type: internet &amp; network/e-mail
 <BR>Requires: BeOS 5.0+
 <BR>Related things: <A HREF="http://www.paulgraham.com/spam.html">http://www.paulgraham.com/spam.html</A>, <A HREF="http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html">http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html</A></FONT>
@@ -97,58 +100,58 @@ scripting interface.  There's also a command line interface and a graphical
 user interface.
 
 <P>If you want to know more about the technique of counting words, have a look
-at Paul Graham's wonderful write-up at <A HREF="http://www.paulgraham.com/spam.html"
->http://www.paulgraham.com/spam.html</A>.  This program is currently using an
-improved method, called Gary-combining, by Gary Robinson.  See <A
+at Paul Graham's wonderful write-up at <A
+HREF="http://www.paulgraham.com/spam.html">http://www.paulgraham.com/spam.html</A>.
+This program is currently using an improved version of Graham's method, called
+Gary-combining, by Gary Robinson.  See <A
 HREF="http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html"
 >http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html</A> for
-Gary's story.  There's also the <A
-HREF="http://mail.python.org/mailman-21/listinfo/spambayes"> Spambayes</A>
-mailing list where further weird experiments are carrying on in the recent
-renaissance of Spam detection methods.
+Gary's story.  There's also an even more improved method called Chi-Squared
+(&chi;&sup2;) combining, which grew from discussions on the <A
+HREF="http://mail.python.org/mailman-21/listinfo/spambayes">Spambayes</A>
+mailing list.
 
 <H1><A NAME="Installation"></A>Installation</H1>
 
 <OL TYPE="1">
-  <LI>Install the Mail Daemon Replacement (MDR) version 2.0.0 beta 3 or later.
-    Beta 3 and later include AGMSBayesianSpam so you don't need to worry about
-    incompatible versions, and the MDR will even do some of the installation
-    for you.  You can get MDR from <A
+  <LI>Install the BeOS Mail Daemon Replacement (MDR) version 2.0.0 beta 7 or
+    later.  Beta 3 and later include AGMSBayesianSpam so you don't need to
+    worry about incompatible versions, and the MDR will even do some of the
+    installation for you.  You can get MDR from <A
     HREF="http://www.bebits.com/app/2289">http://www.bebits.com/app/2289</A> or
     get the latest source code and compile it yourself from <A
     HREF="http://sourceforge.net/projects/bemaildaemon"
     >http://sourceforge.net/projects/bemaildaemon</A>.
   <LI>Move the AGMSBayesianSpamServer program to the
     <A HREF="file:/boot/home/config/bin/">/boot/home/config/bin/</A> directory
-    (the BeOS mail daemon 2.0.0/beta3 installer will do this for you).  It's
+    (the MDR installer will do this for you).  It's
     put there to make it useable from the command line.  If you use it
     frequently, you can also add a symbolic link to it in your desktop
     applications menu or to the mail menu.
   <LI>Move the AGMSBayesianSpamFilter mail add-on to the
     <A HREF="file:/boot/home/config/add-ons/mail_daemon/inbound_filters/"
     >/boot/home/config/add-ons/mail_daemon/inbound_filters/</A> directory
-    (the BeOS mail daemon 2.0.0/beta3 installer will do this for you).<BR>
+    (the MDR installer will do this for you).<BR>
     <IMG SRC="pictures/HomeConfigAddonsMaildaemonInboundfilters.png"
     ALT="[/boot/home/config/add-ons/mail_daemon/inbound_filters/ directory]"
     WIDTH="634" HEIGHT="288">
   <LI><IMG SRC="pictures/CantFindSettings.png" ALT="[Can't Find Settings]"
-    WIDTH="326" HEIGHT="120" ALIGN="RIGHT">Run the AGMSBayesianSpamServer
-    program.  It will put up an alert box complaining about not finding the
-    settings file.  Just hit the Acknowledge button to get past it.  Then click
-    the "Install MIME Types &amp; Make Indices on All Drives" button which does
-    what it says plus it also adds a few sound effect names to the system.<BR
-    CLEAR="ALL">
+    WIDTH="326" HEIGHT="120" ALIGN="RIGHT">Set up MIME types and indices (the
+    MDR installer will do this step and the next one for you, invisibly).  Run
+    the AGMSBayesianSpamServer program.  It will put up an alert box
+    complaining about not finding the settings file.  Just hit the Acknowledge
+    button to get past it.  Then click the "Install MIME Types &amp; Make
+    Indices on All Drives" button which does what it says plus it also adds a
+    few sound effect names to the system.<BR CLEAR="ALL">
     <IMG SRC="pictures/TheInstallButton.png" ALT="[The Install Button]"
-    WIDTH="606" HEIGHT="405">
+    WIDTH="604" HEIGHT="403">
   <LI>Quit the program (the close box at the top left corner is one way of
     doing that).  It will make the settings file and settings directory
     <A HREF="file:/boot/home/config/settings/AGMSBayesianSpam/"
     >/boot/home/config/settings/AGMSBayesianSpam/</A> when it exits.
   <LI>Use the Sounds preferences (or the installsound command) to associate
     the names with your sound files (SoundGenuine and SoundSpam are included as
-    examples, no I don't have the rights to the Monty Python Spam skit).  Yeah,
-    I know, a bit awkward, it's one of those ship it now, fix it much later
-    things.<BR>
+    examples, no I don't have the rights to the Monty Python Spam skit).<BR>
     <IMG SRC="pictures/StartingSoundPreferences.png" WIDTH="291" HEIGHT="445"
     ALT="[Starting Sound Preferences]"> <IMG
     SRC="pictures/SoundPrefChoosingAFile.png" WIDTH="332" HEIGHT="396"
@@ -160,7 +163,7 @@ renaissance of Spam detection methods.
   <OL TYPE="A">
     <LI>If you don't want to do this, see step B.  You need to add roughly the
       same number of sample Spam messages as you add of genuine e-mail.  A few
-      hundred of each should do.
+      hundred of each should do, though you can get useful results with a dozen.
       <P>Run the AGMSBayesianSpamServer program again.  This time it shouldn't
       complain.  Click the "Create" button to make a new database with the
       default name of "<A
@@ -187,16 +190,18 @@ renaissance of Spam detection methods.
       <IMG SRC="pictures/CommandLineSetSpam.png" ALT="[Command Line Set Spam]"
       WIDTH="634" HEIGHT="205">
     <LI>If you don't have a few hundred spam messages, instead of doing step
-      A copy the sample "AGMSBayesianSpam Database" file to the
+      A copy the sample database file to "AGMSBayesianSpam Database" in the
       <A HREF="file:/boot/home/config/settings/AGMSBayesianSpam/"
       >/boot/home/config/settings/AGMSBayesianSpam/</A> directory
-      (the BeOS mail daemon 2.0.0/beta3 installer will do this for you).<BR>
+      (the MDR installer will do this for you).<BR>
       <IMG SRC="pictures/DatabaseFileLocation.png"
       ALT="[Database File Location]" WIDTH="609" HEIGHT="234"><BR>
       Run the AGMSBayesianSpamServer program again.  Hit the Purge button
       (because it doesn't load the database until it has to do something).  If
       things are working correctly, you should see a list of the words in the
-      sample database in the bottom half of the window.
+      sample database in the bottom half of the window.  An alternative method
+      of picking a database file is to double click on it in Tracker, which is
+      useful if you don't want to type in the full name.
   </OL>
   <LI>Quit the AGMSBayesianSpamServer program.  Delete all the remaining
     files you unzipped from the archive (such as the example database, this
@@ -215,13 +220,14 @@ renaissance of Spam detection methods.
     Remember to click on the filter after you have added it to set the settings
     (though the defaults are useable too).<BR>
     <IMG SRC="pictures/ClickOnFilterNameToGetSettings.png"
-    ALT="[Click On Filter Name To Get Settings]" WIDTH="454" HEIGHT="412"><BR>
+    ALT="[Click On Filter Name To Get Settings]" WIDTH="454" HEIGHT="413"><BR>
     Then select the settings you wish.  If you installed sound files earlier,
     you can turn on the sound effects here.<BR>
     <IMG SRC="pictures/FilterSettings.png" ALT="[Filter Settings]"
-    WIDTH="454" HEIGHT="412">
+    WIDTH="455" HEIGHT="413">
   <LI>Test it.  Send yourself some e-mail and see if it gets rated correctly.
 </OL>
+
 
 <H1><A NAME="Usage"></A>Usage</H1>
 
@@ -291,25 +297,26 @@ useful command, if you have a lot of spam messages to add, is
 current directory as examples of genuine text.
 
 <PRE>
-Mon Oct 21 15:35:49 517 /tmp>AGMSBayesianSpamServer help
+Fri Dec 13 15:57:22 568 /tmp>AGMSBayesianSpamServer help
 
 AGMSBayesianSpamServer - A Spam Database Server
 Copyright &copy; 2002 by Alexander G. M. Smith.  Released to the public domain.
 
-Compiled on Oct 21 2002 at 13:12:30.  $Revision$  $Header:
-/boot/home/agmsmith/Programming/AGMSBayesianSpam/Server/RCS/AGMSBayesianSpamSer
-ver.cpp,v 1.60 2002/10/21 16:41:27 agmsmith Exp $
+Compiled on Dec 13 2002 at 15:56:20.  $Revision$  $Header:
+/cvsroot/bemaildaemon/AGMSBayesianSpamServer/AGMSBayesianSpamServer.cpp,v 1.73
+2002/12/13 20:55:57 agmsmith Exp $
 
-This is a program for classifying e-mail messages as spam (junk mail which you
-don't want to read) and regular genuine messages.  It can learn what's spam and
-what's genuine.  You just give it a bunch of spam messages and a bunch of
-non-spam ones.  It uses them to make a list of the words from the messages with
-the probability that each word is from a spam message or from a genuine
-message.  Later on, it can use those probabilities to classify new messages as
-spam or not spam.  If the classifier stops working well (because the spammers
-have changed their writing style and vocabulary, or your regular correspondants
-are writing like spammers), you can use this program to update the list of
-words to identify the new messages correctly.
+This is a program for classifying e-mail messages as spam (junk mail which
+you don't want to read) and regular genuine messages.  It can learn what's
+spam and what's genuine.  You just give it a bunch of spam messages and a
+bunch of non-spam ones.  It uses them to make a list of the words from the
+messages with the probability that each word is from a spam message or from
+a genuine message.  Later on, it can use those probabilities to classify
+new messages as spam or not spam.  If the classifier stops working well
+(because the spammers have changed their writing style and vocabulary, or
+your regular correspondants are writing like spammers), you can use this
+program to update the list of words to identify the new messages
+correctly.
 
 The original idea was from Paul Graham's algorithm, which has an excellent
 writeup at: http://www.paulgraham.com/spam.html
@@ -317,17 +324,23 @@ writeup at: http://www.paulgraham.com/spam.html
 Gary Robinson came up with the improved algorithm, which you can read about at:
 http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html
 
+Then he, Tim Peters and the SpamBayes mailing list developed the Chi-Squared
+test, see http://mail.python.org/pipermail/spambayes/2002-October/001036.html
+for one of the earlier messages leading from the central limit theorem to
+the current chi-squared scoring method.
+
 Thanks go to Isaac Yonemoto for providing a better icon.
 
-Usage: Specify the operation as the first argument followed by more information
-as appropriate.  The program's configuration will affect the actual operation
-(things like the name of the database file to use, or whether it should allow
-non-email messages to be added).  In command line mode it will do the operation
-and exit.  In GUI/server mode a command line invocation will just send the
-command to the server.  You can also use BeOS scripting (see the "Hey"
-command which you can get from http://www.bebits.com/app/2042 ) to control the
-Spam updater.  And finally, there's also a GUI interface which shows up if you
-start it without any command line arguments.
+Usage: Specify the operation as the first argument followed by more
+information as appropriate.  The program's configuration will affect the
+actual operation (things like the name of the database file to use, or
+whether it should allow non-email messages to be added).  In command line
+mode it will do the operation and exit.  In GUI/server mode a command line
+invocation will just send the command to the running server.  You can also
+use BeOS scripting (see the "Hey" command which you can get from
+http://www.bebits.com/app/2042 ) to control the Spam server.  And finally,
+there's also a GUI interface which shows up if you start it without any
+command line arguments.
 
 Commands:
 
@@ -360,22 +373,31 @@ Adds the spam in the given file (specify full pathname to be safe) to the
 database.  The words in the files will be added to the list of words in the
 database that identify spam messages.  The files processed will also have the
 attribute MAIL:classification added with a value of "Spam" or "Genuine" as
-specified.  If they already have that attribute and it matches the new
-classification then they won't get processed (and if it is different, they
-will get removed from the statistics for the old class and added to the
-statistics for the new one).  You can turn off that behaviour with the
-IgnorePreviousClassification property.  The command line version lets you
-specify more than one pathname.
+specified.  They also have their spam ratio attribute updated, as if you had
+also used the Evaluate command on them.  If they already have the
+MAIL:classification attribute and it matches the new classification then they
+won't get processed (and if it is different, they will get removed from the
+statistics for the old class and added to the statistics for the new one).
+You can turn off that behaviour with the IgnorePreviousClassification
+property.  The command line version lets you specify more than one pathname.
 
 Count Spam
 Returns the number of spam messages in the database.
 
+Set SpamString NewValue
+Adds the spam in the given string (assumed to be the text of a whole e-mail
+message, not just a file name) to the database.
+
 Set Genuine NewValue
-Similar to adding spam except that the messages are added to the genuine
+Similar to adding spam except that the message file is added to the genuine
 statistics.
 
 Count Genuine
 Returns the number of genuine messages in the database.
+
+Set GenuineString NewValue
+Adds the genuine message in the given string (assumed to be the text of a
+whole e-mail message, not just a file name) to the database.
 
 Set IgnorePreviousClassification NewValue
 If set to true then the previous classification (which was saved as an
@@ -443,14 +465,16 @@ Set Evaluate NewValue
 Evaluates a given file (by path name) to see if it is spam or not.  Returns
 the ratio of spam probability vs genuine probability, 0.0 meaning completely
 genuine, 1.0 for completely spam.  Normally you should safely be able to
-consider it as spam if it is over 0.56.  It attaches a MAIL:ratio_spam
-attribute with the ratio as its float32 value to the file.  Also returns the
-top few interesting words in "words" and the associated per-word probability
-ratios in "ratios".
+consider it as spam if it is over 0.56 for the Robinson scoring method.  For
+the ChiSquared method, the numbers are near 0 for genuine, near 1 for spam,
+and anywhere in the middle means it can't decide.  The program attaches a
+MAIL:ratio_spam attribute with the ratio as its float32 value to the file.
+Also returns the top few interesting words in "words" and the associated
+per-word probability ratios in "ratios".
 
 Set EvaluateString NewValue
-Like Evaluate, but rather than a file, it evaluates the string argument
-directly.
+Like Evaluate, but rather than a file name, the string argument contains the
+entire text of the message to be evaluated.
 
 ResetToDefaults
 Resets all the configuration options to the default values, including the
@@ -473,21 +497,35 @@ just more raw data.  Well, not quite raw data since it converts
 quoted-printable codes (equals sign followed by hex digits or end of line) to
 the equivalent single characters.  "PlainText" breaks the file into MIME
 components and only looks at the ones which are of MIME type text/plain.
-"AnyText" will look for words in all text/* <!-- End the C style comment which
-makes editing this look bad with BeIDE's syntax colouring. */ -->things,
-including text/html attachments.  "AllParts" will decode all message components
-and look for words in them, including binary attachments.  "JustHeader" will
-only look for words in the message header.  "AllPartsAndHeader",
-"PlainTextAndHeader" and "AnyTextAndHeader" will also include the words from
-the message headers.
+"AnyText" will look for words in all text/* things, including text/html
+attachments.  "AllParts" will decode all message components and look for words
+in them, including binary attachments.  "JustHeader" will only look for words
+in the message header.  "AllPartsAndHeader", "PlainTextAndHeader" and
+"AnyTextAndHeader" will also include the words from the message headers.
 
 Get TokenizeMode
 Gets the method used for breaking up the message into words.
 
-ProcessArgs: The property specified isn't known or doesn't support the requested action., error code $FFFFFFFF/-1 (General OS error) has occured.
-AGMSBayesianSpamUpdater shutting down...
-Mon Oct 21 15:35:52 518 /tmp>
+Set ScoringMode NewValue
+Sets the method used for combining the probabilities of individual words into
+an overall score.  "Robinson" mode will use Gary Robinson's nth root of the
+product method.  It gives a nice range of values between 0 and 1 so you can
+see shades of spaminess.  The cutoff point between spam and genuine varies
+depending on your database of words (0.56 was one point in some experiments).
+"ChiSquared" mode will use chi-squared statistics to evaluate the difference
+in probabilities that the lists of word ratios are random.  The result is very
+close to 0 for genuine and very close to 1 for spam, and near the middle if it
+is uncertain.
+
+Get ScoringMode
+Gets the method used for combining the individual word ratios into an overall
+score.
+
+ProcessArgs: The property specified isn't known or doesn't support the requested action (usually means it is an unknown command), error code $FFFFFFFF/-1 (General OS error) has occured.
+AGMSBayesianSpamServer shutting down...
+Fri Dec 13 15:57:25 569 /tmp>
 </PRE>
+<!-- End the C style comment which makes editing this look bad with BeIDE's syntax colouring. */ -->
 
 <H2><A NAME="Spreadsheet"></A>Using a Spreadsheet to Examine Word Statistics</H2>
 
