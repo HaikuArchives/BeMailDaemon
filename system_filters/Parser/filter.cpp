@@ -1,17 +1,14 @@
 #include <Message.h>
 #include <String.h>
-#include <Locker.h>
 #include <E-mail.h>
-
+#include <Locker.h>
 #include <malloc.h>
-#include <ctype.h>
 
 #include <MailAddon.h>
 #include <mail_util.h>
 
-#define MAX_PREFIX_LENGTH 4
 
-void StripSubjectPrefixes(BString &string);
+void subject2thread(BString&);
 
 class ParseFilter: public MailFilter
 {
@@ -84,7 +81,7 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 	// This will generally be the "thread subject".
 	//
 	string.SetTo(headers->FindString("subject"));
-	StripSubjectPrefixes(string);
+	subject2thread(string);
 	headers->AddString("THREAD",string.String());
 	
 	// name
@@ -102,50 +99,6 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 	
 	(*data)->Seek(0,SEEK_SET);
 	return MD_OK;
-}
-
-void StripSubjectPrefixes(BString &string) {
-	BString sub;
-	int32 i = 0,j = 0;
-	while(1) {
-		if ((string.ByteAt(0) == '[') && (string.FindFirst(']',i) >= 0)) {
-			i = string.FindFirst(']')+1;
-			if (!isspace(string.ByteAt(i)))
-				string.Insert(" ",i);
-			i++;
-		}
-		
-		j = string.FindFirst(':',i);
-		if (j < 0)
-			break;
-		j++;
-		
-		//-------Strip [*]	
-		string.CopyInto(sub,i,j-i);
-		if ((sub.FindFirst('[') >= 0) && (sub.FindFirst(']') >= 0))
-			sub.Remove(sub.FindFirst('['),sub.FindFirst(']') - sub.FindFirst('[') + 1);
-		
-		//-------Strip white space between x and :, so Re : becomes Re:
-		int32 h = sub.Length()-2;
-		while (h >= 0) {
-			 if (!isspace(sub.ByteAt(h)))
-			 	break;
-			 	
-			 h--;
-		}
-		sub.Remove(h+1, sub.Length() - 2 - h);
-		
-		//-------If it is the right length, toss it
-		if (sub.CountChars() <= MAX_PREFIX_LENGTH) { //-------Maximum four UTF8 chars including colon
-			if (isspace(string.ByteAt(j)))
-				j++;
-			string.Remove(i,j-i);
-		} else {
-			break;
-		}
-			
-		sub = "";
-	}
 }
 
 MailFilter* instantiate_mailfilter(BMessage* settings, StatusView *view)

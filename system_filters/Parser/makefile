@@ -14,7 +14,7 @@ NAME= Parser
 #	SHARED:	Shared library or add-on
 #	STATIC:	Static library archive
 #	DRIVER: Kernel Driver
-TYPE= SHARED
+TYPE= APP
 
 #	add support for new Pe and Eddie features
 #	to fill in generic makefile
@@ -30,7 +30,7 @@ TYPE= SHARED
 #	if two source files with the same name (source.c or source.cpp)
 #	are included from different directories.  Also note that spaces
 #	in folder names do not work well with this makefile.
-SRCS= filter.cpp
+SRCS= filter.cpp thread.cpp retest.cpp
 
 #	specify the resource files to use
 #	full path or a relative path to the resource file can be used.
@@ -136,3 +136,6 @@ INSTALL_DIR := /boot/home/config/add-ons/mail_daemon/system_filters
 
 ## include the makefile-engine
 include $(BUILDHOME)/etc/makefile-engine.MailD
+
+test: default
+	obj*/Parser < subjects
