@@ -134,8 +134,8 @@ Protocol::~Protocol()
 
 
 #define dump_stringlist(a) printf("StringList %s:\n",#a); \
-							for (int32 i = 0; i < a->CountItems(); i++)\
-								puts(a->ItemAt(i)); \
+							for (int32 i = 0; i < (a)->CountItems(); i++)\
+								puts((a)->ItemAt(i)); \
 							puts("Done\n");
 							
 status_t
