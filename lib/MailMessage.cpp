@@ -745,6 +745,9 @@ Message::RenderToRFC822(BPositionIO *file)
 	// set to "Pending").
 
 	if (BFile *attributed = dynamic_cast <BFile *>(file)) {
+
+		BNodeInfo(attributed).SetType(B_MAIL_TYPE);
+
 		attributed->WriteAttrString(B_MAIL_ATTR_RECIPIENTS,&recipients);
 
 		BString attr;
@@ -771,8 +774,6 @@ Message::RenderToRFC822(BPositionIO *file)
 		attributed->WriteAttr(B_MAIL_ATTR_FLAGS,B_INT32_TYPE,0,&flags,sizeof(int32));
 
 		attributed->WriteAttr("MAIL:chain",B_INT32_TYPE,0,&_chain_id,sizeof(int32));
-
-		BNodeInfo(attributed).SetType(B_MAIL_TYPE);
 	}
 
 	return B_OK;

@@ -156,6 +156,12 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 
 	BMessage attributes;
 
+	const char *buf;
+
+	// add "New" status, if the status hasn't been set already
+	if (attributes.FindString(B_MAIL_ATTR_STATUS,&buf) < B_OK)
+		attributes.AddString(B_MAIL_ATTR_STATUS,"New");
+
 	attributes.AddString("MAIL:unique_id",io_uid->String());
 	attributes.AddString("MAIL:account",Mail::Chain(chain_id).Name());
 	attributes.AddInt32("MAIL:chain",chain_id);
@@ -165,7 +171,6 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	if (attributes.ReplaceInt32(B_MAIL_ATTR_CONTENT,length) != B_OK)
 		attributes.AddInt32(B_MAIL_ATTR_CONTENT,length);
 
-	const char *buf;
 	time_t when;
 	for (int i = 0; gDefaultFields[i].rfc_name; ++i)
 	{
@@ -186,10 +191,6 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 			break;
 		}
 	}
-
-	// add "New" status, if the status hasn't been set already
-	if (attributes.FindString(B_MAIL_ATTR_STATUS,&buf) < B_OK)
-		attributes.AddString(B_MAIL_ATTR_STATUS,"New");
 
 	node << attributes;
 
