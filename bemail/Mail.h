@@ -210,6 +210,7 @@ class TMailApp : public BApplication
 
 	private:
 		void ClearPrintSettings();
+		void CheckForSpamFilterExistence();
 		
 		BList		fWindowList;
 		int32		fWindowCount;

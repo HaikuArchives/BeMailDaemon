@@ -321,6 +321,7 @@ TMailApp::TMailApp()
 		}
 	}
 
+	CheckForSpamFilterExistence();
 	fFont.SetSpacing(B_BITMAP_SPACING);
 	last_window = mail_window;
 }
@@ -882,6 +883,47 @@ TMailApp::FindWindow(const entry_ref &ref)
 	}
 
 	return NULL;
+}
+
+
+void
+TMailApp::CheckForSpamFilterExistence()
+{
+	// Looks at the filter settings to see if the user is using a spam filter.
+	// If there is one there, set gShowSpamGUI to TRUE, otherwise to FALSE.
+
+	int32		addonNameIndex;
+	const char *addonNamePntr;
+	BDirectory	inChainDir;
+	BPath		path;
+	BEntry		settingsEntry;
+	BFile		settingsFile;
+	BMessage	settingsMessage;
+
+	gShowSpamGUI = false;
+
+	if (find_directory(B_USER_SETTINGS_DIRECTORY, &path) != B_OK)
+		return;
+	path.Append("Mail/chains/inbound");
+	if (inChainDir.SetTo(path.Path()) != B_OK)
+		return;
+
+	while (inChainDir.GetNextEntry (&settingsEntry, true /* traverse */) == B_OK) {
+		if (!settingsEntry.IsFile())
+			continue;
+		if (settingsFile.SetTo (&settingsEntry, B_READ_ONLY) != B_OK)
+			continue;
+		if (settingsMessage.Unflatten (&settingsFile) != B_OK)
+			continue;
+		for (addonNameIndex = 0; B_OK == settingsMessage.FindString (
+			"filter_addons", addonNameIndex, &addonNamePntr);
+			addonNameIndex++) {
+			if (strstr (addonNamePntr, "SpamFilter") != NULL) {
+				gShowSpamGUI = true; // Found it!
+				return;
+			}
+		}
+	}
 }
 
 
