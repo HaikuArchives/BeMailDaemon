@@ -16,10 +16,10 @@ default .DEFAULT :
 	-cp makefile-engine.MailD $(BUILDHOME)/etc/makefile-engine.MailD
 
 	# must install lib to make the rest.
-	$(MAKE) -C lib install
+	$(MAKE) -j $(sysinfo -cpu | head -c 2) -C lib install
 
 	-@for f in $(SUBDIRS) ; do \
-		$(MAKE) -C $$f -f makefile $@ || exit -1; \
+		$(MAKE) -j $(sysinfo -cpu | head -c 2) -C $$f -f makefile $@ || exit -1; \
 	done
 
 #	SETTING: set the language for the installer.  Use
