@@ -18,6 +18,13 @@ class BMimeType;
 namespace Zoidberg {
 namespace Mail {
 
+extern const char *kHeaderCharsetString;
+extern const char *kHeaderEncodingString;
+// Special field names in the headers which specify the character set (int32)
+// and encoding (int8) to use when converting the headers from UTF-8 to the
+// output e-mail format (rfc2047).  For use with SetHeaderField when you pass
+// it a structured header in a BMessage.
+
 
 enum component_type {
 	MC_PLAIN_TEXT_BODY = 0,
@@ -44,8 +51,8 @@ class Component {
 
 		void SetHeaderField(
 			const char *key, const char *value,
-			uint32 charset = B_ISO1_CONVERSION,
-			mail_encoding encoding = quoted_printable,
+			uint32 charset = MDR_NULL_CONVERSION,
+			mail_encoding encoding = null_encoding,
 			bool replace_existing = true);
 		void SetHeaderField(
 			const char *key, BMessage *structured_header,

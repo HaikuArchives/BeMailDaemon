@@ -266,30 +266,31 @@ Message::Date()
 }
 
 
-void Message::SetSubject(const char *subject) {
-	SetHeaderField("Subject",subject);
+void Message::SetSubject(const char *subject, uint32 charset, mail_encoding encoding) {
+	SetHeaderField("Subject", subject, charset, encoding);
 }
 
-void Message::SetReplyTo(const char *reply_to) {
-	SetHeaderField("Reply-To",reply_to);
+void Message::SetReplyTo(const char *reply_to, uint32 charset, mail_encoding encoding) {
+	SetHeaderField("Reply-To", reply_to, charset, encoding);
 }
 
-void Message::SetFrom(const char *from) {
-	SetHeaderField("From",from);
+void Message::SetFrom(const char *from, uint32 charset, mail_encoding encoding) {
+	SetHeaderField("From", from, charset, encoding);
 }
 
-void Message::SetTo(const char *to) {
-	SetHeaderField("To",to);
+void Message::SetTo(const char *to, uint32 charset, mail_encoding encoding) {
+	SetHeaderField("To", to, charset, encoding);
 }
 
-void Message::SetCC(const char *cc) {
-	SetHeaderField("Cc",cc); // For consistency, use Cc as the name.
+void Message::SetCC(const char *cc, uint32 charset, mail_encoding encoding) {
+	// For consistency with our header names, use Cc as the name.
+	SetHeaderField("Cc", cc, charset, encoding);
 }
 
 void Message::SetBCC(const char *bcc) {
 	if (_bcc != NULL)
 		free(_bcc);
-		
+
 	_bcc = strdup(bcc);
 }
 

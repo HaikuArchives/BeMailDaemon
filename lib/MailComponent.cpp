@@ -35,6 +35,14 @@ struct CharsetConversionEntry
 extern const CharsetConversionEntry charsets[];
 
 
+extern const char *kHeaderCharsetString = "header-charset";
+extern const char *kHeaderEncodingString = "header-encoding";
+// Special field names in the headers which specify the character set (int32)
+// and encoding (int8) to use when converting the headers from UTF-8 to the
+// output e-mail format (rfc2047).  Since they are numbers, not strings, the
+// extra fields won't be output.
+
+
 Component::Component()
 {
 }
@@ -100,22 +108,36 @@ bool Component::IsAttachment() {
 	return false;
 }
 
+
 void Component::SetHeaderField(const char *key, const char *value, uint32 charset, mail_encoding encoding, bool replace_existing) {
 	if (replace_existing)
 		headers.RemoveName(key);
-
 	headers.AddString(key,value);
-	headers.AddInt32(key,charset);
-	headers.AddInt8(key,encoding);
+
+	// Latest setting of the character set and encoding to use when outputting
+	// the headers is the one which affects all the headers.  There used to be
+	// separate settings for each item in the headers, but it never actually
+	// worked (can't store multiple items of different types in a BMessage).
+	if (charset != MDR_NULL_CONVERSION &&
+	headers.ReplaceInt32 (kHeaderCharsetString, charset) != B_OK)
+		headers.AddInt32 (kHeaderCharsetString, charset);
+	if (encoding != null_encoding &&
+	headers.ReplaceInt8 (kHeaderEncodingString, encoding) != B_OK)
+		headers.AddInt8 (kHeaderEncodingString, encoding);
 }
 
+
 void Component::SetHeaderField(const char *key, BMessage *structure, bool replace_existing) {
+	int32		charset = MDR_NULL_CONVERSION;
+	int8		encoding = null_encoding;
+	const char *unlabeled = "unlabeled";
+
 	if (replace_existing)
 		headers.RemoveName(key);
 
 	BString value;
-	if (structure->HasString("unlabeled"))
-		value << structure->FindString("unlabeled") << "; ";
+	if (structure->HasString(unlabeled))
+		value << structure->FindString(unlabeled) << "; ";
 
 	const char *name, *sub_val;
 	type_code type;
@@ -125,7 +147,7 @@ void Component::SetHeaderField(const char *key, BMessage *structure, bool replac
 		#endif
 		&name,&type) == B_OK; i++)
 	{
-		if (strcasecmp(name,"unlabeled") == 0)
+		if (strcasecmp(name, unlabeled) == 0)
 			continue;
 
 		structure->FindString(name, &sub_val);
@@ -138,7 +160,12 @@ void Component::SetHeaderField(const char *key, BMessage *structure, bool replac
 
 	value.Truncate(value.Length() - 2); //-----Remove the last "; "
 
-	SetHeaderField(key,value.String(),B_ISO1_CONVERSION,no_encoding);
+	if (structure->HasInt32(kHeaderCharsetString))
+		structure->FindInt32(kHeaderCharsetString, &charset);
+	if (structure->HasInt8(kHeaderEncodingString))
+		structure->FindInt8(kHeaderEncodingString, &encoding);
+
+	SetHeaderField(key,value.String(),(uint32) charset, (mail_encoding) encoding);
 }
 
 const char *Component::HeaderField(const char *key, int32 index) {
@@ -264,17 +291,21 @@ Component::SetToRFC822(BPositionIO *data, size_t /*length*/, bool /* parse_now *
 	return B_OK;
 }
 
+
 status_t Component::RenderToRFC822(BPositionIO *render_to) {
-	int32 charset;
-	int8 encoding;
+	int32 charset = B_ISO1_CONVERSION;
+	int8 encoding = quoted_printable;
 	const char *key, *value;
 	char *allocd;
 	ssize_t amountWritten;
-
 	BString concat;
-
 	type_code stupidity_personified = B_STRING_TYPE;
 	int32 count = 0;
+
+	if (headers.HasInt32 (kHeaderCharsetString))
+		headers.FindInt32 (kHeaderCharsetString, &charset);
+	if (headers.HasInt8 (kHeaderEncodingString))
+		headers.FindInt8 (kHeaderEncodingString, &encoding);
 
 	for (int32 index = 0; headers.GetInfo(B_STRING_TYPE,index,
 #ifndef B_BEOS_VERSION_DANO
@@ -285,12 +316,6 @@ status_t Component::RenderToRFC822(BPositionIO *render_to) {
 			headers.FindString(key,g,(const char **)&value);
 			allocd = (char *)malloc(strlen(value) + 1);
 			strcpy(allocd,value);
-
-			if (headers.FindInt32(key,&charset) != B_OK)
-				charset = B_ISO1_CONVERSION;
-
-			if (headers.FindInt8(key,&encoding) != B_OK)
-				encoding = 'q';
 
 			concat << key << ": ";
 			concat.CapitalizeEachWord();
@@ -312,6 +337,7 @@ status_t Component::RenderToRFC822(BPositionIO *render_to) {
 
 	return B_OK;
 }
+
 
 status_t Component::MIMEType(BMimeType *mime) {
 	unsigned int i;

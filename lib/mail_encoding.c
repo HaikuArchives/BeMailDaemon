@@ -44,13 +44,15 @@ decode(mail_encoding encoding, char *out, const char *in, off_t length, int unde
 	switch (encoding) {
 		case base64:
 			return decode_base64(out, in, length);
-		case quoted_printable:
-			return decode_qp(out, in, length, underscore_is_space);
 		case uuencode:
 			return uu_decode(out, in, length);
 		case no_encoding:
 			memcpy(out, in, length);
 			return length;
+		case quoted_printable:
+			return decode_qp(out, in, length, underscore_is_space);
+		default:
+			break;
 	}
 
 	return -1;

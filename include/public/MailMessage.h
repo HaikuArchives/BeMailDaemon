@@ -51,11 +51,11 @@ class Message : public Container {
 		const char *Date();
 		int Priority();
 
-		void SetSubject(const char *to);
-		void SetReplyTo(const char *to);
-		void SetFrom(const char *to);
-		void SetTo(const char *to);
-		void SetCC(const char *to);
+		void SetSubject(const char *to, uint32 charset = MDR_NULL_CONVERSION, mail_encoding encoding = null_encoding);
+		void SetReplyTo(const char *to, uint32 charset = MDR_NULL_CONVERSION, mail_encoding encoding = null_encoding);
+		void SetFrom(const char *to, uint32 charset = MDR_NULL_CONVERSION, mail_encoding encoding = null_encoding);
+		void SetTo(const char *to, uint32 charset = MDR_NULL_CONVERSION, mail_encoding encoding = null_encoding);
+		void SetCC(const char *to, uint32 charset = MDR_NULL_CONVERSION, mail_encoding encoding = null_encoding);
 		void SetBCC(const char *to);
 		void SetPriority(int to);
 

@@ -145,13 +145,15 @@ ADDON INSTALLATION.
 
 HISTORY:
 
-January 18 2003 - v2.0.0b8
+January 19 2003 - v2.0.0b8
 - Date format changed slightly to make it compliant to RFC-822 (some other mail apps had problems understanding it).
 - decode_base64() should now work with single character line breaks as well.
 - Changed default spam cutoff ratio to 0.95 to correspond to the default Chi-Squared scoring method.
 - Added Uncertain spam classification as suggested by BiPolar.  This also means adding a Genuine cutoff number, a new sound effect, change the prefs window, etc.
 - Fixed up BeMail to use the user's character set choice (was ignoring it).
 - Added a few more character set encodings, including UTF-8 for BeOS native messages.
+- Made the character set choice affect the encoding of the Subject, To, CC and other header lines.  So now your subject can contain international characters.
+- Made it internationalize (using utf-8, no choice) the file attachment headers so file names with weird characters will now work.
 
 December 13 2002 - v2.0.0b7
 - Fixed vman's bug with TABs after the colon in the headers making it ignore the header.

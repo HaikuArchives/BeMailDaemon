@@ -2784,13 +2784,13 @@ TMailWindow::Send(bool now)
 			fMail = new Zoidberg::Mail::Message;
 
 		if (strlen(fHeaderView->fTo->Text()) != 0)
-			fMail->SetTo(fHeaderView->fTo->Text());
+			fMail->SetTo(fHeaderView->fTo->Text(), gMailEncoding);
 
 		if (strlen(fHeaderView->fSubject->Text()) != 0)
-			fMail->SetSubject(fHeaderView->fSubject->Text());
+			fMail->SetSubject(fHeaderView->fSubject->Text(), gMailEncoding);
 
 		if (strlen(fHeaderView->fCc->Text()) != 0)
-			fMail->SetCC(fHeaderView->fCc->Text());
+			fMail->SetCC(fHeaderView->fCc->Text(), gMailEncoding);
 
 		if (strlen(fHeaderView->fBcc->Text()) != 0)
 			fMail->SetBCC(fHeaderView->fBcc->Text());

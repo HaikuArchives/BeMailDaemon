@@ -10,6 +10,7 @@
 #include <sys/types.h>
 
 
+#define MDR_NULL_CONVERSION ((uint32) -1)
 #define MDR_UTF8_CONVERSION ((uint32) -2)
 // For specifying the UTF-8 character set when converting to/from UTF-8.
 
@@ -19,15 +20,14 @@
 typedef enum {
 	base64 				= 'b',
 	quoted_printable 	= 'q',
-	uuencode			= 'u',
-	 // it is invalid to encode something using uuencode
-	
+	uuencode			= 'u', // Invalid to encode something using uuencode.
+	null_encoding		= 0,   // For not changing existing settings.
 	no_encoding			= -1
 } mail_encoding;
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 ssize_t encode(mail_encoding encoding, char *out, const char *in,
 	off_t length, int mask_spaces);
