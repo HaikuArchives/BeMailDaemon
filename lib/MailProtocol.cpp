@@ -106,8 +106,8 @@ class DeleteHandler : public BHandler {
 
 class TrashMonitor : public BHandler {
 	public:
-		TrashMonitor(Protocol *a)
-			: us(a), trash("/boot/home/Desktop/Trash")
+		TrashMonitor(Protocol *a, int32 chain_id)
+			: us(a), trash("/boot/home/Desktop/Trash"), messages_for_us(0), id(chain_id)
 		{
 		}
 
@@ -119,13 +119,46 @@ class TrashMonitor : public BHandler {
 				watch_node(&to_watch,B_WATCH_DIRECTORY,this);
 				return;
 			}
-			if ((msg->what == B_NODE_MONITOR) && (us->InitCheck() == B_OK) && (trash.CountEntries() == 0))
-				us->CheckForDeletedMessages();
+			if ((msg->what == B_NODE_MONITOR) && (us->InitCheck() == B_OK)) {
+			 	int32 opcode;
+				if (msg->FindInt32("opcode",&opcode) < B_OK)
+					return;
+					
+				if (opcode == B_ENTRY_MOVED) {
+					int64 node(msg->FindInt64("to directory"));
+					dev_t device(msg->FindInt32("device"));
+					node_ref item_ref;
+					item_ref.node = node;
+					item_ref.device = device;
+					
+					BDirectory moved_to(&item_ref);
+					
+					BNode trash_item(&moved_to,msg->FindString("name"));
+					int32 chain;
+					if (trash_item.ReadAttr("MAIL:chain",B_INT32_TYPE,0,&chain,sizeof(chain)) < B_OK)
+						return;
+						
+					if (chain == id)
+						messages_for_us += (moved_to == trash) ? 1 : -1;
+				}
+				
+				if (messages_for_us < 0)
+					messages_for_us = 0; // Guard against weirdness
+				
+			 	if (trash.CountEntries() == 0) {
+			 		if (messages_for_us > 0)
+						us->CheckForDeletedMessages();
+						
+					messages_for_us = 0;
+				}
+			}
 		}
 
 	private:
 		Protocol *us;
 		BDirectory trash;
+		int32 messages_for_us;
+		int32 id;
 };
 
 Protocol::Protocol(BMessage *settings, ChainRunner *run)
@@ -193,7 +226,7 @@ Protocol::Protocol(BMessage *settings, ChainRunner *run)
 		runner->AddHandler(h);
 		runner->PostMessage('DELE',h);
 		
-		trash_monitor = new TrashMonitor(this);
+		trash_monitor = new TrashMonitor(this,runner->Chain()->ID());
 		runner->AddHandler(trash_monitor);
 		runner->PostMessage('INIT',trash_monitor);
 	}
