@@ -207,8 +207,10 @@ status_t POP3Protocol::Retrieve(int32 message, BPositionIO *write_to)
 		int32 message_len = MessageSize(message);
  		write_to->Seek (0, SEEK_END);
 		if (write_to->Position() != message_len) {
-			printf ("POP3Protocol::Retrieve Bug!  Message size is %d, was "
-			"expecting %ld, for message #%ld.\n",
+			printf ("POP3Protocol::Retrieve Note: message size is %d, was "
+			"expecting %ld, for message #%ld.  Could be a transmission error "
+			"or a bad POP server implementation (does it remove escape codes "
+			"when it counts size?).\n",
 			(int) write_to->Position(), message_len, message);
 		}
 	}
