@@ -126,8 +126,13 @@ IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Rem
 	#endif
 	
 	int port = settings->FindInt32("port");
+	
 	if (port <= 0)
-		port = use_ssl ? 993 : 143;
+		#ifdef IMAPSSL
+			port = use_ssl ? 993 : 143;
+		#else
+			port = 143
+		#endif
 
 //-----Open TCP link	
 	runner->ReportProgress(0,0,MDR_DIALECT_CHOICE ("Opening connection...","接続中..."));
@@ -269,10 +274,12 @@ IMAP4Client::~IMAP4Client() {
 	
 	delete noop;
 	
+#ifdef IMAPSSL
 	if (use_ssl) {
 		SSL_shutdown(ssl);
 		SSL_CTX_free(ctx);
 	}
+#endif
 	
 #ifdef BONE
 	close(net);
@@ -409,13 +416,17 @@ status_t IMAP4Client::AddMessage(const char *mailbox, BPositionIO *data, BString
 		
 	char *buffer = new char[size];
 	data->ReadAt(0,buffer,size);
+#ifdef IMAPSSL
 	if (use_ssl) {
 		SSL_write(ssl,buffer,size);
 		SSL_write(ssl,"\r\n",2);
 	} else {
+#endif
 		send(net,buffer,size,0);
 		send(net,"\r\n",2,0);
+#ifdef IMAPSSL
 	}
+#endif
 	Select(mailbox,false,false,false,true);
 	
 	if (((struct mailbox_info *)(box_info.ItemAt(box_index)))->next_uid <= 0) {
@@ -866,9 +877,11 @@ IMAP4Client::SendCommand(const char* command)
 		
 	static char cmd[255];
 	::sprintf(cmd,"a%.7ld %s"CRLF,++commandCount,command);
+#ifdef IMAPSSL
 	if (use_ssl)
 		SSL_write(ssl,cmd,strlen(cmd));
 	else
+#endif
 		send(net,cmd,strlen(cmd),0);
 
 	PRINT(("C: %s",cmd));
@@ -898,9 +911,11 @@ IMAP4Client::ReceiveLine(BString &out, bigtime_t timeout, bool care)
 	/* Set the socket in the mask. */ 
 	FD_SET(net, &fds);
 	int result;
+#ifdef IMAPSSL
 	if (use_ssl)
 		result = 1;
 	else
+#endif
 		result = select(32, &fds, NULL, NULL, &tv);
 	
 	if (result < 0)
@@ -960,9 +975,11 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 		FD_ZERO(&fds);
 		
 		/* Set the socket in the mask. */ 
+#ifdef IMAPSSL
 		if (use_ssl)
 			result = 1;
 		else
+#endif
 			result = select(32, &fds, NULL, NULL, &tv);
 	}
 	
@@ -1031,9 +1048,11 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 						int read_octets = 0;
 						int nibble_size;
 						while (read_octets < octets_to_read) {
+						  #ifdef IMAPSSL
 							if (use_ssl)
 								nibble_size = SSL_read(ssl,buffer + read_octets,octets_to_read - read_octets);
 							else
+						  #endif
 								nibble_size = recv(net,buffer + read_octets,octets_to_read - read_octets,0);
 							read_octets += nibble_size;
 							if (report_literals)
