@@ -157,7 +157,7 @@ status_t MailSettings::InboundChains(BList *list)
 		char *end;
 		uint32 id = strtoul(ref.name, &end, 10);
 		
-		if (id && (!end || *end == '\0'))
+		if (!end || *end == '\0')
 			list->AddItem((void*)new MailChain(id));
 	}
 	
@@ -185,7 +185,7 @@ status_t MailSettings::OutboundChains(BList *list)
 	{
 		char *end;
 		uint32 id = strtoul(ref.name, &end, 10);
-		if (id && (!end || *end == '\0'))
+		if (!end || *end == '\0')
 			list->AddItem((void*)new MailChain(id));
 	}
 	
