@@ -126,8 +126,10 @@ status_t MailComponent::HeaderField(const char *key, BMessage *structure, int32 
 		end = string.FindFirst(';',i);
 		if (end < 0)
 			end = string.Length();
-			
+		
 		string.CopyInto(sub_cat,i,end - i);
+		i = end + 1;
+
 		//-------Trim spaces off of beginning and end of text
 		for (int32 h = 0; h < sub_cat.Length(); h++) {
 			if (!isspace(sub_cat.ByteAt(h))) {
