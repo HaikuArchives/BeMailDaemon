@@ -520,30 +520,47 @@ status_t TextComponent::RenderToRFC822(BPositionIO *render_to) {
 				strcpy(raw,alt.String());
 		}
 		modified.UnlockBuffer(len);
-		
-		//------Desperate bid to wrap lines
+
 		modified.ReplaceAll("\n","\r\n");
-		
-		int32 curr_line_length = 0;
-		int32 last_space = 0;
-		
-		for (int32 i = 0; i < modified.Length(); i++) {
-			if (isspace(modified.ByteAt(i)))
-				last_space = i;
-				
-			if ((modified.ByteAt(i) == '\r') && (modified.ByteAt(i+1) == '\n'))
-				curr_line_length = 0;
-			else
-				curr_line_length++;
-				
-			if (curr_line_length > 80) {
-				if (last_space >= 0) {
-					modified.Insert("\r\n",last_space);
-					last_space = -1;
-					curr_line_length = 0;
-				}
-			}
+
+		// There seem to be a possibility of NULL bytes in the text,
+		// so lets filter them out
+
+		char *string = modified.LockBuffer(modified.Length());
+		for (int32 i = modified.Length();i-- > 0;)
+		{
+			if (string[i] != '\0')
+				continue;
+
+			puts("NULL byte in text!!");
+			string[i] = ' ';
 		}
+		modified.UnlockBuffer();
+
+		// word wrapping is already done by BeMail (user-configurable)
+		// and it does it *MUCH* nicer.
+
+//		//------Desperate bid to wrap lines
+//		int32 curr_line_length = 0;
+//		int32 last_space = 0;
+//		
+//		for (int32 i = 0; i < modified.Length(); i++) {
+//			if (isspace(modified.ByteAt(i)))
+//				last_space = i;
+//				
+//			if ((modified.ByteAt(i) == '\r') && (modified.ByteAt(i+1) == '\n'))
+//				curr_line_length = 0;
+//			else
+//				curr_line_length++;
+//				
+//			if (curr_line_length > 80) {
+//				if (last_space >= 0) {
+//					modified.Insert("\r\n",last_space);
+//					last_space = -1;
+//					curr_line_length = 0;
+//				}
+//			}
+//		}
 	}	
 	modified << "\r\n";
 	
