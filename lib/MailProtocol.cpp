@@ -177,7 +177,9 @@ Protocol::ProcessMailMessage(BPositionIO **io_message, BEntry *io_entry,
 			for (int32 i = 0; i < to_delete.CountItems(); i++)
 				DeleteMessage(to_delete[i]);
 			
-			//*(unique_ids) -= to_delete; --- This line causes bad things to happen. Without it, bad things don't happen.
+			//*(unique_ids) -= to_delete; --- This line causes bad things to
+			// happen (POP3 client uses the wrong indices to retrieve
+			// messages).  Without it, bad things don't happen.
 			*(manifest) -= to_delete;
 		}
 	
