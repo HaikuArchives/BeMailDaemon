@@ -932,10 +932,10 @@ _EXPORT time_t ParseDateWithTimeZone (const char *DateString)
 	if (zoneIndex >= 0)
 	{
 		// Remove the zone from the date string and any following time zone
-		// letter codes.
+		// letter codes.  Also put in GMT so that the date gets parsed as GMT.
 		memcpy (tempZoneString, zonePntr, 5);
 		tempZoneString [5] = 0;
-		zonePntr[0] = 0; // Cut off the zone and the rest of the date string after it.
+		strcpy (zonePntr, "GMT");
 	}
 	else // No numeric time zone found.
 		strcpy (tempZoneString, "+0000");
