@@ -91,7 +91,7 @@ _EXPORT status_t get_pop_account(mail_pop_account* account, int32 index)
 	
   clean_up:
 	for (int32 i = 0; i < chains.CountItems(); i++)
-		delete chains.ItemAt(i);
+		delete (Zoidberg::Mail::Chain *)chains.ItemAt(i);
 		
 	return err;
 }
