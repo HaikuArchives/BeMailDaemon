@@ -1867,7 +1867,7 @@ status_t TTextView::Reader::Run(void *_this)
 
 	if (reader->fHeader)
 		size = len;
-	else if (reader->fRaw || !reader->fMime)
+	if (reader->fRaw || !reader->fMime)
 		reader->fFile->GetSize(&size);
 
 	if ((msg = (char *)malloc(size)) == NULL)
@@ -1878,7 +1878,7 @@ status_t TTextView::Reader::Run(void *_this)
 	// show the header?
 	if (reader->fHeader && len)
 	{
-		if (!reader->Process(msg, size, true))
+		if (!reader->Process(msg, len, true))
 			goto done;
 	}
 	if (reader->fRaw)
@@ -2046,7 +2046,7 @@ void TTextView::DeleteText(int32 start, int32 finish)
 void TTextView::ContentChanged(void)
 {
 	BLooper *looper;
-	if ((looper=Looper()) != NULL)
+	if ((looper = Looper()) != NULL)
 	{
 		BMessage msg(FIELD_CHANGED);
 		msg.AddInt32("bitmask", FIELD_BODY);
@@ -2071,8 +2071,9 @@ void TTextView::CheckSpelling(int32 start, int32 end, int32 flags)
 	bool		isAlpha;
 	bool		isApost;
 	
-	for (next=text+start, endPtr=text+end, wordLength=0, word=NULL; next<=endPtr;
-			next++) {
+	for (next = text + start, endPtr = text + end, wordLength = 0, word = NULL;
+			next <= endPtr; next++)
+	{
 		//printf("next=%c\n", *next);
 		// Alpha signifies the start of a word
 		isAlpha = isalpha(*next);
