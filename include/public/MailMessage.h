@@ -9,31 +9,40 @@
 #include <MailContainer.h>
 
 
+// add our additional attributes 
+#define B_MAIL_ATTR_ACCOUNT "MAIL:account"
+#define B_MAIL_ATTR_THREAD "MAIL:thread"
+
+
 namespace Zoidberg {
 namespace Mail {
 
 class Message : public Container {
 	public:
-		Message(BPositionIO *mail_file = NULL);
+		Message(BPositionIO *mail_file = NULL,bool own = false);
+		Message(entry_ref *ref);
 		virtual ~Message();
 
 		status_t InitCheck() const;
+		BPositionIO *Data() const { return fData; }
+			// is only set if the message owns the data
 
 		Message *ReplyMessage(bool reply_to_all,
 							  bool include_attachments = false,
 							  const char *quote_style = "> ");
 		Message *ForwardMessage(bool include_attachments = false,
 								const char *quote_style = "> ");
-		// These return messages with the body quoted and
-		// ready to send via the appropriate channel. ReplyMessage()
-		// addresses the message appropriately, but ForwardMessage()
-		// leaves it unaddressed.
+			// These return messages with the body quoted and
+			// ready to send via the appropriate channel. ReplyMessage()
+			// addresses the message appropriately, but ForwardMessage()
+			// leaves it unaddressed.
 
 		const char *To();
 		const char *From();
 		const char *ReplyTo();
 		const char *CC();
 		const char *Subject();
+		const char *Date();
 		int Priority();
 
 		void SetSubject(const char *to);
@@ -44,8 +53,14 @@ class Message : public Container {
 		void SetBCC(const char *to);
 		void SetPriority(int to);
 
+		status_t GetName(char *name,int32 maxLength) const;
+		status_t GetName(BString *name) const;
+
 		void SendViaAccount(const char *account_name);
 		void SendViaAccount(int32 chain_id);
+		int32 Account() const;
+		status_t GetAccountName(char *account,int32 maxLength) const;
+		status_t GetAccountName(BString *account) const;
 
 		virtual status_t AddComponent(Mail::Component *component);
 		virtual status_t RemoveComponent(int32 index);
@@ -76,6 +91,8 @@ class Message : public Container {
 		virtual void _ReservedMessage2();
 		virtual void _ReservedMessage3();
 
+		BPositionIO *fData;
+
 		status_t _status;
 		int32 _chain_id;
 		char *_bcc;
@@ -83,7 +100,7 @@ class Message : public Container {
 		int32 _num_components;
 		Mail::Component *_body;
 		Mail::TextComponent *_text_body;
-		
+
 		uint32 _reserved[5];
 };
 

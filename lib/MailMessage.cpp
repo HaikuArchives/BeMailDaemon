@@ -39,27 +39,54 @@ using namespace Zoidberg::Mail;
 #define mime_boundary "----------Zoidberg-BeMail-temp--------"
 #define mime_warning "This is a multipart message in MIME format."
 
-Message::Message(BPositionIO *mail_file)
-            :_status(B_NO_ERROR)
-			,_chain_id(0)
-            ,_bcc(NULL)
-            ,_num_components(0)
-            ,_body(NULL)
-            ,_text_body(NULL)
+
+Message::Message(BPositionIO *file,bool own)
+	:
+	fData(NULL),
+	_status(B_NO_ERROR),
+	_bcc(NULL),
+	_num_components(0),
+	_body(NULL),
+	_text_body(NULL)
 {
 	Mail::Settings settings;
 	_chain_id = settings.DefaultOutboundChainID();
-		
-	if (mail_file != NULL)
-		SetToRFC822(mail_file,-1);
+
+	if (own)
+		fData = file;
+
+	if (file != NULL)
+		SetToRFC822(file,-1);
 }
 
-Message::~Message() {
+
+Message::Message(entry_ref *ref)
+	:
+	_bcc(NULL),
+	_num_components(0),
+	_body(NULL),
+	_text_body(NULL)
+{
+	Mail::Settings settings;
+	_chain_id = settings.DefaultOutboundChainID();
+
+	fData = new BFile();
+	_status = static_cast<BFile *>(fData)->SetTo(ref,B_READ_ONLY);
+
+	if (_status == B_OK)
+		SetToRFC822(fData,-1);
+}
+
+
+Message::~Message()
+{
 	if (_bcc != NULL)
 		free(_bcc);
-		
+	
 	delete _body;
+	delete fData;
 }
+
 
 status_t Message::InitCheck() const
 {
@@ -85,6 +112,14 @@ const char *Message::CC() {
 const char *Message::Subject() {
 	return HeaderField("Subject");
 }
+
+
+const char *
+Message::Date()
+{
+	return HeaderField("Date");
+}
+
 
 void Message::SetSubject(const char *subject) {
 	SetHeaderField("Subject",subject);
@@ -113,7 +148,38 @@ void Message::SetBCC(const char *bcc) {
 	_bcc = strdup(bcc);
 }
 
-void Message::SendViaAccount(const char *account_name) {
+
+status_t 
+Message::GetName(char *name, int32 maxLength) const
+{
+	if (name == NULL || maxLength <= 0)
+		return B_BAD_VALUE;
+
+	if (BFile *file = dynamic_cast<BFile *>(fData)) {
+		status_t status = file->ReadAttr(B_MAIL_ATTR_NAME,B_STRING_TYPE,0,name,maxLength);
+		name[maxLength - 1] = '\0';
+
+		return status >= 0 ? B_OK : status;
+	}
+
+	return B_ERROR;
+}
+
+
+status_t 
+Message::GetName(BString *name) const
+{
+	char *buffer = name->LockBuffer(B_FILE_NAME_LENGTH);
+	status_t status = GetName(buffer,B_FILE_NAME_LENGTH);
+	name->UnlockBuffer();
+
+	return status;
+}
+
+
+void
+Message::SendViaAccount(const char *account_name)
+{
 	BList chains;
 	Mail::OutboundChains(&chains);
 	
@@ -127,8 +193,11 @@ void Message::SendViaAccount(const char *account_name) {
 	while (chains.CountItems() > 0)
 		delete chains.RemoveItem(0L);
 }
+
 	
-void Message::SendViaAccount(int32 chain_id) {
+void
+Message::SendViaAccount(int32 chain_id)
+{
 	_chain_id = chain_id;
 	
 	Mail::Chain chain(_chain_id);
@@ -137,7 +206,46 @@ void Message::SendViaAccount(int32 chain_id) {
 	SetFrom(from.String());
 }
 
-status_t Message::AddComponent(Mail::Component *component) {
+
+int32
+Message::Account() const
+{
+	return _chain_id;
+}
+
+
+status_t 
+Message::GetAccountName(char *account,int32 maxLength) const
+{
+	if (account == NULL || maxLength <= 0)
+		return B_BAD_VALUE;
+
+	if (BFile *file = dynamic_cast<BFile *>(fData)) {
+		status_t status = file->ReadAttr(B_MAIL_ATTR_ACCOUNT,B_STRING_TYPE,0,account,maxLength);
+		account[maxLength - 1] = '\0';
+
+		return status >= 0 ? B_OK : status;
+	}
+
+	// ToDo: try to get account name out of the chain lists
+	return B_ERROR;
+}
+
+
+status_t 
+Message::GetAccountName(BString *account) const
+{
+	char *buffer = account->LockBuffer(B_FILE_NAME_LENGTH);
+	status_t status = GetAccountName(buffer,B_FILE_NAME_LENGTH);
+	account->UnlockBuffer();
+
+	return status;
+}
+
+
+status_t
+Message::AddComponent(Mail::Component *component)
+{
 	status_t status = B_OK;
 
 	if (_num_components == 0)
@@ -273,21 +381,27 @@ Mail::TextComponent *Message::RetrieveTextBody(Mail::Component *component)
 }
 
 
-status_t Message::SetToRFC822(BPositionIO *mail_file, size_t length, bool parse_now) {
+status_t
+Message::SetToRFC822(BPositionIO *mail_file, size_t length, bool parse_now)
+{
 	if (BFile *file = dynamic_cast<BFile *>(mail_file))
 		file->ReadAttr("MAIL:chain",B_INT32_TYPE,0,&_chain_id,sizeof(_chain_id));
-	
+
 	mail_file->Seek(0,SEEK_END);
 	length = mail_file->Position();
 	mail_file->Seek(0,SEEK_SET);
-	
-	Mail::Component::SetToRFC822(mail_file,length,parse_now);
-	
+
+	_status = Mail::Component::SetToRFC822(mail_file,length,parse_now);
+	if (_status < B_OK)
+		return _status;
+
 	_body = WhatIsThis();
-	
+
 	mail_file->Seek(0,SEEK_SET);
-	_body->SetToRFC822(mail_file,length,parse_now);
-	
+	_status = _body->SetToRFC822(mail_file,length,parse_now);
+	if (_status < B_OK)
+		return _status;
+
 	//------------Move headers that we use to us, everything else to _body
 	const char *name;
 	for (int32 i = 0; (name = _body->HeaderAt(i)) != NULL; i++) {
@@ -295,59 +409,66 @@ status_t Message::SetToRFC822(BPositionIO *mail_file, size_t length, bool parse_
 		  && (strcasecmp(name,"To") != 0)
 		  && (strcasecmp(name,"From") != 0)
 		  && (strcasecmp(name,"Reply-To") != 0)
-		  && (strcasecmp(name,"CC") != 0)) {
+		  && (strcasecmp(name,"CC") != 0)
+		  && (strcasecmp(name,"Date") != 0)) {
 			RemoveHeader(name);
 		}
 	}
-	
+
 	_body->RemoveHeader("Subject");
 	_body->RemoveHeader("To");
 	_body->RemoveHeader("From");
 	_body->RemoveHeader("Reply-To");
 	_body->RemoveHeader("CC");
-	
+	_body->RemoveHeader("Date");
+
 	_num_components = 1;
 	if (MIMEMultipartContainer *container = dynamic_cast<MIMEMultipartContainer *>(_body))
 		_num_components = container->CountComponents();
-	
-	// what about a better error handling/checking?
-	_status = B_OK;	
+
 	return B_OK;
 }
 
-inline void TrimWhite(BString &string) {
-	int32 i;
-	for (i = 0; string.ByteAt(i) != 0; i++) {
-		if (!isspace(string.ByteAt(i)))
-			break;
+
+inline void
+TrimWhite(BString &string)
+{
+	char *buffer = string.LockBuffer(string.Length() + 1);
+
+	int32 i,length = strlen(buffer);
+	while (length > 0 && isspace(buffer[length - 1]))
+		length--;
+	buffer[length] = '\0';
+
+	for (i = 0; buffer[i] && isspace(buffer[i]); i++);
+	if (i != 0) {
+		length -= i;
+		memmove(buffer,buffer + i,length + 1);
 	}
-	string.Remove(0,i);
-	
-	for (i = string.Length() - 1; i > 0; i--) {
-		if (!isspace(string.ByteAt(i)))
-			break;
-	}
-	string.Truncate(i+1);
+	string.UnlockBuffer(length);
 }
 
-status_t Message::RenderToRFC822(BPositionIO *file) {
+
+status_t
+Message::RenderToRFC822(BPositionIO *file)
+{
 	if (_body == NULL)
 		return B_MAIL_INVALID_MAIL;
-	
+
 	//------Do real rendering
-	
+
 	if (From() == NULL)
 		SendViaAccount(_chain_id); //-----Set the from string
-	
+
 	BString recipients;
-	
+
 	recipients << To();
 	if ((CC() != NULL) && (strlen(CC()) > 0))
 		recipients << ',' << CC();
-	
+
 	if ((_bcc != NULL) && (strlen(_bcc) > 0))
 		recipients << ',' << _bcc;
-	
+
 	//----Turn "blorp" <blorp@foo.com>,foo@bar.com into <blorp@foo.com>,<foo@bar.com>
 	const char *flat = recipients.String();
 	StringList recipientsList;
@@ -429,14 +550,14 @@ status_t Message::RenderToRFC822(BPositionIO *file) {
 		attr = "1.0";
 		attributed->WriteAttrString(B_MAIL_ATTR_MIME,&attr);
 		attr = Mail::Chain(_chain_id).Name();
-		attributed->WriteAttrString("MAIL:account",&attr);
-		
+		attributed->WriteAttrString(B_MAIL_ATTR_ACCOUNT,&attr);
+
 		attributed->WriteAttr(B_MAIL_ATTR_WHEN,B_TIME_TYPE,0,&creationTime,sizeof(int32));
 		int32 flags = B_MAIL_PENDING | B_MAIL_SAVE;
 		attributed->WriteAttr(B_MAIL_ATTR_FLAGS,B_INT32_TYPE,0,&flags,sizeof(int32));
-		
+
 		attributed->WriteAttr("MAIL:chain",B_INT32_TYPE,0,&_chain_id,sizeof(int32));
-		
+
 		BNodeInfo(attributed).SetType(B_MAIL_TYPE);
 	}
 	
