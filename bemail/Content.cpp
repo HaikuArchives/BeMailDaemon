@@ -359,6 +359,7 @@ TTextView::TTextView(BRect frame, BRect text, bool incoming, BFile *file,
 			fReady(false),
 			fYankBuffer(NULL),
 			fLastPosition(-1),
+			fFile(NULL),
 			fMail(NULL),
 			fFont(font),
 			fParent(view),
@@ -369,7 +370,8 @@ TTextView::TTextView(BRect frame, BRect text, bool incoming, BFile *file,
 			fRaw(false),
 			fCursor(false)
 {
-	fFile = new BFile(*file);
+	if (file)
+		fFile = new BFile(*file);
 
 	BFont	menuFont = *be_plain_font;
 	menuFont.SetSize(10);
