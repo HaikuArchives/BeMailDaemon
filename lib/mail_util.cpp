@@ -367,59 +367,95 @@ _EXPORT ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 	return ret < B_OK ? ret : string-head;
 }
 
-_EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, char encoding) {
+_EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, char encoding) {
 	struct word {
-		const char *begin;
-		size_t length;
-
-		bool has_8bit;
+		BString	convertedWord;
+		bool	unprintable;
 	};
-
-	{
-	int32 state = 0;
-	int32 len = length*5; // Some character sets bloat up quite a bit, even 5 times.
-	char *result = (char *)malloc(len);
-	//-----Just try
-	MDR_convert_from_utf8(charset,*bufp,&length,result,&len,&state);
-	length = len;
-
-	result[length] = 0;
-
-	free(*bufp);
-	*bufp = result;
-	}
-
+	struct word *currentWord;
 	BList words;
-	struct word *current;
 
-	for (const char *start = *bufp; start < (*bufp+length); start++) {
-		current = new struct word;
-		current->begin = start;
-		current->has_8bit = false;
+	// Break the header into words.  White space characters (including tabs and
+	// newlines) separate the words.  The number of spaces doesn't matter, we
+	// just treat runs as one.  Except for quoted strings, where we treat the
+	// whole quote as a "word" so that the spaces don't get lost.
 
-		for (current->length = 0; start[current->length] != 0; current->length++) {
-			if (isspace(start[current->length]))
-				break;
-			if (start[current->length] & (1 << 7))
-				current->has_8bit = true;
-			// A control character (0 to 31 decimal), like the escape codes
-			// used by ISO-2022-JP, or NULs in UTF-16 probably should be
-			// transfered in encoded mode too.  Though ISO-2022-JP is supposed
-			// to have the encoded words ending in ASCII mode (it switches
-			// between 4 different character sets using escape codes), but that
-			// would mean mixing in the character set conversion with the
-			// encoding code, which we can't do (or do character set conversion
-			// for each word separately?).
-			if (start[current->length] >= 0 && start[current->length] < 32)
-				current->has_8bit = true;
+	const char *source = *bufp;
+	const char *bufEnd = *bufp + length;
+
+	while (source < bufEnd) {
+		if (isspace (*source)) {
+			// Skip leading spaces, spaces between words.
+			source++;
+			continue;
 		}
+		bool quoted = (*source == '"');
 
-		start += current->length;
+		currentWord = new struct word;
+		currentWord->unprintable = false;
+		int wordEnd;
 
-		words.AddItem(current);
+		// Find the end of the word.  Leave wordEnd pointing just after the
+		// last character in the word.
+
+		for (wordEnd = quoted ? 1 : 0; source + wordEnd < bufEnd; wordEnd++) {
+			if (quoted) {
+				if (source[wordEnd] == '"')
+					break;
+			} else {
+				if (isspace(source[wordEnd]))
+					break;
+			}
+		}
+		if (quoted && source[wordEnd] == '"')
+			wordEnd++;
+				// Include the trailing quote (if present) in the quoted "word"
+				// but don't include the trailing space for regular words.
+
+		// Convert the word from UTF-8 to the desired character set.  The
+		// converted version also includes the escape codes to return to ASCII
+		// mode, if relevant.  Also note if it uses unprintable characters,
+		// which means it will need special treatment later.
+
+		int32 state = 0;
+		int32 originalLength = wordEnd;
+		int32 convertedLength = originalLength * 5; // Some character sets bloat up quite a bit, even 5 times.
+		char *convertedBuffer = currentWord->convertedWord.LockBuffer (convertedLength);
+		MDR_convert_from_utf8 (charset, source, &originalLength,
+			convertedBuffer, &convertedLength, &state);
+
+		for (int i = 0; i < convertedLength; i++)
+			if ((convertedBuffer[i] & (1 << 7)) ||
+				(convertedBuffer[i] >= 0 && convertedBuffer[i] < 32))
+				currentWord->unprintable = true;
+
+		currentWord->convertedWord.UnlockBuffer (convertedLength);
+		words.AddItem(currentWord);
+
+		source += wordEnd;
 	}
 
-	BString rfc2047;
+	// Combine adjacent words which contain unprintable text so that the
+	// overhead of switching back and forth between regular text and specially
+	// encoded text is reduced.  However, the combined word must be shorter
+	// than the maximum of 75 bytes, including character set specification and
+	// all those delimiters (worst case 22 bytes of overhead).
+
+	struct word *run;
+
+	for (int32 i = 0; (currentWord = (struct word *) words.ItemAt (i)) != NULL; i++) {
+		for (int32 g = i+1; (run = (struct word *) words.ItemAt (g)) != NULL; g++) {
+			if (run->unprintable && currentWord->unprintable &&
+				(currentWord->convertedWord.Length() + run->convertedWord.Length() <= 53)) {
+				currentWord->convertedWord << ' ';
+				currentWord->convertedWord.Append (run->convertedWord);
+				words.RemoveItem(g);
+				delete run;
+				g--;
+			} else // Can't merge this word.  On to the next...
+				break;
+		}
+	}
 
 	const char *charset_dec = NULL;
 	for (int32 i = 0; charsets[i].charset != NULL; i++) {
@@ -429,66 +465,61 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, cha
 		}
 	}
 
-	// Combine adjacent words which need encoding into a bigger word.
-	struct word *run;
-	for (int32 i = 0; (current = (struct word *)words.ItemAt(i)) != NULL; i++) {
-		for (int32 g = i+1; (run = (struct word *)words.ItemAt(g)) != NULL; g++) {
-			if (run->has_8bit && current->has_8bit) {
-				current->length += run->length+1;
-				delete (struct word *)words.RemoveItem(g);
-				g--;
-			} else {
-				//i = g;
-				break;
-			}
-		}
-	}
+	// Do special encoding for words which aren't plain ASCII.  Only quoted
+	// printable and base64 are allowed for header encoding, according to the
+	// standards.
 
-	// Encode words which aren't plain ASCII.  Only quoted printable and base64
-	// are allowed for header encoding, according to the standards.
-	while ((current = (struct word *)words.RemoveItem(0L)) != NULL) {
+	BString rfc2047;
+	bool firstTime = true;
+
+	while ((currentWord = (struct word *)words.RemoveItem(0L)) != NULL) {
+		if (firstTime)
+			firstTime = false;
+		else // Put just a regular space between the words.
+			rfc2047 << " ";
+
 		if ((encoding != quoted_printable && encoding != base64) ||
-		!current->has_8bit) {
-			rfc2047.Append(current->begin, current->length + 1);
-			delete current;
+		!currentWord->unprintable) {
+			rfc2047.Append (currentWord->convertedWord);
 		} else {
 			char *encoded = NULL;
 			ssize_t encoded_len = 0;
+			int32 convertedLength = currentWord->convertedWord.Length ();
+			const char *convertedBuffer = currentWord->convertedWord.String ();
 
 			switch (encoding) {
 				case quoted_printable:
-					encoded = (char *)malloc(current->length * 3);
-					encoded_len = encode_qp(encoded,current->begin,current->length,true);
+					encoded = (char *) malloc (convertedLength * 3);
+					encoded_len = encode_qp (encoded, convertedBuffer, convertedLength, true);
 					break;
 				case base64:
-					encoded = (char *)malloc(current->length * 2);
-					encoded_len = encode_base64(encoded,current->begin,current->length);
+					encoded = (char *) malloc (convertedLength * 2);
+					encoded_len = encode_base64 (encoded, convertedBuffer, convertedLength);
 					break;
 				default: // Unknown encoding type, shouldn't happen.
-					encoded = (char *)current->begin;
-					encoded_len = current->length;
+					encoded = (char *) convertedBuffer;
+					encoded_len = convertedLength;
 					break;
 			}
 
-#ifdef DEBUG
-			printf("String: %s, len: %ld\n",current->begin,current->length);
-#endif
-
 			rfc2047 << "=?" << charset_dec << '?' << encoding << '?';
-			rfc2047.Append(encoded,encoded_len);
-			rfc2047 << "?=" << current->begin[current->length];
+			rfc2047.Append (encoded, encoded_len);
+			rfc2047 << "?=";
 
 			if (encoding == quoted_printable || encoding == base64)
 				free(encoded);
 		}
+		delete currentWord;
 	}
 
 	free(*bufp);
 
-	*bufp = (char *)(malloc(rfc2047.Length() + 1));
-	strcpy(*bufp,rfc2047.String());
+	ssize_t finalLength = rfc2047.Length ();
+	*bufp = (char *) (malloc (finalLength + 1));
+	memcpy (*bufp, rfc2047.String(), finalLength);
+	(*bufp)[finalLength] = 0;
 
-	return rfc2047.Length();
+	return finalLength;
 }
 
 
