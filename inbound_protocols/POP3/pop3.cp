@@ -197,9 +197,26 @@ size_t POP3Protocol::MailDropSize()
 
 status_t POP3Protocol::Retrieve(int32 message, BPositionIO *write_to)
 {
+	status_t returnCode;
 	BString cmd;
 	cmd << "RETR " << message + 1 << CRLF;
-	//status_t result = RetrieveInternal(cmd.String(),message,write_to, true);
+	returnCode = RetrieveInternal(cmd.String(), message, write_to, true);
+	runner->ReportProgress(0 /* bytes */, 1 /* messages */);
+
+	if (returnCode == B_OK) { // Some debug code.
+		int32 message_len = MessageSize(message);
+ 		write_to->Seek (0, SEEK_END);
+		if (write_to->Position() != message_len) {
+			printf ("POP3Protocol::Retrieve Bug!  Message size is %d, was "
+			"expecting %ld, for message #%ld.\n",
+			(int) write_to->Position(), message_len, message);
+		}
+	}
+
+	return returnCode;
+
+#if 0
+    // Occasional bugs with this code, sometimes see "+OK 2881 octets" text in message.
 	int32 message_len = MessageSize(message);
 	if (SendCommand(cmd.String()) != B_OK)
 		return B_ERROR;
@@ -221,6 +238,7 @@ status_t POP3Protocol::Retrieve(int32 message, BPositionIO *write_to)
 	delete [] buffer;
 	runner->ReportProgress(0,1);
 	return B_OK;
+#endif
 }
 
 
@@ -232,31 +250,34 @@ status_t POP3Protocol::GetHeader(int32 message, BPositionIO *write_to)
 }
 
 
-status_t POP3Protocol::RetrieveInternal(const char *command, int32,
+status_t POP3Protocol::RetrieveInternal(const char *command, int32 message,
 	BPositionIO *write_to, bool post_progress)
 {
 	const int bufSize = 10240;
-	BString content = "";
-	
-	if (SendCommand(command) != B_OK)
-		return B_ERROR;
-		
-	int32 r;
-	
-	char *buf = new char[bufSize];
-	if (!buf) {
-		fLog = "Memory was exhausted";
-		return B_ERROR;
-	}
-	
-	write_to->Seek(0,SEEK_SET);
 
+	// To avoid waiting for the non-arrival of the next data packet, try to
+	// receive only the message size, plus the 3 extra bytes for the ".\r\n"
+	// after the message.  Of course, if we get it wrong (or it is a huge
+	// message), it will then switch back to receiving full buffers until the
+	// message is done.
+	int amountToReceive = MessageSize (message) + 3;
+	if (amountToReceive >= bufSize || amountToReceive <= 0)
+		amountToReceive = bufSize - 1;
+	
+	int32 r;
+	BString bufBString; // Used for auto-dealloc on return feature.
+	char *buf = bufBString.LockBuffer (bufSize);
 	int32 content_len = 0;
 	bool cont = true;
-	
+	write_to->Seek(0,SEEK_SET);
+
+	if (SendCommand(command) != B_OK)
+		return B_ERROR;
+
 	while (cont) {
 		if (conn.IsDataPending(POP3_RETRIEVAL_TIMEOUT)) {
-			r = conn.Receive(buf, bufSize-1);
+			r = conn.Receive(buf, amountToReceive);
+			amountToReceive = bufSize - 1;
 			if (r < 0)
 				return conn.Error();
 			if (r == 0)
@@ -267,20 +288,15 @@ status_t POP3Protocol::RetrieveInternal(const char *command, int32,
 				
 			content_len += r;			
 			buf[r] = '\0';
-			content = buf;
 			
-			if (content_len > 5 &&
-				r >= 5 &&
+			if (r >= 5 &&
 				buf[r-1] == '\n' && 
 				buf[r-2] == '\r' &&
 				buf[r-3] == '.'  &&
 				buf[r-4] == '\n' &&
-				buf[r-5] == '\r' ) {
-					
+				buf[r-5] == '\r' )
 				cont = false;
-			}
 				
-			//content.ReplaceAll("\n..","\n.");
 			write_to->Write(buf,r);
 			
 			if ((content_len > 5) && (r < 5)) {
@@ -293,11 +309,8 @@ status_t POP3Protocol::RetrieveInternal(const char *command, int32,
 			}
 		}
 	}
-	
-	write_to->SetSize(write_to->Position() - 5);
-	
-	delete[] buf;
-	
+
+	write_to->SetSize(write_to->Position() - 3 /* All but the last ".\r\n" */);
 	return B_OK;
 }
 
@@ -395,6 +408,23 @@ int32 POP3Protocol::ReceiveLine(BString &line) {
 
 status_t POP3Protocol::SendCommand(const char* cmd) {
 	int32 len;
+
+	// Flush any accumulated garbage data before we send our command, so we
+	// don't misinterrpret responses from previous commands (that got left over
+	// due to bugs) as being from this command.
+
+	while (conn.IsDataPending(1000 /* very short timeout, hangs with 0 in R5 */)) {
+		int amountReceived;
+		char tempString [1025];
+		amountReceived = conn.Receive (tempString, sizeof (tempString) - 1);
+		if (amountReceived < 0)
+			return conn.Error();
+		tempString [amountReceived] = 0;
+		printf ("POP3Protocol::SendCommand Bug!  Had to flush %d bytes: %s\n",
+			amountReceived, tempString);
+		if (amountReceived == 0)
+			break;
+	}
 
 	if (conn.Send(cmd, ::strlen(cmd)) < 0)
 		return conn.Error();
