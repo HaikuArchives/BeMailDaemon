@@ -1,0 +1,23 @@
+BEOS Mail Daemon Replacement v2.0.0 Beta 1
+
+BEEP! THIS IS A TEST OF THE EMERGENCY BROADCAST SYSTEM.
+
+KNOWN BUGS AND UPDATE DANGERS
+
+There are a few bugs in this version of the Mail Daemon Replacement. (Would this be a beta otherwise?) We will only admit that two of them are bugs, but the rest are things that you really should be aware of.
+
+BUGS:
+
+1) Japanese and Chinese characters aren't handled correctly. Maybe some other things aren't as well, but for now anything not translatable into UTF8 doesn't work. We're working on this. Honest.
+
+2) Your inbox *must* be on your boot disk. We'll have a fix for this soon, but be aware of this. If you don't, you will soon start seeing errors about cross-device links and all your mail will be deleted. Don't say we didn't warn you. The e-mail monster is hiding in a cross-device link. Don't bring him out!
+
+IT'S NOT A BUG, IT'S A FEATURE:
+
+1) The settings file format has changed since the last release, and drastically since version 1. Therefore you will be obliged to re-enter your settings. Sorry. But you had to for the last release, too, and since this is a bug fix for that, it will never happen again. We promise.
+
+2) The settings file thing means that if you had "Leave Mail On Server" set, then the mail daemon daemon will redownload every single message on the server. This is the last time it will happen! Really! As a consolation, mail fetch should be slightly faster with this option on than before.
+
+3) The settings in things like Postmaster and the old e-mail prefs that used the settings of the old mail daemon will no longer be able to save settings. They will however be able to read them, since we were nice and added that feature. But what are you doing using Postmaster anyway?
+
+THANK YOU FOR LISTENING. WE WILL NOW RETURN TO OUR REGULARLY SCHEDULED PROGRAM. BEEP!
