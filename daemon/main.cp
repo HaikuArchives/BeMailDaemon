@@ -225,7 +225,9 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 			}
 			if (alert_string != B_EMPTY_STRING) {
 				alert_string.Truncate(alert_string.Length()-1);
-				ShowAlert("New Messages",alert_string.String());
+				MDR_DIALECT_CHOICE (
+					ShowAlert("New Messages",alert_string.String());,
+					ShowAlert("新しいメッセージ",alert_string.String());)
 				alert_string = B_EMPTY_STRING;
 			}
 			break;

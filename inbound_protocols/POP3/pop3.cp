@@ -23,8 +23,8 @@ using namespace Zoidberg;
 
 #define POP3_RETRIEVAL_TIMEOUT 60000000
 #define CRLF	"\r\n"
-#define pop3_error(string) (new BAlert("POP3 Error",string,"OK",NULL,NULL,B_WIDTH_AS_USUAL,B_WARNING_ALERT))->Go()
 
+#define pop3_error(string) (new BAlert(MDR_DIALECT_CHOICE ("POP3 Error","POP3エラー"),string,MDR_DIALECT_CHOICE ("OK","了解"),NULL,NULL,B_WIDTH_AS_USUAL,B_WARNING_ALERT))->Go()
 
 POP3Protocol::POP3Protocol(BMessage *settings, Mail::StatusView *status)
 	: Mail::SimpleProtocol(settings,status),
@@ -60,7 +60,7 @@ status_t POP3Protocol::Open(const char *server, int port, int)
 	
 	//-----Prime the error message
 	BString error_msg;
-	error_msg << MDR_DIALECT_CHOICE ("Error while connecting to server "," サーバに接続中にエラーが発生しました ") << server;
+	error_msg << MDR_DIALECT_CHOICE ("Error while connecting to server ","サーバに接続中にエラーが発生しました ") << server;
 	if (port != 110)
 		error_msg << ":" << port;
 
@@ -68,7 +68,7 @@ status_t POP3Protocol::Open(const char *server, int port, int)
 	err = conn.Connect(server, port);
 
 	if (err != B_OK) {
-		error_msg << MDR_DIALECT_CHOICE (": Connection refused or host not found","：接続が拒否されたかサーバーが見つかりません");
+		error_msg << MDR_DIALECT_CHOICE (": Connection refused or host not found",": ：接続が拒否されたかサーバーが見つかりません");
 		pop3_error(error_msg.String());
 		
 		return err;

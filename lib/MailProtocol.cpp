@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include <MDRLanguage.h>
+
 namespace Zoidberg {
 namespace Mail {
 	class _EXPORT Protocol;
@@ -53,8 +55,13 @@ class MessageDeletion : public Mail::ChainCallback {
 
 inline void error_alert(const char *process, status_t error) {
 	BString string;
-	string << "Error while " << process << ": " << strerror(error);
-	Mail::ShowAlert("error_alert",string.String(),"Ok",B_WARNING_ALERT);
+	MDR_DIALECT_CHOICE (
+		string << "Error while " << process << ": " << strerror(error);
+		Mail::ShowAlert("error_alert",string.String(),"Ok",B_WARNING_ALERT);
+	,
+		string << process << "中にエラーが発生しました: " << strerror(error);
+		Mail::ShowAlert("エラー",string.String(),"了解",B_WARNING_ALERT);
+	)
 }
 
 
@@ -95,7 +102,10 @@ MDStatus Protocol::ProcessMailMessage
 			unique_ids = new StringList;
 			error = UniqueIDs();
 			if (error < B_OK) {
-				error_alert("fetching unique ids",error);
+				MDR_DIALECT_CHOICE (
+					error_alert("fetching unique ids",error);,
+					error_alert("固有のIDを受信中にエラーが発生しました",error);
+				)
 				return MD_NO_MORE_MESSAGES;
 			}
 			parent->RegisterProcessCallback(new DeletePass(this));
@@ -106,8 +116,10 @@ MDStatus Protocol::ProcessMailMessage
 
 		if (error < B_OK) {
 			if ((error != B_TIMED_OUT) && (error != B_NAME_NOT_FOUND))
-				error_alert("getting next new message",error);
-			
+				MDR_DIALECT_CHOICE (
+					error_alert("getting next new message",error);,
+					error_alert("次の新しいメッセージを取得中にエラーが発生しました",error);
+				)			
 			return MD_NO_MORE_MESSAGES;
 		}
 		
@@ -120,7 +132,10 @@ MDStatus Protocol::ProcessMailMessage
 			if (error == B_NAME_NOT_FOUND)
 				return MD_NO_MORE_MESSAGES;
 				
-			error_alert("getting a message",error);
+			MDR_DIALECT_CHOICE (
+				error_alert("getting a message",error);,
+				error_alert("新しいメッセージヲ取得中にエラーが発生しました",error);
+			)
 			return MD_DISCARD; //--Would MD_NO_MORE_MESSAGES be more appropriate?
 		}
 				

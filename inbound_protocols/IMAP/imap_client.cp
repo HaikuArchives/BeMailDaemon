@@ -577,7 +577,10 @@ IMAP4Client::SendCommand(const char* command)
 	char *cmd = new char[strlen(command) + 15];
 	if(!cmd)
 	{
-		(new BAlert("","Memory was exhausted","OK",NULL,NULL,B_WIDTH_AS_USUAL,B_STOP_ALERT))->Go();
+		MDR_DIALECT_CHOICE (
+			(new BAlert("","Memory was exhausted","OK",NULL,NULL,B_WIDTH_AS_USUAL,B_STOP_ALERT))->Go();,
+			(new BAlert("","メモリー不足です","了解",NULL,NULL,B_WIDTH_AS_USUAL,B_STOP_ALERT))->Go();
+		)		
 		return B_ERROR;
 	}
 

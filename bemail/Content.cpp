@@ -593,8 +593,8 @@ TContentView::MessageReceived(BMessage *msg)
 			else
 			{
 				beep();
-				(new BAlert("", "An error occurred trying to open this signature.",
-					"Sorry"))->Go();
+				(new BAlert("", MDR_DIALECT_CHOICE ("An error occurred trying to open this signature.","この署名を開くときにエラーが発生しました"),
+					MDR_DIALECT_CHOICE ("Sorry","了解")))->Go();
 			}
 			break;
 
@@ -1761,7 +1761,7 @@ TTextView::Open(hyper_text *enclosure)
 			if ((result != B_NO_ERROR) && (result != B_ALREADY_RUNNING))
 			{
 				beep();
-				(new BAlert("", "There is no installed handler for URL links.",
+				(new BAlert("", MDR_DIALECT_CHOICE ("There is no installed handler for URL links.","このURLリンクを扱えるアプリケーションが存在しません"),
 					"Sorry"))->Go();
 			}
 			break;
@@ -1922,8 +1922,10 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 	if (result != B_NO_ERROR)
 	{
 		beep();
-		(new BAlert("", "An error occurred trying to save the enclosure.",
-			"Sorry"))->Go();
+		MDR_DIALECT_CHOICE (
+			(new BAlert("", "An error occurred trying to save the enclosure.","Sorry"))->Go();,
+			(new BAlert("", "添付ファイルを保存するときにエラーが発生しました","了解"))->Go();
+		)
 	}
 
 	return result;

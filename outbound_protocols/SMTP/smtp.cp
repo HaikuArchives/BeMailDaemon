@@ -42,7 +42,7 @@ using namespace Zoidberg;
 #endif
 
 //#define smtp_errlert(string) (new BAlert("SMTP Error", string, "OK", NULL, NULL, B_WIDTH_AS_USUAL,B_WARNING_ALERT))->Go();
-#define smtp_errlert(string) Mail::ShowAlert("SMTP Error", string);
+#define smtp_errlert(string) Mail::ShowAlert(MDR_DIALECT_CHOICE ("SMTP Error","SMTPエラー"), string);
 
 
 // Authentication types recognized. Not all methods are implemented.

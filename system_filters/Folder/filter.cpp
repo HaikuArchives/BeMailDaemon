@@ -125,9 +125,11 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	if (err < 0)
 	{
 		BString error;
-		error << "An error occurred while saving the message " << out_headers->FindString("Subject") << " to " << path.Path() << ": " << strerror(err);
-
-		Mail::ShowAlert("Folder Error",error.String(),"OK",B_WARNING_ALERT);
+		MDR_DIALECT_CHOICE (
+			error << "An error occurred while saving the message " << out_headers->FindString("Subject") << " to " << path.Path() << ": " << strerror(err);
+			,error << out_headers->FindString("Subject") << " のメッセージを " <<  path.Path() << "に保存中にエラーが発生しました" << strerror(err);
+		)
+		Mail::ShowAlert(MDR_DIALECT_CHOICE ("Folder Error","フォルダエラー"),error.String(),MDR_DIALECT_CHOICE ("OK","了解"),B_WARNING_ALERT);
 
 		return MD_ERROR;
 	}
@@ -178,9 +180,11 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	if (err != B_OK)
 	{
 		BString error;
-		error << "An error occurred while saving the message " << out_headers->FindString("Subject") << " to " << path.Path() << ": " << strerror(err);
-
-		Mail::ShowAlert("Folder Error",error.String(),"OK",B_WARNING_ALERT);
+		MDR_DIALECT_CHOICE (
+			error << "An error occurred while saving the message " << out_headers->FindString("Subject") << " to " << path.Path() << ": " << strerror(err);
+			,error << out_headers->FindString("Subject") << " のメッセージを " <<  path.Path() << "に保存中にエラーが発生しました" << strerror(err);
+		)
+		Mail::ShowAlert(MDR_DIALECT_CHOICE ("Folder Error","フォルダエラー"),error.String(),MDR_DIALECT_CHOICE ("OK","了解"),B_WARNING_ALERT);
 
 		return MD_ERROR;
 	}
