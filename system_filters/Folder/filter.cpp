@@ -174,14 +174,14 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	int32 uniquer = time(NULL);
 	worker << name << uniquer;
 
-	while (destination.Contains(worker.String())) {
+	int32 tries = 20;
+	while ((err = e->Rename(worker.String)) == B_FILE_EXISTS && --tries > 0) {
+		srand(uniquer);
+		uniquer += (rand() >> 16) - 16384;
+
 		worker = name;
-		uniquer++;
-		
 		worker << ' ' << uniquer;
 	}
-	
-	err = e->Rename(worker.String());
 	if (err < B_OK)
 		printf("could not rename mail (%s)! (should be: %s)\n",strerror(err),worker.String());
 
