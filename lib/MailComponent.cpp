@@ -400,9 +400,11 @@ status_t PlainTextBodyComponent::Render(BPositionIO *render_to) {
 			curr_line_length++;
 			
 		if (curr_line_length > 80) {
-			modified.Insert("\r\n",last_space+1);
-			i = last_space;
-			curr_line_length = 0;
+			if (last_space >= 0) {
+				modified.Insert("\r\n",last_space);
+				last_space = -1;
+				curr_line_length = 0;
+			}
 		}
 	}
 	

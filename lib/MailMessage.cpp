@@ -305,12 +305,11 @@ status_t MailMessage::RenderTo(BFile *file) {
 	int32 last_i = 0;
 	for (int32 i = 0; (recipients.ByteAt(i) != 0) && (last_i >= 0); i++) {		
 		if ((recipients.FindFirst(',',i) < recipients.FindFirst('<',i)) || (recipients.FindFirst('<',i) < 0)) {
-			puts("Yay!");
 			recipients.Insert("<",i);
 			i = last_i = recipients.FindFirst(',',i) + 1;
 			
 			if (i <= 0) {
-				i = recipients.Length() + 1;
+				i = recipients.Length();
 				last_i = -1;
 			}
 			
