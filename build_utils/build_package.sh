@@ -75,15 +75,18 @@ for f in inbound_* outbound_* system_* ; do
 	fi
 done
 
-cp documentation/read_us/* $BUILD_PATH
+cp documentation/read_us/README $BUILD_PATH
+mdir $BUILD_PATH/Extra\ Documentation
+cp documentation/read_us/* $BUILD_PATH/Extra\ Documentation
+rm -f $BUILD_PATH/Extra\ Documentation/README
 cp build_utils/ExtraMenuLinksForR5Tracker.zip $BUILD_PATH/bin
-mkdir -p $BUILD_PATH/AGMSBayesianSpamDocumentation/pictures
-cp -v documentation/AGMSBayesianSpam/*html $BUILD_PATH/AGMSBayesianSpamDocumentation/
-cp documentation/AGMSBayesianSpam/pictures/*png $BUILD_PATH/AGMSBayesianSpamDocumentation/pictures/
-mkdir -p $BUILD_PATH/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/art
-cp -v documentation/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/*html $BUILD_PATH/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/
-cp documentation/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/art/*.* $BUILD_PATH/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/art/
-mkdir -p $BUILD_PATH/Mass\ Mailing
-cp --preserve --verbose documentation/Mass\ Mailing/* $BUILD_PATH/Mass\ Mailing/
+mkdir -p $BUILD_PATH/Extra\ Documentation/AGMSBayesianSpamDocumentation/pictures
+cp -v documentation/AGMSBayesianSpam/*html $BUILD_PATH/Extra\ Documentation/AGMSBayesianSpamDocumentation/
+cp documentation/AGMSBayesianSpam/pictures/*png $BUILD_PATH/Extra\ Documentation/AGMSBayesianSpamDocumentation/pictures/
+mkdir -p $BUILD_PATH/Extra\ Documentation/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/art
+cp -v documentation/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/*html $BUILD_PATH/Extra\ Documentation/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/
+cp documentation/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/art/*.* $BUILD_PATH/Extra\ Documentation/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/art/
+mkdir -p $BUILD_PATH/Extra\ Documentation/Mass\ Mailing
+cp --preserve --verbose documentation/Mass\ Mailing/* $BUILD_PATH/Extra\ Documentation/Mass\ Mailing/
 
 mimeset -f $BUILD_PATH
