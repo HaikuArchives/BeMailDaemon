@@ -98,9 +98,9 @@ extern BPoint	prefs_window;
 
 const EncodingItem kEncodings[] =
 {
-	// B_MS_WINDOWS is a superset of B_ISO1, MS mailers lie and send Windows chars as ISO-1
-	// we still don't want to pretend we would use the Windows 1252 codetable;
-	// this should only be done at decoding stage, axeld.
+	// B_MS_WINDOWS is a superset of B_ISO1, MS mailers lie and send Windows
+	// chars as ISO-1 we still don't want to pretend we would use the Windows
+	// 1252 codetable; this should only be done at decoding stage, axeld.
 	// {"ISO-8859-1", B_MS_WINDOWS_CONVERSION},
 	{"ISO-8859-1 (Latin-1)", B_ISO1_CONVERSION},
 	{"ISO-8859-2", B_ISO2_CONVERSION},
@@ -125,6 +125,7 @@ const EncodingItem kEncodings[] =
 	{"DOS-437 (common)", B_MS_DOS_CONVERSION},
 	{"DOS-866 (rarer)", B_MS_DOS_866_CONVERSION},
 	{"Macintosh Roman", B_MAC_ROMAN_CONVERSION},
+	{"US-ASCII", MDR_US_ASCII_CONVERSION},
 	{"UTF-8 (BeOS)", MDR_UTF8_CONVERSION},
 
 	{"Automatic", MDR_NULL_CONVERSION /* marks end of list, only visible when decoding */}

@@ -2817,7 +2817,8 @@ TMailWindow::Send(bool now)
 	if (characterSetToUse == B_SJIS_CONVERSION ||
 		characterSetToUse == B_EUC_CONVERSION)
 		encodingForBody = base64;
-	else if (characterSetToUse == B_JIS_CONVERSION)
+	else if (characterSetToUse == B_JIS_CONVERSION ||
+		characterSetToUse == MDR_US_ASCII_CONVERSION)
 		encodingForBody = seven_bit;
 	else if (characterSetToUse == B_EUC_KR_CONVERSION)
 		encodingForBody = eight_bit;

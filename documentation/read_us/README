@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v2.0.1 Beta 2
+BEOS Mail Daemon Replacement v2.0.1 Beta 3
 
 ABOUT:
 
@@ -149,6 +149,9 @@ ADDON INSTALLATION.
    pretty pictures.  Also see the note about SampleSpamDatabase.
 
 HISTORY:
+
+April 30 2003 - v2.0.1b3
+- Added US-ASCII encoding and decoding, which also uses 7bit rather than quoted printable.
 
 April 13 2003 - v2.0.1b2
 - Make the encoding menu slide around when resizing the window.  Can only do it for reading a mail message, not when composing, since pop-up menus don't resize (a BeOS bug).

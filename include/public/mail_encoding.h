@@ -13,7 +13,9 @@
 #define MDR_NULL_CONVERSION ((uint32) -1)
 #define MDR_UTF8_CONVERSION ((uint32) -2)
 // For specifying the UTF-8 character set when converting to/from UTF-8.
-
+#define MDR_US_ASCII_CONVERSION ((uint32) -3)
+// Plain 7 bit ASCII character set.  A subset of UTF-8, but some mail software
+// specifies it so we need to recognize it.
 
 #define BASE64_LINELENGTH 76
 

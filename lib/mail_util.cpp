@@ -62,7 +62,8 @@ extern const CharsetConversionEntry charsets [] =
 	{"dos-437",     B_MS_DOS_CONVERSION},
 	{"dos-866",     B_MS_DOS_866_CONVERSION},
 	{"x-mac-roman", B_MAC_ROMAN_CONVERSION},
-	/* {"utf-16",		B_UNICODE_CONVERSION}, Doesn't work due to NULs in text */
+	/* {"utf-16",		B_UNICODE_CONVERSION}, Might not work due to NULs in text, needs testing. */
+	{"us-ascii",	MDR_US_ASCII_CONVERSION},
 	{"utf-8",		MDR_UTF8_CONVERSION /* Special code for no conversion */},
 	{NULL, (uint32) -1} /* End of list marker, NULL string pointer is the key. */
 };
@@ -70,7 +71,8 @@ extern const CharsetConversionEntry charsets [] =
 
 // The next couple of functions are our wrapper around convert_to_utf8 and
 // convert_from_utf8 so that they can also convert from UTF-8 to UTF-8 by
-// specifying the MDR_UTF8_CONVERSION constant as the conversion operation.
+// specifying the MDR_UTF8_CONVERSION constant as the conversion operation.  It
+// also lets us add new conversions, like MDR_US_ASCII_CONVERSION.
 
 status_t MDR_convert_to_utf8 (
 	uint32 srcEncoding,
@@ -89,6 +91,29 @@ status_t MDR_convert_to_utf8 (
 		if (*dstLen < copyAmount)
 			copyAmount = *dstLen;
 		memcpy (dst, src, copyAmount);
+		*srcLen = copyAmount;
+		*dstLen = copyAmount;
+		return B_OK;
+	}
+
+	if (srcEncoding == MDR_US_ASCII_CONVERSION)
+	{
+		int32 i;
+		unsigned char letter;
+		copyAmount = *srcLen;
+		if (*dstLen < copyAmount)
+			copyAmount = *dstLen;
+		for (i = 0; i < copyAmount; i++) {
+			letter = *src++;
+			if (letter > 0x80U)
+				// Invalid, could also use substitute, but better to strip high bit.
+				*dst++ = letter - 0x80U;
+			else if (letter == 0x80U)
+				// Can't convert to 0x00 since that's NUL, which would cause problems.
+				*dst++ = substitute;
+			else
+				*dst++ = letter;
+		}
 		*srcLen = copyAmount;
 		*dstLen = copyAmount;
 		return B_OK;
@@ -122,6 +147,65 @@ status_t MDR_convert_from_utf8 (
 		memcpy (dst, src, copyAmount);
 		*srcLen = copyAmount;
 		*dstLen = copyAmount;
+		return B_OK;
+	}
+
+	if (dstEncoding == MDR_US_ASCII_CONVERSION)
+	{
+		int32			characterLength;
+		int32			dstRemaining = *dstLen;
+		unsigned char	letter;
+		int32			srcRemaining = *srcLen;
+
+		// state contains the number of source bytes to skip, left over from a
+		// partial UTF-8 character split over the end of the buffer from last
+		// time.
+		if (srcRemaining <= *state) {
+			*state -= srcRemaining;
+			*dstLen = 0;
+			return B_OK;
+		}
+		srcRemaining -= *state;
+		src += *state;
+		*state = 0;
+
+		while (true) {
+			if (srcRemaining <= 0 || dstRemaining <= 0)
+				break;
+			letter = *src;
+			if (letter < 0x80)
+				characterLength = 1; // Regular ASCII equivalent code.
+			else if (letter < 0xC0)
+				characterLength = 1; // Invalid in-between data byte 10xxxxxx.
+			else if (letter < 0xE0)
+				characterLength = 2;
+			else if (letter < 0xF0)
+				characterLength = 3;
+			else if (letter < 0xF8)
+				characterLength = 4;
+			else if (letter < 0xFC)
+				characterLength = 5;
+			else if (letter < 0xFE)
+				characterLength = 6;
+			else
+				characterLength = 1; // 0xFE and 0xFF are invalid in UTF-8.
+			if (letter < 0x80)
+				*dst++ = *src;
+			else
+				*dst++ = substitute;
+			dstRemaining--;
+			if (srcRemaining < characterLength) {
+				// Character split past the end of the buffer.
+				*state = characterLength - srcRemaining;
+				srcRemaining = 0;
+			} else {
+				src += characterLength;
+				srcRemaining -= characterLength;
+			}
+		}
+		// Update with the amounts used.
+		*srcLen = *srcLen - srcRemaining;
+		*dstLen = *dstLen - dstRemaining;
 		return B_OK;
 	}
 
