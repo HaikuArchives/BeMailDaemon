@@ -66,6 +66,17 @@ const uint32 kMsgSaveSettings = 'svst';
 const uint32 kMsgRevertSettings = 'rvst';
 const uint32 kMsgCancelSettings = 'cnst';
 
+class AccountsListView : public BListView {
+	public:
+		AccountsListView(BRect rect) : BListView(rect,NULL,B_SINGLE_SELECTION_LIST,B_FOLLOW_ALL) {}
+		virtual	void KeyDown(const char *bytes, int32 numBytes) {
+			if (numBytes != 1)
+				return;
+			
+			if ((*bytes == B_DELETE) || (*bytes == B_BACKSPACE))
+				Window()->PostMessage(kMsgRemoveAccount);
+		}
+};
 
 class BitmapView : public BView
 {
@@ -255,7 +266,7 @@ ConfigWindow::ConfigWindow()
 	rect = view->Bounds().InsetByCopy(8,8);
 	rect.right = 140 - B_V_SCROLL_BAR_WIDTH;
 	rect.bottom -= height + 12;
-	fAccountsListView = new BListView(rect,NULL,B_SINGLE_SELECTION_LIST,B_FOLLOW_ALL);
+	fAccountsListView = new AccountsListView(rect);
 	view->AddChild(new BScrollView(NULL,fAccountsListView,B_FOLLOW_ALL,0,false,true));
 	rect.right += B_V_SCROLL_BAR_WIDTH;
 
