@@ -80,7 +80,7 @@ StatusWindow::StatusWindow(BRect rect, const char *name, uint32 s)
 			if (frame.Width() >= min_width && frame.Height() >= min_height)
 			{
 				float x_off_set = frame.Width() - min_width;
-				float y_off_set = frame.Height() - min_height;
+				float y_off_set = 0; //---The height is constant
 
 				ResizeBy(x_off_set, y_off_set);
 				default_view->ResizeBy(x_off_set, y_off_set);
