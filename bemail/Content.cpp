@@ -2257,7 +2257,8 @@ TTextView::Reader::ParseMail(Mail::Container *container,Mail::TextComponent *ign
 }
 
 
-bool TTextView::Reader::Process(const char *data, int32 data_len, bool isHeader)
+bool
+TTextView::Reader::Process(const char *data, int32 data_len, bool isHeader)
 {
 	const char *urlPrefixes[] = {
 		"http://",
@@ -2277,27 +2278,22 @@ bool TTextView::Reader::Process(const char *data, int32 data_len, bool isHeader)
 	int32	count = 0;
 	int32	index;
 
-	for (int32 loop = 0; loop < data_len; loop++)
-	{
-		if ((fQuote) && ((!loop) || ((loop) && (data[loop - 1] == '\n'))))
-		{
+	for (int32 loop = 0; loop < data_len; loop++) {
+		if ((fQuote) && ((!loop) || ((loop) && (data[loop - 1] == '\n')))) {
 			strcpy(&line[count], QUOTE);
 			count += strlen(QUOTE);
 		}
 		if (!fRaw && loop && data[loop - 1] == '\n' && data[loop] == '.')
 			continue;
 
-		if (!fRaw && fIncoming && (loop < data_len - 7))
-		{
+		if (!fRaw && fIncoming && (loop < data_len - 7)) {
 			int32 type = 0;
 
 			//
 			//	Search for URL prefix
 			//
-			for (const char **i = urlPrefixes; *i != 0; ++i)
-			{
-				if (!cistrncmp(&data[loop], *i, strlen(*i)))
-				{
+			for (const char **prefix = urlPrefixes; *prefix != 0; prefix++) {
+				if (!cistrncmp(&data[loop], *prefix, strlen(*prefix))) {
 					type = TYPE_URL;
 					break;	
 				}
@@ -2308,18 +2304,15 @@ bool TTextView::Reader::Process(const char *data, int32 data_len, bool isHeader)
 			//
 			if (type == 0 && !cistrncmp(&data[loop], "mailto:", strlen("mailto:")))
 				type = TYPE_MAILTO;
-			if (type == 0 && !strncmp(&data[loop], "www.", 4))
-			{
+			if (type == 0 && !strncmp(&data[loop], "www.", 4)) {
 				// this type will be special cased later (and a http:// is added
 				// for the enclosure address)
 				type = TYPE_URL;
 			}
 
-			if (type)
-			{
-				if (type == TYPE_URL)
-				{
-					index = strcspn(data+loop, " <>\"\r\n");
+			if (type) {
+				if (type == TYPE_URL) {
+					index = strcspn(data + loop, " <>\"\r\n");
 
 					// filter out some punctuation marks if they are the last character
 					char suffix = data[loop + index - 1];
@@ -2331,11 +2324,21 @@ bool TTextView::Reader::Process(const char *data, int32 data_len, bool isHeader)
 						|| suffix == ';')
 						index--;
 
+					char *parenthesis = NULL;
+
 					// filter out a trailing ')' if there is no left parenthesis before
-					char *parenthesis = strchr(data + loop,'(');
-					if (data[loop + index - 1] == ')'
-						&& (parenthesis == NULL || parenthesis > data + loop + index))
-						index--;
+					if (data[loop + index - 1] == ')') {
+						char *parenthesis = strchr(data + loop, '(');
+						if (parenthesis == NULL || parenthesis > data + loop + index)
+							index--;
+					}
+
+					// filter out a trailing ']' if there is no left bracket before
+					if (parenthesis == NULL && data[loop + index - 1] == ']') {
+						char *parenthesis = strchr(data + loop, '[');
+						if (parenthesis == NULL || parenthesis > data + loop + index)
+							index--;
+					}
 
 					/*if (!isspace(data[loop + index + 1]) && !isspace(data[loop + index + 2]))
 						index = strcspn(data + loop + index + 1," <>)\"\r\n");*/
@@ -2359,9 +2362,9 @@ bool TTextView::Reader::Process(const char *data, int32 data_len, bool isHeader)
 					if (!Insert(line, count - 1, false, isHeader))
 						return false;
 					bracket = true;
-				}
-				else if (!Insert(line, count, false, isHeader))
+				} else if (!Insert(line, count, false, isHeader))
 					return false;
+
 				count = 0;
 
 				hyper_text *enclosure = (hyper_text *)malloc(sizeof(hyper_text));
@@ -2371,20 +2374,21 @@ bool TTextView::Reader::Process(const char *data, int32 data_len, bool isHeader)
 				enclosure->type = type;
 
 				// copy the address to the enclosure				
-				if (type == TYPE_URL && data[loop] == 'w')
-				{
+				if (type == TYPE_URL && data[loop] == 'w') {
 					// URL starts with "www.", so add the protocol to it
+
 					enclosure->name = (char *)malloc(index + 1 + 7);
 					if (enclosure->name == NULL)
 						return false;
+
 					memcpy(enclosure->name, "http://", 7);
 					memcpy(enclosure->name + 7, &data[loop], index);
 					enclosure->name[index + 7] = '\0';
-				} else
-				{
+				} else {
 					enclosure->name = (char *)malloc(index + 1);
 					if (enclosure->name == NULL)
 						return false;
+
 					memcpy(enclosure->name, &data[loop], index);
 					enclosure->name[index] = '\0';
 				}
@@ -2403,18 +2407,15 @@ bool TTextView::Reader::Process(const char *data, int32 data_len, bool isHeader)
 				continue;
 			}
 		}
-		if (!fRaw && fMime && data[loop] == '=')
-		{
+		if (!fRaw && fMime && data[loop] == '=') {
 			if ((loop) && (loop < data_len - 1) && (data[loop + 1] == '\r'))
 				loop += 2;
 			else
 				line[count++] = data[loop];
-		}
-		else if (data[loop] != '\r')
+		} else if (data[loop] != '\r')
 			line[count++] = data[loop];
 
-		if ((count > 511) || ((count) && (loop == data_len - 1)))
-		{
+		if ((count > 511) || ((count) && (loop == data_len - 1))) {
 			if (!Insert(line, count, false, isHeader))
 				return false;
 			count = 0;
@@ -2424,7 +2425,8 @@ bool TTextView::Reader::Process(const char *data, int32 data_len, bool isHeader)
 }
 
 
-bool TTextView::Reader::Insert(const char *line, int32 count, bool isHyperLink, bool isHeader)
+bool
+TTextView::Reader::Insert(const char *line, int32 count, bool isHyperLink, bool isHeader)
 {
 	if (!count)
 		return true;
