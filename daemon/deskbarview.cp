@@ -12,6 +12,7 @@
 #include <FindDirectory.h>
 #include <String.h>
 #include <Messenger.h>
+#include <Deskbar.h>
 
 #include <stdio.h>
 #include <malloc.h>
@@ -129,25 +130,31 @@ void DeskbarView::ReInitDefault(void) {
 }
 
 void DeskbarView::AttachedToWindow() {
-	BVolume boot;
-	query = new BQuery;
+	if (be_roster->IsRunning("application/x-vnd.Be-POST")) {
+		BVolume boot;
+		query = new BQuery;
 	
-	BVolumeRoster().GetBootVolume(&boot);
-	query->SetTarget(this);
-	query->SetVolume(&boot);
-	query->PushAttr("MAIL:status");
-	query->PushString("New");
-	query->PushOp(B_EQ);
-	query->PushAttr("BEOS:TYPE");
-	query->PushString("text/x-email");
-	query->PushOp(B_EQ);
-	query->PushOp(B_AND);
-	query->Fetch();
+		BVolumeRoster().GetBootVolume(&boot);
+		query->SetTarget(this);
+		query->SetVolume(&boot);
+		query->PushAttr("MAIL:status");
+		query->PushString("New");
+		query->PushOp(B_EQ);
+		query->PushAttr("BEOS:TYPE");
+		query->PushString("text/x-email");
+		query->PushOp(B_EQ);
+		query->PushOp(B_AND);
+		query->Fetch();
+		
+		BEntry entry;
+		for (new_messages = 0; query->GetNextEntry(&entry) == B_OK; new_messages++);
 	
-	BEntry entry;
-	for (new_messages = 0; query->GetNextEntry(&entry) == B_OK; new_messages++);
-	
-	ChangeIcon((new_messages > 0) ? NEW_MAIL : NO_MAIL);
+		ChangeIcon((new_messages > 0) ? NEW_MAIL : NO_MAIL);
+	} else {
+		BDeskbar *deskbar = new BDeskbar();
+		deskbar->RemoveItem("mail_daemon");
+		delete deskbar;
+	}
 }
 
 DeskbarView* DeskbarView::Instantiate(BMessage *data) {
