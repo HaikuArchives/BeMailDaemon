@@ -83,8 +83,6 @@ status_t MailChain::Load(BMessage* settings)
 
 status_t MailChain::InitCheck() const
 {
-	if (id<0)
-		return B_NAME_NOT_FOUND;
 	if (settings_ct!=addons_ct)
 		return B_MISMATCHED_VALUES;
 	if (filter_settings.CountItems()!=settings_ct

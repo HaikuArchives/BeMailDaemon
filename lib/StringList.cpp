@@ -7,15 +7,19 @@ class _EXPORT StringList;
 
 #include "StringList.h"
 
-StringList::StringList(int32 itemsPerBlock) : 
-	strings(new BList(itemsPerBlock)) {
+StringList::StringList(int32 itemsPerBlock)
+	: BFlattenable(),
+	strings(new BList(itemsPerBlock))
+{
 		//----do nothing, and do it well------
-	}
+}
 	
-StringList::StringList(const StringList& from) :
-	strings(new BList) {
+StringList::StringList(const StringList& from)
+	: BFlattenable(),
+	strings(new BList)
+{
 		*this = from;
-	}
+}
 
 StringList	&StringList::operator=(const StringList &from) {
 	MakeEmpty();

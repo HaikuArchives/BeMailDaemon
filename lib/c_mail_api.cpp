@@ -1,7 +1,7 @@
 #include <E-mail.h>
 #include <MailDaemon.h>
 
-_EXPORT status_t	check_for_mail(int32 *incoming_count) {
+_EXPORT status_t	check_for_mail(int32 * /*incoming_count*/) {
 	//----How do we do incoming count?
 	
 	return MailDaemon::CheckMail(true);

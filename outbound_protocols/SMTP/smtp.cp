@@ -69,8 +69,8 @@ status_t SMTPProtocol::InitCheck(BString *verbose) {
 
 MDStatus SMTPProtocol::ProcessMailMessage
 	(
-		BPositionIO** io_message, BEntry* io_entry,
-		BMessage* io_headers, BPath* io_folder, BString* io_uid
+		BPositionIO** io_message, BEntry* /*io_entry*/,
+		BMessage* io_headers, BPath* /*io_folder*/, BString* /*io_uid*/
 	) {
 		if (Send(io_headers->FindString("MAIL:recipients"),io_headers->FindString("MAIL:from"),*io_message) == B_OK) {
 			status_view->AddItem();

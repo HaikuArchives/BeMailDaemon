@@ -31,7 +31,7 @@ status_t MailSettings::InitCheck() const
 }
 
 
-status_t MailSettings::Save(bigtime_t timeout)
+status_t MailSettings::Save(bigtime_t /*timeout*/)
 {
 	status_t ret;
 	//
