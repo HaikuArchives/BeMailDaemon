@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v2.0.0 Beta 1
+BEOS Mail Daemon Replacement v2.0.0 Beta 4
 
 ABOUT:
 
@@ -100,10 +100,10 @@ Header filters.
 
 FILTERS:
 
-This release contains three filter addons. To enable them, use E-mail Filters
+This release contains four filter addons. To enable them, use E-mail Filters
 in preferences, and choose the appropriate direction to apply them in
 (specified below), then add that filter. You can add several instances of
-the same filter type, although this is only reccomended for RuleFilter. Addons
+the same filter type, although this is only recomended for RuleFilter. Addons
 will be executed in the order they appear in the list, and can be reorderd with
 a simple drag and drop. To install new filters, follow the directions in 
 ADDON INSTALLATION.
@@ -129,7 +129,15 @@ ADDON INSTALLATION.
    This works for any header field. Also, THREAD is a special header
    containing (you guessed it!) the message thread.
 
+ AGMS Bayesian Spam Filter
+   Documentation about this filter is available in the AGMSBayesianSpamDocumentation folder.
+
 HISTORY:
+
+November 20 2002 - v2.0.0b4
+ - Zillions of bug fixes. Too much to mention, really
+ - Lots of new features (we will let you have fun discovering them)
+ - Bayesian Spam Filter included
 
 February 12 2002 - v2.0.0b1
   - Serious speed and stability improvements
