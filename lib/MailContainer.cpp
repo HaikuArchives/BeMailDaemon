@@ -382,7 +382,8 @@ status_t MIMEMultipartContainer::SetToRFC822(BPositionIO *data, size_t length, b
 	if (copy_data) {
 		for (i = 0; GetComponent(i) != NULL; i++) {}
 	}
-
+	
+	data->Seek (topLevelEnd, SEEK_SET);
 	return B_OK;
 }
 
