@@ -215,6 +215,9 @@ TMailApp::TMailApp()
 		fPrefs = new BFile(&entry, O_RDWR);
 		if (fPrefs->InitCheck() == B_NO_ERROR)
 		{
+			// ToDo: Use a flattened BMessage for the settings format, this raw
+			// binary stuff is fragile - changes can break it, minor file
+			// corruption will crash it, etc.
 			fPrefs->Read(&mail_window, sizeof(BRect));
 			fPrefs->Read(&level, sizeof(level));
 
@@ -243,6 +246,20 @@ TMailApp::TMailApp()
 			}
 
 			fPrefs->Read(&gMailCharacterSet, sizeof(int32));
+			for (uint32 index = 0; true; index++) {
+				if (kEncodings[index].flavor == MDR_NULL_CONVERSION) {
+					// The prefs file has an unknown character set (happens if
+					// you revert back to an earlier version of the software).
+					// Use the default one instead, otherwise you get very
+					// weird messages (garbage text contents due to UTF-8
+					// conversion failing, "none-bug" character set name in
+					// headers, resulting in unreadable messages).
+					gMailCharacterSet = B_MS_WINDOWS_CONVERSION;
+					break;
+				}
+				if (kEncodings[index].flavor == gMailCharacterSet)
+					break;
+			}
 
 			if (fPrefs->Read(&len, sizeof(int32)) > 0)
 			{
