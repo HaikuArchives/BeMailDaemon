@@ -9,6 +9,7 @@
 
 #include <malloc.h>
 #include <string.h>
+#include <stdio.h>
 #include <sys/utsname.h>
 
 class _EXPORT MailMessage;

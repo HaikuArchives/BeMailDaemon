@@ -233,6 +233,7 @@ AttributedMailAttachment::AttributedMailAttachment(entry_ref *ref) {
 	
 	_attributes_attach = new SimpleMailAttachment;
 	_attributes_attach->AddHeaderField("Content-Type","application/x-be_attribute; name=\"BeOS Attributes\"");
+	AddComponent(_attributes_attach);
 	
 	AddHeaderField("Content-Type","multipart/x-bfile");
 	AddHeaderField("Content-Disposition","Attachment");
@@ -258,19 +259,32 @@ void AttributedMailAttachment::SetTo(BFile *file, bool delete_file_when_done) {
 		_data->SetDecodedDataAndDeleteWhenDone(file);
 	else
 		_data->SetDecodedData(file);
+	
+	//---Also, we have the make up the boundary out of whole cloth
+	//------This is likely to give a completely random string---
+	BString boundary;
+	boundary << "BFile--" << (int32(file) ^ time(NULL)) << ":" << ~((int32)file ^ (int32)&buffer ^ (int32)&_attributes) << "--";
+	SetBoundary(boundary.String()); 
 }
 	
 void AttributedMailAttachment::SetTo(entry_ref *ref) {
 	char buffer[512];
 	BNode node(ref);
 	_attributes << node;
+	BFile *file = new BFile(ref,B_READ_ONLY); 
 	
-	BFile *file = new BFile(ref,B_READ_ONLY);
 	_data->SetDecodedDataAndDeleteWhenDone(file);
 	BNodeInfo(file).GetType(buffer);
 	_data->AddHeaderField("Content-Type",buffer);
 	
 	SetFileName(ref->name);
+	
+	//------This is likely to give a completely random string---
+	BString boundary;
+	BString name = ref->name;
+	name.ReplaceAll(' ','_');
+	boundary << "BFile:" << name << "--" << ((int32)file ^ time(NULL)) << ":" << ~((int32)file ^ (int32)&buffer ^ (int32)&_attributes) << "--";
+	SetBoundary(boundary.String());
 }
 
 void AttributedMailAttachment::SaveToDisk(BEntry *entry) {

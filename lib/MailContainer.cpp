@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <malloc.h>
 
 class _EXPORT MIMEMultipartContainer;
 
@@ -20,13 +21,23 @@ typedef struct message_part {
 
 MIMEMultipartContainer::MIMEMultipartContainer(const char *boundary, const char *this_is_an_MIME_message_text) :
 	MailComponent(), 
-	_boundary(boundary),
+	_boundary(NULL),
 	_MIME_message_warning(this_is_an_MIME_message_text),
 	_io_data(NULL) {		
 		AddHeaderField("MIME-Version","1.0");
 		AddHeaderField("Content-Type","multipart/mixed");
 		SetBoundary(boundary);
 	}
+
+/*MIMEMultipartContainer::MIMEMultipartContainer(MIMEMultipartContainer &copy) :
+	MailComponent(copy), 
+	_boundary(copy._boundary),
+	_MIME_message_warning(copy._MIME_message_warning),
+	_io_data(copy._io_data) {		
+		AddHeaderField("MIME-Version","1.0");
+		AddHeaderField("Content-Type","multipart/mixed");
+		SetBoundary(boundary);
+	}*/
 
 MIMEMultipartContainer::~MIMEMultipartContainer() {
 	void *data;
@@ -38,13 +49,16 @@ MIMEMultipartContainer::~MIMEMultipartContainer() {
 		if ((data = _components_in_code.ItemAt(i)) != NULL)
 			delete data;
 	}
+	
+	if (_boundary != NULL)
+		free(_boundary);
 }
 
 void MIMEMultipartContainer::SetBoundary(const char *boundary) {
-	_boundary = boundary;
+	_boundary = strdup(boundary);
 	
 	BMimeType mime;
-	MIMEType(&mime);
+	MailComponent::MIMEType(&mime); //------Use MailComponent's because of the AttributedMailAttachment implements this
 	BString type;
 	type << mime.Type() << "; boundary=\"" << boundary << "\"";
 	AddHeaderField("Content-Type",type.String());
@@ -146,6 +160,8 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length) {
 			
 	if (type.ByteAt(0) == '\"')
 		type.RemoveAll("\"");
+		
+	_boundary = strdup(type.String());
 		
 	type.Prepend("--");
 
