@@ -273,9 +273,11 @@ void AttributedMailAttachment::SetTo(entry_ref *ref) {
 	
 	//------This is likely to give a completely random string---
 	BString boundary;
-	BString name = ref->name;
-	name.ReplaceAll(' ','_');
-	boundary << "BFile:" << name << "--" << ((int32)file ^ time(NULL)) << ":" << ~((int32)file ^ (int32)&buffer ^ (int32)&_attributes) << "--";
+	strcpy(buffer, ref->name);
+	for (int32 i = strlen(buffer);i-- > 0;)
+		if (buffer[i] & 0x80 || buffer[i] == ' ')
+			buffer[i] = 'x';
+	boundary << "BFile:" << buffer << "--" << ((int32)file ^ time(NULL)) << ":" << ~((int32)file ^ (int32)&buffer ^ (int32)&_attributes) << "--";
 	SetBoundary(boundary.String());
 }
 
@@ -303,7 +305,6 @@ mail_encoding AttributedMailAttachment::Encoding() {
 }
 
 status_t AttributedMailAttachment::FileName(char *name) {
-puts("AttributedMailAttachment::FileName()");
 	return _data->FileName(name);
 }
 	

@@ -107,9 +107,6 @@ typedef struct {
 	node_ref node;
 } hyper_text;
 
-bool acquire_window_sem(BWindow *, sem_id);
-status_t release_window_sem(BWindow *, sem_id);
-
 class TSavePanel;
 
 
