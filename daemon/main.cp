@@ -92,7 +92,7 @@ void MailDaemonApp::RefsReceived(BMessage *a_message) {
 	BNode node;
 	int32 id;
 	BString uid;
-	size_t size;
+	int32 size;
 	BPath path;
 	status->Activate(true);
 	for (int32 i = 0; a_message->FindRef("refs",i,&ref) == B_OK; i++) {
@@ -105,7 +105,7 @@ void MailDaemonApp::RefsReceived(BMessage *a_message) {
 			size = -1;
 		
 		path.SetTo(&ref);
-		printf("Fetching the rest of the message %s (%d bytes)\n",uid.String(),size);
+		printf("Fetching the rest of the message %s (%ld bytes)\n",uid.String(),size);
 		Mail::ChainRunner *runner = Mail::GetRunner(id,status);
 		runner->GetSingleMessage(uid.String(),size,&path);
 	}
