@@ -129,6 +129,8 @@ enum MENUS {
 	M_TO_MENU,
 	M_CC_MENU,
 	M_BCC_MENU,
+	/* accounts */
+	M_ACCOUNT,
 	/* nav */
 	M_NEXTMSG,
 	M_PREVMSG
@@ -277,6 +279,8 @@ private:
 	bool fSent;
 	bool fDraft;
 	bool fChanged;
+	
+	uint32 fChain;
 };
 
 //====================================================================

@@ -73,6 +73,8 @@ All rights reserved.
 #include "FieldMsg.h"
 #include "Words.h"
 
+#include <MailSettings.h>
+
 const char *kUndoStrings[] = {
 	"Undo",
 	"Undo Typing",
@@ -106,6 +108,7 @@ Words 		*gWords[MAX_DICTIONARIES], *gExactWords[MAX_DICTIONARIES];
 int32 		gUserDict;
 BFile 		*gUserDictFile;
 int32 		gDictCount = 0;
+uint32		gDefaultChain;
 
 static const char *kDraftPath = "mail/draft";
 static const char *kDraftType = "text/plain";
@@ -189,8 +192,10 @@ TMailApp::TMailApp()
 				FindWindow::SetFindString(findString);
 				free(findString);
 			}
-			if( fPrefs->Read(&show_buttonbar, sizeof(bool)) <= 0 )
+			if (fPrefs->Read(&show_buttonbar, sizeof(bool)) <= 0)
 				show_buttonbar = true;
+			if (fPrefs->Read(&gDefaultChain, sizeof(uint32)) <= 0)
+				gDefaultChain = ~0L;
 		}
 		else {
 			delete fPrefs;
@@ -499,6 +504,7 @@ bool TMailApp::QuitRequested()
 			fPrefs->Write(&len, sizeof(int32));
 			fPrefs->Write(findString, len);
 			fPrefs->Write(&show_buttonbar, sizeof(bool));
+			fPrefs->Write(&gDefaultChain, sizeof(uint32));
 		}
 		return true;
 	}
@@ -1095,6 +1101,38 @@ skip:			if (!done) {
 		menu_bar->AddItem(menu);
 	}
 
+	//
+	//	Accounts Menu
+	//
+	if (!fIncoming) {
+		menu = new BMenu("Accounts");
+		MailSettings settings;
+		BList chains;
+		if (settings.OutboundChains(&chains) >= B_OK) {
+			fChain = gDefaultChain;
+			BMessage *msg;
+			bool marked = false;
+			for (int32 i = 0;i < chains.CountItems();i++) {
+				MailChain *chain = (MailChain *)chains.ItemAt(i);
+				BMenuItem *item = new BMenuItem(chain->Name(),msg = new BMessage(M_ACCOUNT));
+
+				msg->AddInt32("id",chain->ID());
+
+				if (gDefaultChain == chain->ID()) {
+					item->SetMarked(true);
+					marked = true;
+				}
+				menu->AddItem(item);
+			}
+			if (!marked) {
+				menu->ItemAt(0)->SetMarked(true);
+				fChain = menu->ItemAt(0)->Message()->FindInt32("id");
+			}
+			gDefaultChain = fChain;
+		}
+		menu_bar->AddItem(menu);
+	}
+
 	Lock();
 	AddChild(menu_bar);
 	height = menu_bar->Bounds().bottom + 1;
@@ -1563,6 +1601,16 @@ void TMailWindow::MessageReceived(BMessage* msg)
 		case CHANGE_FONT:
 			PostMessage(msg, fContentView);
 			break;
+
+		case M_ACCOUNT:
+		{
+			uint32 chain;
+			if (msg->FindInt32("id",(int32 *)&chain) >= B_OK) {
+				fChain = chain;
+				gDefaultChain = chain;
+			}
+			break;
+		}
 
 		case M_NEW:
 			message = new BMessage(M_NEW);
@@ -2498,11 +2546,11 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *wind, bool all)
 
 status_t TMailWindow::Send(bool now)
 {
-	if( !now )
+	if (!now)
 	{
 		status_t status;
 		
-		if( (status = SaveAsDraft()) != B_OK )
+		if ((status = SaveAsDraft()) != B_OK)
 		{
 			beep();
 			(new BAlert("","E-mail draft could not be saved!", "OK"))->Go();
