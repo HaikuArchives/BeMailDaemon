@@ -41,9 +41,6 @@ using namespace Zoidberg;
 #	define D(x) ;
 #endif
 
-//#define smtp_errlert(string) (new BAlert("SMTP Error", string, "OK", NULL, NULL, B_WIDTH_AS_USUAL,B_WARNING_ALERT))->Go();
-#define smtp_errlert(string) runner->ShowError(string);
-
 
 // Authentication types recognized. Not all methods are implemented.
 enum AuthType {
@@ -70,7 +67,7 @@ SMTPProtocol::SMTPProtocol(BMessage *message, Mail::ChainRunner *run)
 		fStatus = POP3Authentification();
 		if (fStatus < B_OK) {
 			error_msg << MDR_DIALECT_CHOICE ("POP3 authentification failed. The server said:\n","POP3認証に失敗しました\n") << fLog;
-			smtp_errlert(error_msg.String());
+			runner->ShowError(error_msg.String());
 			return;
 		}
 	}
@@ -88,7 +85,7 @@ SMTPProtocol::SMTPProtocol(BMessage *message, Mail::ChainRunner *run)
 		else
 			error_msg << MDR_DIALECT_CHOICE (": Connection refused or host not found.","；接続が拒否されたかサーバーが見つかりません");
 
-		smtp_errlert(error_msg.String());
+		runner->ShowError(error_msg.String());
 		return;
 	}
 
@@ -104,7 +101,7 @@ SMTPProtocol::SMTPProtocol(BMessage *message, Mail::ChainRunner *run)
 		//-----This is a really cool kind of error message. How can we make it work for POP3?
 		error_msg << MDR_DIALECT_CHOICE ("Error while logging in to ","ログイン中にエラーが発生しました\n") << fSettings->FindString("server") 
 			<< MDR_DIALECT_CHOICE (". The server said:\n","サーバーエラー\n") << fLog;
-		smtp_errlert(error_msg.String());
+		runner->ShowError(error_msg.String());
 	}
 }
 
@@ -128,6 +125,7 @@ SMTPProtocol::InitCheck(BString *verbose)
 
 
 // Process EMail to be sent
+
 status_t
 SMTPProtocol::ProcessMailMessage(BPositionIO **io_message, BEntry */*io_entry*/,
 	BMessage *io_headers, BPath */*io_folder*/, const char */*io_uid*/)
@@ -137,8 +135,16 @@ SMTPProtocol::ProcessMailMessage(BPositionIO **io_message, BEntry */*io_entry*/,
 	if (!to)
 		to = io_headers->FindString("MAIL:to");
 
-	if (to && from && Send(to,from,*io_message) == B_OK) {
-		runner->ReportProgress(0,1);
+	if (to == NULL || from == NULL) {
+		if (to == from) {
+			// fail silently
+			return B_OK;
+		}
+		fLog = "Invalid message headers";
+	}
+
+	if (to && from && Send(to, from, *io_message) == B_OK) {
+		runner->ReportProgress(0, 1);
 		return B_OK;
 	}
 
@@ -148,8 +154,8 @@ SMTPProtocol::ProcessMailMessage(BPositionIO **io_message, BEntry */*io_entry*/,
 		error << io_headers->FindString("MAIL:subject") << "を" << to << "\nへ送信中にエラーが発生しました：\n" << fLog;
 	)
 
-	smtp_errlert(error.String());
-	runner->ReportProgress(0,1);
+	runner->ShowError(error.String());
+	runner->ReportProgress(0, 1);
 	return B_ERROR;
 }
 
@@ -159,7 +165,7 @@ SMTPProtocol::ProcessMailMessage(BPositionIO **io_message, BEntry */*io_entry*/,
 status_t
 SMTPProtocol::Open(const char *address, int port, bool esmtp)
 {
-	runner->ReportProgress(0,0,MDR_DIALECT_CHOICE ("Connecting to server...","接続中..."));
+	runner->ReportProgress(0, 0, MDR_DIALECT_CHOICE ("Connecting to server...","接続中..."));
 
 	if (port <= 0)
 		port = 25;
@@ -459,9 +465,9 @@ SMTPProtocol::Send(const char *to, const char *from, BPositionIO *message)
 	int			i;
 	bool		messageEndedWithCRLF = false;
 
-	message->Seek(0,SEEK_END);
+	message->Seek(0, SEEK_END);
 	amountUnread = message->Position();
-	message->Seek(0,SEEK_SET);
+	message->Seek(0, SEEK_SET);
 	char *data = new char[bufferMax];
 
 	while (true) {
@@ -496,7 +502,7 @@ SMTPProtocol::Send(const char *to, const char *from, BPositionIO *message)
 				runner->ReportProgress (i + 2 /* Don't include the double period here */,0);
 				// Move the data over in the buffer, but leave the period there
 				// so it gets sent a second time.
-				memmove (data, data + (i + 2), bufferLen - (i + 2));
+				memmove(data, data + (i + 2), bufferLen - (i + 2));
 				bufferLen -= i + 2;
 				break;
 			}
@@ -513,6 +519,7 @@ SMTPProtocol::Send(const char *to, const char *from, BPositionIO *message)
 				}
 				break; // Finished!
 			}
+
 			// Send most of the buffer, except a few characters to overlap with
 			// the next read, in case the CRLFPeriod is split between reads.
 			if (bufferLen > 3) {
@@ -530,7 +537,8 @@ SMTPProtocol::Send(const char *to, const char *from, BPositionIO *message)
 		cmd = "."CRLF; // The standard says don't add extra CRLF.
 	else
 		cmd = CRLF"."CRLF;
-	if( SendCommand(cmd.String()) != B_OK)
+
+	if (SendCommand(cmd.String()) != B_OK)
 		return B_ERROR;
 
 	return B_OK;
@@ -538,22 +546,24 @@ SMTPProtocol::Send(const char *to, const char *from, BPositionIO *message)
 
 
 // Receives response from server.
+
 int32
 SMTPProtocol::ReceiveResponse(BString &out)
 {
 	out = "";
 	int32 len = 0,r;
 	char buf[SMTP_RESPONSE_SIZE];
-	bigtime_t timeout = 1000000*180; //timeout 180 secs
+	bigtime_t timeout = 1000000*180; // timeout 180 secs
 
 	if (fConnection.IsDataPending(timeout)) {
 		while (1) {
-			r = fConnection.Receive(buf,SMTP_RESPONSE_SIZE-1);
+			r = fConnection.Receive(buf, SMTP_RESPONSE_SIZE - 1);
 			if (r <= 0)
 				break;
+
 			len += r;
-			out.Append(buf,r);
-			if(strstr(buf,"\r\n"))
+			out.Append(buf, r);
+			if (strstr(buf, CRLF))
 				break;
 		}
 	} else
@@ -566,8 +576,9 @@ SMTPProtocol::ReceiveResponse(BString &out)
 
 
 // Sends SMTP command. Result kept in fLog
+
 status_t
-SMTPProtocol::SendCommand(const char* cmd)
+SMTPProtocol::SendCommand(const char *cmd)
 {
 	D(bug("C:%s\n", cmd));
 
@@ -580,12 +591,14 @@ SMTPProtocol::SendCommand(const char* cmd)
 	while (1) {
 		int32 len = ReceiveResponse(fLog);
 
-		if (len <= 0)
+		if (len <= 0) {
+			D(bug("SMTP: len == %ld\n", len));
 			return B_ERROR;
+		}
+
 		if (fLog.Length() > 4 && (fLog[3] == ' ' || fLog[3] == '-'))
 		{
-			const char *top = fLog.String();
-			int32 num = atol(top);
+			int32 num = atol(fLog.String());
 			D(bug("ReplyNumber: %ld\n", num));
 
 			if (num >= 500)
@@ -594,6 +607,7 @@ SMTPProtocol::SendCommand(const char* cmd)
 			break;
 		}
 	}
+
 	return B_OK;
 }
 
