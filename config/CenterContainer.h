@@ -12,7 +12,7 @@
 class CenterContainer : public BView
 {
 	public:
-		CenterContainer(BRect rect);
+		CenterContainer(BRect rect,bool centerHoriz = true);
 
 		virtual void	AttachedToWindow();
 		virtual void	AllAttached();
@@ -25,6 +25,7 @@ class CenterContainer : public BView
 
 	private:
 		float			fSpacing, fWidth, fHeight;
+		bool			fCenterHoriz;
 };
 
 #endif	/* CENTER_CONTAINER_H */

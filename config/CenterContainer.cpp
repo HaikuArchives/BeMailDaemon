@@ -7,10 +7,12 @@
 #include "CenterContainer.h"
 #include <stdio.h>
 
-CenterContainer::CenterContainer(BRect rect)
+
+CenterContainer::CenterContainer(BRect rect,bool centerHoriz)
 	: BView(rect,NULL,B_FOLLOW_ALL,0),
 	fSpacing(7),
-	fWidth(0)
+	fWidth(0),
+	fCenterHoriz(centerHoriz)
 {
 }
 
@@ -65,9 +67,9 @@ void CenterContainer::Layout()
 	float y = (Bounds().Height() - fHeight) / 2;
 	for (int32 i = 0;BView *view = ChildAt(i);i++)
 	{
-		// to also center horizontally:
-		// view->MoveTo((Bounds().Width() - view->Bounds().Width()) / 2 - 1,y);
-		view->MoveTo(view->Frame().left,y);
+		view->MoveTo(fCenterHoriz ? (Bounds().Width() - view->Bounds().Width()) / 2
+								  : view->Frame().left,
+					 y);
 		y += view->Bounds().Height() + fSpacing;
 	}
 }

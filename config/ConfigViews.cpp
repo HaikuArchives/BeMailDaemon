@@ -15,7 +15,10 @@
 #include <MenuField.h>
 #include <MenuItem.h>
 #include <Button.h>
+#include <Bitmap.h>
+#include <Looper.h>
 #include <Path.h>
+#include <Alert.h>
 #include <Entry.h>
 #include <FindDirectory.h>
 #include <Directory.h>
@@ -32,6 +35,8 @@ const uint32 kMsgAccountNameChanged = 'anmc';
 const uint32 kMsgProtocolChanged = 'prch';
 
 // FiltersConfigView
+const uint32 kMsgItemDragged = 'itdr';
+const uint32 kMsgFilterMoved = 'flmv';
 const uint32 kMsgChainSelected = 'chsl';
 const uint32 kMsgAddFilter = 'addf';
 const uint32 kMsgRemoveFilter = 'rmfi';
@@ -47,7 +52,7 @@ AccountConfigView::AccountConfigView(BRect rect,Account *account)
 
 	rect = Bounds().InsetByCopy(8,8);
 	rect.top += 10;
-	CenterContainer *view = new CenterContainer(rect);
+	CenterContainer *view = new CenterContainer(rect,false);
 	view->SetSpacing(5);
 
 	// determine font height
@@ -353,6 +358,95 @@ void ProtocolsConfigView::MessageReceived(BMessage *msg)
 //---------------------------------------------------------------------------------------
 //	#pragma mark -
 
+#include <stdio.h>
+class DragListView : public BListView
+{
+	public:
+		DragListView(BRect frame,const char *name,list_view_type type = B_SINGLE_SELECTION_LIST,
+					 uint32 resizingMode = B_FOLLOW_LEFT | B_FOLLOW_TOP,BMessage *itemMovedMsg = NULL)
+			: BListView(frame,name,type,resizingMode),
+			fDragging(false),
+			fItemMovedMessage(itemMovedMsg)
+		{
+		}
+		
+		virtual bool InitiateDrag(BPoint point,int32 index,bool wasSelected)
+		{
+			BRect frame(ItemFrame(index));
+			BBitmap *bitmap = new BBitmap(frame.OffsetToCopy(B_ORIGIN),B_RGBA32,true);
+			BView *view = new BView(bitmap->Bounds(),NULL,0,0);
+			bitmap->AddChild(view);
+
+			if (view->LockLooper())
+			{
+				BListItem *item = ItemAt(index);
+				bool selected = item->IsSelected();
+
+				view->SetLowColor(225,225,225,128);
+				view->FillRect(view->Bounds());
+
+				if (selected)
+					item->Deselect();
+				ItemAt(index)->DrawItem(view,view->Bounds(),true);
+				if (selected)
+					item->Select();
+
+				view->UnlockLooper();
+			}
+			fDragging = true;
+
+			BMessage drag(kMsgItemDragged);
+			drag.AddInt32("index",index);
+			DragMessage(&drag,bitmap,B_OP_ALPHA,point - frame.LeftTop(),this);
+
+			return true;
+		}
+
+// the list view should display the current insert point -- axeld.
+//		virtual void MouseMoved(BPoint point,uint32 transit,const BMessage *msg)
+//		{
+//			BListView::MouseMoved(point,transit,msg);
+//
+//			if (!fDragging)
+//				return;
+//		}
+		
+		virtual void MessageReceived(BMessage *msg)
+		{
+			switch(msg->what)
+			{
+				case kMsgItemDragged:
+				{
+					int32 source = msg->FindInt32("index");
+					BPoint point = msg->FindPoint("_drop_point_");
+					ConvertFromScreen(&point);
+					int32 to = IndexOf(point);
+					if (to == -1)
+						to = CountItems() - 1;
+
+					if (source != to)
+					{
+						MoveItem(source,to);
+						
+						if (fItemMovedMessage != NULL)
+						{
+							BMessage msg(fItemMovedMessage->what);
+							msg.AddInt32("from",source);
+							msg.AddInt32("to",to);
+							Messenger().SendMessage(&msg);
+						}
+					}
+					break;
+				}
+			}
+			BListView::MessageReceived(msg);
+		}
+	
+	private:
+		bool		fDragging;
+		BMessage	*fItemMovedMessage;
+};
+
 
 FiltersConfigView::FiltersConfigView(BRect rect,Account *account)
 	:	BBox(rect),
@@ -393,7 +487,7 @@ FiltersConfigView::FiltersConfigView(BRect rect,Account *account)
 	rect.top += 18;
 	rect.right -= B_V_SCROLL_BAR_WIDTH;
 	rect.bottom = rect.top + 4 * height + 2;
-	fListView = new BListView(rect,NULL,B_SINGLE_SELECTION_LIST,B_FOLLOW_ALL);
+	fListView = new DragListView(rect,NULL,B_SINGLE_SELECTION_LIST,B_FOLLOW_ALL,new BMessage(kMsgFilterMoved));
 	AddChild(new BScrollView(NULL,fListView,B_FOLLOW_ALL,0,false,true));
 	rect.right += B_V_SCROLL_BAR_WIDTH;
 
@@ -426,6 +520,9 @@ FiltersConfigView::~FiltersConfigView()
 
 void FiltersConfigView::SelectFilter(int32 index)
 {
+	if (Parent())
+		Parent()->Hide();
+
 	// remove old config view
 	if (fFilterView)
 	{
@@ -460,6 +557,9 @@ void FiltersConfigView::SelectFilter(int32 index)
 	// re-layout the view containing the config view
 	if (CenterContainer *container = dynamic_cast<CenterContainer *>(Parent()))
 		container->Layout();
+
+	if (Parent())
+		Parent()->Show();
 }
 
 
@@ -593,6 +693,36 @@ void FiltersConfigView::MessageReceived(BMessage *msg)
 				break;
 
 			SelectFilter(index);
+			break;
+		}
+		case kMsgFilterMoved:
+		{
+			int32 from = msg->FindInt32("from");
+			int32 to = msg->FindInt32("to");
+			if (from == to)
+				break;
+
+			from += fFirst;
+			to += fFirst;
+
+			entry_ref ref;
+			BMessage settings;
+			if (fChain->GetFilter(from,&settings,&ref) == B_OK)
+			{
+				fChain->RemoveFilter(from);
+				
+				// prepare "to" value
+				if (from < to)
+					to--;
+				printf("from = %ld, to = %ld\n",from,to);
+				printf("remove:");
+				settings.PrintToStream();
+				if (fChain->AddFilter(to,settings,ref) < B_OK)
+				{
+					(new BAlert("E-mail","Could not move filter, filter deleted.","Ok"))->Go();
+					fListView->RemoveItem(msg->FindInt32("to"));
+				}
+			}
 			break;
 		}
 		default:
