@@ -195,7 +195,7 @@ and
 
 <HR>
 
-<A NAME=AppendText></A><TABLE>
+<A NAME=Text></A><TABLE>
    <TR>
       <TD>
          <P></P>
@@ -225,9 +225,92 @@ and
       </TR>
    </TABLE>
    
-   <BLOCKQUOTE>Returns the contents of this component as a UTF8
-      string.</BLOCKQUOTE></BLOCKQUOTE>
+   <P>Returns the contents of this component as a UTF8
+      string.</P></BLOCKQUOTE>
 
+<P>
+
+<HR>
+
+<A NAME=BStringText></A><TABLE>
+   <TR>
+      <TD>
+         <P></P>
+      </TD>
+      <TD>
+         <P><FONT SIZE="+2">BStringText () </FONT></P>
+      </TD>
+   </TR>
+</TABLE>
+</P>
+
+<P>&nbsp;</P>
+
+<BLOCKQUOTE><TABLE BORDER=2 BGCOLOR="#550033" WIDTH=1000>
+      <TR>
+         <TD>
+            <P><TABLE BORDER=1 BGCOLOR="#FFFFFF" CELLPADDING=8 WIDTH=1000>
+               <TR>
+                  <TD>
+                     <P>const char *
+                     <FONT SIZE="+1"><B><TT>BStringText()</TT></B></FONT></P>
+                  </TD>
+               </TR>
+            </TABLE>
+            </P>
+         </TD>
+      </TR>
+   </TABLE>
+   
+   <P>Returns the internal UTF8 format BString used by this component.
+   As such, you can do raw text operations on the content of the message. The use of
+   this function is not reccomended.</P>
+   
+   </BLOCKQUOTE>
+
+<P>
+
+<HR>
+
+<A NAME=Quote></A><TABLE>
+   <TR>
+      <TD>
+         <P></P>
+      </TD>
+      <TD>
+         <P><FONT SIZE="+2">Quote () </FONT></P>
+      </TD>
+   </TR>
+</TABLE>
+</P>
+
+<P>&nbsp;</P>
+
+<BLOCKQUOTE><TABLE BORDER=2 BGCOLOR="#550033" WIDTH=1000>
+      <TR>
+         <TD>
+            <P><TABLE BORDER=1 BGCOLOR="#FFFFFF" CELLPADDING=8 WIDTH=1000>
+               <TR>
+                  <TD>
+                     <P>void
+                     <FONT SIZE="+1"><B><TT>Quote(</TT></B></FONT>
+                     const char *<FONT FACE="HELVETICA" COLOR="#991122"><I>message</I></FONT> = <B>NULL</B>,
+                     const char *<FONT FACE="HELVETICA" COLOR="#991122"><I>quote_style</I></FONT> = <B>&quot;&gt;&nbsp;&quot;</B>
+                     <FONT SIZE="+1"><B><TT>)</TT></B></FONT></P>
+                  </TD>
+               </TR>
+            </TABLE>
+            </P>
+         </TD>
+      </TR>
+   </TABLE>
+   
+   <P>Quotes the contents of this component. Inserts <FONT FACE="HELVETICA" COLOR="#991122"><I>quote_style</I></FONT> at the start of every line,
+   and prefaces the content with <FONT FACE="HELVETICA" COLOR="#991122"><I>message</I></FONT>, if it is not NULL. <FONT FACE="HELVETICA" COLOR="#991122"><I>message</I></FONT>
+   should be something like &quot;On September 30, 2001, John Smith said:&quot;, or something in that vein. Note that the new line after <FONT FACE="HELVETICA" COLOR="#991122"><I>message</I></FONT>
+   is supplied for you, so you do not need to add it.</P>
+   
+   </BLOCKQUOTE>
 <P>
 
 <HR>
