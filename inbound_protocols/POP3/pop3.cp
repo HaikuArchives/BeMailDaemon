@@ -337,6 +337,8 @@ int32 POP3Protocol::ReceiveLine(BString &line) {
 	if (conn.IsDataPending(POP3_RETRIEVAL_TIMEOUT)) {	
 		while (true) {
 			rcv = conn.Receive(&c,1);
+			if (rcv == 0)
+				continue;
 			if (rcv < 0)
 				return rcv; //--An error!
 			if((c == '\n') || (c == EOF))
@@ -363,9 +365,10 @@ int32 POP3Protocol::ReceiveLine(BString &line) {
 
 status_t POP3Protocol::SendCommand(const char* cmd) {
 	int32 len;
+	status_t errorCode;
 
-	if (conn.Send(cmd, ::strlen(cmd)) == B_ERROR)
-		return B_ERROR;
+	if ((errorCode = conn.Send(cmd, ::strlen(cmd))) < 0)
+		return errorCode;
 
 	fLog="";
 	status_t err = B_OK;
