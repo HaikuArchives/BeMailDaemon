@@ -31,6 +31,7 @@ copyattr -d build_utils/install.sh $BUILD_PATH
 chmod a+x $BUILD_PATH/install.sh
 copyattr -d bemail/obj.$CPU/BeMail $BUILD_PATH/bin
 copyattr -d AGMSBayesianSpamServer/obj.$CPU/AGMSBayesianSpamServer $BUILD_PATH/bin
+cp AGMSBayesianSpamServer/SampleDatabase $BUILD_PATH/SampleSpamDatabase
 copyattr -d daemon/obj.$CPU/mail_daemon $BUILD_PATH/bin
 copyattr -d lib/libmail.so $BUILD_PATH/bin
 copyattr -d config/obj.$CPU/E-mail $BUILD_PATH/bin
@@ -53,6 +54,11 @@ for f in inbound_* outbound_* system_* ; do
 done
 
 cp -d documentation/read_us/* $BUILD_PATH
+
+mkdir -p $BUILD_PATH/AGMSBayesianSpamDocumentation/pictures
+cp documentation/AGMSBayesianSpam/*html $BUILD_PATH/AGMSBayesianSpamDocumentation/
+cp documentation/AGMSBayesianSpam/pictures/*png $BUILD_PATH/AGMSBayesianSpamDocumentation/pictures
+
 
 mimeset -f $BUILD_PATH
 
