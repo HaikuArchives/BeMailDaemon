@@ -7,6 +7,9 @@
 <META NAME="description" CONTENT="Documentation for AGMSBayesianSpam, for classifying incoming e-mail messages as spam (junk mail) or genuine.">
 <!--
 ; $Log$
+; Revision 1.9  2002/12/13 22:45:22  agmsmith
+; More changes for self training and chi-squared scoring.
+;
 ; Revision 1.8  2002/12/13 22:20:50  agmsmith
 ; Under construction.
 ;
@@ -56,7 +59,7 @@
 <BR>Author: agmsmith@rogers.com (Alexander G. M. Smith)
 <BR>Uploader: agmsmith@rogers.com (Alexander G. M. Smith)
 <BR>Website: <A HREF="http://members.rogers.com/agmsmith/">http://members.rogers.com/agmsmith/</A>
-<BR>Version: 1.73
+<BR>Version: 1.74
 <BR>Type: internet &amp; network/e-mail
 <BR>Requires: BeOS 5.0+
 <BR>Related things: <A HREF="http://www.paulgraham.com/spam.html">http://www.paulgraham.com/spam.html</A>, <A HREF="http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html">http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html</A></FONT>
@@ -72,6 +75,7 @@
     <LI><A HREF="#Reading">Reading E-Mail</A>
     <LI><A HREF="#Training">Training</A>
     <LI><A HREF="#HidingServer">Hiding the Server Window</A>
+    <LI><A HREF="#AlexSettings">Alex's Settings</A>
   </UL>
   <LI><A HREF="#AdvancedUsage">Advanced Usage</A>
   <UL>
@@ -296,6 +300,18 @@ hidden window by using the deskbar, or by using the "Edit Server Settings"
 button in the spam filter configuration).<BR>
 <IMG SRC="pictures/MakingTheWindowVisibleFromTheDeskbar.png"
 ALT="MakingTheWindowVisibleFromTheDeskbar" WIDTH="640" HEIGHT="109"><BR>
+
+<H2><A NAME="AlexSettings"></A>Alex's Settings</H2>
+
+<P>I'm currently using it with these settings: Chi-squared scoring,
+AnyTextAndHeader tokenizing, server mode on, ignore previous classification
+off, spam cutoff 0.95, mark subject with [Spam %] on, no words found on,
+self-training on, close AGMSBayesianSpamServer when Finished on, both beeps on
+(and my own short sound effects installed).  Because of the self training, I
+always correct it when it gets the classification wrong (that means I have to
+manually delete the messages, can't use a Match Header filter to do it).  My
+Tracker window shows the spam ratio, though with the mark subject option that
+isn't really needed, other than for the sorting convenience.
 
 <H1><A NAME="AdvancedUsage"></A>Advanced Usage</H1>
 
@@ -685,18 +701,21 @@ quickly by deleting spam messages without downloading the entire junk message.
 <P><IMG SRC="pictures/ChoosingJustHeaderTokenizingMode.png" WIDTH="920"
 HEIGHT="402" ALT="[Choosing JustHeader Tokenizing Mode]">
 
-<P>This can be done with three settings.  First switch the
-AGMSBayesianSpamServer into tokenizing just the headers.  Then go into the
-E-mail preferences and add an AGMSBayeisianSpamFilter with the "Add [Spam %] in
-Front of Subject" option turned on, and the ratio set to a nice safe high level
-like 0.95 (so that your genuine mail is less likely to get deleted, but it will
-still delete the 1% of your real mail that looks like spam, which is why this
-is dangerous).  Finally in the E-mail preferences, add a "Match Header" filter
-after the spam filter and set it so that If <B>Subject</B> is <B>\[Spam*</B>
-then <B>Delete Message</B>.  That's backslash, left square bracket, Spam with
-the S capitalised, asterix.  Now it will download the headers, check them
-against the spam database, and then delete the spam ones on the server without
-downloading the rest of their contents.
+<P><IMG SRC="pictures/DangerousMatchFilter.png" WIDTH="276" HEIGHT="243"
+ALIGN="RIGHT" ALT="[Dangerous Match Filter]">This can be done with three
+settings.  First switch the AGMSBayesianSpamServer into tokenizing just the
+headers.  Then go into the E-mail preferences and add an
+AGMSBayeisianSpamFilter with the "Add [Spam %] in Front of Subject" option
+turned on, and the ratio set to a nice safe high level like 0.95 (so that your
+genuine mail is less likely to get deleted, but it will still delete the 1% of
+your real mail that looks like spam, which is why this is dangerous).  Do not
+turn on self-training, since you can't manually correct it.  Finally in the
+E-mail preferences, add a "Match Header" filter after the spam filter and set
+it so that If <B>Subject</B> is <B>\[Spam*</B> then <B>Delete Message</B>.
+That's backslash, left square bracket, Spam with the S capitalised, asterix.
+Now it will download the headers, check them against the spam database, and
+then delete the spam ones on the server without downloading the rest of their
+contents.
 
 <P>You should also make a new spam database trained in Just Headers tokenizing
 mode with roughly equal examples of your genuine messages and spam messages (50
