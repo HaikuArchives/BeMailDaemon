@@ -1445,10 +1445,7 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 		}
 	}
 	
-	MailComponent *component = NULL;
-	if (enclosure->container != NULL)
-		component = enclosure->container->GetComponent(enclosure->componentAt);
-	if (component == NULL)
+	if (enclosure->component == NULL)
 		result = B_ERROR;
 
 	if (result == B_NO_ERROR)
@@ -1456,7 +1453,7 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 		//
 		// Write the data
 		//
-		component->GetDecodedData(&file);
+		enclosure->component->GetDecodedData(&file);
 		
 		BEntry entry;
 		dir.FindEntry(name, &entry);
@@ -1627,7 +1624,6 @@ TTextView::Reader::Reader(bool header, bool raw, bool quote, bool incoming, bool
 
 bool TTextView::Reader::ParseMail(MailContainer *container,PlainTextBodyComponent *ignore)
 {
-	MailComponent c;
 	int32 count = 0;
 	for (int32 i = 0;i < container->CountComponents();i++)
 	{
@@ -1666,14 +1662,13 @@ bool TTextView::Reader::ParseMail(MailContainer *container,PlainTextBodyComponen
 			memset(enclosure, 0, sizeof(hyper_text));
 
 			enclosure->type = TYPE_ENCLOSURE;
-			enclosure->container = container;
-			enclosure->componentAt = i;
+			enclosure->component = component;
 
 			BString name;
 			char fileName[B_FILE_NAME_LENGTH];
 			strcpy(fileName,"untitled");
-			if (MailAttachment *att = dynamic_cast <MailAttachment *> (component))
-				att->FileName(fileName);
+			if (MailAttachment *attachment = dynamic_cast <MailAttachment *> (component))
+				attachment->FileName(fileName);
 
 			BPath path(fileName);
 			enclosure->name = strdup(path.Leaf());

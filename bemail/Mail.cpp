@@ -2552,7 +2552,20 @@ status_t TMailWindow::Send(bool now)
 	TListItem		*item;
 
 	if (fResending)
-		result = forward_mail(fRef, fHeaderView->fTo->Text(), now);
+	{
+		BFile file(fRef, O_RDONLY);
+		result = file.InitCheck();
+		if (result == B_OK)
+		{
+			MailMessage mail(&file);
+			mail.SetTo(fHeaderView->fTo->Text());
+	
+			if (fHeaderView->fChain != ~0UL)
+				mail.SendViaAccount(fHeaderView->fChain);
+			
+			result = mail.Send(now);
+		}
+	}
 	else
 	{
 		MailMessage mail;

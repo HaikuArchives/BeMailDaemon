@@ -157,7 +157,7 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 	}
 
 	//	"From:" accounts Menu
-	if (!fIncoming)
+	if (!fIncoming || resending)
 	{
 		fAccountMenu = new BPopUpMenu(B_EMPTY_STRING);
 		//fAccountMenu->SetRadioMode(true);

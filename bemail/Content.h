@@ -97,8 +97,7 @@ typedef struct {
 	char *encoding;
 	int32 text_start;
 	int32 text_end;
-	MailContainer *container;
-	int32 componentAt;
+	MailComponent *component;
 	bool saved;
 	bool have_ref;
 	entry_ref ref;
