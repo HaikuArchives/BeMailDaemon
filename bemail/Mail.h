@@ -246,7 +246,7 @@ class TMailWindow : public BWindow
 		status_t SaveAsDraft( void );
 		status_t OpenMessage(entry_ref *ref, uint32 characterSetForDecoding = MDR_NULL_CONVERSION);
 
-		entry_ref *GetMailFile() const;
+		status_t GetMailNodeRef(node_ref &nodeRef) const;
 		Mail::Message *Mail() const { return fMail; }
 
 		bool GetTrackerWindowFile(entry_ref *, bool dir) const;

@@ -840,20 +840,29 @@ TMailApp::RefsReceived(BMessage *msg)
 	}
 }
 
-//--------------------------------------------------------------------
 
-TMailWindow* TMailApp::FindWindow(const entry_ref &ref)
+TMailWindow *
+TMailApp::FindWindow(const entry_ref &ref)
 {
-	int32		index = 0;
-	TMailWindow	*window;
+	BEntry entry(&ref);
+	if (entry.InitCheck() < B_OK)
+		return NULL;
 
-	while ((window = (TMailWindow*) WindowAt(index++)) != NULL) {
-		if (window->FindView("m_header") && 
-		  window->GetMailFile() != NULL && 
-		  *window->GetMailFile() == ref)
-		{
-			return window;
-		}
+	node_ref nodeRef;
+	if (entry.GetNodeRef(&nodeRef) < B_OK)
+		return NULL;
+
+	BWindow	*window;
+	int32 index = 0;
+	while ((window = WindowAt(index++)) != NULL) {
+		TMailWindow *mailWindow = dynamic_cast<TMailWindow *>(window);
+		if (mailWindow == NULL)
+			continue;
+
+		node_ref mailNodeRef;
+		if (mailWindow->GetMailNodeRef(mailNodeRef) == B_OK
+			&& mailNodeRef == nodeRef)
+			return mailWindow;
 	}
 
 	return NULL;
@@ -1480,10 +1489,13 @@ TMailWindow::~TMailWindow()
 }
 
 
-entry_ref *
-TMailWindow::GetMailFile() const
+status_t
+TMailWindow::GetMailNodeRef(node_ref &nodeRef) const
 {
-	return fRef;
+	if (fFile == NULL)
+		return B_ERROR;
+
+	return fFile->GetNodeRef(&nodeRef);
 }
 
 
