@@ -29,7 +29,7 @@ struct CharsetConversionEntry
 	uint32 flavor;
 };
 
-extern const CharsetConversionEntry charsets[] =
+extern const CharsetConversionEntry charsets [] =
 {
 	{"iso-8859-1",  B_ISO1_CONVERSION},
 	{"iso-8859-2",  B_ISO2_CONVERSION},
@@ -41,18 +41,82 @@ extern const CharsetConversionEntry charsets[] =
 	{"iso-8859-8",  B_ISO8_CONVERSION},
 	{"iso-8859-9",  B_ISO9_CONVERSION},
 	{"iso-8859-10", B_ISO10_CONVERSION},
-	{"iso-2022-jp", B_JIS_CONVERSION},
-	{"koi8-r",      B_KOI8R_CONVERSION},
 	{"iso-8859-13", B_ISO13_CONVERSION},
 	{"iso-8859-14", B_ISO14_CONVERSION},
 	{"iso-8859-15", B_ISO15_CONVERSION},
-	{"Windows-1251",B_MS_WINDOWS_1251_CONVERSION},
-	{"Windows-1252",B_MS_WINDOWS_CONVERSION},
-	{"dos-866",     B_MS_DOS_866_CONVERSION},
-	{"dos-437",     B_MS_DOS_CONVERSION},
+	{"shift-jis",	B_SJIS_CONVERSION},
+	{"iso-2022-jp", B_JIS_CONVERSION},
+	{"euc-jp",		B_EUC_CONVERSION},
 	{"euc-kr",      B_EUC_KR_CONVERSION},
-	{"x-mac-roman", B_MAC_ROMAN_CONVERSION}
+	{"koi8-r",      B_KOI8R_CONVERSION},
+	{"windows-1251",B_MS_WINDOWS_1251_CONVERSION},
+	{"windows-1252",B_MS_WINDOWS_CONVERSION},
+	{"dos-437",     B_MS_DOS_CONVERSION},
+	{"dos-866",     B_MS_DOS_866_CONVERSION},
+	{"x-mac-roman", B_MAC_ROMAN_CONVERSION},
+	/* {"utf-16",		B_UNICODE_CONVERSION}, Doesn't work due to NULs in text */
+	{"utf-8",		MDR_UTF8_CONVERSION /* Special code for no conversion */},
+	{NULL, (uint32) -1} /* End of list marker, NULL string pointer is the key. */
 };
+
+
+// The next couple of functions are our wrapper around convert_to_utf8 and
+// convert_from_utf8 so that they can also convert from UTF-8 to UTF-8 by
+// specifying the MDR_UTF8_CONVERSION constant as the conversion operation.
+
+status_t MDR_convert_to_utf8 (
+	uint32 srcEncoding,
+	const char *src,
+	int32 *srcLen,
+	char *dst,
+	int32 *dstLen,
+	int32 *state,
+	char substitute)
+{
+	int32 copyAmount;
+
+	if (srcEncoding == MDR_UTF8_CONVERSION)
+	{
+		copyAmount = *srcLen;
+		if (*dstLen < copyAmount)
+			copyAmount = *dstLen;
+		memcpy (dst, src, copyAmount);
+		*srcLen = copyAmount;
+		*dstLen = copyAmount;
+		return B_OK;
+	}
+
+	return convert_to_utf8 (srcEncoding, src, srcLen, dst, dstLen, state,
+		substitute);
+}
+
+
+status_t MDR_convert_from_utf8 (
+	uint32 dstEncoding,
+	const char *src,
+	int32 *srcLen,
+	char *dst,
+	int32 *dstLen,
+	int32 *state,
+	char substitute)
+{
+	int32 copyAmount;
+
+	if (dstEncoding == MDR_UTF8_CONVERSION)
+	{
+		copyAmount = *srcLen;
+		if (*dstLen < copyAmount)
+			copyAmount = *dstLen;
+		memcpy (dst, src, copyAmount);
+		*srcLen = copyAmount;
+		*dstLen = copyAmount;
+		return B_OK;
+	}
+
+	return convert_from_utf8 (dstEncoding, src, srcLen, dst, dstLen, state,
+		substitute);
+}
+
 
 
 static int handle_non_rfc2047_encoding(char **buffer,size_t *bufferLength,size_t *sourceLength)
@@ -118,7 +182,7 @@ _EXPORT ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 	char *head, *tail;
 	char *charset, *encoding, *end;
 	ssize_t ret = B_OK;
-	
+
 	if (bufp == NULL || *bufp == NULL)
 		return -1;
 
@@ -147,27 +211,27 @@ _EXPORT ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 			memmove(string, tail, charset-tail);
 		string += charset-tail;
 		tail = charset;
-		
+
 		// move things to point at what they should:
 		//   =?...charset...?e?...text...?=   (e == encoding)
 		//     ^charset      ^encoding     ^end
 		charset += 2;
 		encoding += 1;
 		end += 2;
-		
+
 		// find the charset this text is in now
 		size_t		cLen = encoding - 1 - charset;
 		bool		base64encoded = toupper(*encoding) == 'B';
-		
+
 		int i;
-		for(i = sizeof(charsets)/sizeof(CharsetConversionEntry) - 1;
-			i>=0
-			&& (strncasecmp(charset, charsets[i].charset, cLen)
-			|| strlen(charsets[i].charset) != cLen);
-			--i)
-		{	}
-		
-		if (i < 0)
+		for (i = 0; charsets[i].charset != NULL; i++)
+		{
+			if (strncasecmp(charset, charsets[i].charset, cLen) == 0 &&
+			strlen(charsets[i].charset) == cLen)
+				break;
+		}
+
+		if (charsets[i].charset == NULL)
 		{
 			// unidentified charset
 			// what to do? doing nothing skips the encoded text;
@@ -178,33 +242,32 @@ _EXPORT ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 			continue;
 		}
 		// else we've successfully identified the charset
-		
-		
+
 		char *src = encoding+2;
 		int32 srcLen = end - 2 - src;
 		// encoded text: src..src+srcLen
-		
+
 		// decode text, get decoded length (reducing xforms)
 		srcLen = !base64encoded ? decode_qp(src, src, srcLen, 1)
 				: decode_base64(src, src, srcLen);
-		
+
 		// allocate space for the converted text
 		int32 dstLen = end-string + *bufLen-strLen;
 		char *dst = (char*)malloc(dstLen);
 		int32 cvLen = srcLen;
 		int32 convState = 0;
-		
+
 		//
 		// do the conversion
 		//
-		ret = convert_to_utf8(charsets[i].flavor, src, &cvLen, dst, &dstLen, &convState);
+		ret = MDR_convert_to_utf8(charsets[i].flavor, src, &cvLen, dst, &dstLen, &convState);
 		if (ret != B_OK)
 		{
 			// what to do? doing nothing skips the encoded text
 			// but we should keep it: we copy it to the output.
-			
+
 			free(dst);
-			
+
 			if (string != tail && tail != end)
 				memmove(string, tail, end-tail);
 			string += end-tail;
@@ -218,19 +281,19 @@ _EXPORT ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 		{
 			// not enough room to convert the data;
 			// grow *buf and retry
-			
+
 			free(dst);
-			
+
 			char *temp = (char*)realloc(*bufp, 2*(*bufLen + 1));
 			if (temp == NULL)
 			{
 				ret = B_NO_MEMORY;
 				break;
 			}
-			
+
 			*bufp = temp;
 			*bufLen = 2*(*bufLen + 1);
-			
+
 			string = *bufp + (string-head);
 			tail = *bufp + (tail-head);
 			charset = *bufp + (charset-head);
@@ -250,19 +313,19 @@ _EXPORT ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 				strLen += string+dstLen - end;
 				end = string + dstLen;
 			}
-			
+
 			memcpy(string, dst, dstLen);
 			string += dstLen;
 			free(dst);
 			continue;
 		}
 	}
-	
+
 	// copy everything that's left
 	size_t tailLen = strLen - (tail - head);
 	memmove(string, tail, tailLen+1);
 	string += tailLen;
-	
+
 	// replace the last char
 	(*bufp)[strLen] = lastChar;
 
@@ -273,54 +336,54 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, cha
 	struct word {
 		const char *begin;
 		size_t length;
-	
+
 		bool has_8bit;
 	};
-	
+
 	{
 	int32 state = 0;
 	int32 len = length*2;
 	char *result = (char *)malloc(len);
 	//-----Just try
-	convert_from_utf8(charset,*bufp,&length,result,&len,&state);
+	MDR_convert_from_utf8(charset,*bufp,&length,result,&len,&state);
 	length = len;
-	
+
 	result[length] = 0;
-	
+
 	free(*bufp);
 	*bufp = result;
 	}
-	
+
 	BList words;
 	struct word *current;
-	
+
 	for (const char *start = *bufp; start < (*bufp+length); start++) {
 		current = new struct word;
 		current->begin = start;
 		current->has_8bit = false;
-		
+
 		for (current->length = 0; start[current->length] != 0; current->length++) {
 			if (isspace(start[current->length]))
 				break;
 			if (start[current->length] & (1 << 7))
 				current->has_8bit = true;
 		}
-		
+
 		start += current->length;
-		
+
 		words.AddItem(current);
 	}
-	
+
 	BString rfc2047;
-	
+
 	const char *charset_dec = NULL;
-	for (int32 i = 0; i < 21; i++) {
+	for (int32 i = 0; charsets[i].charset != NULL; i++) {
 		if (charsets[i].flavor == charset) {
 			charset_dec = charsets[i].charset;
 			break;
 		}
 	}
-	
+
 	struct word *run;
 	for (int32 i = 0; (current = (struct word *)words.ItemAt(i)) != NULL; i++) {
 		for (int32 g = i+1; (run = (struct word *)words.ItemAt(g)) != NULL; g++) {
@@ -334,7 +397,7 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, cha
 			}
 		}
 	}
-	
+
 	while ((current = (struct word *)words.RemoveItem(0L)) != NULL) {
 		if (!current->has_8bit) {
 			rfc2047.Append(current->begin, current->length + 1);
@@ -365,17 +428,17 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, cha
 			rfc2047 << "=?" << charset_dec << '?' << encoding << '?';
 			rfc2047.Append(encoded,encoded_len);
 			rfc2047 << "?=" << current->begin[current->length];
-			
+
 			if (encoding > 0)
 				free(encoded);
 		}
 	}
-	
+
 	free(*bufp);
-	
+
 	*bufp = (char *)(malloc(rfc2047.Length() + 1));
 	strcpy(*bufp,rfc2047.String());
-	
+
 	return rfc2047.Length();
 }
 
@@ -651,14 +714,14 @@ _EXPORT void StripGook(BString* header)
 	//   New style quotes: "S" <foo@bar.com>
 	//   New style no quotes if nothing else found: S <foo@bar.com>
 	//   If nothing else found then use the whole thing: S
-	
+
 	for (int i=0; i<=3; ++i)
 	{
 		// Set p1 to the first letter in the name and p2 to just past the last
 		// letter in the name.  p2 stays NULL if a name wasn't found in this
 		// pass.
 		const char *p1 = NULL, *p2 = NULL;
-		
+
 		switch (i) {
 			case 0: // foo@bar.com (S)
 				if ((p1 = strchr(start,'(')) != NULL) {
@@ -699,7 +762,7 @@ _EXPORT void StripGook(BString* header)
 			while (p1 < p2 && (isspace (*p1) ||
 				*p1 == '"' || *p1 == '\'' || *p1 == '<'))
 				++p1;
-			
+
 			while (p1 < p2 && (isspace (p2[-1]) ||
 				p2[-1] == '"' || p2[-1] == '\'' || p2[-1] == '>'))
 				--p2;
@@ -709,7 +772,7 @@ _EXPORT void StripGook(BString* header)
 				name.SetTo (p1, newLength);
 		}
 	} // rof
-	
+
 	*header = name;
 }
 

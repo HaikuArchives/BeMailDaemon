@@ -68,7 +68,7 @@ status_t BMailMessage::AddContent(const char *text, int32 length,
 	//-----I'm assuming that encoding is one of the RFC charsets
 	//-----there are no docs. Am I right?
 	if (encoding != NULL) {
-		for (int32 i = 0; i < 21; i++) {
+		for (int32 i = 0; Zoidberg::Mail::charsets[i].charset != NULL; i++) {
 			if (strcasecmp(encoding,Zoidberg::Mail::charsets[i].charset) == 0) {
 				encode = Zoidberg::Mail::charsets[i].flavor;
 				break;

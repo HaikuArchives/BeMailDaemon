@@ -47,6 +47,7 @@ All rights reserved.
 #include <Application.h>
 
 #include <MailSettings.h>
+#include <mail_encoding.h>
 
 #include "Mail.h"
 #include "Prefs.h"
@@ -110,14 +111,20 @@ const EncodingItem kEncodings[] =
 	{"ISO-8859-8", B_ISO8_CONVERSION},
 	{"ISO-8859-9", B_ISO9_CONVERSION},
 	{"ISO-8859-10", B_ISO10_CONVERSION},
-	{"ISO-2022-JP", B_JIS_CONVERSION},
-	{"KOI8-R",		B_KOI8R_CONVERSION},
-	{"Windows-1251",B_MS_WINDOWS_1251_CONVERSION},
-	{"Windows-1252",B_MS_WINDOWS_CONVERSION},
-	{"DOS-866",		B_MS_DOS_866_CONVERSION},
 	{"ISO-8859-13", B_ISO13_CONVERSION},
 	{"ISO-8859-14", B_ISO14_CONVERSION},
-	{"ISO-8859-15", B_ISO15_CONVERSION}
+	{"ISO-8859-15", B_ISO15_CONVERSION},
+	{"SHIFT-JIS",	B_SJIS_CONVERSION},
+	{"ISO-2022-JP", B_JIS_CONVERSION},
+	{"EUC-JP",		B_EUC_CONVERSION},
+	{"EUC-KR",      B_EUC_KR_CONVERSION},
+	{"KOI8-R",      B_KOI8R_CONVERSION},
+	{"Windows-1251",B_MS_WINDOWS_1251_CONVERSION},
+	{"Windows-1252 (Windows ANSI)",B_MS_WINDOWS_CONVERSION},
+	{"DOS-437 (common)", B_MS_DOS_CONVERSION},
+	{"DOS-866 (rarer)", B_MS_DOS_866_CONVERSION},
+	{"Macintosh Roman", B_MAC_ROMAN_CONVERSION},
+	{"UTF-8 (BeOS Native)", MDR_UTF8_CONVERSION}
 };
 
 

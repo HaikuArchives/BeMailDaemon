@@ -14,6 +14,19 @@ class BString;
 namespace Zoidberg {
 namespace Mail {
 
+// The next couple of functions are our wrapper around convert_to_utf8 and
+// convert_from_utf8 so that they can also convert from UTF-8 to UTF-8 by
+// specifying the MDR_UTF8_CONVERSION constant as the conversion operation.
+
+status_t MDR_convert_to_utf8 (uint32 srcEncoding, const char *src,
+	int32 *srcLen, char *dst, int32 *dstLen, int32 *state,
+	char substitute = B_SUBSTITUTE);
+
+status_t MDR_convert_from_utf8 (uint32 dstEncoding, const char *src,
+	int32 *srcLen, char *dst, int32 *dstLen, int32 *state,
+	char substitute = B_SUBSTITUTE);
+
+
 size_t unqp(char *data, size_t dataLen);
 // convert text inplace
 

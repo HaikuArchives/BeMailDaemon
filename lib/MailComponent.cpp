@@ -32,7 +32,7 @@ struct CharsetConversionEntry
 	uint32 flavor;
 };
 
-extern const CharsetConversionEntry charsets[21];
+extern const CharsetConversionEntry charsets[];
 
 
 Component::Component()
@@ -472,7 +472,7 @@ TextComponent::ParseRaw()
 
 	charset = B_ISO1_CONVERSION;
 	if (content_type.HasString("charset")) {
-		for (int32 i = 0; i < 21; i++) {
+		for (int32 i = 0; charsets[i].charset != NULL; i++) {
 			if (strcasecmp(content_type.FindString("charset"), charsets[i].charset) == 0) {
 				charset = charsets[i].flavor;
 				break;
@@ -499,7 +499,7 @@ TextComponent::ParseRaw()
 	int32 state;
 	int32 destLength = bytes * 2 + 1 /* +1 so it isn't zero which crashes */;
 	string = text.LockBuffer(destLength);
-	convert_to_utf8(charset, decoded.String(), &bytes, string, &destLength, &state);
+	MDR_convert_to_utf8(charset, decoded.String(), &bytes, string, &destLength, &state);
 	if (destLength > 0)
 		text.UnlockBuffer(destLength);
 	else {
@@ -520,11 +520,11 @@ TextComponent::RenderToRFC822(BPositionIO *render_to)
 		return status;
 
 	BString content_type;
-	content_type << "text/plain; ";
+	content_type << "text/plain";
 
-	for (uint32 i = 0; i < sizeof(charsets); i++) {
+	for (uint32 i = 0; charsets[i].charset != NULL; i++) {
 		if (charsets[i].flavor == charset) {
-			content_type << "charset=\"" << charsets[i].charset << "\"";
+			content_type << "; charset=\"" << charsets[i].charset << "\"";
 			break;
 		}
 	}
@@ -556,7 +556,7 @@ TextComponent::RenderToRFC822(BPositionIO *render_to)
 		int32 dest_len = len * 2;
 		char *raw = alt.LockBuffer(dest_len);
 		int32 state;
-		convert_from_utf8(charset,this->text.String(),&len,raw,&dest_len,&state);
+		MDR_convert_from_utf8(charset,this->text.String(),&len,raw,&dest_len,&state);
 		alt.UnlockBuffer(dest_len);
 
 		raw = modified.LockBuffer((alt.Length()*3)+1);

@@ -1956,8 +1956,8 @@ TTextView::AddAsContent(Mail::Message *mail, bool wrap)
 	{
 		if (mail->SetBody(body = new Mail::TextComponent()) < B_OK)
 			return;
-		body->SetEncoding(quoted_printable,gMailEncoding);
 	}
+	body->SetEncoding(quoted_printable,gMailEncoding);
 	if (!wrap)
 		body->AppendText(text); //, textLen, mail_encoding);
 	else

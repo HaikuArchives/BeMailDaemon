@@ -18,6 +18,7 @@ class BMimeType;
 namespace Zoidberg {
 namespace Mail {
 
+
 enum component_type {
 	MC_PLAIN_TEXT_BODY = 0,
 	MC_SIMPLE_ATTACHMENT,

@@ -10,6 +10,10 @@
 #include <sys/types.h>
 
 
+#define MDR_UTF8_CONVERSION ((uint32) -2)
+// For specifying the UTF-8 character set when converting to/from UTF-8.
+
+
 #define BASE64_LINELENGTH 76
 
 typedef enum {
