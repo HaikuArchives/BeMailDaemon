@@ -1681,7 +1681,7 @@ bool TTextView::Reader::ParseMail(MailContainer *container,PlainTextBodyComponen
 
 			char typeDescription[B_MIME_TYPE_LENGTH];
 			if (type.GetShortDescription(typeDescription) != B_OK)
-				strcpy(typeDescription, type.Type());
+				strcpy(typeDescription, type.Type() ? type.Type() : B_EMPTY_STRING);
 			
 			name = "\n<Enclosure: ";
 			name << enclosure->name << " (Type: " << typeDescription << ")>\n";
@@ -1907,7 +1907,7 @@ status_t TTextView::Reader::Run(void *_this)
 	{
 		reader->fFile->Seek(0, 0);
 		MailMessage *mail = new MailMessage(reader->fFile);
-		
+
 		// at first, insert the mail body
 		if (mail->BodyText())
 			reader->Process(mail->BodyText(), strlen(mail->BodyText()));
