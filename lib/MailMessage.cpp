@@ -456,10 +456,12 @@ status_t Message::RenderToRFC822(BPositionIO *file) {
 	
 status_t Message::RenderTo(BDirectory *dir) {
 	BString name = Subject();
-	name.ReplaceAll('/','\\');
 	name.Prepend("\"");
-	name << "\": <" << To() << ">";
-	
+	name << "\": <" << To();
+	name.Truncate(222);	// reserve space for the uniquer
+	name << ">";
+	name.ReplaceAll('/','\\');
+
 	BString worker;
 	int32 uniquer = time(NULL);
 	worker = name;
@@ -470,10 +472,12 @@ status_t Message::RenderTo(BDirectory *dir) {
 		
 		worker << ' ' << uniquer;
 	}
-		
+
 	BFile file;
-	dir->CreateFile(worker.String(),&file);
-	
+	status_t status = dir->CreateFile(worker.String(),&file);
+	if (status < B_OK)
+		return status;
+
 	return RenderToRFC822(&file);
 }
 	
