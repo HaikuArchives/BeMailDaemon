@@ -533,10 +533,8 @@ void ConfigWindow::MessageReceived(BMessage *msg)
 				AccountItem *item = (AccountItem *)fAccountsListView->ItemAt(index);
 				if (item)
 				{
-					int32 type = item->type;
-					item->account->Remove(type);
-					if (type == ACCOUNT_ITEM)
-						MakeHowToView();
+					item->account->Remove(item->type);
+					MakeHowToView();
 				}
 			}
 			break;
