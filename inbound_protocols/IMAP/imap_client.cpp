@@ -27,6 +27,7 @@
 
 #ifdef IMAPSSL
 	#include <openssl/ssl.h>
+	#include <openssl/rand.h>
 #endif
 
 #include "NestedString.h"
@@ -195,6 +196,10 @@ IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Rem
 	if (use_ssl) {
 		SSL_library_init();
     	SSL_load_error_strings();
+    	RAND_seed(this,sizeof(IMAP4Client));
+    	/*--- Because we're an add-on loaded at an unpredictable time, all
+    	      the memory addresses and things contained in ourself are
+    	      esssentially random. */
     	
     	ctx = SSL_CTX_new(SSLv23_method());
     	ssl = SSL_new(ctx);
