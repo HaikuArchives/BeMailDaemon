@@ -1,6 +1,6 @@
 /* Message - the main general purpose mail message class
 **
-** Copyright 2001-2002 Dr. Zoidberg Enterprises. All rights reserved.
+** Copyright 2001-2004 Dr. Zoidberg Enterprises. All rights reserved.
 */
 
 
@@ -186,7 +186,8 @@ Message::ForwardMessage(bool accountFromMail, bool includeAttachments)
 		header << "CC: " << CC() << '\n'; // Can use CC rather than "Cc" since display only.
 	header << "Subject: " << Subject() << '\n';
 	header << "Date: " << Date() << "\n\n";
-	header << _text_body->Text() << '\n';
+	if (_text_body != NULL)
+		header << _text_body->Text() << '\n';
 	Mail::Message *message = new Mail::Message();
 	message->SetBodyTextTo(header.String());
 
