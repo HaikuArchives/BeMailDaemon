@@ -14,8 +14,8 @@ public:
 	);
 	
 	//----Perfectly good holdovers from the old days
-	status_t Open(const char *server, int port);
-	status_t Login(const char *uid, const char *password, int method);
+	status_t Open(const char *server, int port, bool esmtp);
+	status_t Login(const char *uid, const char *password);
 	void Close();
 	status_t Send(const char *to, const char *from, BPositionIO *message);
 	
@@ -27,6 +27,7 @@ private:
 	BString fLog;
 	BMessage *_settings;
 	StatusView *status_view;
+	int32 fAuthType;
 	
 	status_t err;
 };

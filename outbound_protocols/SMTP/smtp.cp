@@ -10,20 +10,30 @@
 
 #include <status.h>
 #include <ProtocolConfigView.h>
+#include <base64.h>
 
 #include "smtp.h"
+#include "md5.h"
 
 #define CRLF "\r\n"
 #define smtp_errlert(string) (new BAlert("SMTP Error",string,"OK",NULL,NULL,B_WIDTH_AS_USUAL,B_WARNING_ALERT))->Go();
+
+enum AuthType{
+	LOGIN=1,
+	PLAIN=1<<2,
+	CRAM_MD5=1<<3,
+	DIGEST_MD5=1<<4
+};
 
 SMTPProtocol::SMTPProtocol(BMessage *message, StatusView *view) :
 	MailFilter(message),
 	_settings(message),
 	status_view(view),
+	fAuthType(0),
 	err(B_OK) {
 		BString error_msg;
 			
-		err = Open(_settings->FindString("server"),_settings->FindInt32("port"));
+		err = Open(_settings->FindString("server"),_settings->FindInt32("port"),true /* Use ESMTP. We need an option to configure it in the GUI. */);
 		if (err < B_OK) {
 			error_msg << "Error while opening connection to " << _settings->FindString("server");
 			
@@ -40,7 +50,7 @@ SMTPProtocol::SMTPProtocol(BMessage *message, StatusView *view) :
 			return;
 		}
 			
-		err = Login(_settings->FindString("username"),_settings->FindString("password"),_settings->FindInt32("auth_method"));
+		err = Login(_settings->FindString("username"),_settings->FindString("password"));
 		if (err < B_OK) {
 			//-----This is a really cool kind of error message. How can we make it work for POP3?
 			error_msg << "Error while logging in to " << _settings->FindString("server") << ". The server said:\n" << fLog;
@@ -72,7 +82,7 @@ MDStatus SMTPProtocol::ProcessMailMessage
 		}
 	}
 
-status_t SMTPProtocol::Open(const char *server, int port) {
+status_t SMTPProtocol::Open(const char *server, int port, bool esmtp) {
 	status_view->SetMessage("Connecting to server...");
 
 	if (port <= 0)
@@ -92,18 +102,135 @@ status_t SMTPProtocol::Open(const char *server, int port) {
 		return conn.Error();
 	
 	BString cmd;
-
-	cmd = "HELO "; 
+	
+	if (!esmtp)
+		cmd = "HELO ";
+	else
+		cmd = "EHLO ";
+		 
 	cmd << server << CRLF;
 	if (SendCommand(cmd.String()) != B_OK)
 		return B_ERROR;
+		
+	if (esmtp) 
+	{
+		const char* res = fLog.String();
+		char* p;
+		if((p=::strstr(res,"250-AUTH")))
+		{
+			if(::strstr(p,"LOGIN"))
+				fAuthType |= LOGIN;
+			if(::strstr(p,"PLAIN"))
+				fAuthType |= PLAIN;	
+			if(::strstr(p,"CRAM-MD5"))
+				fAuthType |= CRAM_MD5;
+			if(::strstr(p,"DIGEST-MD5"))
+				fAuthType |= DIGEST_MD5;
+		}
+	}
 	
 	return B_OK;
 
 }
 
-status_t SMTPProtocol::Login(const char *, const char *, int ) {
-	return B_OK;
+status_t SMTPProtocol::Login(const char * _login, const char * password) {
+	if (fAuthType==0)
+		return B_OK;
+	
+	const char* login = _login;		
+	char hex_digest[33];
+	BString out;
+	
+	int32 loginlen = ::strlen(login);
+	int32 passlen = ::strlen(password);
+	
+	if(fAuthType&CRAM_MD5)
+	{
+		//******* CRAM-MD5 Authentication ( not tested yet.)
+		SendCommand("AUTH CRAM-MD5");
+		const char* res = fLog.String();
+		
+		if(strncmp(res,"334",3)!=0)
+			return B_ERROR;
+		char *base = new char[::strlen(&res[4])+1];
+		int32 baselen = ::strlen(base);
+		baselen = ::decode_base64(base,base,baselen);
+		base[baselen] = '\0';
+		
+		::MD5HexHmac(hex_digest,
+				(const unsigned char*)base,
+				(int)baselen,
+				(const unsigned char*)password,
+				(int)passlen);
+		printf("%s\n%s\n",base,hex_digest);
+		delete[] base;
+		
+		char *resp = new char[(strlen(hex_digest)+loginlen)*2+3];
+		
+		::sprintf(resp,"%s %s",login,hex_digest);
+		baselen = ::encode_base64(resp,resp,strlen(resp));
+		resp[baselen]='\0';
+		SendCommand(resp);
+		
+		delete[] resp;
+		
+		res = fLog.String();
+		if(atol(res)<500)
+			return B_OK;
+		
+	}
+	if(fAuthType&DIGEST_MD5){
+	//******* DIGEST-MD5 Authentication ( Not written yet..)
+		fLog = "DIGEST-MD5 Authentication is not supported";
+		return B_ERROR;
+	}
+	if(fAuthType&LOGIN){
+	//******* LOGIN Authentication ( Tested. Should work fine)
+		SendCommand("AUTH LOGIN");
+		const char* res = fLog.String();
+		
+		if(strncmp(res,"334",3)!=0)
+			return B_ERROR;
+		// Send login name as base64
+		char* login64 = new char[loginlen*3+3];
+		::encode_base64(login64,(char*)login,loginlen);
+		SendCommand(login64);
+		delete [] login64;
+		
+		res = fLog.String();
+		if(strncmp(res,"334",3)!=0)
+			return B_ERROR;
+		// Send password as base64
+		login64 = new char[passlen*3+3];
+		::encode_base64(login64,(char*)password,passlen);
+		SendCommand(login64);
+		delete[] login64;
+		res = fLog.String();
+		if(atol(res)<500)
+			return B_OK;
+	}
+	//******* PLAIN Authentication ( not test yet.)
+	if(fAuthType&PLAIN){	
+		char* login64 = new char[((loginlen+1)*2+passlen)*3];
+		::memset(login64,0,((loginlen+1)*2+passlen)*3);
+		::memcpy(login64,login,loginlen);
+		::memcpy(login64+loginlen+1,login,loginlen);
+		::memcpy(login64+loginlen*2+2,password,passlen);
+		
+		::encode_base64(login64,login64,((loginlen+1)*2+passlen));
+		
+		char *cmd = new char[strlen(login64)+12];
+		::sprintf(cmd,"AUTH PLAIN %s",login64);
+		delete[] login64;
+		
+		SendCommand(cmd);
+		delete[] cmd;	
+		const char* res = fLog.String();
+		if(atol(res)<500)
+			return B_OK;
+	}
+		
+	return B_ERROR;	
 }
 
 void SMTPProtocol::Close() {
@@ -241,7 +368,7 @@ MailFilter* instantiate_mailfilter(BMessage *settings,StatusView *status) {
 }
 
 BView* instantiate_config_panel(BMessage *settings) {
-	ProtocolConfigView *view = new ProtocolConfigView(false,false,false,false,true,false);
+	ProtocolConfigView *view = new ProtocolConfigView(false,false,true,true,true,false);
 	
 	BTextControl *control = (BTextControl *)(view->FindView("host"));
 	control->SetLabel("SMTP Host: ");
