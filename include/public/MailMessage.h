@@ -14,6 +14,9 @@
 #define B_MAIL_ATTR_THREAD "MAIL:thread"
 
 
+class BDirectory;
+
+
 namespace Zoidberg {
 namespace Mail {
 

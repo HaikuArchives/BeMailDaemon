@@ -29,7 +29,7 @@ class Component {
 	public:
 		Component();
 		virtual ~Component();
-		
+
 		//------Info on this component
 		uint32 ComponentType();
 		Component *WhatIsThis();
@@ -49,32 +49,33 @@ class Component {
 		void SetHeaderField(
 			const char *key, BMessage *structured_header,
 			bool replace_existing = true);
-			
+
 		const char *HeaderAt(int32 index);
 		const char *HeaderField(const char *key, int32 index = 0);
 		status_t	HeaderField(const char *key, BMessage *structured_header, int32 index = 0);
-		
+
 		status_t	RemoveHeader(const char *key);
-		
+
 		virtual status_t GetDecodedData(BPositionIO *data);
 		virtual status_t SetDecodedData(BPositionIO *data);
-		
+
 		virtual status_t SetToRFC822(BPositionIO *data, size_t length, bool parse_now = false);
 		virtual status_t RenderToRFC822(BPositionIO *render_to);
-		
+
 		virtual status_t MIMEType(BMimeType *mime);
-	
+
 	private:
 		virtual void _ReservedComponent1();
 		virtual void _ReservedComponent2();
 		virtual void _ReservedComponent3();
 		virtual void _ReservedComponent4();
 		virtual void _ReservedComponent5();
-		
+
 		BMessage headers;
-		
+
 		uint32 _reserved[5];
 };
+
 
 class TextComponent : public Mail::Component {
 	public:
@@ -88,16 +89,16 @@ class TextComponent : public Mail::Component {
 
 		void SetText(const char *text);
 		void AppendText(const char *text);
-		
+
 		const char *Text();
 		BString *BStringText();
-		
+
 		void Quote(const char *message = NULL,
 				   const char *quote_style = "> ");
-	
+
 		virtual status_t GetDecodedData(BPositionIO *data);
 		virtual status_t SetDecodedData(BPositionIO *data);
-		
+
 		virtual status_t SetToRFC822(BPositionIO *data, size_t length, bool parse_now = false);
 		virtual status_t RenderToRFC822(BPositionIO *render_to);
 
@@ -107,15 +108,15 @@ class TextComponent : public Mail::Component {
 
 		BString text;
 		BString decoded;
-		
+
 		mail_encoding encoding;
 		uint32 charset;
-		
-		void ParseRaw();
+
+		status_t ParseRaw();
 		BPositionIO *raw_data;
 		size_t raw_length;
 		off_t raw_offset;
-		
+
 		uint32 _reserved[5];
 };
 
