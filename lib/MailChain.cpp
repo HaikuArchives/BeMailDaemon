@@ -266,7 +266,7 @@ status_t MailChain::Reload()
 		
 		path.Append(leaf.String());
 		
-		puts(path.Path());
+		//puts(path.Path());
 	}
 	
 	// open
