@@ -1947,7 +1947,7 @@ bool TTextView::Reader::ParseMail(MailContainer *container,PlainTextBodyComponen
 			if (!ParseMail(c,ignore))
 				count--;
 		}
-		else
+		else if (fIncoming)
 		{
 			hyper_text *enclosure = (hyper_text *)malloc(sizeof(hyper_text));
 			memset(enclosure, 0, sizeof(hyper_text));
