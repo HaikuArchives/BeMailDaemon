@@ -29,14 +29,16 @@ IMAPConfig::IMAPConfig(BMessage *archive)
 		
 	((BControl *)(FindView("leave_mail_remote")))->SetValue(B_CONTROL_ON);
 	((BControl *)(FindView("leave_mail_remote")))->Hide();
-	((BControl *)(FindView("delete_remote_when_local")))->SetValue(B_CONTROL_ON);
-	((BControl *)(FindView("delete_remote_when_local")))->Hide();
+	
+	BRect frame = FindView("delete_remote_when_local")->Frame();
+	
+	((BControl *)(FindView("delete_remote_when_local")))->SetEnabled(true);
+	((BControl *)(FindView("delete_remote_when_local")))->MoveBy(0,-25);
 	
 		
-	BRect frame = FindView("leave_mail_remote")->Frame();
 	frame.right -= 10;// FindView("pass")->Frame().right;
-	frame.top += 10;
-	frame.bottom += 10;
+	/*frame.top += 10;
+	frame.bottom += 10;*/
 	
 	BTextControl *folder = new BTextControl(frame,"root","Mailbox Root: ","",NULL);
 	folder->SetDivider(be_plain_font->StringWidth("Mailbox Root: "));
@@ -64,7 +66,7 @@ status_t IMAPConfig::Archive(BMessage *into, bool deep) const {
 
 void IMAPConfig::GetPreferredSize(float *width, float *height) {
 	ProtocolConfigView::GetPreferredSize(width,height);
-	*height -= 40;
+	*height -= 20;
 }
 
 BView* instantiate_config_panel(BMessage *settings,BMessage *) {
