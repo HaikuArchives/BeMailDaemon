@@ -820,16 +820,27 @@ _EXPORT void StripGook(BString* header)
 		}
 	} // rof
 
-	// Yahoo stupidly inserts the e-mail address into the name string, so this
-	// bit of code fixes: "Joe <joe@yahoo.com>" <joe@yahoo.com>
 
 	int32	lessIndex;
 	int32	greaterIndex;
 
 	lessIndex = name.FindFirst ('<');
 	greaterIndex = name.FindLast ('>');
-	if (lessIndex >= 0 && lessIndex < greaterIndex)
+	if (lessIndex == 0) {
+		// Have an address of the form <address> and nothing else, so remove
+		// the greater and less than signs, if any.
+		if (greaterIndex > 0)
+			name.Remove (greaterIndex, 1);
+		name.Remove (lessIndex, 1);
+	}
+	else if (lessIndex > 0 && lessIndex < greaterIndex) {
+		// Yahoo stupidly inserts the e-mail address into the name string, so
+		// this bit of code fixes: "Joe <joe@yahoo.com>" <joe@yahoo.com>
 		name.Remove (lessIndex, greaterIndex - lessIndex + 1);
+	}
+
+	while (name.Length() > 0 && isspace (name[0]))
+		name.Remove (0, 1); // Remove more leading spaces.
 	while (name.Length() > 0 && isspace (name[name.Length() - 1]))
 		name.Remove (name.Length() - 1, 1); // Remove more trailing spaces.
 
