@@ -245,7 +245,51 @@ status_t SMTPProtocol::Login(const char* _login, const char* password)
 	
 	int32 loginlen = ::strlen(login);
 	int32 passlen = ::strlen(password);
-	
+
+	if(fAuthType&CRAM_MD5)
+	{
+		//******* CRAM-MD5 Authentication ( not tested yet.)
+		SendCommand("AUTH CRAM-MD5"CRLF);
+		const char* res = fLog.String();
+		
+		if(strncmp(res,"334",3)!=0)
+			return B_ERROR;
+		char *base = new char[::strlen(&res[4])+1];
+		int32 baselen = ::strlen(base);
+		baselen = ::decode_base64(base, base, baselen);
+		base[baselen] = '\0';
+		
+		printf("base: %s\n", base);
+		::MD5HexHmac(hex_digest,
+				(const unsigned char*)base,
+				(int)baselen,
+				(const unsigned char*)password,
+				(int)passlen);
+		printf("%s\n%s\n",base,hex_digest);
+		delete[] base;
+		
+		char *resp = new char[(strlen(hex_digest)+loginlen)*2+3+2];
+		
+		::sprintf(resp,"%s %s"CRLF, login, hex_digest);
+		baselen = ::encode_base64(resp,resp,strlen(resp));
+		resp[baselen]='\0';
+		// Hack! I'm sure there is a better way to do this
+		BString t_resp(resp);
+		t_resp.Append(CRLF);
+		
+		SendCommand(t_resp.String());
+		
+		delete[] resp;
+		
+		res = fLog.String();
+		if(atol(res)<500)
+			return B_OK;
+		
+	}
+	if(fAuthType&DIGEST_MD5){
+	//******* DIGEST-MD5 Authentication ( not written yet..)
+		fLog = "DIGEST-MD5 Authentication is not supported";
+	}	
 	if(fAuthType&LOGIN){
 	//******* LOGIN Authentication ( tested. works fine)
 		ssize_t encodedsize; // required by our base64 implementation
@@ -302,51 +346,7 @@ status_t SMTPProtocol::Login(const char* _login, const char* password)
 		const char* res = fLog.String();
 		if(atol(res)<500)
 			return B_OK;
-	}
-	if(fAuthType&CRAM_MD5)
-	{
-		//******* CRAM-MD5 Authentication ( not tested yet.)
-		SendCommand("AUTH CRAM-MD5"CRLF);
-		const char* res = fLog.String();
-		
-		if(strncmp(res,"334",3)!=0)
-			return B_ERROR;
-		char *base = new char[::strlen(&res[4])+1];
-		int32 baselen = ::strlen(base);
-		baselen = ::decode_base64(base,base,baselen);
-		base[baselen] = '\0';
-		
-		::MD5HexHmac(hex_digest,
-				(const unsigned char*)base,
-				(int)baselen,
-				(const unsigned char*)password,
-				(int)passlen);
-		printf("%s\n%s\n",base,hex_digest);
-		delete[] base;
-		
-		char *resp = new char[(strlen(hex_digest)+loginlen)*2+3+2];
-		
-		::sprintf(resp,"%s %s"CRLF, login, hex_digest);
-		baselen = ::encode_base64(resp,resp,strlen(resp));
-		resp[baselen]='\0';
-		// Hack! I'm sure there is a better way to do this
-		BString t_resp(resp);
-		t_resp.Append(CRLF);
-		
-		SendCommand(t_resp.String());
-		
-		delete[] resp;
-		
-		res = fLog.String();
-		if(atol(res)<500)
-			return B_OK;
-		
-	}
-	if(fAuthType&DIGEST_MD5){
-	//******* DIGEST-MD5 Authentication ( not written yet..)
-		fLog = "DIGEST-MD5 Authentication is not supported";
-	}
-		
+	}		
 	return B_ERROR;
 }
 
