@@ -2397,140 +2397,137 @@ void TMailWindow::CopyMessage(entry_ref *ref, TMailWindow *src)
 
 void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, bool all)
 {
-	char		*to = NULL;
-	char		*cc;
-	char		*header;
-	int32		finish;
-	int32		len;
-	int32		loop;
-	int32		start;
-	attr_info	info;
-
 	fRepliedMail = *ref;
 
-	BFile *file = new BFile(ref, O_RDONLY);
-	if (file->InitCheck() == B_NO_ERROR)
+	BFile file(ref, O_RDONLY);
+	if (file.InitCheck() != B_OK)
+		return;
+
+	// set reply-to address and subject
+	char *to = NULL;
+	attr_info info;
+	if (file.GetAttrInfo(B_MAIL_ATTR_REPLY, &info) == B_NO_ERROR
+		&& info.size > 1)
 	{
-		// set reply-to address and subject
-		if (file->GetAttrInfo(B_MAIL_ATTR_REPLY, &info) == B_NO_ERROR
-			&& info.size > 1)
-		{
-			to = (char *)malloc(info.size);
-			file->ReadAttr(B_MAIL_ATTR_REPLY, B_STRING_TYPE, 0, to, info.size);
-			fHeaderView->fTo->SetText(to);
-		}
-		else if (file->GetAttrInfo(B_MAIL_ATTR_FROM, &info) == B_NO_ERROR)
-		{
-			to = (char *)malloc(info.size);
-			file->ReadAttr(B_MAIL_ATTR_FROM, B_STRING_TYPE, 0, to, info.size);
-			fHeaderView->fTo->SetText(to);
-		}
-
-		BString string;
-		if (ReadAttrString(file, B_MAIL_ATTR_SUBJECT, &string) == B_OK)
-		{
-			if (string.ICompare("re:", 3) != 0)
-				string.Prepend("Re: ");
-
-			fHeaderView->fSubject->SetText(string.String());
-		}
-
-		// set mail account
-		if (gUseAccountFrom == ACCOUNT_FROM_MAIL
-			&& ReadAttrString(file, "MAIL:account", &string) == B_NO_ERROR)
-		{
-			MailSettings settings;
-			BList chains;
-			settings.OutboundChains(&chains);
-			for (int32 i = 0;i < chains.CountItems();i++) {
-				MailChain *chain = (MailChain *)chains.ItemAt(i);
-				if (!string.Compare(chain->Name()))
-					fHeaderView->fChain = chain->ID();
-
-				delete chain;
-			}
-
-			BMenu *menu = fHeaderView->fAccountMenu;
-			for (int32 i = menu->CountItems();i-- > 0;) {
-				BMenuItem *item = menu->ItemAt(i);
-				BMessage *msg;
-				if (item
-					&& (msg = item->Message()) != NULL
-					&& msg->FindInt32("id") == *(int32 *)&fHeaderView->fChain)
-					item->SetMarked(true);
-			}
-		}
-		
-		window->fContentView->fTextView->GetSelection(&start, &finish);
-		if (start != finish)
-		{
-			char *str = (char *)malloc(finish - start + 1);
-			window->fContentView->fTextView->GetText(start, finish - start, str);
-			if (str[strlen(str) - 1] != '\n')
-			{
-				str[strlen(str)] = '\n';
-				finish++;
-			}
-			fContentView->fTextView->SetText(str, finish - start);
-			free(str);
-
-			finish = fContentView->fTextView->CountLines() - 1;
-			for (loop = 0; loop < finish; loop++)
-			{
-				fContentView->fTextView->GoToLine(loop);
-				fContentView->fTextView->Insert((const char *)QUOTE);
-			}
-			fContentView->fTextView->GoToLine(0);
-		}
-		else if (file)
-			fContentView->fTextView->LoadMessage(file, true, true, NULL);
-
-		if (all)
-		{
-			cc = (char *)malloc(1);
-			cc[0] = 0;
-			len = header_len(file);
-			header = (char *)malloc(len);
-			file->Seek(0, 0);
-			file->Read(header, len);
-			get_recipients(&cc, header, len, false);
-			if (strlen(cc))
-			{
-				if (to)
-				{
-					char *str;
-					if ((str = cistrstr(cc, to)) != NULL)
-					{
-						len = 0;
-						if (str == cc)
-						{
-							while ((strlen(to) + len < strlen(cc)) &&
-								   ((str[strlen(to) + len] == ' ') ||
-								    (str[strlen(to) + len] == ',')))
-								len++;
-						}
-						else
-						{
-							while ((str > cc) && ((str[-1] == ' ') || (str[-1] == ',')))
-							{
-								str--;
-								len++;
-							}
-						}
-						memmove(str, &str[strlen(to) + len], &cc[strlen(cc)] - 
-														 &str[strlen(to) + len] + 1);
-					}
-				}
-				fHeaderView->fCc->SetText(cc);
-			}
-			free(cc);
-			free(header);
-		}
-		if (to)
-			free(to);
-
-		fReplying = true;
+		to = (char *)malloc(info.size);
+		file.ReadAttr(B_MAIL_ATTR_REPLY, B_STRING_TYPE, 0, to, info.size);
+		fHeaderView->fTo->SetText(to);
 	}
+	else if (file.GetAttrInfo(B_MAIL_ATTR_FROM, &info) == B_NO_ERROR)
+	{
+		to = (char *)malloc(info.size);
+		file.ReadAttr(B_MAIL_ATTR_FROM, B_STRING_TYPE, 0, to, info.size);
+		fHeaderView->fTo->SetText(to);
+	}
+
+	BString string;
+	if (ReadAttrString(&file, B_MAIL_ATTR_SUBJECT, &string) == B_OK)
+	{
+		if (string.ICompare("re:", 3) != 0)
+			string.Prepend("Re: ");
+
+		fHeaderView->fSubject->SetText(string.String());
+	}
+
+	// set mail account
+	if (gUseAccountFrom == ACCOUNT_FROM_MAIL
+		&& ReadAttrString(&file, "MAIL:account", &string) == B_NO_ERROR)
+	{
+		MailSettings settings;
+		BList chains;
+		settings.OutboundChains(&chains);
+		for (int32 i = 0;i < chains.CountItems();i++)
+		{
+			MailChain *chain = (MailChain *)chains.ItemAt(i);
+			if (!string.Compare(chain->Name()))
+				fHeaderView->fChain = chain->ID();
+
+			delete chain;
+		}
+
+		BMenu *menu = fHeaderView->fAccountMenu;
+		for (int32 i = menu->CountItems();i-- > 0;)
+		{
+			BMenuItem *item = menu->ItemAt(i);
+			BMessage *msg;
+			if (item
+				&& (msg = item->Message()) != NULL
+				&& msg->FindInt32("id") == *(int32 *)&fHeaderView->fChain)
+				item->SetMarked(true);
+		}
+	}
+	
+	int32 finish, start;
+	window->fContentView->fTextView->GetSelection(&start, &finish);
+	if (start != finish)
+	{
+		char *str = (char *)malloc(finish - start + 1);
+		window->fContentView->fTextView->GetText(start, finish - start, str);
+		if (str[strlen(str) - 1] != '\n')
+		{
+			str[strlen(str)] = '\n';
+			finish++;
+		}
+		fContentView->fTextView->SetText(str, finish - start);
+		free(str);
+
+		finish = fContentView->fTextView->CountLines() - 1;
+		for (int32 loop = 0; loop < finish; loop++)
+		{
+			fContentView->fTextView->GoToLine(loop);
+			fContentView->fTextView->Insert((const char *)QUOTE);
+		}
+		fContentView->fTextView->GoToLine(0);
+	}
+	else
+		fContentView->fTextView->LoadMessage(&file, true, false, NULL);
+
+	if (all)
+	{
+		char *cc = (char *)malloc(1);
+		cc[0] = 0;
+
+		int32 len = header_len(&file);
+		char *header = (char *)malloc(len);
+		file.Seek(0, 0);
+		file.Read(header, len);
+		get_recipients(&cc, header, len, false);
+		if (strlen(cc))
+		{
+			if (to)
+			{
+				char *str;
+				if ((str = cistrstr(cc, to)) != NULL)
+				{
+					len = 0;
+					if (str == cc)
+					{
+						while ((strlen(to) + len < strlen(cc)) &&
+							   ((str[strlen(to) + len] == ' ') ||
+							    (str[strlen(to) + len] == ',')))
+							len++;
+					}
+					else
+					{
+						while ((str > cc) && ((str[-1] == ' ') || (str[-1] == ',')))
+						{
+							str--;
+							len++;
+						}
+					}
+					memmove(str, &str[strlen(to) + len], &cc[strlen(cc)] - 
+													 &str[strlen(to) + len] + 1);
+				}
+			}
+			fHeaderView->fCc->SetText(cc);
+		}
+		free(cc);
+		free(header);
+	}
+	if (to)
+		free(to);
+
+	fReplying = true;
 }
 
 //--------------------------------------------------------------------
