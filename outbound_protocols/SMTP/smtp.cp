@@ -433,6 +433,7 @@ status_t SMTPProtocol::SendCommand(const char* cmd) {
 
 	while(true) {
 		len = ReceiveLine(fLog);
+		printf("< %s\n",fLog.String());
 		
 		if(len <= 0)
 			return B_ERROR;

@@ -1125,8 +1125,14 @@ skip:			if (!done) {
 				menu->AddItem(item);
 			}
 			if (!marked) {
-				menu->ItemAt(0)->SetMarked(true);
-				fChain = menu->ItemAt(0)->Message()->FindInt32("id");
+				BMenuItem *item = menu->ItemAt(0);
+				if (item != NULL) {
+					item->SetMarked(true);
+					fChain = item->Message()->FindInt32("id");
+				} else {
+					menu->AddItem(item = new BMenuItem("<none>",NULL));
+					item->SetEnabled(false);
+				}
 			}
 			gDefaultChain = fChain;
 		}
