@@ -3177,9 +3177,9 @@ TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 			TextRunArray style(length / 8 + 8);
 
 			FillInQuoteTextRuns(fContentView->fTextView, fContentView->fTextView->Text(),
-				length, font, style, style.MaxEntries());
+				length, font, style.ArrayPntr(), style.MaxEntries());
 
-			fContentView->fTextView->SetRunArray(0, length, style);
+			fContentView->fTextView->SetRunArray(0, length, style.ArrayPntr());
 		}
 
 		fContentView->fTextView->GoToLine(0);
