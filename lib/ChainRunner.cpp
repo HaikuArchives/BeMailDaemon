@@ -134,6 +134,7 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 				image->settings = new BMessage(settings);
 				
 				image->settings->AddPointer("chain_runner",runner);
+				image->settings->AddInt32("chain",chain->ID());
 				image->filter = (*instantiate)(image->settings,status);
 				
 				addons.AddItem(image);
@@ -183,6 +184,7 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 		delete img->filter;
 		
 		img->settings->RemoveName("chain_runner");
+		img->settings->RemoveName("chain");
 		chain->GetFilter(i,&settings,&addon);
 		chain->SetFilter(i,*(img->settings),addon);
 		
