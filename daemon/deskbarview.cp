@@ -14,12 +14,15 @@
 #include <Messenger.h>
 #include <Deskbar.h>
 #include <NodeInfo.h>
+#include <kernel/fs_info.h>
+#include <kernel/fs_index.h>
 
 #include <stdio.h>
 #include <malloc.h>
 
 #include <MailSettings.h>
 #include <MailDaemon.h>
+#include "QueryMenu.h"
 
 #include "deskbarview.h"
 
@@ -81,6 +84,14 @@ DeskbarView::DeskbarView(BMessage *message)
 	new_messages_item = new BMenuItem("No new messages",new BMessage(MD_OPEN_NEW_MAIL_QUERY));
 	new_messages_item->SetEnabled(false);
 	pop_up->AddItem(new_messages_item);
+	
+	// From BeMail:
+	QueryMenu *qmenu;
+	qmenu = new QueryMenu( "Open Draft", false );
+	qmenu->SetTargetForItems( this );
+	fs_create_index( dev_for_path( "/boot/home/mail/draft" ), "MAIL:draft", B_INT32_TYPE, 0 );
+	qmenu->SetPredicate( "MAIL:draft==1" );
+	pop_up->AddItem( qmenu );
 	
 	pop_up->AddSeparatorItem();
 	
@@ -208,6 +219,7 @@ void OpenNewMailQuery()
 }
 
 void DeskbarView::MessageReceived(BMessage *message) {
+	fprintf(stderr,"got message %lx\n",message->what);
 	switch(message->what)
 	{
 	case MD_CHECK_SEND_NOW:
@@ -261,6 +273,26 @@ void DeskbarView::MessageReceived(BMessage *message) {
 		BMessenger mess("application/x-vnd.Be-POST");
 		if (mess.IsValid())
 			mess.SendMessage(message);
+		break;
+	}
+	case B_REFS_RECEIVED:
+	{
+		BMessage argv(B_ARGV_RECEIVED);
+		argv.AddInt32("argc", 2);
+		argv.AddString("argv", "E-mail");
+		
+		entry_ref ref;
+		BPath path;
+		int i=0;
+		
+		while (message->FindRef("refs",i++,&ref)==B_OK
+				&& path.SetTo(&ref) == B_OK)
+		{
+			fprintf(stderr,"got %s\n", path.Path());
+			argv.AddString("argv", path.Path());
+		}
+		
+		if (i>1) be_roster->Launch("text/x-email", &argv);
 		break;
 	}
 	default:
