@@ -66,6 +66,9 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
+ * Revision 1.2  2002/11/03 22:54:38  agmsmith
+ * Trying to update to version 1.61 to match old RCS version numbers.
+ *
  * Revision 1.60.1.1  2002/10/22 14:29:27  agmsmith
  * Needed to recompile with the original Libmail.so from Beta/1 since
  * the current library uses a different constructor, and thus wouldn't
