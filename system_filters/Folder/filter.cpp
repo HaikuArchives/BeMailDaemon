@@ -216,8 +216,10 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		}
 	}
 	
-	if (out_headers->HasInt32("SIZE"))
-		attributes.AddInt32("MAIL:fullsize",out_headers->FindInt32("SIZE"));
+	if (out_headers->HasInt32("SIZE")) {
+		size_t size = out_headers->FindInt32("SIZE");
+		attributes.AddData("MAIL:fullsize",B_SIZE_T_TYPE,&size,sizeof(size_t));
+	}
 		
 	// add "New" status, if the status hasn't been set already
 	if (attributes.FindString(B_MAIL_ATTR_STATUS,&buf) < B_OK)

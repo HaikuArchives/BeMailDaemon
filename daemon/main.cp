@@ -462,6 +462,7 @@ void makeIndices()
 		fs_create_index(device,"MAIL:draft", B_INT32_TYPE, 0);
 		fs_create_index(device,B_MAIL_ATTR_WHEN,B_INT32_TYPE,0);
 		fs_create_index(device,"MAIL:chain",B_INT32_TYPE,0);
+		fs_create_index(device,"MAIL:fullsize",B_INT32_TYPE,0);
 	}
 }
 
@@ -516,12 +517,14 @@ makeMimeType()
 	} else {
 		// just add the types we add to the system
 
-		bool hasAccount = false, hasThread = false;
+		bool hasAccount = false, hasThread = false, hasSize = false;
 		const char *result;
 		for (int32 index = 0;info.FindString("attr:name",index,&result) == B_OK;index++) {
 			if (!strcmp(result,B_MAIL_ATTR_ACCOUNT))
 				hasAccount = true;
 			if (!strcmp(result,B_MAIL_ATTR_THREAD))
+				hasThread = true;
+			if (!strcmp(result,"MAIL:fullsize"))
 				hasThread = true;
 		}
 	
@@ -529,8 +532,10 @@ makeMimeType()
 			addAttribute(info,B_MAIL_ATTR_ACCOUNT,"Account",B_STRING_TYPE,true,false,100);
 		if (!hasThread)
 			addAttribute(info,B_MAIL_ATTR_THREAD,"Thread");
-
-		if (!hasAccount || !hasThread)
+		/*if (!hasSize)
+			addAttribute(info,"MAIL:fullsize","Message Size",B_SIZE_T_TYPE,true,false,100);*/
+		//--- Tracker can't display SIZT attributes. What a pain.
+		if (!hasAccount || !hasThread/* || !hasSize*/)
 			mime.SetAttrInfo(&info);
 	}
 }
