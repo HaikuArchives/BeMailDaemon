@@ -3,7 +3,6 @@
 ** Copyright 2001-2002 Dr. Zoidberg Enterprises. All rights reserved.
 */
 
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <DataIO.h>
@@ -19,8 +18,6 @@
 
 #include <MDRLanguage.h>
 
-#include "pop3.h"
-#include "md5.h"
 
 #ifdef BONE
 	#include <sys/socket.h>
@@ -28,6 +25,16 @@
 #else
 	#include <socket.h>
 #endif
+
+#if POPSSL
+	#include <openssl/ssl.h>
+	#include <openssl/rand.h>
+        #include <openssl/md5.h>
+#else
+        #include "md5.h"
+#endif
+
+#include "pop3.h"
 
 using namespace Zoidberg;
 
@@ -41,6 +48,9 @@ POP3Protocol::POP3Protocol(BMessage *settings, Mail::ChainRunner *status)
 	fNumMessages(-1),
 	fMailDropSize(0)
 {
+        #ifdef POPSSL
+		use_ssl = (settings->FindInt32("flavor") == 1);
+	#endif
 	Init();
 }
 
@@ -48,6 +58,13 @@ POP3Protocol::POP3Protocol(BMessage *settings, Mail::ChainRunner *status)
 POP3Protocol::~POP3Protocol()
 {
 	SendCommand("QUIT" CRLF);
+        
+#ifdef POPSSL
+	if (use_ssl) {
+		SSL_shutdown(ssl);
+		SSL_CTX_free(ctx);
+	}
+#endif
 
 #ifdef BONE
 	close(conn);
@@ -61,9 +78,13 @@ status_t
 POP3Protocol::Open(const char *server, int port, int)
 {
 	runner->ReportProgress(0,0,MDR_DIALECT_CHOICE ("Connecting to POP3 Server...","POP3サーバに接続しています..."));
-
+        
 	if (port <= 0)
-		port = 110;
+		#ifdef POPSSL
+			port = use_ssl ? 995 : 110;
+		#else
+			port = 110;
+		#endif
 
 	fLog = "";
 
@@ -110,7 +131,42 @@ POP3Protocol::Open(const char *server, int port, int)
 		pop3_error(error_msg.String());
 		return B_ERROR;
 	}
+        
+    #ifdef POPSSL
+	if (use_ssl) {
+		SSL_library_init();
+    	SSL_load_error_strings();
+    	RAND_seed(this,sizeof(POP3Protocol));
+    	/*--- Because we're an add-on loaded at an unpredictable time, all
+    	      the memory addresses and things contained in ourself are
+    	      esssentially random. */
+    	
+    	ctx = SSL_CTX_new(SSLv23_method());
+    	ssl = SSL_new(ctx);
+    	sbio=BIO_new_socket(conn,BIO_NOCLOSE);
+    	SSL_set_bio(ssl,sbio,sbio);
+    	
+    	if (SSL_connect(ssl) <= 0) {
+    		BString error;
+			error << "Could not connect to POP3 server " << settings->FindString("server");
+			if (port != 995)
+				error << ":" << port;
+			error << ". (SSL Connection Error)";
+			runner->ShowError(error.String());
+			SSL_CTX_free(ctx);
+			#ifdef BONE
+				close(conn);
+			#else
+				closesocket(net);
+			#endif
+			runner->Stop();
+			return B_ERROR;
+		
+		}
+	}
 	
+    #endif
+        
 	BString line;
 	status_t err;
 	int32 tries = 200000;
@@ -323,7 +379,15 @@ status_t POP3Protocol::RetrieveInternal(const char *command, int32 message,
 	FD_SET(conn, &fds);
 	
 	while (cont) {
-		if (select(32, &fds, NULL, NULL, &tv) == 0) {
+                int result = 0;
+                
+            #ifdef POPSSL
+                if ((use_ssl) && (SSL_pending(ssl)))
+                    result = 1;
+                else
+            #endif
+                result = select(32, &fds, NULL, NULL, &tv);
+		if (result == 0) {
 			// No data available, even after waiting a minute.
 			fLog = "POP3 timeout - no data received after a long wait.";
 			runner->Stop();
@@ -331,7 +395,11 @@ status_t POP3Protocol::RetrieveInternal(const char *command, int32 message,
 		}
 		if (amountToReceive > bufSize - 1 - amountInBuffer)
 			amountToReceive = bufSize - 1 - amountInBuffer;
-
+            #ifdef POPSSL
+                if (use_ssl)
+                    amountReceived = SSL_read(ssl,buf + amountInBuffer, amountToReceive);
+                else
+            #endif
 		amountReceived = recv(conn,buf + amountInBuffer, amountToReceive,0);
 
 		if (amountReceived < 0) {
@@ -489,17 +557,28 @@ POP3Protocol::ReceiveLine(BString &line)
 	
 	/* Set the socket in the mask. */ 
 	FD_SET(conn, &fds); 
-	int result = select(32, &fds, NULL, NULL, &tv);
+	int result = -1;
+    #ifdef POPSSL
+        if ((use_ssl) && (SSL_pending(ssl)))
+            result = 1;
+        else
+    #endif
+            result = select(32, &fds, NULL, NULL, &tv);
 	
 	if (result < 0)
 		return B_TIMEOUT;
 	
 	if (result > 0) {
 		while (true) { // Hope there's an end of line out there else this gets stuck.
+                  #ifdef POPSSL
+			if (use_ssl)
+				rcv = SSL_read(ssl,&c,1);
+			else
+		  #endif
 			rcv = recv(conn, &c, 1, 0);
 			if (rcv < 0)
 				return errno; //--An error!
-
+				//putchar(c);
 			if ((c == '\n') || (rcv == 0 /* EOF */))
 				break;
 
@@ -522,13 +601,13 @@ POP3Protocol::ReceiveLine(BString &line)
 	return len;
 }
 
-
 status_t
+
 POP3Protocol::SendCommand(const char *cmd)
 {
 	if (conn < 0 || conn > FD_SETSIZE)
 		return B_FILE_ERROR;
-
+	//printf(cmd);
 	// Flush any accumulated garbage data before we send our command, so we
 	// don't misinterrpret responses from previous commands (that got left over
 	// due to bugs) as being from this command.
@@ -544,20 +623,37 @@ POP3Protocol::SendCommand(const char *cmd)
 
 	/* Set the socket in the mask. */ 
 	FD_SET(conn, &fds);
-
-	while (select(32, &fds, NULL, NULL, &tv) > 0) {
+        int result;
+        #ifdef POPSSL
+                if ((use_ssl) && (SSL_pending(ssl)))
+                        result = 1;
+                else
+        #endif
+        result = select(32, &fds, NULL, NULL, &tv);
+        
+	if (result > 0) {
 		int amountReceived;
-		char tempString [1025];
+		char tempString [1025]; 
+            #ifdef POPSSL
+                if (use_ssl)
+                        amountReceived = SSL_read(ssl,tempString, sizeof (tempString) - 1);
+                else
+            #endif
 		amountReceived = recv (conn,tempString, sizeof (tempString) - 1,0);
 		if (amountReceived < 0)
 			return errno;
 		tempString [amountReceived] = 0;
 		printf ("POP3Protocol::SendCommand Bug!  Had to flush %d bytes: %s\n",
 			amountReceived, tempString);
-		if (amountReceived == 0)
-			break;
+		//if (amountReceived == 0)
+		//	break;
 	}
-
+#ifdef POPSSL
+	if (use_ssl) {
+		SSL_write(ssl,cmd,::strlen(cmd));
+		//SSL_write(ssl,"\r\n",2);
+	} else 
+#endif
 	if (send(conn, cmd, ::strlen(cmd), 0) < 0) {
 		fLog = strerror(errno);
 		printf ("POP3Protocol::SendCommand Send \"%s\" failed, code %d: %s\n",
@@ -590,16 +686,20 @@ POP3Protocol::SendCommand(const char *cmd)
 
 
 void POP3Protocol::MD5Digest (unsigned char *in,char *ascii_digest)
-{
-	int i;
+{	
+        unsigned char digest[16];
+    
+    #ifdef POPSSL
+	MD5(in, ::strlen((char*)in),digest);
+    #else
 	MD5_CTX context;
-	unsigned char digest[16];
-
-	MD5Init(&context);
+        
+        MD5Init(&context);
 	MD5Update(&context, in, ::strlen((char*)in));
 	MD5Final(digest, &context);
-
-  	for (i = 0;  i < 16;  i++)
+    #endif
+    
+  	for (int i = 0;  i < 16;  i++)
     	sprintf(ascii_digest+2*i, "%02x", digest[i]);
 
 	return;
@@ -614,11 +714,17 @@ Mail::Filter *instantiate_mailfilter(BMessage *settings, Mail::ChainRunner *runn
 
 BView* instantiate_config_panel(BMessage *settings,BMessage *)
 {
-	Mail::ProtocolConfigView *view = new Mail::ProtocolConfigView(Mail::MP_HAS_USERNAME | Mail::MP_HAS_AUTH_METHODS | Mail::MP_HAS_PASSWORD | Mail::MP_HAS_HOSTNAME | Mail::MP_CAN_LEAVE_MAIL_ON_SERVER);
+	Mail::ProtocolConfigView *view = new Mail::ProtocolConfigView(Mail::MP_HAS_USERNAME | Mail::MP_HAS_AUTH_METHODS | Mail::MP_HAS_FLAVORS | Mail::MP_HAS_PASSWORD | Mail::MP_HAS_HOSTNAME | Mail::MP_CAN_LEAVE_MAIL_ON_SERVER);
 	view->AddAuthMethod("Plain Text");
 	view->AddAuthMethod("APOP");
-
+        
+        #if POPSSL
+            view->AddFlavor("Unencrypted");
+            view->AddFlavor("SSL");
+        #endif
+        
 	view->SetTo(settings);
 
 	return view;
 }
+

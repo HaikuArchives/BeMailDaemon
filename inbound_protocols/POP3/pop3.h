@@ -39,6 +39,14 @@ private:
 	int32			fNumMessages;
 	size_t			fMailDropSize;
 	BList			sizes;
+        
+        #ifdef POPSSL
+                SSL_CTX *ctx;
+                SSL *ssl;
+                BIO *sbio;
+                
+                bool use_ssl;
+        #endif
 };
 
 #endif	/* ZOIDBERG_POP3_H */
