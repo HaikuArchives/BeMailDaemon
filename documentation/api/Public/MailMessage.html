@@ -493,6 +493,87 @@ and
    
    <P>
    
+<HR>
+
+<A NAME=Attach></A><TABLE>
+   <TR>
+      <TD>
+         <P></P>
+      </TD>
+      <TD>
+         <P><FONT SIZE="+2">Attach () </FONT></P>
+      </TD>
+   </TR>
+</TABLE>
+</P>
+
+<P>&nbsp;</P>
+
+<BLOCKQUOTE><TABLE BORDER=2 BGCOLOR="#550033" WIDTH=1000>
+      <TR>
+         <TD>
+            <P><TABLE BORDER=1 BGCOLOR="#FFFFFF" CELLPADDING=8 WIDTH=1000>
+               <TR>
+                  <TD>
+                     <P>void
+                     <FONT SIZE="+1"><B><TT>Attach(</TT></B></FONT>
+                     	entry_ref *<FONT FACE="HELVETICA" COLOR="#991122"><I>ref</I></FONT>,
+                     	bool <FONT FACE="HELVETICA" COLOR="#991122"><I>include_attributes</I></FONT> = <B>true</B>
+                     <FONT SIZE="+1"><B><TT>)</TT></B></FONT></P>
+                  </TD>
+               </TR>
+            </TABLE>
+            </P>
+         </TD>
+      </TR>
+   </TABLE>
+   
+   <P>Attaches <FONT FACE="HELVETICA" COLOR="#991122"><I>ref</I></FONT> to this message. If <FONT FACE="HELVETICA" COLOR="#991122"><I>include_attributes</I></FONT>
+   is <B>true</B>, uses an <A HREF="AttributedMailAttachment.html">AttributedMailAttachment</A>
+   instead of a <A HREF="SimpleMailAttachment.html">SimpleMailAttachment</A>. Be aware that is
+   attached in the state it is in when the message is rendered, not when <TT>Attach()</TT> is
+   called.</P></BLOCKQUOTE>
+
+<P>
+
+<HR>
+
+<A NAME=IsComponentAttachment></A><TABLE>
+   <TR>
+      <TD>
+         <P></P>
+      </TD>
+      <TD>
+         <P><FONT SIZE="+2">IsComponentAttachment () </FONT></P>
+      </TD>
+   </TR>
+</TABLE>
+</P>
+
+<P>&nbsp;</P>
+
+<BLOCKQUOTE><TABLE BORDER=2 BGCOLOR="#550033" WIDTH=1000>
+      <TR>
+         <TD>
+            <P><TABLE BORDER=1 BGCOLOR="#FFFFFF" CELLPADDING=8 WIDTH=1000>
+               <TR>
+                  <TD>
+                     <P>bool
+                     <FONT SIZE="+1"><B><TT>IsComponentAttachment(</TT></B></FONT>
+                     int32 <FONT FACE="HELVETICA" COLOR="#991122"><I>index</I></FONT><FONT SIZE="+1"><B><TT>)</TT></B></FONT></P>
+                  </TD>
+               </TR>
+            </TABLE>
+            </P>
+         </TD>
+      </TR>
+   </TABLE>
+   
+   <P>If the component at <FONT FACE="HELVETICA" COLOR="#991122"><I>index</I></FONT> is an attachment of any
+   kind, returns <B>true</B>, otherwise returns <B>false</B>.</P></BLOCKQUOTE>
+
+<P>
+
 
 <HR>
 

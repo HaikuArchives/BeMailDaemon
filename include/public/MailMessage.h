@@ -44,7 +44,7 @@ class MailMessage : public MailComponent {
 		MailComponent *GetComponent(int32 i);
 		int32 CountComponents();
 		
-		void Attach(entry_ref *ref, bool include_attachments = true);
+		void Attach(entry_ref *ref, bool include_attributes = true);
 		bool IsComponentAttachment(int32 i);
 		
 		void SetBodyTextTo(const char *text);
