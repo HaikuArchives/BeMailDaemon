@@ -64,9 +64,6 @@ files:
   to find it, having more than one version will cause things to
   randomly fail, when it finds the old version instead of the new.
 
-  Also, your inbox MUST be on your boot disk. You will get thousands
-  of error messages if it isn't, and it might delete all your e-mail.
-
 ***********
 
 INSTALLATION:
