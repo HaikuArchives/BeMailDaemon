@@ -81,7 +81,7 @@ inline bool IsInitialUTF8Byte(uchar b)
 }
 
 
-bool FilterHTMLTag(char *first,char **t,char *end)
+inline bool FilterHTMLTag(char *first,char **t,char *end)
 {
 	const char *newlineTags[] = {
 		"br",
