@@ -269,36 +269,38 @@ ProtocolsConfigView::ProtocolsConfigView(Mail::Chain *chain,int32 index,BMessage
 {
 	BPopUpMenu *menu = new BPopUpMenu("<choose protocol>");
 
-	BPath path;
-	status_t status = find_directory(B_USER_ADDONS_DIRECTORY,&path);
-	if (status != B_OK)
-	{
-		fImage = status;
-		return;
-	}
-
-	path.Append("mail_daemon");
+	for (int i = 0; i < 2; i++) {
+		BPath path;
+		status_t status = find_directory((i == 0) ? B_USER_ADDONS_DIRECTORY : B_BEOS_ADDONS_DIRECTORY,&path);
+		if (status != B_OK)
+		{
+			fImage = status;
+			return;
+		}
 	
-	if (chain->ChainDirection() == Mail::inbound)
-		path.Append("inbound_protocols");
-	else
-		path.Append("outbound_protocols");
+		path.Append("mail_daemon");
+		
+		if (chain->ChainDirection() == Mail::inbound)
+			path.Append("inbound_protocols");
+		else
+			path.Append("outbound_protocols");
+		
+		BDirectory dir(path.Path());
+		entry_ref protocolRef;
+		while (dir.GetNextRef(&protocolRef) == B_OK)
+		{
+			char name[B_FILE_NAME_LENGTH];
+			BEntry entry(&protocolRef);
+			entry.GetName(name);
 	
-	BDirectory dir(path.Path());
-	entry_ref protocolRef;
-	while (dir.GetNextRef(&protocolRef) == B_OK)
-	{
-		char name[B_FILE_NAME_LENGTH];
-		BEntry entry(&protocolRef);
-		entry.GetName(name);
-
-		BMenuItem *item;
-		BMessage *msg;
-		menu->AddItem(item = new BMenuItem(name,msg = new BMessage(kMsgProtocolChanged)));
-		msg->AddRef("protocol",&protocolRef);
-
-		if (*ref == protocolRef)
-			item->SetMarked(true);
+			BMenuItem *item;
+			BMessage *msg;
+			menu->AddItem(item = new BMenuItem(name,msg = new BMessage(kMsgProtocolChanged)));
+			msg->AddRef("protocol",&protocolRef);
+	
+			if (*ref == protocolRef)
+				item->SetMarked(true);
+		}
 	}
 
 	fProtocolsMenuField = new BMenuField(BRect(0,0,200,40),NULL,NULL,menu);
