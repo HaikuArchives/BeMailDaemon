@@ -47,7 +47,7 @@ All rights reserved.
 #define ACCOUNT_USE_DEFAULT	0
 #define ACCOUNT_FROM_MAIL	1
 
-#define	PREF_WIDTH			300
+#define	PREF_WIDTH			320
 #define PREF_HEIGHT			310
 
 #define SIG_NONE			"None"
@@ -60,16 +60,18 @@ class Button;
 class TPrefsWindow : public BWindow
 {
 	public:
-		TPrefsWindow(BRect rect,BFont *font,int32 *level,bool *warp,bool *cquotes,uint32 *account,
-				int32 *replyTo,char **sig,uint32 *encoding,bool *buttonBar);
+		TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *warp, bool *cquotes,
+			uint32 *account, int32 *replyTo, char **preamble, char **sig, uint32 *encoding,
+			bool *buttonBar);
 		~TPrefsWindow();
-	
+
 		virtual void MessageReceived(BMessage*);
-	
+
 		BPopUpMenu *BuildFontMenu(BFont*);
 		BPopUpMenu *BuildLevelMenu(int32);
 		BPopUpMenu *BuildAccountMenu(uint32);
 		BPopUpMenu *BuildReplyToMenu(int32);
+		BMenu *BuildReplyPreambleMenu();
 		BPopUpMenu *BuildSignatureMenu(char*);
 		BPopUpMenu *BuildSizeMenu(BFont*);
 		BPopUpMenu *BuildWrapMenu(bool);
@@ -89,6 +91,7 @@ class TPrefsWindow : public BWindow
 		uint32	*fNewAccount;
 		int32	fReplyTo;
 		int32	*fNewReplyTo;
+		char	**fNewPreamble;
 		char	*fSignature;
 		char	**fNewSignature;
 		int32	fLevel;
@@ -97,16 +100,18 @@ class TPrefsWindow : public BWindow
 		BFont	*fNewFont;
 		uint32	fEncoding;
 		uint32	*fNewEncoding;
-		BButton	*fOK, *fCancel, *fRevert;
+		BButton	*fRevert;
 
 		BPopUpMenu *fFontMenu;
 		BPopUpMenu *fSizeMenu;
 		BPopUpMenu *fLevelMenu;
 		BPopUpMenu *fWrapMenu, *fColoredQuotesMenu;
 		BPopUpMenu *fAccountMenu, *fReplyToMenu;
+		BMenu *fReplyPreambleMenu;
+		BTextControl *fReplyPreamble;
 		BPopUpMenu *fSignatureMenu;
 		BPopUpMenu *fEncodingMenu;
 		BPopUpMenu *fButtonBarMenu;
 };
 
-#endif // #ifndef _PREFS_H
+#endif	/* _PREFS_H */

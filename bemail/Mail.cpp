@@ -105,6 +105,7 @@ bool		header_flag = false;
 bool		wrap_mode = true;
 bool		gColoredQuotes = true;
 bool		show_buttonbar = true;
+char		*gReplyPreamble;
 char		*signature;
 int32		level = L_BEGINNER;
 entry_ref	open_dir;
@@ -183,9 +184,13 @@ TMailApp::TMailApp()
 	fSigWindow(NULL),
 	fTrackerMessenger(NULL)
 {
+	// set default values
 	fFont.SetSize(FONT_SIZE);
-	signature = (char*) malloc(strlen(SIG_NONE) + 1);
+	signature = (char *)malloc(strlen(SIG_NONE) + 1);
 	strcpy(signature, SIG_NONE);
+	gReplyPreamble = (char *)malloc(1);
+	gReplyPreamble[0] = '\0';
+
 	mail_window.Set(0, 0, 0, 0);
 	signature_window.Set(6, TITLE_BAR_HEIGHT, 6 + kSigWidth, TITLE_BAR_HEIGHT + kSigHeight);
 	prefs_window.Set(6, TITLE_BAR_HEIGHT);
@@ -234,9 +239,9 @@ TMailApp::TMailApp()
 
 			if (fPrefs->Read(&len, sizeof(int32)) > 0)
 			{
-				char *findString = (char *)malloc(len+1);
+				char *findString = (char *)malloc(len + 1);
 				fPrefs->Read(findString, len);
-				findString[len] = 0;
+				findString[len] = '\0';
 				FindWindow::SetFindString(findString);
 				free(findString);
 			}
@@ -248,7 +253,15 @@ TMailApp::TMailApp()
 				gUseAccountFrom = ACCOUNT_USE_DEFAULT;
 			if (fPrefs->Read(&gColoredQuotes, sizeof(bool)) <= 0)
 				gColoredQuotes = true;
-			
+
+			if (fPrefs->Read(&len, sizeof(int32)) > 0)
+			{
+				free(gReplyPreamble);
+				gReplyPreamble = (char *)malloc(len + 1);
+				fPrefs->Read(gReplyPreamble, len);
+				gReplyPreamble[len] = '\0';
+			}
+
 			Mail::Settings settings;
 			gDefaultChain = settings.DefaultOutboundChainID();
 		}
@@ -472,8 +485,9 @@ void TMailApp::MessageReceived(BMessage *msg)
 				fPrefsWindow = new TPrefsWindow(BRect(prefs_window.x, 
 						prefs_window.y, prefs_window.x + PREF_WIDTH,
 						prefs_window.y + PREF_HEIGHT),
-						&fFont,&level,&wrap_mode,&gColoredQuotes,&gDefaultChain,&gUseAccountFrom,
-						&signature, &gMailEncoding, &show_buttonbar);
+						&fFont, &level, &wrap_mode, &gColoredQuotes, &gDefaultChain,
+						&gUseAccountFrom, &gReplyPreamble, &signature, &gMailEncoding,
+						&show_buttonbar);
 				fPrefsWindow->Show();
 				fPrevBBPref = show_buttonbar;
 			}
@@ -571,60 +585,61 @@ bool TMailApp::QuitRequested()
 	font_family	f_family;
 	font_style	f_style;
 
-	if (BApplication::QuitRequested())
-	{
-		if (fPrefs)
-		{
-			fFont.GetFamilyAndStyle(&f_family, &f_style);
-			size = fFont.Size();
-
-			fPrefs->Seek(0, 0);
-			fPrefs->Write(&last_window, sizeof(BRect));
-			fPrefs->Write(&level, sizeof(level));
-			fPrefs->Write(&f_family, sizeof(font_family));
-			fPrefs->Write(&f_style, sizeof(font_style));
-			fPrefs->Write(&size, sizeof(float));
-			fPrefs->Write(&signature_window, sizeof(BRect));
-			fPrefs->Write(&header_flag, sizeof(bool));
-			fPrefs->Write(&wrap_mode, sizeof(bool));
-			fPrefs->Write(&prefs_window, sizeof(BPoint));
-			len = strlen(signature) + 1;
-			fPrefs->Write(&len, sizeof(int32));
-			fPrefs->Write(signature, len);
-			fPrefs->Write(&gMailEncoding, sizeof(int32));
-			const char *findString = FindWindow::GetFindString();
-			len = strlen(findString);
-			fPrefs->Write(&len, sizeof(int32));
-			fPrefs->Write(findString, len);
-			fPrefs->Write(&show_buttonbar, sizeof(bool));
-			fPrefs->Write(&gUseAccountFrom, sizeof(int32));
-			fPrefs->Write(&gColoredQuotes, sizeof(bool));
-			
-			if (gDefaultChain != ~0UL)
-			{
-				Mail::Settings settings;
-				settings.SetDefaultOutboundChainID(gDefaultChain);
-				settings.Save();
-			}
-		}
-		return true;
-	}
-	else
+	if (!BApplication::QuitRequested())
 		return false;
+
+	if (fPrefs)
+	{
+		fFont.GetFamilyAndStyle(&f_family, &f_style);
+		size = fFont.Size();
+
+		fPrefs->Seek(0, 0);
+		fPrefs->Write(&last_window, sizeof(BRect));
+		fPrefs->Write(&level, sizeof(level));
+		fPrefs->Write(&f_family, sizeof(font_family));
+		fPrefs->Write(&f_style, sizeof(font_style));
+		fPrefs->Write(&size, sizeof(float));
+		fPrefs->Write(&signature_window, sizeof(BRect));
+		fPrefs->Write(&header_flag, sizeof(bool));
+		fPrefs->Write(&wrap_mode, sizeof(bool));
+		fPrefs->Write(&prefs_window, sizeof(BPoint));
+		len = strlen(signature) + 1;
+		fPrefs->Write(&len, sizeof(int32));
+		fPrefs->Write(signature, len);
+		fPrefs->Write(&gMailEncoding, sizeof(int32));
+		const char *findString = FindWindow::GetFindString();
+		len = strlen(findString);
+		fPrefs->Write(&len, sizeof(int32));
+		fPrefs->Write(findString, len);
+		fPrefs->Write(&show_buttonbar, sizeof(bool));
+		fPrefs->Write(&gUseAccountFrom, sizeof(int32));
+		fPrefs->Write(&gColoredQuotes, sizeof(bool));
+		len = strlen(gReplyPreamble);
+		fPrefs->Write(&len, sizeof(int32));
+		fPrefs->Write(gReplyPreamble, len);
+
+		if (gDefaultChain != ~0UL)
+		{
+			Mail::Settings settings;
+			settings.SetDefaultOutboundChainID(gDefaultChain);
+			settings.Save();
+		}
+	}
+	return true;
 }
 
-//--------------------------------------------------------------------
 
-void TMailApp::ReadyToRun()
+void
+TMailApp::ReadyToRun()
 {
 	TMailWindow	*window;
 
-	if (!gHelpOnly && !fWindowCount) {
+	if (!gHelpOnly && !fWindowCount)
+	{
 		window = NewWindow();
 		window->Show();
 	}
-	
-	
+
 	// Load dictionaries
 	BPath indexDir;
 	BPath dictionaryDir;
@@ -632,83 +647,84 @@ void TMailApp::ReadyToRun()
 	BPath indexPath;
 	BDirectory directory;
 	BEntry entry;
-	
+
 	// Locate user settings directory
-	find_directory( B_BEOS_ETC_DIRECTORY, &indexDir, true );
+	find_directory(B_BEOS_ETC_DIRECTORY, &indexDir, true);
 	dictionaryDir = indexDir;
-	
+
 	// Setup directory paths
-	indexDir.Append( kIndexDirectory );
-	dictionaryDir.Append( kDictDirectory );
-	
+	indexDir.Append(kIndexDirectory);
+	dictionaryDir.Append(kDictDirectory);
+
 	// Create directories if needed
-	directory.CreateDirectory( indexDir.Path(), NULL );
-	directory.CreateDirectory( dictionaryDir.Path(), NULL );
-	
+	directory.CreateDirectory(indexDir.Path(), NULL);
+	directory.CreateDirectory(dictionaryDir.Path(), NULL);
+
 	dataPath = dictionaryDir;
-	dataPath.Append( "words" );
-	
+	dataPath.Append("words");
+
 	// Only Load if Words Dictionary
-	if( BEntry( kWordsPath ).Exists() || BEntry( dataPath.Path() ).Exists() )
+	if (BEntry(kWordsPath).Exists() || BEntry(dataPath.Path()).Exists())
 	{
 		// If "/boot/optional/goodies/words" exists but there is no system dictionary, copy words
-		if( !BEntry( dataPath.Path() ).Exists() && BEntry( kWordsPath ).Exists() )
+		if (!BEntry(dataPath.Path()).Exists() && BEntry(kWordsPath).Exists())
 		{
-			BFile words( kWordsPath, B_READ_ONLY );
-			BFile copy( dataPath.Path(), B_WRITE_ONLY | B_CREATE_FILE );
+			BFile words(kWordsPath, B_READ_ONLY);
+			BFile copy(dataPath.Path(), B_WRITE_ONLY | B_CREATE_FILE);
 			char buffer[4096];
 			ssize_t size;
-			
-			while( (size=words.Read( buffer, 4096 )) > 0 )
-				copy.Write( buffer, size );
-			BNodeInfo( &copy ).SetType( "text/plain" );
+
+			while ((size = words.Read( buffer, 4096)) > 0)
+				copy.Write(buffer, size);
+			BNodeInfo(&copy).SetType("text/plain");
 		}
-		
+
 		// Create user dictionary if it does not exist
 		dataPath = dictionaryDir;
-		dataPath.Append( "user" );
-		if( !BEntry( dataPath.Path() ).Exists() )
+		dataPath.Append("user");
+		if (!BEntry(dataPath.Path()).Exists())
 		{
-			BFile user( dataPath.Path(), B_WRITE_ONLY | B_CREATE_FILE );
-			BNodeInfo( &user ).SetType( "text/plain" );
+			BFile user(dataPath.Path(), B_WRITE_ONLY | B_CREATE_FILE);
+			BNodeInfo(&user).SetType("text/plain");
 		}
 		
 		// Load dictionaries
-		directory.SetTo( dictionaryDir.Path() );
+		directory.SetTo(dictionaryDir.Path());
 		
 		BString leafName;
 		gUserDict = -1;
 		
-		while( (gDictCount<MAX_DICTIONARIES)&&(directory.GetNextEntry( &entry ) != B_ENTRY_NOT_FOUND) )
+		while (gDictCount < MAX_DICTIONARIES
+			&& directory.GetNextEntry(&entry) != B_ENTRY_NOT_FOUND)
 		{
-			dataPath.SetTo( &entry );
-			
+			dataPath.SetTo(&entry);
+
 			// Identify the user dictionary
-			if( strcmp( "user", dataPath.Leaf() ) == 0 )
+			if (strcmp("user", dataPath.Leaf()) == 0)
 			{
-				gUserDictFile = new BFile( dataPath.Path(), B_WRITE_ONLY | B_OPEN_AT_END );
+				gUserDictFile = new BFile(dataPath.Path(), B_WRITE_ONLY | B_OPEN_AT_END);
 				gUserDict = gDictCount;
 			}
-			
+
 			indexPath = indexDir;
-			leafName.SetTo( dataPath.Leaf() );
-			leafName.Append( kMetaphone );
-			indexPath.Append( leafName.String() );
-			gWords[gDictCount] = new Words( dataPath.Path(), indexPath.Path(), true );
-			
+			leafName.SetTo(dataPath.Leaf());
+			leafName.Append(kMetaphone);
+			indexPath.Append(leafName.String());
+			gWords[gDictCount] = new Words(dataPath.Path(), indexPath.Path(), true);
+
 			indexPath = indexDir;
-			leafName.SetTo( dataPath.Leaf() );
-			leafName.Append( kExact );
-			indexPath.Append( leafName.String() );
-			gExactWords[gDictCount] = new Words( dataPath.Path(), indexPath.Path(), false );
+			leafName.SetTo(dataPath.Leaf());
+			leafName.Append(kExact);
+			indexPath.Append(leafName.String());
+			gExactWords[gDictCount] = new Words(dataPath.Path(), indexPath.Path(), false);
 			gDictCount++;
 		}
 	}
 }
 
-//--------------------------------------------------------------------
 
-void TMailApp::RefsReceived(BMessage *msg)
+void
+TMailApp::RefsReceived(BMessage *msg)
 {
 	bool		have_names = false;
 	BString		names;
@@ -2549,7 +2565,8 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 	else
 		type = Mail::MD_REPLY_TO;
 
-	fMail = mail->ReplyMessage((Mail::reply_to_mode)type, gUseAccountFrom == ACCOUNT_FROM_MAIL, QUOTE);
+	fMail = mail->ReplyMessage((Mail::reply_to_mode)type,
+		gUseAccountFrom == ACCOUNT_FROM_MAIL, QUOTE);
 
 	BFile file(ref, O_RDONLY);
 	if (file.InitCheck() != B_OK)
@@ -2576,6 +2593,62 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 		}
 	}
 
+	char preamble[1024], *from = gReplyPreamble, *to = preamble;
+	while (*from)
+	{
+		if (*from == '%')
+		{
+			int32 length;
+
+			switch (*++from)
+			{
+				// ToDo: parse stuff!
+
+				case 'f':	// first name
+					memcpy(to, "Herbert", 7);
+					to += 7;
+					break;
+				case 'e':	// eMail address
+				{
+					const char *address = mail->From();
+					if (address == NULL)
+						address = "<unknown>";
+					length = strlen(address);
+					memcpy(to, address, length);
+					to += length;
+					break;
+				}
+				case 'l':	// last name
+				case 'n':	// full name
+				case 'd':	// date
+					length = strlen("not yet implemented");
+					memcpy(to, "not yet implemented", length);
+					to += length;
+					break;
+
+				default:
+					*to++ = *from;
+			}
+		}
+		else if (*from == '\\')
+		{
+			switch (*++from)
+			{
+				case 'n':
+					*to++ = '\n';
+					break;
+
+				default:
+					*to++ = *from;
+			}
+		}
+		else
+			*to++ = *from;
+
+		from++;
+	}
+	*to = '\0';
+
 	int32 finish, start;
 	window->fContentView->fTextView->GetSelection(&start, &finish);
 	if (start != finish)
@@ -2599,7 +2672,7 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 		fContentView->fTextView->GoToLine(0);
 	}
 	else
-		fContentView->fTextView->LoadMessage(mail, true, NULL);
+		fContentView->fTextView->LoadMessage(mail, true, preamble);
 
 /*	if (type == M_REPLY_ALL)
 	{
