@@ -280,6 +280,120 @@ FilterHTMLTag(int32 *first, char **t, char *end)
 }
 
 
+/** Returns the type and length of the URL in the string if it is one.
+ *	If the "url" string is specified, it will fill it with the complete
+ *	URL that might differ from the one in the text itself (i.e. because
+ *	of an prepended "http://").
+ */
+
+static uint8
+CheckForURL(const char *string, size_t &urlLength, BString *url = NULL)
+{
+	const char *urlPrefixes[] = {
+		"http://",
+		"ftp://",
+		"shttp://",
+		"https://",
+		"finger://",
+		"telnet://",
+		"gopher://",
+		"news://",
+		"nntp://",
+		"file://",
+		NULL
+	};
+
+	//
+	//	Search for URL prefix
+	//
+	uint8 type = 0;
+	for (const char **prefix = urlPrefixes; *prefix != 0; prefix++) {
+		if (!cistrncmp(string, *prefix, strlen(*prefix))) {
+			type = TYPE_URL;
+			break;	
+		}
+	}
+
+	//
+	//	Not a URL? check for "mailto:" or "www."
+	//
+	if (type == 0 && !cistrncmp(string, "mailto:", strlen("mailto:")))
+		type = TYPE_MAILTO;
+	if (type == 0 && !strncmp(string, "www.", 4)) {
+		// this type will be special cased later (and a http:// is added
+		// for the enclosure address)
+		type = TYPE_URL;
+	}
+	if (type == 0) {
+		// ToDo: check for email addresses
+	}
+
+	if (type == 0)
+		return 0;
+
+	int32 index = 0;
+	if (type == TYPE_URL) {
+		index = strcspn(string, " <>\"\r\n");
+
+		// filter out some punctuation marks if they are the last character
+		char suffix = string[index - 1];
+		if (suffix == '.'
+			|| suffix == ','
+			|| suffix == '?'
+			|| suffix == '!'
+			|| suffix == ':'
+			|| suffix == ';')
+			index--;
+
+		char *parenthesis = NULL;
+
+		// filter out a trailing ')' if there is no left parenthesis before
+		if (string[index - 1] == ')') {
+			char *parenthesis = strchr(string, '(');
+			if (parenthesis == NULL || parenthesis > string + index)
+				index--;
+		}
+
+		// filter out a trailing ']' if there is no left bracket before
+		if (parenthesis == NULL && string[index - 1] == ']') {
+			char *parenthesis = strchr(string, '[');
+			if (parenthesis == NULL || parenthesis > string + index)
+				index--;
+		}
+
+		/*if (!isspace(data[loop + index + 1]) && !isspace(data[loop + index + 2]))
+			index = strcspn(data + loop + index + 1," <>)\"\r\n");*/
+	}
+	else
+		index = strcspn(string, " \t>)\"\\,\r\n");
+
+	/*while ((data[loop + index] != ' ') &&
+		   (data[loop + index] != '\t') &&
+		   (data[loop + index] != '>') &&
+		   (data[loop + index] != ')') &&
+		   (data[loop + index] != '"') &&
+		   (data[loop + index] != '\'') &&
+		   (data[loop + index] != ',') &&
+		   (data[loop + index] != '\r')) {
+		index++;
+	}*/
+
+	if (url != NULL) {
+		// copy the address to the specified string
+		if (type == TYPE_URL && string[0] == 'w') {
+			// URL starts with "www.", so add the protocol to it
+
+			url->SetTo("http://");
+			url->Append(string, index);
+		} else
+			url->SetTo(string, index);
+	}
+	urlLength = index;
+
+	return type;
+}
+
+
 /** Fills the specified text_run_array with the correct values for the
  *	specified text.
  *	If "view" is NULL, it will assume that "line" lies on a line break,
@@ -311,7 +425,7 @@ FillInQouteTextRuns(BTextView *view, const char *line, int32 length, const BFont
 		// start = view->OffsetAt(view->CurrentLine());
 
 		const char *text = view->Text();
-	
+
 		if (!begin) {
 			// if the text is not the start of a new line, go back
 			// to the first character in the current line
@@ -320,12 +434,12 @@ FillInQouteTextRuns(BTextView *view, const char *line, int32 length, const BFont
 					break;
 			}
 		}
-	
+
 		// get number of nested qoutes for current line
-	
+
 		if (!begin && start < end) {
 			begin = true;	// if there was no text in this line, there may come more nested quotes
-	
+
 			for (int32 i = start; i < end; i++) {
 				if (text[i] == quote[0])
 					level++;
@@ -2067,108 +2181,22 @@ TTextView::Reader::ParseMail(Mail::Container *container, Mail::TextComponent *ig
 bool
 TTextView::Reader::Process(const char *data, int32 data_len, bool isHeader)
 {
-	const char *urlPrefixes[] = {
-		"http://",
-		"ftp://",
-		"shttp://",
-		"https://",
-		"finger://",
-		"telnet://",
-		"gopher://",
-		"news://",
-		"nntp://",
-		"file://",
-		NULL
-	};
-	bool	bracket = false;
-	char	line[522];
-	int32	count = 0;
-	int32	index;
+	char line[522];
+	int32 count = 0;
 
 	for (int32 loop = 0; loop < data_len; loop++) {
-		if ((fQuote) && ((!loop) || ((loop) && (data[loop - 1] == '\n')))) {
+		if (fQuote && (!loop || (loop && data[loop - 1] == '\n'))) {
 			strcpy(&line[count], QUOTE);
 			count += strlen(QUOTE);
 		}
 		if (!fRaw && fIncoming && (loop < data_len - 7)) {
-			int32 type = 0;
-
-			//
-			//	Search for URL prefix
-			//
-			for (const char **prefix = urlPrefixes; *prefix != 0; prefix++) {
-				if (!cistrncmp(&data[loop], *prefix, strlen(*prefix))) {
-					type = TYPE_URL;
-					break;	
-				}
-			}
-
-			//
-			//	Not a URL? check for "mailto:" or "www."
-			//
-			if (type == 0 && !cistrncmp(&data[loop], "mailto:", strlen("mailto:")))
-				type = TYPE_MAILTO;
-			if (type == 0 && !strncmp(&data[loop], "www.", 4)) {
-				// this type will be special cased later (and a http:// is added
-				// for the enclosure address)
-				type = TYPE_URL;
-			}
+			size_t urlLength;
+			BString url;
+			uint8 type = CheckForURL(data + loop, urlLength, &url);
 
 			if (type) {
-				if (type == TYPE_URL) {
-					index = strcspn(data + loop, " <>\"\r\n");
-
-					// filter out some punctuation marks if they are the last character
-					char suffix = data[loop + index - 1];
-					if (suffix == '.'
-						|| suffix == ','
-						|| suffix == '?'
-						|| suffix == '!'
-						|| suffix == ':'
-						|| suffix == ';')
-						index--;
-
-					char *parenthesis = NULL;
-
-					// filter out a trailing ')' if there is no left parenthesis before
-					if (data[loop + index - 1] == ')') {
-						char *parenthesis = strchr(data + loop, '(');
-						if (parenthesis == NULL || parenthesis > data + loop + index)
-							index--;
-					}
-
-					// filter out a trailing ']' if there is no left bracket before
-					if (parenthesis == NULL && data[loop + index - 1] == ']') {
-						char *parenthesis = strchr(data + loop, '[');
-						if (parenthesis == NULL || parenthesis > data + loop + index)
-							index--;
-					}
-
-					/*if (!isspace(data[loop + index + 1]) && !isspace(data[loop + index + 2]))
-						index = strcspn(data + loop + index + 1," <>)\"\r\n");*/
-				}
-				else
-					index = strcspn(data+loop, " \t>)\"\\,\r\n");
-				
-				/*while ((data[loop + index] != ' ') &&
-					   (data[loop + index] != '\t') &&
-					   (data[loop + index] != '>') &&
-					   (data[loop + index] != ')') &&
-					   (data[loop + index] != '"') &&
-					   (data[loop + index] != '\'') &&
-					   (data[loop + index] != ',') &&
-					   (data[loop + index] != '\r')) {
-					index++;
-				}*/
-
-				if ((loop) && (data[loop - 1] == '<')
-						&& (data[loop + index] == '>')) {
-					if (!Insert(line, count - 1, false, isHeader))
-						return false;
-					bracket = true;
-				} else if (!Insert(line, count, false, isHeader))
+				if (!Insert(line, count, false, isHeader))
 					return false;
-
 				count = 0;
 
 				hyper_text *enclosure = (hyper_text *)malloc(sizeof(hyper_text));
@@ -2176,37 +2204,14 @@ TTextView::Reader::Process(const char *data, int32 data_len, bool isHeader)
 				fView->GetSelection(&enclosure->text_start,
 									&enclosure->text_end);
 				enclosure->type = type;
+				enclosure->name = strdup(url.String());
+				if (enclosure->name == NULL)
+					return false;
 
-				// copy the address to the enclosure				
-				if (type == TYPE_URL && data[loop] == 'w') {
-					// URL starts with "www.", so add the protocol to it
+				Insert(&data[loop], urlLength, true, isHeader);
+				enclosure->text_end += urlLength;
+				loop += urlLength - 1;
 
-					enclosure->name = (char *)malloc(index + 1 + 7);
-					if (enclosure->name == NULL)
-						return false;
-
-					memcpy(enclosure->name, "http://", 7);
-					memcpy(enclosure->name + 7, &data[loop], index);
-					enclosure->name[index + 7] = '\0';
-				} else {
-					enclosure->name = (char *)malloc(index + 1);
-					if (enclosure->name == NULL)
-						return false;
-
-					memcpy(enclosure->name, &data[loop], index);
-					enclosure->name[index] = '\0';
-				}
-
-				if (bracket) {
-					Insert(&data[loop - 1], index + 2, true, isHeader);
-					enclosure->text_end += index + 2;
-					bracket = false;
-					loop += index;
-				} else {
-					Insert(&data[loop], index, true, isHeader);
-					enclosure->text_end += index;
-					loop += index - 1;
-				}
 				fEnclosures->AddItem(enclosure);
 				continue;
 			}
@@ -2219,7 +2224,7 @@ TTextView::Reader::Process(const char *data, int32 data_len, bool isHeader)
 		} else if (data[loop] != '\r')
 			line[count++] = data[loop];
 
-		if ((count > 511) || ((count) && (loop == data_len - 1))) {
+		if (count > 511 || (count && loop == data_len - 1)) {
 			if (!Insert(line, count, false, isHeader))
 				return false;
 			count = 0;
@@ -2269,9 +2274,9 @@ TTextView::Reader::Run(void *_this)
 {
 	Reader *reader = (Reader *)_this;
 	TTextView *view = reader->fView;
-	char	*msg = NULL;
-	off_t	size = 0;
-	int32	len = 0;
+	char *msg = NULL;
+	off_t size = 0;
+	int32 len = 0;
 
 	if (!reader->Lock())
 		return B_INTERRUPTED;
@@ -2302,7 +2307,7 @@ TTextView::Reader::Run(void *_this)
 
 			while (strncmp(header,"\r\n",2)) {
 				const char *eol = header;
-				while ((eol = strstr(eol,"\r\n")) != NULL && isspace(eol[2]))
+				while ((eol = strstr(eol, "\r\n")) != NULL && isspace(eol[2]))
 					eol += 2;
 				if (eol == NULL)
 					break;
@@ -2310,7 +2315,7 @@ TTextView::Reader::Run(void *_this)
 				eol += 2;	// CR+LF belong to the line
 				size_t length = eol - header;
 
-		 		buffer = (char *)realloc(buffer,length + 1);
+		 		buffer = (char *)realloc(buffer, length + 1);
 		 		if (buffer == NULL)
 		 			goto done;
 	 		
@@ -2371,10 +2376,10 @@ TTextView::Reader::Run(void *_this)
 						c = ' ';
 						t--;
 					}
-					else if (FilterHTMLTag(&c,&t,end))	// the tag filter
+					else if (FilterHTMLTag(&c, &t, end))	// the tag filter
 						continue;
 
-					Unicode2UTF8(c,&a);
+					Unicode2UTF8(c, &a);
 				}
 
 				*a = 0;
