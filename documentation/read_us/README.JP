@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v2.1.0 Release Candidate 1
+BEOS Mail Daemon Replacement v2.1.0 Release Candidate 2
 
 概要：
 
@@ -180,6 +180,9 @@ BEOS Mail Daemon Replacement v2.1.0 Release Candidate 1
 　　さらに、SampleSpamDatabaseに関する注釈を参照してください。
 
 履歴：
+
+June 27 2003 - v2.1.0rc2
+- Fixed some IMAP bugs.  Not all IMAP servers are the same, or even standard.
 
 June 26 2003 - v2.1.0rc1
 - Added US-ASCII encoding and decoding, which also uses 7bit rather than quoted printable.
