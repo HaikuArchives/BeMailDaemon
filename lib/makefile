@@ -140,3 +140,5 @@ INSTALL_DIR=/boot/home/config/lib
 ## include the makefile-engine
 include $(BUILDHOME)/etc/makefile-engine.MailD
 
+clean ::
+	rm -rf $(TARGET_DIR)/$(NAME)
