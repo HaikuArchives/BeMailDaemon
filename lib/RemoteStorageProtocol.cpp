@@ -84,6 +84,7 @@ class UpdateHandler : public BHandler {
 						if (_prot->mailboxes[i][0] == 0)
 							continue; //--- We've covered this in the parent monitor
 						watch_node(&watcher,B_WATCH_DIRECTORY,this);
+						_prot->SyncMailbox(_prot->mailboxes[i]);
 					}
 					((Mail::ChainRunner *)(Looper()))->ResetProgress();
 				} break;
