@@ -1976,10 +1976,14 @@ void TMailWindow::MessageReceived(BMessage *msg)
 					sigList.AddItem(message);
 				}
 			}
-			srand(time(0));
-			PostMessage((BMessage *)sigList.ItemAt(rand() % sigList.CountItems()));
-			for (int32 i = 0; (message = (BMessage *)sigList.ItemAt(i)) != NULL; i++)
-				delete message;
+			if (sigList.CountItems() > 0)
+			{
+				srand(time(0));
+				PostMessage((BMessage *)sigList.ItemAt(rand() % sigList.CountItems()));
+
+				for (int32 i = 0; (message = (BMessage *)sigList.ItemAt(i)) != NULL; i++)
+					delete message;
+			}
 			break;
 		}
 		case M_SIGNATURE:
