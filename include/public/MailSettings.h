@@ -68,8 +68,7 @@ typedef enum
 {
 	MD_SHOW_STATUS_WINDOW_NEVER         = 0,
 	MD_SHOW_STATUS_WINDOW_WHEN_FETCHING = 1,
-	MD_SHOW_STATUS_WINDOW_WHEN_IDLE     = 2,
-	MD_SHOW_STATUS_WINDOW_ALWAYS        = 3
+	MD_SHOW_STATUS_WINDOW_ALWAYS        = 2
 } mail_status_window_option;
 
 typedef enum
