@@ -523,7 +523,7 @@ TextComponent::ParseRaw()
 	bytes = decoded.Length(); // Might have shrunk a bit.
 
 	int32 state;
-	int32 destLength = bytes * 2 + 1 /* +1 so it isn't zero which crashes */;
+	int32 destLength = bytes * 3 /* in case it grows */ + 1 /* +1 so it isn't zero which crashes */;
 	string = text.LockBuffer(destLength);
 	MDR_convert_to_utf8(charset, decoded.String(), &bytes, string, &destLength, &state);
 	if (destLength > 0)
@@ -579,7 +579,11 @@ TextComponent::RenderToRFC822(BPositionIO *render_to)
 
 	int32 len = this->text.Length();
 	if (len > 0) {
-		int32 dest_len = len * 2;
+		int32 dest_len = len * 5;
+		// Shift-JIS can have a 3 byte escape sequence and a 2 byte code for
+		// each character (which could just be 2 bytes in UTF-8, or even 1 byte
+		// if it's regular ASCII), so it can get quite a bit larger than the
+		// original text.  Multiplying by 5 should make more than enough space.
 		char *raw = alt.LockBuffer(dest_len);
 		int32 state;
 		MDR_convert_from_utf8(charset,this->text.String(),&len,raw,&dest_len,&state);
@@ -587,11 +591,11 @@ TextComponent::RenderToRFC822(BPositionIO *render_to)
 
 		raw = modified.LockBuffer((alt.Length()*3)+1);
 		switch (encoding) {
-			case 'b':
+			case base64:
 				len = encode_base64(raw,alt.String(),alt.Length());
 				raw[len] = 0;
 				break;
-			case 'q':
+			case quoted_printable:
 				len = encode_qp(raw,alt.String(),alt.Length(), false);
 				raw[len] = 0;
 				break;
@@ -603,8 +607,8 @@ TextComponent::RenderToRFC822(BPositionIO *render_to)
 
 		modified.ReplaceAll("\n","\r\n");
 
-		// There seem to be a possibility of NULL bytes in the text,
-		// so lets filter them out
+		// There seem to be a possibility of NULL bytes in the text, so lets
+		// filter them out, shouldn't be any after the encoding stage.
 
 		char *string = modified.LockBuffer(modified.Length());
 		for (int32 i = modified.Length();i-- > 0;)
@@ -612,7 +616,7 @@ TextComponent::RenderToRFC822(BPositionIO *render_to)
 			if (string[i] != '\0')
 				continue;
 
-			puts("NULL byte in text!!");
+			puts("TextComponent::RenderToRFC822: NULL byte in text!!");
 			string[i] = ' ';
 		}
 		modified.UnlockBuffer();

@@ -99,7 +99,6 @@ const int32 kNumQuoteColors = 3;
 
 
 extern bool		header_flag;
-extern uint32	gMailEncoding;
 extern bool		gColoredQuotes;
 
 void Unicode2UTF8(int32 c,char **out);
@@ -1943,7 +1942,7 @@ TTextView::StopLoad()
 
 
 void
-TTextView::AddAsContent(Mail::Message *mail, bool wrap)
+TTextView::AddAsContent(Mail::Message *mail, bool wrap, uint32 charset, mail_encoding encoding)
 {
 	if (mail == NULL)
 		return;
@@ -1957,10 +1956,10 @@ TTextView::AddAsContent(Mail::Message *mail, bool wrap)
 		if (mail->SetBody(body = new Mail::TextComponent()) < B_OK)
 			return;
 	}
-	body->SetEncoding(quoted_printable,gMailEncoding);
+	body->SetEncoding(encoding,charset);
 	if (!wrap)
 		body->AppendText(text); //, textLen, mail_encoding);
-	else
+	else // Do word wrapping.
 	{
 		BWindow	*window = Window();
 		BRect	saveTextRect = TextRect();
@@ -1979,7 +1978,9 @@ TTextView::AddAsContent(Mail::Message *mail, bool wrap)
 		// temporarily set the font to be_fixed_font
 		SetFontAndColor(0, textLen, be_fixed_font);
 
-		if (gMailEncoding == B_JIS_CONVERSION)
+		if (charset == B_JIS_CONVERSION ||
+			charset == B_SJIS_CONVERSION ||
+			charset == B_EUC_CONVERSION)
 		{
 			// this is truly evil...  I'm ashamed of myself (Hiroshi)
 			int32	lastMarker = 0;

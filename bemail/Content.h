@@ -162,7 +162,7 @@ class TTextView : public BTextView
 		void Open(hyper_text*);
 		status_t Save(BMessage *, bool makeNewFile = true);
 		void StopLoad();
-		void AddAsContent(Zoidberg::Mail::Message *, bool);
+		void AddAsContent(Zoidberg::Mail::Message *mail, bool wrap, uint32 charset, mail_encoding encoding);
 		void CheckSpelling(int32 start, int32 end,
 			int32 flags = S_CLEAR_ERRORS | S_SHOW_ERRORS);
 		void FindSpellBoundry(int32 length, int32 offset, int32 *start,

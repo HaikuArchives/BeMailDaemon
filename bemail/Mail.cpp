@@ -116,7 +116,7 @@ BPoint		prefs_window;
 BRect		signature_window;
 BRect		mail_window;
 BRect		last_window;
-uint32		gMailEncoding = B_MS_WINDOWS_CONVERSION;
+uint32		gMailCharacterSet = B_MS_WINDOWS_CONVERSION;
 Words 		*gWords[MAX_DICTIONARIES], *gExactWords[MAX_DICTIONARIES];
 int32 		gUserDict;
 BFile 		*gUserDictFile;
@@ -239,7 +239,7 @@ TMailApp::TMailApp()
 				fPrefs->Read(signature, len);
 			}
 
-			fPrefs->Read(&gMailEncoding, sizeof(int32));
+			fPrefs->Read(&gMailCharacterSet, sizeof(int32));
 
 			if (fPrefs->Read(&len, sizeof(int32)) > 0)
 			{
@@ -481,7 +481,7 @@ void TMailApp::MessageReceived(BMessage *msg)
 						prefs_window.y + PREF_HEIGHT),
 						&fFont, &level, &wrap_mode, &attachAttributes_mode,
 						&gColoredQuotes, &gDefaultChain, &gUseAccountFrom,
-						&gReplyPreamble, &signature, &gMailEncoding,
+						&gReplyPreamble, &signature, &gMailCharacterSet,
 						&show_buttonbar);
 				fPrefsWindow->Show();
 				fPrevBBPref = show_buttonbar;
@@ -601,7 +601,7 @@ bool TMailApp::QuitRequested()
 		len = strlen(signature) + 1;
 		fPrefs->Write(&len, sizeof(int32));
 		fPrefs->Write(signature, len);
-		fPrefs->Write(&gMailEncoding, sizeof(int32));
+		fPrefs->Write(&gMailCharacterSet, sizeof(int32));
 		const char *findString = FindWindow::GetFindString();
 		len = strlen(findString);
 		fPrefs->Write(&len, sizeof(int32));
@@ -2748,6 +2748,17 @@ TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 status_t
 TMailWindow::Send(bool now)
 {
+	mail_encoding encodingRelatedToCharset = quoted_printable;
+	
+	// Set up the encoding to use for converting binary to printable ASCII.
+	// Normally this will be quoted printable, but for some old software,
+	// particularly Japanese stuff, they only understand base64.  They also
+	// prefer it for the smaller size.
+	if (gMailCharacterSet == B_SJIS_CONVERSION ||
+		gMailCharacterSet == B_JIS_CONVERSION ||
+		gMailCharacterSet == B_EUC_CONVERSION)
+		encodingRelatedToCharset = base64;
+
 	if (!now)
 	{
 		status_t status;
@@ -2784,13 +2795,16 @@ TMailWindow::Send(bool now)
 			fMail = new Zoidberg::Mail::Message;
 
 		if (strlen(fHeaderView->fTo->Text()) != 0)
-			fMail->SetTo(fHeaderView->fTo->Text(), gMailEncoding);
+			fMail->SetTo(fHeaderView->fTo->Text(),
+			gMailCharacterSet, encodingRelatedToCharset);
 
 		if (strlen(fHeaderView->fSubject->Text()) != 0)
-			fMail->SetSubject(fHeaderView->fSubject->Text(), gMailEncoding);
+			fMail->SetSubject(fHeaderView->fSubject->Text(),
+			gMailCharacterSet, encodingRelatedToCharset);
 
 		if (strlen(fHeaderView->fCc->Text()) != 0)
-			fMail->SetCC(fHeaderView->fCc->Text(), gMailEncoding);
+			fMail->SetCC(fHeaderView->fCc->Text(),
+			gMailCharacterSet, encodingRelatedToCharset);
 
 		if (strlen(fHeaderView->fBcc->Text()) != 0)
 			fMail->SetBCC(fHeaderView->fBcc->Text());
@@ -2799,7 +2813,8 @@ TMailWindow::Send(bool now)
 
 		// the content text is always added to make sure there is a mail body
 		fMail->SetBodyTextTo("");
-		fContentView->fTextView->AddAsContent(fMail, wrap_mode);
+		fContentView->fTextView->AddAsContent(fMail, wrap_mode, gMailCharacterSet,
+			encodingRelatedToCharset);
 
 		if (fEnclosuresView != NULL)
 		{

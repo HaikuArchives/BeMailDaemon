@@ -342,7 +342,7 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, cha
 
 	{
 	int32 state = 0;
-	int32 len = length*2;
+	int32 len = length*5; // Some character sets bloat up quite a bit, even 5 times.
 	char *result = (char *)malloc(len);
 	//-----Just try
 	MDR_convert_from_utf8(charset,*bufp,&length,result,&len,&state);
@@ -367,6 +367,16 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, cha
 				break;
 			if (start[current->length] & (1 << 7))
 				current->has_8bit = true;
+			// A control character (0 to 31 decimal), like the escape codes
+			// used by ISO-2022-JP, or NULs in UTF-16 probably should be
+			// transfered in encoded mode too.  Though ISO-2022-JP is supposed
+			// to have the encoded words ending in ASCII mode (it switches
+			// between 4 different character sets using escape codes), but that
+			// would mean mixing in the character set conversion with the
+			// encoding code, which we can't do (or do character set conversion
+			// for each word separately?).
+			if (start[current->length] >= 0 && start[current->length] < 32)
+				current->has_8bit = true;
 		}
 
 		start += current->length;
@@ -384,6 +394,7 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, cha
 		}
 	}
 
+	// Combine adjacent words which need encoding into a bigger word.
 	struct word *run;
 	for (int32 i = 0; (current = (struct word *)words.ItemAt(i)) != NULL; i++) {
 		for (int32 g = i+1; (run = (struct word *)words.ItemAt(g)) != NULL; g++) {
@@ -399,7 +410,7 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, cha
 	}
 
 	while ((current = (struct word *)words.RemoveItem(0L)) != NULL) {
-		if (!current->has_8bit) {
+		if (encoding <= 0 /* no encoding */ || !current->has_8bit) {
 			rfc2047.Append(current->begin, current->length + 1);
 			delete current;
 		} else {
@@ -407,17 +418,17 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, cha
 			ssize_t encoded_len = 0;
 
 			switch (encoding) {
-				case -1:
-					encoded = (char *)current->begin;
-					encoded_len = current->length;
-					break;
-				case 'q':
+				case quoted_printable:
 					encoded = (char *)malloc(current->length * 3);
 					encoded_len = encode_qp(encoded,current->begin,current->length,true);
 					break;
-				case 'b':
+				case base64:
 					encoded = (char *)malloc(current->length * 2);
 					encoded_len = encode_base64(encoded,current->begin,current->length);
+					break;
+				default: // Unknown encoding type, shouldn't happen.
+					encoded = (char *)current->begin;
+					encoded_len = current->length;
 					break;
 			}
 
