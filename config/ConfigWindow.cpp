@@ -79,6 +79,8 @@ class AccountsListView : public BListView {
 			
 			if ((*bytes == B_DELETE) || (*bytes == B_BACKSPACE))
 				Window()->PostMessage(kMsgRemoveAccount);
+				
+			BListView::KeyDown(bytes,numBytes);
 		}
 };
 
