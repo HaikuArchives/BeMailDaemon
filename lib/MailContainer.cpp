@@ -27,18 +27,14 @@ namespace Mail {
 
 typedef struct message_part {
 	message_part(off_t start, off_t end) { this->start = start; this->end = end; }
-	
+
+	// Offset where the part starts (includes MIME sub-headers but not the
+	// boundary line) in the message file.
 	int32 start;
+
+	// Offset just past the last byte of data, so length == end - start.
 	int32 end;
 } message_part;
-
-enum multipart_reader_states {
-	CHECK_BOUNDARY_STATE = 4,
-	CHECK_PART_STATE,
-	
-	FOUND_BOUNDARY_STATE,
-	FOUND_END_STATE
-};
 
 
 MIMEMultipartContainer::MIMEMultipartContainer(const char *boundary, const char *this_is_an_MIME_message_text)
@@ -54,14 +50,15 @@ MIMEMultipartContainer::MIMEMultipartContainer(const char *boundary, const char 
 }
 
 /*MIMEMultipartContainer::MIMEMultipartContainer(MIMEMultipartContainer &copy) :
-	Mail::Component(copy), 
+	Mail::Component(copy),
 	_boundary(copy._boundary),
 	_MIME_message_warning(copy._MIME_message_warning),
-	_io_data(copy._io_data) {		
+	_io_data(copy._io_data) {
 		AddHeaderField("MIME-Version","1.0");
 		AddHeaderField("Content-Type","multipart/mixed");
 		SetBoundary(boundary);
 	}*/
+
 
 MIMEMultipartContainer::~MIMEMultipartContainer() {
 	for (int32 i = 0; i < _components_in_raw.CountItems(); i++)
@@ -70,27 +67,32 @@ MIMEMultipartContainer::~MIMEMultipartContainer() {
 	for (int32 i = 0; i < _components_in_code.CountItems(); i++)
 		delete (Mail::Component *)_components_in_code.ItemAt(i);
 
-	if (_boundary != NULL)
-		free((void *)_boundary);
+	free((void *)_boundary);
 }
 
+
 void MIMEMultipartContainer::SetBoundary(const char *boundary) {
-	_boundary = strdup(boundary);
-	
+	free ((void *) _boundary);
+	_boundary = NULL;
+	if (boundary != NULL)
+		_boundary = strdup(boundary);
+
 	BMessage structured;
 	HeaderField("Content-Type",&structured);
-	
-	if (boundary == NULL)
+
+	if (_boundary == NULL)
 		structured.RemoveName("boundary");
 	else if (structured.ReplaceString("boundary",_boundary) != B_OK)
 		structured.AddString("boundary",_boundary);
-	
+
 	SetHeaderField("Content-Type",&structured);
 }
+
 
 void MIMEMultipartContainer::SetThisIsAnMIMEMessageText(const char *text) {
 	_MIME_message_warning = text;
 }
+
 
 status_t MIMEMultipartContainer::AddComponent(Mail::Component *component) {
 	if (!_components_in_code.AddItem(component))
@@ -102,6 +104,7 @@ status_t MIMEMultipartContainer::AddComponent(Mail::Component *component) {
 	return B_ERROR;
 }
 
+
 Mail::Component *MIMEMultipartContainer::GetComponent(int32 index) {
 	if (Mail::Component *component = (Mail::Component *)_components_in_code.ItemAt(index))
 		return component;	//--- Handle easy case
@@ -111,14 +114,14 @@ Mail::Component *MIMEMultipartContainer::GetComponent(int32 index) {
 		return NULL;
 
 	_io_data->Seek(part->start,SEEK_SET);
-	
+
 	Mail::Component component;
 	if (component.SetToRFC822(_io_data,part->end - part->start) < B_OK)
 		return NULL;
 
 	Mail::Component *piece = component.WhatIsThis();
-	
-	/* Debug code 
+
+	/* Debug code
 	_io_data->Seek(part->start,SEEK_SET);
 	char *data = new char[part->end - part->start + 1];
 	_io_data->Read(data,part->end - part->start);
@@ -133,7 +136,7 @@ Mail::Component *MIMEMultipartContainer::GetComponent(int32 index) {
 		return NULL;
 	}
 	_components_in_code.ReplaceItem(index,piece);
-	
+
 	return piece;
 }
 
@@ -175,157 +178,216 @@ MIMEMultipartContainer::RemoveComponent(int32 index)
 }
 
 
-status_t
-MIMEMultipartContainer::GetDecodedData(BPositionIO *)
+status_t MIMEMultipartContainer::GetDecodedData(BPositionIO *)
 {
 	return B_BAD_TYPE; //------We don't play dat
 }
+
 
 status_t MIMEMultipartContainer::SetDecodedData(BPositionIO *) {
 	return B_BAD_TYPE; //------We don't play dat
 }
 
-static int8 check_state(char *buffer, int32 pos, int32 bytes)
-{
-	buffer += pos;
-
-	if (*buffer == '\r')
-		return FOUND_BOUNDARY_STATE;
-	if (!strncmp(buffer, "--\r", bytes - pos > 2 ? 3 : 2))
-		return FOUND_END_STATE;
-
-	return 0;
-}
 
 status_t MIMEMultipartContainer::SetToRFC822(BPositionIO *data, size_t length, bool copy_data)
 {
-	for (int32 i = _components_in_code.CountItems();i-- > 0;)
+	typedef enum LookingForEnum {
+		FIRST_NEWLINE,
+		INITIAL_DASHES,
+		BOUNDARY_BODY,
+		LAST_NEWLINE,
+		MAX_LOOKING_STATES
+	} LookingFor;
+
+	ssize_t     amountRead;
+	ssize_t     amountToRead;
+	ssize_t     boundaryLength;
+	char        buffer [4096];
+	ssize_t     bufferIndex;
+	off_t       bufferOffset;
+	ssize_t     bufferSize;
+	BMessage    content_type;
+	const char *content_type_string;
+	bool        finalBoundary = false;
+	bool        finalComponentCompleted = false;
+	int         i;
+	off_t       lastBoundaryOffset;
+	LookingFor  state;
+	off_t       startOfBoundaryOffset;
+	off_t       topLevelEnd;
+	off_t       topLevelStart;
+
+	// Clear out old components.  Maybe make a MakeEmpty method?
+
+	for (i = _components_in_code.CountItems(); i-- > 0;)
 		delete (Mail::Component *)_components_in_code.RemoveItem(i);
 
-	for (int32 i = _components_in_raw.CountItems();i-- > 0;)
+	for (i = _components_in_raw.CountItems(); i-- > 0;)
 		delete (message_part *)_components_in_raw.RemoveItem(i);
 
+	// Start by reading the headers and getting the boundary string.
+
 	_io_data = data;
-	
-	off_t position = data->Position();
+	topLevelStart = data->Position();
+	topLevelEnd = topLevelStart + length;
+
 	Mail::Component::SetToRFC822(data,length);
 
-	BMessage content_type;
-	const char *content_type_string;
 	HeaderField("Content-Type",&content_type);
 	content_type_string = content_type.FindString("unlabeled");
-	if (content_type_string == NULL /* Probably won't happen due to constructor but... */
-		|| strncasecmp(content_type_string,"multipart",9) != 0)
+	if (content_type_string == NULL ||
+		strncasecmp(content_type_string,"multipart",9) != 0)
 		return B_BAD_TYPE;
 
 	if (!content_type.HasString("boundary"))
 		return B_BAD_TYPE;
-
+	free ((void *) _boundary);
 	_boundary = strdup(content_type.FindString("boundary"));
-	
-	//
-	//	Find container parts
-	//
-	
-	int32 boundaryLength = strlen(_boundary);
-	int32 boundaryPos = 0;
-	const char *expected = "\r\n--";
-	int8 state = 2;		// begin looking for '-'
-	char buffer[4096];	// buffer size must be at least as long as boundaryLength
+	boundaryLength = strlen(_boundary);
+	if (boundaryLength > (ssize_t) sizeof (buffer) / 2)
+		return B_BAD_TYPE; // Boundary is way too long, should be max 70 chars.
 
-	off_t offset = data->Position();
-	off_t end = length + position;
-	int32 lastBoundary = -1;
+	//	Find container parts by scanning through the given portion of the file
+	//	for the boundary marker lines.  The stuff between the header and the
+	//	first boundary is ignored, the same as the stuff after the last
+	//	boundary.  The rest get stored away as our sub-components.  See RFC2046
+	//	section 5.1 for details.
 
-	while (offset < end)
+	bufferOffset = data->Position(); // File offset of the start of the buffer.
+	bufferIndex = 0; // Current position we are examining in the buffer.
+	bufferSize = 0; // Amount of data actually in the buffer, not including NUL.
+	startOfBoundaryOffset = -1;
+	lastBoundaryOffset = -1;
+	state = INITIAL_DASHES; // Starting just after a new line so don't search for it.
+	while (((bufferOffset + bufferIndex < topLevelEnd)
+		|| (state == LAST_NEWLINE /* No EOF test in LAST_NEWLINE state */))
+		&& !finalComponentCompleted)
 	{
-		ssize_t bytes = (offset + sizeof(buffer)) > end ? end - offset : sizeof(buffer);
-		bytes = data->Read(buffer, bytes);
-		if (bytes <= 0)
-			break;
-		
-		for (int32 i = 0;i < bytes;i++)
+		// Refill the buffer if the remaining amount of data is less than a
+		// boundary's worth, plus four dashes and two CRLFs.
+		if (bufferSize - bufferIndex < boundaryLength + 8)
 		{
-			switch (state)
-			{
-				case CHECK_BOUNDARY_STATE:	// check for boundary
-					if ((bytes - i) > boundaryLength)	// string fits
-					{
-						boundaryPos = 0;
-						if (!strncmp(buffer + i, _boundary, boundaryLength))
-							state = check_state(buffer,boundaryLength + i,bytes);
-						else
-							state = 0;
-					}
-					else if (!strncmp(buffer + i, _boundary, boundaryPos = bytes - i))
-					{
-						state++;
-						i += boundaryPos;
-					}
-					else
-						state = 0;
-					break;
-				case CHECK_PART_STATE:		// check for part of boundary
-					if (!strncmp(buffer + i, _boundary + boundaryPos, boundaryLength - boundaryPos))
-						state = check_state(buffer,boundaryLength - boundaryPos + i,bytes);
-					else
-						state = 0;
-					break;
-				default:
-					if (buffer[i] == expected[state])
-						state++;
-					else if (state)
-					{
-						if (buffer[i] == expected[0])	// re-evaluate character
-							state = 1;
-						else
-							state = 0;
-					}
-					break;
-			}
-			// if a boundary was found or the file is broken
-			if (state >= FOUND_BOUNDARY_STATE || (offset + i + 1) >= end)
-			{
-				if (lastBoundary >= 0)
-				{
-					_components_in_raw.AddItem(new message_part(lastBoundary, offset + i - boundaryPos - 2));
-					_components_in_code.AddItem(NULL);
-				}
-				if (state == FOUND_END_STATE)
-					break;
+			// Shuffle the remaining bit of data in the buffer over to the front.
+			if (bufferSize - bufferIndex > 0)
+				memmove (buffer, buffer + bufferIndex, bufferSize - bufferIndex);
+			bufferOffset += bufferIndex;
+			bufferSize = bufferSize - bufferIndex;
+			bufferIndex = 0;
 
-				i += boundaryLength - boundaryPos;
-				lastBoundary = offset + i + 2;	// "--" boundary "\r\n"
-				state = 0;
+			// Fill up the rest of the buffer with more data.  Also leave space
+			// for a NUL byte just past the last data in the buffer so that
+			// simple string searches won't go off past the end of the data.
+			amountToRead = topLevelEnd - (bufferOffset + bufferSize);
+			if (amountToRead > (ssize_t) sizeof (buffer) - 1 - bufferSize)
+				amountToRead = sizeof (buffer) - 1 - bufferSize;
+			if (amountToRead > 0) {
+				amountRead = data->Read (buffer + bufferSize, amountToRead);
+				if (amountRead < 0)
+					return amountRead;
+				bufferSize += amountRead;
 			}
+			buffer [bufferSize] = 0; // Add an end of string NUL byte.
 		}
-		if (state == FOUND_END_STATE)
-			break;
-		offset += bytes;
+
+		// Search for whatever parts of the boundary we are currently looking
+		// for in the buffer.  It starts with a newline (officially CRLF but we
+		// also accept just LF for off-line e-mail files), followed by two
+		// hyphens or dashes "--", followed by the unique boundary string
+		// specified earlier in the header, followed by two dashes "--" for the
+		// final boundary (or zero dashes for intermediate boundaries),
+		// followed by white space (possibly including header style comments in
+		// brackets), and then a newline.
+
+		switch (state) {
+			case FIRST_NEWLINE:
+				// The newline before the boundary is considered to be owned by
+				// the boundary, not part of the previous MIME component.
+				startOfBoundaryOffset = bufferOffset + bufferIndex;
+				if (buffer[bufferIndex] == '\r' && buffer[bufferIndex + 1] == '\n') {
+					bufferIndex += 2;
+					state = INITIAL_DASHES;
+				} else if (buffer[bufferIndex] == '\n') {
+					bufferIndex += 1;
+					state = INITIAL_DASHES;
+				} else
+					bufferIndex++;
+				break;
+
+			case INITIAL_DASHES:
+				if (buffer[bufferIndex] == '-' && buffer[bufferIndex + 1] == '-') {
+					bufferIndex += 2;
+					state = BOUNDARY_BODY;
+				} else
+					state = FIRST_NEWLINE;
+				break;
+
+			case BOUNDARY_BODY:
+				if (strncmp (buffer + bufferIndex, _boundary, boundaryLength) != 0) {
+					state = FIRST_NEWLINE;
+					break;
+				}
+				bufferIndex += boundaryLength;
+				finalBoundary = false;
+				if (buffer[bufferIndex] == '-' && buffer[bufferIndex + 1] == '-') {
+					bufferIndex += 2;
+					finalBoundary = true;
+				}
+				state = LAST_NEWLINE;
+				break;
+
+			case LAST_NEWLINE:
+				// Just keep on scanning until the next new line or end of file.
+				if (buffer[bufferIndex] == '\r' && buffer[bufferIndex + 1] == '\n')
+					bufferIndex += 2;
+				else if (buffer[bufferIndex] == '\n')
+					bufferIndex += 1;
+				else if (buffer[bufferIndex] != 0 /* End of file is like a newline */) {
+					// Not a new line or end of file, just skip over
+					// everything.  White space or not, we don't really care.
+					bufferIndex += 1;
+					break;
+				}
+				// Got to the end of the boundary line and maybe now have
+				// another component to add.
+				if (lastBoundaryOffset >= 0) {
+					_components_in_raw.AddItem (new message_part (lastBoundaryOffset, startOfBoundaryOffset));
+					_components_in_code.AddItem (NULL);
+				}
+				// Next component's header starts just after the boundary line.
+				lastBoundaryOffset = bufferOffset + bufferIndex;
+				if (finalBoundary)
+					finalComponentCompleted = true;
+				state = FIRST_NEWLINE;
+				break;
+
+			default: // Should not happen.
+				state = FIRST_NEWLINE;
+		}
 	}
-	
+
 	if (copy_data) {
-		for (int32 i = 0; GetComponent(i) != NULL; i++) {}
+		for (i = 0; GetComponent(i) != NULL; i++) {}
 	}
-	
+
 	return B_OK;
 }
 
+
 status_t MIMEMultipartContainer::RenderToRFC822(BPositionIO *render_to) {
 	Mail::Component::RenderToRFC822(render_to);
-	
+
 	BString delimiter;
 	delimiter << "\r\n--" << _boundary << "\r\n";
-	
+
 	if (_MIME_message_warning != NULL) {
 		render_to->Write(_MIME_message_warning,strlen(_MIME_message_warning));
 		render_to->Write("\r\n",2);
 	}
-	
+
 	for (int32 i = 0; i < _components_in_code.CountItems() /* both have equal length, so pick one at random */; i++) {
 		render_to->Write(delimiter.String(),delimiter.Length());
 		if (_components_in_code.ItemAt(i) != NULL) { //---- _components_in_code has precedence
-			
+
 			Mail::Component *code = (Mail::Component *)_components_in_code.ItemAt(i);
 			status_t status = code->RenderToRFC822(render_to); //----Easy enough
 			if (status < B_OK)
@@ -334,21 +396,23 @@ status_t MIMEMultipartContainer::RenderToRFC822(BPositionIO *render_to) {
 			// copy message contents
 
 			uint8 buffer[1024];
-			ssize_t length;
+			ssize_t amountWritten, length;
 			message_part *part = (message_part *)_components_in_raw.ItemAt(i);
-			
+
 			for (off_t begin = part->start; begin < part->end; begin += sizeof(buffer)) {
 				length = ((part->end - begin) >= sizeof(buffer)) ? sizeof(buffer) : (part->end - begin);
-				
+
 				_io_data->ReadAt(begin,buffer,length);
-				render_to->Write(buffer,length);
+				amountWritten = render_to->Write(buffer,length);
+				if (amountWritten < 0)
+					return amountWritten; // IO error of some sort.
 			}
 		}
 	}
-	
+
 	render_to->Write(delimiter.String(),delimiter.Length() - 2);	// strip CRLF
 	render_to->Write("--\r\n",4);
-	
+
 	return B_OK;
 }
 

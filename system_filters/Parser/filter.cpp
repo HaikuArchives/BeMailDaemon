@@ -62,10 +62,9 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 	// Parse the header.  Add each header as a string to
 	// the headers message, under the header's name.
 	//
-	while ((len = Mail::readfoldedline(**data, &buf, &buflen)) > 2)
+	while ((len = Mail::readfoldedline(**data, &buf, &buflen)) >= 2)
 	{
-		if (buf[len-2] == '\r') len -= 2;
-		else if (buf[len-1] == '\n') --len;
+		--len; // Don't include the \n at the end of the buffer.
 		
 		// convert to UTF-8
 		len = Mail::rfc2047_to_utf8(&buf, &buflen, len);

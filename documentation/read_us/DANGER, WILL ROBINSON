@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v2.0.0 Beta 4
+BEOS Mail Daemon Replacement v2.0.0 Beta 5
 
 BEEP! THIS IS A TEST OF THE EMERGENCY BROADCAST SYSTEM.
 
@@ -11,6 +11,11 @@ BUGS:
 1) Japanese and Chinese characters aren't handled correctly. Maybe some other things aren't as well, but for now anything not translatable into UTF8 doesn't work. We're working on this. Honest.
 
 2) Your inbox *must* be on your boot disk. We'll have a fix for this soon, but be aware of this. If you don't, you will soon start seeing errors about cross-device links and all your mail will be deleted. Don't say we didn't warn you. The e-mail monster is hiding in a cross-device link. Don't bring him out!
+
+3) Forward with attachments doesn't work.
+
+4) Saving drafts doesn't work.
+
 
 IT'S NOT A BUG, IT'S A FEATURE:
 

@@ -13,6 +13,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <errno.h>
 
 #include <mail_encoding.h>
 
@@ -377,7 +378,7 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, cha
 	
 	return rfc2047.Length();
 }
-	
+
 
 //====================================================================
 
@@ -385,210 +386,246 @@ _EXPORT ssize_t readfoldedline(FILE *file, char **buffer, size_t *buflen)
 {
 	ssize_t len = buflen && *buflen ? *buflen : 0;
 	char * buf = buffer && *buffer ? *buffer : NULL;
-	ssize_t cnt = 0;
-	bool hasFolded = false;
+	ssize_t cnt = 0; // Number of characters currently in the buffer.
 	int c;
-	
-	while ((c = fgetc(file)) != EOF)
+
+	while (true)
 	{
-		if (buf == NULL || cnt + 1 >= len)
+		// Make sure there is space in the buffer for two more characters (one
+		// for the next character, and one for the end of string NUL byte).
+		if (buf == NULL || cnt + 2 >= len)
 		{
 			char *temp = (char *)realloc(buf, len + 64);
-			if (temp == NULL)
+			if (temp == NULL) {
+				// Out of memory, however existing buffer remains allocated.
+				cnt = ENOMEM;
 				break;
-
+			}
 			len += 64;
 			buf = temp;
 		}
-		
-		switch (c)
-		{
-			case '\n':
-				buf[cnt++] = c;
-				c = fgetc(file);
-				// if next is linear whitespace, fold lines
-				if ((c == ' ' || c == '\t') && (hasFolded || !hasFolded && cnt > 2))
-				{
-					hasFolded = true;
-					if (cnt >= 2 && buf[cnt-2] == '\r')
-						cnt -= 2;
-					else
+
+		// Read the next character, or end of file, or IO error.
+		if ((c = fgetc(file)) == EOF) {
+			if (ferror (file)) {
+				cnt = errno;
+				if (cnt >= 0)
+					cnt = -1; // Error codes must be negative.
+			} else {
+				// Really is end of file.  Also make it end of line if there is
+				// some text already read in.  If the first thing read was EOF,
+				// just return an empty string.
+				if (cnt > 0) {
+					buf[cnt++] = '\n';
+					if (buf[cnt-2] == '\r') {
+						buf[cnt-2] = '\n';
 						--cnt;
-					// then fall through
+					}
 				}
-				else
-				{
-					// we read a line; break out of the loop
-					ungetc(c,file);
-					c = '\n';
-					break;
-				}
-			
-			default:
-				buf[cnt++] = c;
+			}
+			break;
 		}
-		
-		if (c=='\n') break;
+
+		buf[cnt++] = c;
+
+		if (c == '\n') {
+			// Convert CRLF end of line to just a LF.  Do it before folding, in
+			// case we don't need to fold.
+			if (cnt >= 2 && buf[cnt-2] == '\r') {
+				buf[cnt-2] = '\n';
+				--cnt;
+			}
+
+			// if first character on the next line is whitespace, fold lines
+			c = fgetc(file); // Note it's OK to read EOF and ungetc it too.
+			if (c == ' ' || c == '\t')
+				buf[cnt-1] = c; // Replace \n with the white space character.
+			else {
+				// Not folding, we finished reading a line; break out of the loop
+				ungetc(c,file);
+				break;
+			}
+		}
 	}
-	if (c == EOF || c == '\n')
-	{
-		if (buf)
-			buf[cnt] = '\0';
-	}
-	else
-		cnt = -1;
-	
+
+
+	if (buf != NULL && cnt >= 0)
+		buf[cnt] = '\0';
+
 	if (buffer)
 		*buffer = buf;
 	else if (buf)
 		free(buf);
-	
+
 	if (buflen)
 		*buflen = len;
-	
+
 	return cnt;
 }
+
 
 //====================================================================
 
 _EXPORT ssize_t readfoldedline(BPositionIO &in, char **buffer, size_t *buflen)
 {
 	ssize_t len = buflen && *buflen ? *buflen : 0;
-	char * buf = buffer && *buffer? *buffer : NULL;
-	ssize_t cnt = 0;
-	bool hasFolded = false;
-	int8 c;
-	
-	while (in.Read(&c,1) == 1)
+	char * buf = buffer && *buffer ? *buffer : NULL;
+	ssize_t cnt = 0; // Number of characters currently in the buffer.
+	char c;
+	status_t errorCode;
+
+	while (true)
 	{
-		if (buf == NULL || cnt + 1 >= len)
+		// Make sure there is space in the buffer for two more characters (one
+		// for the next character, and one for the end of string NUL byte).
+		if (buf == NULL || cnt + 2 >= len)
 		{
 			char *temp = (char *)realloc(buf, len + 64);
-			if (temp == NULL)
+			if (temp == NULL) {
+				// Out of memory, however existing buffer remains allocated.
+				cnt = ENOMEM;
 				break;
-			
+			}
 			len += 64;
 			buf = temp;
 		}
 
-		switch (c)
-		{
-			case '\n':
-				buf[cnt++] = c;
-				in.Read(&c,1);
-	
-				// if next is linear whitespace, fold lines
-				if ((c == ' ' || c == '\t') && (hasFolded || !hasFolded && cnt > 2))
-				{
-					hasFolded = true;
-					if (cnt >= 2 && buf[cnt-2] == '\r')
-						cnt -= 2;
-					else
+		errorCode = in.Read (&c,1); // A really slow way of reading - unbuffered.
+		if (errorCode != 1) {
+			if (errorCode < 0) {
+				cnt = errorCode; // IO error encountered, just return the code.
+			} else {
+				// Really is end of file.  Also make it end of line if there is
+				// some text already read in.  If the first thing read was EOF,
+				// just return an empty string.
+				if (cnt > 0) {
+					buf[cnt++] = '\n';
+					if (buf[cnt-2] == '\r') {
+						buf[cnt-2] = '\n';
 						--cnt;
-					// then fall through
+					}
 				}
-				else
-				{
-					// we read a line; break out of the loop
-					//ATT-ungetc(c,file); translates to this, right?
-					in.Seek(-1,SEEK_CUR);
-					c = '\n';
+			}
+			break;
+		}
+
+		buf[cnt++] = c;
+
+		if (c == '\n') {
+			// Convert CRLF end of line to just a LF.  Do it before folding, in
+			// case we don't need to fold.
+			if (cnt >= 2 && buf[cnt-2] == '\r') {
+				buf[cnt-2] = '\n';
+				--cnt;
+			}
+
+			// if first character on the next line is whitespace, fold lines
+			errorCode = in.Read(&c,1);
+			if (errorCode == 1) {
+				if (c == ' ' || c == '\t')
+					buf[cnt-1] = c; // Replace \n with the white space character.
+				else {
+					// Not folding, we finished reading a whole line.
+					in.Seek(-1,SEEK_CUR); // Undo the look-ahead character read.
 					break;
 				}
-			
-			default:
-				buf[cnt++] = c;
+			} else if (errorCode < 0) {
+				cnt = errorCode;
+				break;
+			} else // No next line; at the end of the file.  Return the line.
+				break;
 		}
-		
-		if (c == '\n') break;
 	}
-	if (c == EOF || c == '\n')
-	{
-		if (buf)
-			buf[cnt] = '\0';
-	}
-	else
-		cnt = -1;
-	
+
+	if (buf != NULL && cnt >= 0)
+		buf[cnt] = '\0';
+
 	if (buffer)
 		*buffer = buf;
 	else if (buf)
 		free(buf);
-	
+
 	if (buflen)
 		*buflen = len;
 
 	return cnt;
 }
+
 
 _EXPORT ssize_t nextfoldedline(const char** header, char **buffer, size_t *buflen)
 {
 	ssize_t len = buflen && *buflen ? *buflen : 0;
 	char * buf = buffer && *buffer ? *buffer : NULL;
-	ssize_t cnt = 0;
-	bool hasFolded = false;
-	int c;
-	
-	while ((c = *(*header)++) != 0)
+	ssize_t cnt = 0; // Number of characters currently in the buffer.
+	char c;
+
+	while (true)
 	{
-		if (buf == NULL || cnt + 1 >= len)
+		// Make sure there is space in the buffer for two more characters (one
+		// for the next character, and one for the end of string NUL byte).
+		if (buf == NULL || cnt + 2 >= len)
 		{
 			char *temp = (char *)realloc(buf, len + 64);
-			if (temp == NULL)
+			if (temp == NULL) {
+				// Out of memory, however existing buffer remains allocated.
+				cnt = ENOMEM;
 				break;
-			
+			}
 			len += 64;
 			buf = temp;
 		}
-		
-		switch (c)
-		{
-			case '\n':
-				buf[cnt++] = c;
-				c = *(*header)++;
-				// if next is linear whitespace, fold lines
-				if ((c == ' ' || c == '\t') && (hasFolded || !hasFolded && cnt > 2))
-				{
-					hasFolded = true;
-					if (cnt >= 2 && buf[cnt-2] == '\r')
-						cnt -= 2;
-					else
-						--cnt;
-					// then fall through
+
+		// Read the next character, or end of file.
+		if ((c = *(*header)++) == 0) {
+			// End of file.  Also make it end of line if there is some text
+			// already read in.  If the first thing read was EOF, just return
+			// an empty string.
+			if (cnt > 0) {
+				buf[cnt++] = '\n';
+				if (buf[cnt-2] == '\r') {
+					buf[cnt-2] = '\n';
+					--cnt;
 				}
-				else
-				{
-					// we read a line; break out of the loop
-					(*header)--;
-					c = '\n';
-					break;
-				}
-			
-			default:
-				buf[cnt++] = c;
+			}
+			break;
 		}
-		
-		if (c == '\n') break;
+
+		buf[cnt++] = c;
+
+		if (c == '\n') {
+			// Convert CRLF end of line to just a LF.  Do it before folding, in
+			// case we don't need to fold.
+			if (cnt >= 2 && buf[cnt-2] == '\r') {
+				buf[cnt-2] = '\n';
+				--cnt;
+			}
+
+			// if first character on the next line is whitespace, fold lines
+			c = *(*header)++;
+			if (c == ' ' || c == '\t')
+				buf[cnt-1] = c; // Replace \n with the white space character.
+			else {
+				// Not folding, we finished reading a line; break out of the loop
+				(*header)--; // Undo read of the non-whitespace.
+				break;
+			}
+		}
 	}
-	if (c == EOF || c == '\n')
-	{
-		if (buf)
-			buf[cnt] = '\0';
-	}
-	else
-		cnt = -1;
-	
+
+
+	if (buf != NULL && cnt >= 0)
+		buf[cnt] = '\0';
+
 	if (buffer)
 		*buffer = buf;
 	else if (buf)
 		free(buf);
-	
+
 	if (buflen)
 		*buflen = len;
-	
+
 	return cnt;
 }
-
 
 
 _EXPORT void StripGook(BString* header)

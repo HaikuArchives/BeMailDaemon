@@ -222,10 +222,9 @@ Component::SetToRFC822(BPositionIO *data, size_t /*length*/, bool /* parse_now *
 	//
 	// Parse the header
 	//
-	while ((len = readfoldedline(*data, &buf, &buflen)) > 2)
+	while ((len = readfoldedline(*data, &buf, &buflen)) >= 2)
 	{
-		if (buf[len-2] == '\r') len -= 2;
-		else if (buf[len-1] == '\n') --len;
+		--len; // Don't include the \n at the end of the buffer.
 
 		// convert to UTF-8
 		len = rfc2047_to_utf8(&buf, &buflen, len);
@@ -253,6 +252,7 @@ status_t Component::RenderToRFC822(BPositionIO *render_to) {
 	int8 encoding;
 	const char *key, *value;
 	char *allocd;
+	ssize_t amountWritten;
 
 	BString concat;
 
@@ -284,7 +284,9 @@ status_t Component::RenderToRFC822(BPositionIO *render_to) {
 
 			free(allocd);
 
-			render_to->Write(concat.String(), concat.Length());
+			amountWritten = render_to->Write(concat.String(), concat.Length());
+			if (amountWritten < 0)
+				return amountWritten; // IO error happened, usually disk full.
 			concat = "";
 		}
 	}
@@ -476,9 +478,9 @@ TextComponent::ParseRaw()
 	decoded.UnlockBuffer(bytes);
 	decoded.ReplaceAll("\r\n", "\n");
 
-	string = text.LockBuffer(bytes * 2);
-	int32 destLength = bytes * 2;
 	int32 state;
+	int32 destLength = bytes * 2 + 1 /* +1 so it isn't zero which crashes */;
+	string = text.LockBuffer(destLength);
 	convert_to_utf8(charset, decoded.String(), &bytes, string, &destLength, &state);
 	if (destLength > 0)
 		text.UnlockBuffer(destLength);
