@@ -21,8 +21,8 @@ class _EXPORT AttributedMailAttachment;
 SimpleMailAttachment::SimpleMailAttachment()
 	: MailComponent(),
 	_data(NULL),
-	_we_own_data(false),
-	_raw_data(NULL)
+	_raw_data(NULL),
+	_we_own_data(false)
 	{
 		SetEncoding(base64);
 		SetHeaderField("Content-Disposition","Attachment");
@@ -31,8 +31,8 @@ SimpleMailAttachment::SimpleMailAttachment()
 SimpleMailAttachment::SimpleMailAttachment(BPositionIO *data, mail_encoding encoding)
 	: MailComponent(),
 	_data(data),
-	_we_own_data(false),
-	_raw_data(NULL)
+	_raw_data(NULL),
+	_we_own_data(false)
 	{
 		SetEncoding(encoding);
 		SetHeaderField("Content-Disposition","Attachment");
@@ -41,8 +41,8 @@ SimpleMailAttachment::SimpleMailAttachment(BPositionIO *data, mail_encoding enco
 SimpleMailAttachment::SimpleMailAttachment(const void *data, size_t length, mail_encoding encoding)
 	: MailComponent(),
 	_data(new BMemoryIO(data,length)),
-	_we_own_data(true),
-	_raw_data(NULL)
+	_raw_data(NULL),
+	_we_own_data(true)
 	{
 		SetEncoding(encoding);
 		SetHeaderField("Content-Disposition","Attachment");
