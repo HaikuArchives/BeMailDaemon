@@ -122,15 +122,23 @@ Message::ReplyMessage(reply_to_mode replyTo, bool accountFromMail, const char *q
 		} else if (to != NULL && to[0])
 			string << to;
 
-		// filter out the sender
+		// Filter out the sender: find the sender's email address in the list,
+		// then zap everything from the comma before the address to the comma
+		// after it, leaving just one comma.  Repeat until the sender's address
+		// isn't there.  To Do: fix bug where it will wipe out people with
+		// superset addresses (removing "smith@rogers.com" will also nuke
+		// "agmsmith@rogers.com").  Guess a real Name and Address class and
+		// associated parsing would help.
 		BString addr = Mail::Chain(Account()).MetaData()->FindString("reply_to");
-		int32 offset;
-		while ((offset = string.FindFirst(addr)) >= 0) {
-			int32 begin = string.FindLast(',', offset);
-			int32 end = string.FindFirst(',', offset);
-			begin = (begin < 0) ? 0 : begin;
-			end = (end < 0) ? string.Length() : end;
-			string.Remove(begin, end);
+		if (addr.Length() > 0) {
+			int32 offset;
+			while ((offset = string.FindFirst(addr)) >= 0) {
+				int32 begin = string.FindLast(',', offset);
+				int32 end = string.FindFirst(',', offset);
+				begin = (begin < 0) ? 0 : begin;
+				end = (end < 0) ? string.Length() : end;
+				string.Remove(begin /* location */, end - begin /* count */);
+			}
 		}
 
 		if (string.Length() > 0)	
