@@ -455,23 +455,32 @@ THeaderView::InitGroupCompletion()
 			while (*grp && *grp == ' ') grp++;
 
 			BString *group = new BString(grp);
+			BString *addressListString = NULL;
 
 			// nobody is in this group yet, start it off
 			if (group_map[group] == NULL)
 			{
-				BString *addresses = new BString(*group);
-				addresses->Append(" <");
-				addresses->Append(address);
-				group_map[group] = addresses;
+				addressListString = new BString(*group);
+				addressListString->Append(" ");
+				group_map[group] = addressListString;
 			}
 			else
 			{
-				BString *a = group_map[group];
-				a->Append(", ");
-				a->Append(address);
-				
+				addressListString = group_map[group];
+				addressListString->Append(", ");
 				delete group;
 			}
+
+			// Append the user's address to the end of the string with the
+			// comma separated list of addresses.  If not present, add the
+			// < and > brackets around the address.
+
+			if (address.FindFirst ('<') < 0) {
+				address.ReplaceAll ('>', '_');
+				address.Prepend ("<");
+				address.Append(">");
+			}
+			addressListString->Append(address);
 
 			if (!next)
 				break;
@@ -486,15 +495,12 @@ THeaderView::InitGroupCompletion()
 	{
 		BString *grp = iter->first;
 		BString *addr = iter->second;
-		addr->Append(">");
 		fEmailList.AddChoice(addr->String());
 		++iter;
 		group_map.erase(grp);
 		delete grp;
-		group_map.erase(addr);
 		delete addr;
 	}
-
 }
 
 
