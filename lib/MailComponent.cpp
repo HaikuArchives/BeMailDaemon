@@ -309,15 +309,43 @@ Component::RenderToRFC822(BPositionIO *render_to) {
 
 
 status_t Component::MIMEType(BMimeType *mime) {
+	bool foundBestHeader;
+	const char *boundaryString;
 	unsigned int i;
 	BMessage msg;
 	const char *typeAsString;
 	char typeAsLowerCaseString [B_MIME_TYPE_LENGTH];
 
-	HeaderField("Content-Type",&msg);
-	typeAsString = msg.FindString("unlabeled");
+	// Find the best Content-Type header to use.  There should really be just
+	// one, but evil spammers sneakily insert one for multipart (with no
+	// boundary string), then one for text/plain.  We'll scan through them and
+	// only use the multipart one if there are no others, and it has a
+	// boundary.
 
-	if (typeAsString == NULL) {
+	foundBestHeader = false;
+	for (i = 0; msg.MakeEmpty(), HeaderField("Content-Type", &msg, i) == B_OK; i++) {
+		typeAsString = msg.FindString("unlabeled");
+		if (typeAsString != NULL && strncasecmp (typeAsString, "multipart", 9) != 0) {
+			foundBestHeader = true;
+			break;
+		}
+	}
+	if (!foundBestHeader) {
+		for (i = 0; msg.MakeEmpty(), HeaderField("Content-Type", &msg, i) == B_OK; i++) {
+			typeAsString = msg.FindString("unlabeled");
+			if (typeAsString != NULL && strncasecmp (typeAsString, "multipart", 9) == 0) {
+				boundaryString = msg.FindString("boundary");
+				if (boundaryString != NULL && strlen (boundaryString) > 0) {
+					foundBestHeader = true;
+					break;
+				}
+			}
+		}
+	}
+	// At this point we have the good MIME type in typeAsString, but only if
+	// foundBestHeader is true.
+
+	if (!foundBestHeader) {
 		strcpy (typeAsLowerCaseString, "text/plain"); // Hope this is an OK default.
 	} else {
 		// Some extra processing to convert mixed or upper case MIME types into
