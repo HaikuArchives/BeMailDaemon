@@ -264,8 +264,8 @@ _EXPORT ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 	
 	// replace the last char
 	(*bufp)[strLen] = lastChar;
-	
-	return ret<B_OK? ret:string-head;
+
+	return ret < B_OK ? ret : string-head;
 }
 
 _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, char encoding) {
@@ -444,7 +444,7 @@ _EXPORT ssize_t readfoldedline(FILE *file, char **buffer, size_t *buflen)
 		free(buf);
 	
 	if (buflen)
-		*buflen = len+1;
+		*buflen = len;
 	
 	return cnt;
 }
@@ -516,7 +516,7 @@ _EXPORT ssize_t readfoldedline(BPositionIO &in, char **buffer, size_t *buflen)
 		free(buf);
 	
 	if (buflen)
-		*buflen = len+1;
+		*buflen = len;
 
 	return cnt;
 }
@@ -584,7 +584,7 @@ _EXPORT ssize_t nextfoldedline(const char** header, char **buffer, size_t *bufle
 		free(buf);
 	
 	if (buflen)
-		*buflen = len+1;
+		*buflen = len;
 	
 	return cnt;
 }
