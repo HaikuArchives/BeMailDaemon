@@ -397,8 +397,7 @@ TMailApp::MessageReceived(BMessage *msg)
 						break;
 					msg->FindRef("ref", &ref);
 					window = NewWindow();
-					if (window->Lock())
-					{
+					if (window->Lock()) {
 						if (type == M_COPY_TO_NEW)
 							window->CopyMessage(&ref, sourceWindow);
 						else
@@ -2744,7 +2743,8 @@ TMailWindow::Show()
 }
 
 
-void TMailWindow::Zoom(BPoint /*pos*/, float /*x*/, float /*y*/)
+void
+TMailWindow::Zoom(BPoint /*pos*/, float /*x*/, float /*y*/)
 {
 	float		height;
 	float		width;
@@ -2874,7 +2874,8 @@ class HorizontalLine : public BView {
 };
 
 
-void TMailWindow::Print()
+void
+TMailWindow::Print()
 {
 	if (!print_settings)
 	{
@@ -2955,7 +2956,8 @@ void TMailWindow::Print()
 }
 
 
-void TMailWindow::PrintSetup()
+void
+TMailWindow::PrintSetup()
 {
 	BPrintJob	print("mail_print");
 	status_t	result;
@@ -2971,8 +2973,9 @@ void TMailWindow::PrintSetup()
 }
 
 
-void TMailWindow::SetTo(const char *mailTo, const char *subject, const char *ccTo,
-						const char *bccTo, const BString *body, BMessage *enclosures)
+void
+TMailWindow::SetTo(const char *mailTo, const char *subject, const char *ccTo,
+	const char *bccTo, const BString *body, BMessage *enclosures)
 {
 	Lock();
 
@@ -2998,11 +3001,11 @@ void TMailWindow::SetTo(const char *mailTo, const char *subject, const char *ccT
 }
 
 
-void TMailWindow::CopyMessage(entry_ref *ref, TMailWindow *src)
+void
+TMailWindow::CopyMessage(entry_ref *ref, TMailWindow *src)
 {
 	BNode file(ref);
-	if (file.InitCheck() == B_OK)
-	{
+	if (file.InitCheck() == B_OK) {
 		BString string;
 		if (fHeaderView->fTo && ReadAttrString(&file, B_MAIL_ATTR_TO, &string) == B_OK)
 			fHeaderView->fTo->SetText(string.String());
@@ -3013,8 +3016,13 @@ void TMailWindow::CopyMessage(entry_ref *ref, TMailWindow *src)
 		if (fHeaderView->fCc && ReadAttrString(&file, B_MAIL_ATTR_CC, &string) == B_OK)
 			fHeaderView->fCc->SetText(string.String());
 	}
-	fContentView->fTextView->SetText(src->fContentView->fTextView->Text(),
-									 src->fContentView->fTextView->TextLength());
+
+	TTextView *text = src->fContentView->fTextView;
+	text_run_array *style = text->RunArray(0, text->TextLength());
+
+	fContentView->fTextView->SetText(text->Text(), text->TextLength(), style);
+
+	free(style);
 }
 
 
