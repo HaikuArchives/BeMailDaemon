@@ -325,7 +325,7 @@ void FillInQouteTextRuns(BTextView *view,const char *line,int32 length,BFont &fo
 		{
 			if (text[i] == *quote)
 				level++;
-			else if (isalnum(text[i]))
+			else if (text[i] != ' ' && text[i] != '\t')
 			{
 				begin = false;
 				break;
@@ -353,7 +353,7 @@ void FillInQouteTextRuns(BTextView *view,const char *line,int32 length,BFont &fo
 					if (search && line[next] == '>'
 						|| line[next] == '\n')
 						break;
-					else if (isalnum(line[next]))
+					else if (line[next] != ' ' && line[next] != '\t')
 						search = false;
 				}
 
@@ -2002,6 +2002,8 @@ void TTextView::AddAsContent(Mail::Message *mail, bool wrap)
 					{
 						if (text[i] == *quote)
 							level++;
+						else if (text[i] != ' ' && text[i] != '\t')
+							break;
 					}
 					
 					// if there are too much quotes, try to preserve the quote color level

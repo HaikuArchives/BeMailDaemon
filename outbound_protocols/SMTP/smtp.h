@@ -15,6 +15,8 @@
 class SMTPProtocol : public Zoidberg::Mail::Filter {
 public:
 	SMTPProtocol(BMessage *message, Zoidberg::Mail::StatusView *view);
+	~SMTPProtocol();
+
 	virtual status_t InitCheck(BString *verbose);
 	virtual MDStatus ProcessMailMessage
 	(

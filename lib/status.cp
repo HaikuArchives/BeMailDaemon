@@ -78,6 +78,7 @@ StatusWindow::StatusWindow(BRect rect, const char *name, uint32 s)
 	min_width = default_view->Bounds().Width();
 	min_height = default_view->Bounds().Height();
 	ResizeTo(min_width, min_height);
+	window_frame = Frame();
 	SetSizeLimits(min_width, 2.0 * min_width, min_height, min_height);
 
 	Mail::Settings general;
@@ -131,6 +132,7 @@ StatusWindow::~StatusWindow()
 	// remove all status_views, so we don't accidentally delete them
 	while (StatusView *status_view = (StatusView *)stat_views.RemoveItem(0L))
 		RemoveChild(status_view);
+
 	Mail::Settings general;
 	if (general.InitCheck() == B_OK)
 	{
@@ -139,6 +141,24 @@ StatusWindow::~StatusWindow()
 		general.Save();
 	}
 }
+
+
+void StatusWindow::FrameMoved(BPoint /*origin*/)
+{
+	if (last_workspace == current_workspace())
+		window_frame = Frame();
+}
+
+
+void StatusWindow::WorkspaceActivated(int32 workspace, bool active)
+{
+	if (active)
+	{
+		MoveTo(window_frame.LeftTop());
+		last_workspace = workspace;
+	}
+}
+
 
 // MessageReceived
 void StatusWindow::MessageReceived(BMessage *msg)
@@ -181,12 +201,7 @@ StatusView *StatusWindow::NewStatusView(const char *description,bool upstream) {
 	BRect rect = Bounds();
 	rect.top = stat_views.CountItems() * (min_height + 1);
 	rect.bottom = rect.top + min_height;
-	StatusView *status = new StatusView(rect,description);
-	if (!upstream) {
-		const rgb_color downstreamColor = {48,176,48,255};	// upstream was: {255,100,50,255}
-		status->status->SetBarColor(downstreamColor);
-	}
-	
+	StatusView *status = new StatusView(rect,description,upstream);
 	status->window = this;
 	Unlock();
 	
@@ -209,7 +224,7 @@ void StatusWindow::ActuallyAddStatusView(StatusView *status) {
 	
 	status->Hide();
 	AddChild(status);
-	if (stat_views.CountItems() == 1 && !default_is_hidden)
+	if (CountVisibleItems() == 1 && !default_is_hidden)
 	{
 		default_view->Hide();
 		default_is_hidden = true;
@@ -226,7 +241,9 @@ void StatusWindow::ActuallyAddStatusView(StatusView *status) {
 	}
 	ResizeTo(rect.Width(), rect.bottom);
 	
-	if (show == MD_SHOW_STATUS_WINDOW_WHEN_FETCHING && stat_views.CountItems() == 1)
+	if (show != MD_SHOW_STATUS_WINDOW_ALWAYS
+		&& show != MD_SHOW_STATUS_WINDOW_NEVER
+		&& CountVisibleItems() == 1)
 	{
 		SetFlags(Flags() | B_AVOID_FOCUS);
 		Show();
@@ -256,9 +273,9 @@ void StatusWindow::RemoveView(StatusView *view) {
 		MoveBy(0, min_height + 1);
 	}
 
-	if (stat_views.CountItems() == 0)
+	if (CountVisibleItems() == 0)
 	{
-		if (show == MD_SHOW_STATUS_WINDOW_WHEN_FETCHING)
+		if (show != MD_SHOW_STATUS_WINDOW_NEVER && show != MD_SHOW_STATUS_WINDOW_ALWAYS)
 		{
 			while (!IsHidden())
 				Hide();
@@ -280,18 +297,36 @@ void StatusWindow::RemoveView(StatusView *view) {
 	Unlock();
 }
 
+
+int32 StatusWindow::CountVisibleItems()
+{
+	if (show != MD_SHOW_STATUS_WINDOW_WHEN_SENDING)
+		return stat_views.CountItems();
+
+	int32 count = 0;
+	for (int32 i = stat_views.CountItems();i-- > 0;)
+	{
+		StatusView *view = (StatusView *)stat_views.ItemAt(i);
+		if (view->is_upstream)
+			count++;
+	}
+	return count;
+}
+
 // HasItems
 bool StatusWindow::HasItems(void) {
-	return (stat_views.CountItems() > 0);
+	return (CountVisibleItems() > 0);
 }
 
 // SetShowCriterion
 void StatusWindow::SetShowCriterion(uint32 when)
 {
-	if (!Lock()) return;
+	if (!Lock())
+		return;
+
 	show = when;
 	if (show == MD_SHOW_STATUS_WINDOW_ALWAYS
-		|| (show == MD_SHOW_STATUS_WINDOW_WHEN_FETCHING && HasItems()))
+		|| (show != MD_SHOW_STATUS_WINDOW_NEVER && HasItems()))
 	{
 		while (IsHidden())
 			Show();
@@ -309,22 +344,25 @@ void StatusWindow::SetBorderStyle(int32 look)
 	{
 		case MD_STATUS_LOOK_TITLED:
 			SetLook(B_TITLED_WINDOW_LOOK);
-		break;
+			break;
 		case MD_STATUS_LOOK_FLOATING:
 			SetLook(B_FLOATING_WINDOW_LOOK);
-		break;
+			break;
 		case MD_STATUS_LOOK_THIN_BORDER:
 			SetLook(B_BORDERED_WINDOW_LOOK);
-		break;
+			break;
 		case MD_STATUS_LOOK_NO_BORDER:
 			SetLook(B_NO_BORDER_WINDOW_LOOK);
-		break;
+			break;
+
 		case MD_STATUS_LOOK_NORMAL_BORDER:
 		default:
 			SetLook(B_MODAL_WINDOW_LOOK);
 	}
 }
 
+
+//	#pragma mark -
 /*------------------------------------------------
 
 StatusView
@@ -332,7 +370,7 @@ StatusView
 ------------------------------------------------*/
 
 // constructor
-StatusView::StatusView(BRect rect, const char *description)
+StatusView::StatusView(BRect rect, const char *description,bool upstream)
 		  : BBox(rect, description, B_FOLLOW_LEFT_RIGHT,
 		  		 B_WILL_DRAW | B_FRAME_EVENTS | B_NAVIGABLE_JUMP,
 		  		 B_PLAIN_BORDER)
@@ -341,9 +379,16 @@ StatusView::StatusView(BRect rect, const char *description)
 							"status_bar", description, "");
 	status->SetResizingMode(B_FOLLOW_ALL_SIDES);
 	status->SetBarHeight(12);
+
+	if (!upstream) {
+		const rgb_color downstreamColor = {48,176,48,255};	// upstream was: {255,100,50,255}
+		status->SetBarColor(downstreamColor);
+	}
 	AddChild(status);
+
 	items_now = 0;
 	total_items = 0;
+	is_upstream = upstream;
 }
 
 // destructor

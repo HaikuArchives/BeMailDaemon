@@ -333,9 +333,9 @@ ConfigWindow::ConfigWindow()
 	view->AddChild(box);
 
 	BPopUpMenu *statusPopUp = new BPopUpMenu(B_EMPTY_STRING);
-	const char *statusModes[] = {"Never","While Sending / Fetching","Always"};
+	const char *statusModes[] = {"Never","While Sending", "While Sending / Fetching","Always"};
 	BMessage *msg;
-	for (int32 i = 0;i < 3;i++)
+	for (int32 i = 0;i < 4;i++)
 	{
 		statusPopUp->AddItem(item = new BMenuItem(statusModes[i],msg = new BMessage(kMsgShowStatusWindowChanged)));
 		msg->AddInt32("ShowStatusWindow",i);

@@ -35,7 +35,7 @@ using namespace Zoidberg;
 
 
 // Authentication types recognized. Not all methods are implemented.
-enum AuthType{
+enum AuthType {
 	LOGIN=1,
 	PLAIN=1<<2,
 	CRAM_MD5=1<<3,
@@ -85,6 +85,12 @@ SMTPProtocol::SMTPProtocol(BMessage *message, Mail::StatusView *view) :
 		smtp_errlert(error_msg.String());
 	}			
 }
+
+SMTPProtocol::~SMTPProtocol()
+{
+	Close();
+}
+
 
 // Check for errors? 
 status_t SMTPProtocol::InitCheck(BString *verbose) {

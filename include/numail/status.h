@@ -25,11 +25,14 @@ class StatusWindow : public BWindow {
 						StatusWindow(BRect rect, const char *name, uint32 show_when);
 						~StatusWindow();
 
-				void	MessageReceived(BMessage *msg);
+		virtual	void	FrameMoved(BPoint origin);
+		virtual void	WorkspaceActivated(int32 workspace, bool active);
+		virtual void	MessageReceived(BMessage *msg);
 
 	Mail::StatusView	*NewStatusView(const char *description, bool upstream);
 				void	RemoveView(StatusView *view);
-		
+				int32	CountVisibleItems();
+
 				bool	HasItems(void);
 				void	SetShowCriterion(uint32);
 				void	SetDefaultMessage(const BString& m);
@@ -48,6 +51,8 @@ class StatusWindow : public BWindow {
 		float			min_height;
 		bool			default_is_hidden;
 		int32			window_moved;
+		int32			last_workspace;
+		BRect			window_frame;
 		
 		uint32			_reserved[5];
 };
@@ -66,13 +71,14 @@ class StatusView : public BBox {
 	private:
 		friend class	Mail::StatusWindow;
 		
-						StatusView(BRect rect,const char *description);
+						StatusView(BRect rect,const char *description,bool upstream);
 				void	AddSelfToWindow();
 		
 		BStatusBar		*status;
 		Mail::StatusWindow	*window;
 		int32			items_now;
 		int32			total_items;
+		bool			is_upstream;
 
 		uint32			_reserved[5];
 };
