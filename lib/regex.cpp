@@ -432,9 +432,7 @@ typedef enum
 
 #ifdef DEBUG
 static void
-extract_number (dest, source)
-    int *dest;
-    unsigned char *source;
+extract_number (int *dest, unsigned char *source)
 {
   int temp = SIGN_EXTEND_CHAR (*(source + 1)); 
   *dest = *source & 0377;
@@ -459,9 +457,7 @@ extract_number (dest, source)
 
 #ifdef DEBUG
 static void
-extract_number_and_incr (destination, source)
-    int *destination;
-    unsigned char **source;
+extract_number_and_incr (int *destination, unsigned char **source)
 { 
   extract_number (destination, *source);
   *source += 2;
@@ -501,14 +497,13 @@ static int debug = 0;
 #define DEBUG_PRINT_DOUBLE_STRING(w, s1, sz1, s2, sz2)			\
   if (debug) print_double_string (w, s1, sz1, s2, sz2)
 
-
-extern void printchar ();
+#define printchar putchar
+//extern void printchar ();
 
 /* Print the fastmap in human-readable form.  */
 
 void
-print_fastmap (fastmap)
-    char *fastmap;
+print_fastmap (char *fastmap)
 {
   unsigned was_a_range = 0;
   unsigned i = 0;  
@@ -539,9 +534,7 @@ print_fastmap (fastmap)
    the START pointer into it and ending just before the pointer END.  */
 
 void
-print_partial_compiled_pattern (start, end)
-    unsigned char *start;
-    unsigned char *end;
+print_partial_compiled_pattern (unsigned char *start, unsigned char *end)
 {
   int mcnt, mcnt2;
   unsigned char *p = start;
@@ -556,7 +549,7 @@ print_partial_compiled_pattern (start, end)
   /* Loop over pattern commands.  */
   while (p < pend)
     {
-      printf ("%d:\t", p - start);
+      printf ("%ld:\t", p - start);
 
       switch ((re_opcode_t) *p++)
 	{
@@ -646,17 +639,17 @@ print_partial_compiled_pattern (start, end)
 
 	case on_failure_jump:
           extract_number_and_incr (&mcnt, &p);
-  	  printf ("/on_failure_jump to %d", p + mcnt - start);
+  	  printf ("/on_failure_jump to %ld", p + mcnt - start);
           break;
 
 	case on_failure_keep_string_jump:
           extract_number_and_incr (&mcnt, &p);
-  	  printf ("/on_failure_keep_string_jump to %d", p + mcnt - start);
+  	  printf ("/on_failure_keep_string_jump to %ld", p + mcnt - start);
           break;
 
 	case dummy_failure_jump:
           extract_number_and_incr (&mcnt, &p);
-  	  printf ("/dummy_failure_jump to %d", p + mcnt - start);
+  	  printf ("/dummy_failure_jump to %ld", p + mcnt - start);
           break;
 
 	case push_dummy_failure:
@@ -665,40 +658,40 @@ print_partial_compiled_pattern (start, end)
           
         case maybe_pop_jump:
           extract_number_and_incr (&mcnt, &p);
-  	  printf ("/maybe_pop_jump to %d", p + mcnt - start);
+  	  printf ("/maybe_pop_jump to %ld", p + mcnt - start);
 	  break;
 
         case pop_failure_jump:
 	  extract_number_and_incr (&mcnt, &p);
-  	  printf ("/pop_failure_jump to %d", p + mcnt - start);
+  	  printf ("/pop_failure_jump to %ld", p + mcnt - start);
 	  break;          
           
         case jump_past_alt:
 	  extract_number_and_incr (&mcnt, &p);
-  	  printf ("/jump_past_alt to %d", p + mcnt - start);
+  	  printf ("/jump_past_alt to %ld", p + mcnt - start);
 	  break;          
           
         case jump:
 	  extract_number_and_incr (&mcnt, &p);
-  	  printf ("/jump to %d", p + mcnt - start);
+  	  printf ("/jump to %ld", p + mcnt - start);
 	  break;
 
         case succeed_n: 
           extract_number_and_incr (&mcnt, &p);
           extract_number_and_incr (&mcnt2, &p);
-	  printf ("/succeed_n to %d, %d times", p + mcnt - start, mcnt2);
+	  printf ("/succeed_n to %ld, %d times", p + mcnt - start, mcnt2);
           break;
         
         case jump_n: 
           extract_number_and_incr (&mcnt, &p);
           extract_number_and_incr (&mcnt2, &p);
-	  printf ("/jump_n to %d, %d times", p + mcnt - start, mcnt2);
+	  printf ("/jump_n to %ld, %d times", p + mcnt - start, mcnt2);
           break;
         
         case set_number_at: 
           extract_number_and_incr (&mcnt, &p);
           extract_number_and_incr (&mcnt2, &p);
-	  printf ("/set_number_at location %d to %d", p + mcnt - start, mcnt2);
+	  printf ("/set_number_at location %ld to %d", p + mcnt - start, mcnt2);
           break;
         
         case wordbound:
@@ -765,18 +758,17 @@ print_partial_compiled_pattern (start, end)
       putchar ('\n');
     }
 
-  printf ("%d:\tend of pattern.\n", p - start);
+  printf ("%ld:\tend of pattern.\n", p - start);
 }
 
 
 void
-print_compiled_pattern (bufp)
-    struct re_pattern_buffer *bufp;
+print_compiled_pattern (struct re_pattern_buffer *bufp)
 {
   unsigned char *buffer = bufp->buffer;
 
   print_partial_compiled_pattern (buffer, buffer + bufp->used);
-  printf ("%d bytes used/%d bytes allocated.\n", bufp->used, bufp->allocated);
+  printf ("%ld bytes used/%ld bytes allocated.\n", bufp->used, bufp->allocated);
 
   if (bufp->fastmap_accurate && bufp->fastmap)
     {
@@ -784,7 +776,7 @@ print_compiled_pattern (bufp)
       print_fastmap (bufp->fastmap);
     }
 
-  printf ("re_nsub: %d\t", bufp->re_nsub);
+  printf ("re_nsub: %ld\t", bufp->re_nsub);
   printf ("regs_alloc: %d\t", bufp->regs_allocated);
   printf ("can_be_null: %d\t", bufp->can_be_null);
   printf ("newline_anchor: %d\n", bufp->newline_anchor);
@@ -797,14 +789,9 @@ print_compiled_pattern (bufp)
 
 
 void
-print_double_string (where, string1, size1, string2, size2)
-    const char *where;
-    const char *string1;
-    const char *string2;
-    int size1;
-    int size2;
+print_double_string (const char *where, const char *string1, int size1, const char *string2, int size2)
 {
-  unsigned this_char;
+  int this_char;
   
   if (where == NULL)
     printf ("(null)");
@@ -815,7 +802,7 @@ print_double_string (where, string1, size1, string2, size2)
           for (this_char = where - string1; this_char < size1; this_char++)
             printchar (string1[this_char]);
 
-          where = string2;    
+          where = (char *)string2;    
         }
 
       for (this_char = where - string2; this_char < size2; this_char++)
@@ -1178,7 +1165,7 @@ regex_compile (const char * pattern, int size, reg_syntax_t syntax, struct re_pa
   DEBUG_PRINT1 ("\nCompiling pattern: ");
   if (debug)
     {
-      unsigned debug_count;
+      int debug_count;
       
       for (debug_count = 0; debug_count < size; debug_count++)
         printchar (pattern[debug_count]);
@@ -2584,7 +2571,7 @@ re_compile_fastmap (struct re_pattern_buffer * bufp)
   register char *fastmap = bufp->fastmap;
   unsigned char *pattern = bufp->buffer;
   unsigned long size = bufp->used;
-  const unsigned char *p = pattern;
+  /*const*/ unsigned char *p = pattern;
   register unsigned char *pend = pattern + size;
 
   /* Assume that each path through the pattern can be null until
@@ -2612,7 +2599,7 @@ re_compile_fastmap (struct re_pattern_buffer * bufp)
           /* Reset for next path.  */
           path_can_be_null = true;
           
-          p = fail_stack.stack[--fail_stack.avail];
+          p = (unsigned char *)fail_stack.stack[--fail_stack.avail];
 	}
 
       /* We should never be about to go beyond the end of the pattern.  */
@@ -2741,7 +2728,7 @@ re_compile_fastmap (struct re_pattern_buffer * bufp)
         case jump_past_alt:
 	case dummy_failure_jump:
           EXTRACT_NUMBER_AND_INCR (j, p);
-	  p += j;	
+	  p += j;
 	  if (j > 0)
 	    continue;
             
