@@ -9,7 +9,8 @@ SUBDIRS = \
 	inbound_filters \
 	outbound_filters \
 	system_filters \
-	bemail
+	bemail \
+	AGMSBayesianSpamServer
 
 default .DEFAULT :
 	-cp makefile-engine.MailD $(BUILDHOME)/etc/makefile-engine.MailD

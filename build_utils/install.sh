@@ -7,16 +7,17 @@ RETURN=`alert "There can only be ONE version of mail_daemon on the system at one
 if [[ $RETURN = Purge ]]
 then
 	# note: we don't remove libmail.so, because it doesn't matter here, and there may be symlinks and things
-	query -a 'BEOS:APP_SIG == "application/x-vnd.Be-POST" || BEOS:APP_SIG == "application/x-vnd.Be-mprf" || BEOS:APP_SIG == "application/x-vnd.Be-MAIL"' | grep -v "`/bin/pwd`" | xargs rm -f
+	query -a 'BEOS:APP_SIG == "application/x-vnd.Be-POST" || BEOS:APP_SIG == "application/x-vnd.Be-mprf" || BEOS:APP_SIG == "application/x-vnd.Be-MAIL" || BEOS:APP_SIG == "application/x-vnd.agmsmith.AGMSBayesianSpamServer"' | grep -v "`/bin/pwd`" | xargs rm -f
 elif [[ $RETURN = Backup ]]
 then 
-	query -a 'BEOS:APP_SIG == "application/x-vnd.Be-POST" || BEOS:APP_SIG == "application/x-vnd.Be-mprf" || BEOS:APP_SIG == "application/x-vnd.Be-MAIL" || name == libmail.so' | grep -v "`/bin/pwd`" | xargs zip -ym /boot/home/maildaemon.zip
+	query -a 'BEOS:APP_SIG == "application/x-vnd.Be-POST" || BEOS:APP_SIG == "application/x-vnd.Be-mprf" || BEOS:APP_SIG == "application/x-vnd.Be-MAIL" || BEOS:APP_SIG == "application/x-vnd.agmsmith.AGMSBayesianSpamServer" || name == libmail.so' | grep -v "`/bin/pwd`" | xargs zip -ym /boot/home/maildaemon.zip
 else 
 	alert "No backup will be done.  That means it's up to YOU to purge all of your old mail_daemons and ensure that the new version is the only version."
 fi
 
 quit "application/x-vnd.Be-POST"
 quit "application/x-vnd.Be-TSKB"
+quit "application/x-vnd.agmsmith.AGMSBayesianSpamServer"
 
 rm -rf ~/config/add-ons/mail_daemon/*
 rm -f /system/servers/mail_daemon /boot/beos/preferences/E-mail /boot/beos/apps/BeMail
@@ -29,6 +30,7 @@ copyattr -d -m -r bin/addons/* ~/config/add-ons/mail_daemon
 copyattr -d -m bin/mail_daemon /system/servers/mail_daemon
 copyattr -d -m bin/E-mail /boot/beos/preferences/E-mail
 copyattr -d -m bin/BeMail /boot/beos/apps/BeMail
+copyattr -d -m bin/AGMSBayesianSpamServer ~/config/bin/AGMSBayesianSpamServer
 
 sleep 1
 /system/Deskbar &
