@@ -498,60 +498,70 @@ addAttribute(BMessage &msg,char *name,char *publicName,int32 type = B_STRING_TYP
 void
 makeMimeType()
 {
-	// Add MAIL:account attribute if necessary
-	BMimeType mime("text/x-email");
-
-	if (mime.InitCheck() != B_OK) {
-		fputs("could not init mime type.\n",stderr);
-		return;
-	}
-
-	BMessage info;
-	mime.GetAttrInfo(&info);
-
-	if (!mime.IsInstalled()) {
-		// install the full mime type
-
-		mime.Install();
-
-		addAttribute(info,B_MAIL_ATTR_NAME,"Name");
-		addAttribute(info,B_MAIL_ATTR_SUBJECT,"Subject");
-		addAttribute(info,B_MAIL_ATTR_TO,"To");
-		addAttribute(info,B_MAIL_ATTR_CC,"Cc");
-		addAttribute(info,B_MAIL_ATTR_FROM,"From");
-		addAttribute(info,B_MAIL_ATTR_REPLY,"Reply To");
-		addAttribute(info,B_MAIL_ATTR_STATUS,"Status");
-		addAttribute(info,B_MAIL_ATTR_PRIORITY,"Priority",B_STRING_TYPE,true,true,40);
-		addAttribute(info,B_MAIL_ATTR_WHEN,"When",B_TIME_TYPE,true,false,150);
-		addAttribute(info,B_MAIL_ATTR_THREAD,"Thread");
-		addAttribute(info,B_MAIL_ATTR_ACCOUNT,"Account",B_STRING_TYPE,true,false,100);
-
-		mime.SetAttrInfo(&info);
-		mime.SetShortDescription("E-mail");
-		mime.SetPreferredApp("application/x-vnd.Be-MAIL");
-	} else {
-		// just add the types we add to the system
-
-		bool hasAccount = false, hasThread = false, hasSize = false;
-		const char *result;
-		for (int32 index = 0;info.FindString("attr:name",index,&result) == B_OK;index++) {
-			if (!strcmp(result,B_MAIL_ATTR_ACCOUNT))
-				hasAccount = true;
-			if (!strcmp(result,B_MAIL_ATTR_THREAD))
-				hasThread = true;
-			if (!strcmp(result,"MAIL:fullsize"))
-				hasThread = true;
+	// Add MIME database entries for the e-mail file types we handle.
+	const char *types[2] = {"text/x-email","text/x-partial-email"};
+	BMimeType mime;
+	
+	for (int8 i = 0; i < 2; i++) {
+		mime.SetTo(types[i]);
+		if (mime.InitCheck() != B_OK) {
+			fputs("could not init mime type.\n",stderr);
+			return;
 		}
 	
-		if (!hasAccount)
-			addAttribute(info,B_MAIL_ATTR_ACCOUNT,"Account",B_STRING_TYPE,true,false,100);
-		if (!hasThread)
+		BMessage info;
+		mime.GetAttrInfo(&info);
+		
+		if (!mime.IsInstalled()) {
+			// install the full mime type
+	
+			mime.Install();
+	
+			addAttribute(info,B_MAIL_ATTR_NAME,"Name");
+			addAttribute(info,B_MAIL_ATTR_SUBJECT,"Subject");
+			addAttribute(info,B_MAIL_ATTR_TO,"To");
+			addAttribute(info,B_MAIL_ATTR_CC,"Cc");
+			addAttribute(info,B_MAIL_ATTR_FROM,"From");
+			addAttribute(info,B_MAIL_ATTR_REPLY,"Reply To");
+			addAttribute(info,B_MAIL_ATTR_STATUS,"Status");
+			addAttribute(info,B_MAIL_ATTR_PRIORITY,"Priority",B_STRING_TYPE,true,true,40);
+			addAttribute(info,B_MAIL_ATTR_WHEN,"When",B_TIME_TYPE,true,false,150);
 			addAttribute(info,B_MAIL_ATTR_THREAD,"Thread");
-		/*if (!hasSize)
-			addAttribute(info,"MAIL:fullsize","Message Size",B_SIZE_T_TYPE,true,false,100);*/
-		//--- Tracker can't display SIZT attributes. What a pain.
-		if (!hasAccount || !hasThread/* || !hasSize*/)
+			addAttribute(info,B_MAIL_ATTR_ACCOUNT,"Account",B_STRING_TYPE,true,false,100);
+	
 			mime.SetAttrInfo(&info);
+			if (i == 0) {
+				mime.SetShortDescription("E-mail");
+				mime.SetLongDescription("Electronic Mail Message");
+				mime.SetPreferredApp("application/x-vnd.Be-MAIL");
+			} else {
+				mime.SetShortDescription("Partial E-mail");
+				mime.SetLongDescription("A Partially Downloaded E-mail");
+				mime.SetPreferredApp("application/x-vnd.Be-POST");
+			}
+		} else {
+			// just add the related attribute types we use to the system
+			bool hasAccount = false, hasThread = false, hasSize = false;
+			const char *result;
+			for (int32 index = 0;info.FindString("attr:name",index,&result) == B_OK;index++) {
+				if (!strcmp(result,B_MAIL_ATTR_ACCOUNT))
+					hasAccount = true;
+				if (!strcmp(result,B_MAIL_ATTR_THREAD))
+					hasThread = true;
+				if (!strcmp(result,"MAIL:fullsize"))
+					hasSize = true;
+			}
+		
+			if (!hasAccount)
+				addAttribute(info,B_MAIL_ATTR_ACCOUNT,"Account",B_STRING_TYPE,true,false,100);
+			if (!hasThread)
+				addAttribute(info,B_MAIL_ATTR_THREAD,"Thread");
+			/*if (!hasSize)
+				addAttribute(info,"MAIL:fullsize","Message Size",B_SIZE_T_TYPE,true,false,100);*/
+			//--- Tracker can't display SIZT attributes. What a pain.
+			if (!hasAccount || !hasThread/* || !hasSize*/)
+				mime.SetAttrInfo(&info);
+		}
 	}
 }
 
