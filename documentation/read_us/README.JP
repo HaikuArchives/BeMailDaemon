@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v2.2.5
+BEOS Mail Daemon Replacement v2.2.6
 
 概要：
 
@@ -180,6 +180,9 @@ BEOS Mail Daemon Replacement v2.2.5
 　　さらに、SampleSpamDatabaseに関する注釈を参照してください。
 
 履歴：
+
+December 22 2003 - v2.2.6
+- Don't use "!" in file names of e-mail messages, the bash shell doesn't like it.
 
 December 4 2003 - v2.2.5
 - Queries changed to be multivolume, so you can have mail directories (inbox, outbox, draft) on volumes other than /boot.
