@@ -94,7 +94,7 @@ void MailDaemonApp::RefsReceived(BMessage *a_message) {
 	BString uid;
 	size_t size;
 	BPath path;
-	//status->Show();
+	status->Activate(true);
 	for (int32 i = 0; a_message->FindRef("refs",i,&ref) == B_OK; i++) {
 		node.SetTo(&ref);
 		if (node.ReadAttrString("MAIL:unique_id",&uid) < 0)
