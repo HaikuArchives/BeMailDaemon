@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v2.2.6
+BEOS Mail Daemon Replacement v2.2.7
 
 ABOUT:
 
@@ -156,6 +156,9 @@ For IMAP, things are slightly more complicated. The IMAP folder structure is dup
 Note that if you have a large number of archived e-mail messages on your system, it will scan all of them for message ID numbers to keep track of what has been downloaded and what has not.  This will delay the start of the mail check if you have tens of thousands of old messages (and thrash your hard drive).  To work around that, remove the MAIL:chain attribute from your old messages; the Terminal command "rmattr MAIL:chain *" will do that for all files in the current directory.
 
 HISTORY:
+
+December 30 2003 - v2.2.7
+- Fix up date parsing to handle time zone offset numbers inside round brackets.
 
 December 29 2003 - v2.2.6
 - Don't use "!" in file names of e-mail messages, the bash shell doesn't like it.

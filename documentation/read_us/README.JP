@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v2.2.6
+BEOS Mail Daemon Replacement v2.2.7
 
 概要：
 
@@ -180,6 +180,9 @@ BEOS Mail Daemon Replacement v2.2.6
 　　さらに、SampleSpamDatabaseに関する注釈を参照してください。
 
 履歴：
+
+December 30 2003 - v2.2.7
+- Fix up date parsing to handle time zone offset numbers inside round brackets.
 
 December 29 2003 - v2.2.6
 - Don't use "!" in file names of e-mail messages, the bash shell doesn't like it.
