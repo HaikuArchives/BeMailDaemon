@@ -12,6 +12,8 @@ class MailMessage : public MailComponent {
 		MailMessage(BPositionIO *mail_file = NULL);
 		virtual ~MailMessage();
 		
+		status_t InitCheck() const;
+
 		MailMessage *ReplyMessage(bool reply_to_all,
 								  bool include_attachments = false,
 								  const char *quote_style = "> ");
@@ -61,6 +63,7 @@ class MailMessage : public MailComponent {
 		status_t Send(bool send_now);
 	
 	private:
+		status_t _status;
 		int32 _chain_id;
 		char *_bcc;
 	
@@ -73,5 +76,11 @@ inline PlainTextBodyComponent *MailMessage::Body() const
 {
 	return _text_body;
 }
+
+inline status_t MailMessage::InitCheck() const
+{
+	return _status;
+}
+
 
 #endif	/* ZOIDBERG_NUMAIL_MAIL_MESSAGE_H */
