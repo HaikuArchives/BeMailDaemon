@@ -7,6 +7,10 @@
 <META NAME="description" CONTENT="Documentation for AGMSBayesianSpam, for classifying incoming e-mail messages as spam (junk mail) or genuine.">
 <!--
 ; $Log$
+; Revision 1.4  2002/11/10 20:56:39  agmsmith
+; Updated documentation to include MDR installer effects, and added a
+; section on the tokenizing experiments.
+;
 ; Revision 1.3  2002/11/06 00:54:47  agmsmith
 ; Spam definition corrected, with prodding from Ian G.
 ;
@@ -61,6 +65,7 @@
     <LI><A HREF="#CommandLine">Command Line Mode and Scripting</A>
     <LI><A HREF="#Spreadsheet">Using a Spreadsheet to Examine Word Statistics</A>
     <LI><A HREF="#Tokenizing">Tokenizing Modes Compared</A>
+    <LI><A HREF="#HeadersOnly">High Speed and High Danger - Headers Only Trick</A>
   </UL>
   <LI><A HREF="#ChangeLog">Change Log</A>
 </UL>
@@ -569,6 +574,36 @@ to find words in binary attachments, it's now the default setting.
 and so-so for spam messages.  That may make it useable for pre-download tests
 (delete some of the spam on the mail server before downloading it, without
 worrying about deleting too many genuine messages).
+
+
+<H2><A NAME="HeadersOnly"></A>High Speed and High Danger - Headers Only Trick</H2>
+
+<P>If you have a slow dial-up connection, you may wish to classify your mail
+quickly by deleting spam messages without downloading the entire junk message.
+
+<P><IMG SRC="pictures/ChoosingJustHeaderTokenizingMode.png" WIDTH="920"
+HEIGHT="402" ALT="[Choosing JustHeader Tokenizing Mode]">
+
+<P>This can be done with three settings.  First switch the
+AGMSBayesianSpamServer into tokenizing just the headers.  Then go into the
+E-mail preferences and add an AGMSBayeisianSpamFilter with the "Add [Spam %] in
+Front of Subject" option turned on, and the ratio set to a nice safe high level
+like 0.95 (so that your genuine mail is less likely to get deleted, but it will
+still delete the 1% of your real mail that looks like spam, which is why this
+is dangerous).  Finally in the E-mail preferences, add a "Match Header" filter
+after the spam filter and set it so that If <B>Subject</B> is <B>[Spam*</B>
+then <B>Delete Message</B>.  Now it will download the headers, check them
+against the spam database, and then delete the spam ones on the server without
+downloading the rest of their contents.
+
+<P>You should also make a new spam database trained in Just Headers tokenizing
+mode with roughly equal examples of your genuine messages and spam messages (50
+of each should be enough to start).  A full message database may also work, but
+headers only training should be more accurate for headers only decisions.  When
+testing JustHeader mode, I noticed that the false positive rate (genuine
+reported as spam) is nice and low, but the false negative rate (spam reported
+as genuine) is high.  So this means JustHeader mode will delete maybe half the
+spam (and download the rest) and also delete the occasional genuine message.
 
 
 <H1><A NAME="ChangeLog"></A>Change Log</H1>
