@@ -197,7 +197,7 @@ MailDaemonApp::MailDaemonApp(void)
 	status->SetDefaultMessage(string);
 	
 	led = new LEDAnimation;
-	SetPulseRate(1000000);
+	SetPulseRate(1000000);	
 }
 
 MailDaemonApp::~MailDaemonApp()
@@ -406,13 +406,6 @@ void MailDaemonApp::SendPendingMessages() {
 
 void MailDaemonApp::Pulse() {
 	bigtime_t idle = idle_time();
-#ifdef DEBUG
-	printf("Idle Time: %ld\n", idle);
-#endif		
-	if (led->IsRunning() && (idle < 999999)) {
-#ifdef DEBUG
-		printf("Stopping LEDs...\n");
-#endif
+	if (led->IsRunning() && (idle < 100000))
 		led->Stop();
-	}
 }
