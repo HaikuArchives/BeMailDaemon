@@ -223,6 +223,29 @@ const char *Account::ReturnAddress() const
 }
 
 
+void Account::CopyMetaData(MailChain *targetChain, MailChain *sourceChain)
+{
+	BMessage *otherMsg, *thisMsg;
+	if (sourceChain && (otherMsg = sourceChain->MetaData()) != NULL
+					&& (thisMsg = targetChain->MetaData()) != NULL)
+	{
+		const char *string;
+		if ((string = otherMsg->FindString("real_name")) != NULL)
+		{
+			if (thisMsg->ReplaceString("real_name",string) < B_OK)
+				thisMsg->AddString("real_name",string);
+		}
+		if ((string = otherMsg->FindString("reply_to")) != NULL)
+		{
+			if (thisMsg->ReplaceString("reply_to",string) < B_OK)
+				thisMsg->AddString("reply_to",string);
+		}
+		if ((string = sourceChain->Name()) != NULL)
+			targetChain->SetName(string);
+	}
+}
+
+
 void Account::CreateInbound()
 {
 	MailSettings mailSettings;
@@ -268,8 +291,8 @@ void Account::CreateInbound()
 	BEntry(path.Path()).GetRef(&ref);
 	fInbound->AddFilter(msg,ref);
 
-	// set already made settings
-	// ?
+	// set already made account settings
+	CopyMetaData(fInbound,fOutbound);
 }
 
 
@@ -301,6 +324,9 @@ void Account::CreateOutbound()
 	path.Append("SMTP");
 	BEntry(path.Path()).GetRef(&ref);
 	fOutbound->AddFilter(msg,ref);
+
+	// set already made account settings
+	CopyMetaData(fOutbound,fInbound);
 }
 
 

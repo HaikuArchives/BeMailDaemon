@@ -82,6 +82,7 @@ class Account
 	private:
 		void		CreateInbound();
 		void		CreateOutbound();
+		void		CopyMetaData(MailChain *targetChain, MailChain *sourceChain);
 
 		MailChain	*fSettings, *fInbound, *fOutbound;
 		AccountItem	*fAccountItem, *fInboundItem, *fOutboundItem, *fFilterItem;
