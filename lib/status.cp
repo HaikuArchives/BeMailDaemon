@@ -107,7 +107,7 @@ StatusWindow::StatusWindow(BRect rect, const char *name, uint32 s)
 		}
 		// set workspace for window
 		
-		int32 workspace = general.StatusWindowWorkspaces();
+		uint32 workspace = general.StatusWindowWorkspaces();
 		int32 workspacesCount = count_workspaces();
 		uint32 workspacesMask = (workspacesCount > 31 ? 0 : 1L << workspacesCount) - 1;
 		if ((workspacesMask & workspace) && (workspace != Workspaces()))
@@ -185,8 +185,8 @@ void StatusWindow::MessageReceived(BMessage *msg)
 		}
 		case 'wsch':
 		{
-			int32 workspaces;
-			if (msg->FindInt32("StatusWindowWorkSpace",&workspaces) != B_OK)
+			uint32 workspaces;
+			if (msg->FindInt32("StatusWindowWorkSpace", (int32 *) &workspaces) != B_OK)
 				break;
 			if ((Workspaces() != B_ALL_WORKSPACES) && (workspaces != B_ALL_WORKSPACES))
 				break;

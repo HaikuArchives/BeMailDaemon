@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v2.2.0 Beta 1
+BEOS Mail Daemon Replacement v2.2.1
 
 概要：
 
@@ -181,7 +181,10 @@ BEOS Mail Daemon Replacement v2.2.0 Beta 1
 
 履歴：
 
-July 26 2003 - v2.2.0b1
+August 3 2003 - v2.2.1
+- Changed networking operations to use sockets directly rather than the buggy BeOS network kit.
+
+July 30 2003 - v2.2.0
 - Starting a new version for Nathan's second overhaul of the architecture: adding a fancy RemoteStorageProtocol for better IMAP (and others in the future) local vs remote mail folder synchronization.
 - Fixed recently added bug in AGMSBayesianSpamServer which wouldn't let you double classify a message, even if the IgnorePreviousClassification option was on.
 - Added hack to wait for spell checking dictionaries to load when you start up BeMail with the command line options to create a new message.  Avoids the warning about not finding the dictionaries.

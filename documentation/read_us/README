@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v2.2.0
+BEOS Mail Daemon Replacement v2.2.1
 
 ABOUT:
 
@@ -157,6 +157,9 @@ For POP3, this is entirely straightforward. New e-mail is fetched into the direc
 For IMAP, things are slightly more complicated. The IMAP folder structure is duplicated in your inbox. So if you chose /boot/home/mail/in as your inbox, you will end up with IMAP folders like /boot/home/mail/in/INBOX. Further, you should note that what happens in IMAP folders is bidirectional. That is, if you move a file inside the folder hierarchy, it moves on the server. If you duplicate one, it's duplicated on the server. If you move in an e-mail from another account, it's uploaded to the server (this also means that you can have it store sent mail on the server). You can also create and delete mail folders in Tracker. Pretty cool, huh? As a final note on IMAP, because it stays connected to the server, the "fetch mail every x" option is irrelevant, except as a way to start the connection, as it only connects when you first press "Check Mail Now". A final note: moving partial messages from one account to another causes the message (1) not to be transferred and (2) to be deleted. Unpleasant. So download them first.
 
 HISTORY:
+
+August 3 2003 - v2.2.1
+- Changed networking operations to use sockets directly rather than the buggy BeOS network kit.
 
 July 30 2003 - v2.2.0
 - Starting a new version for Nathan's second overhaul of the architecture: adding a fancy RemoteStorageProtocol for better IMAP (and others in the future) local vs remote mail folder synchronization.
