@@ -512,7 +512,7 @@ int32 POP3Protocol::ReceiveLine(BString &line) {
 status_t
 POP3Protocol::SendCommand(const char *cmd)
 {
-	if (conn < 0)
+	if (conn < 0 || conn > FD_SETSIZE)
 		return B_FILE_ERROR;
 
 	// Flush any accumulated garbage data before we send our command, so we
