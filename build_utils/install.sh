@@ -53,6 +53,9 @@ You can manually replace it with the SampleSpamDatabase if you wish to.  However
   else
     cp bin/SampleSpamDatabase "${HOME}/config/settings/AGMSBayesianSpam/AGMSBayesianSpam Database";
 fi
+copyattr -d -m bin/SoundGenuine "${HOME}/config/settings/AGMSBayesianSpam/SoundGenuine"
+copyattr -d -m bin/SoundSpam "${HOME}/config/settings/AGMSBayesianSpam/SoundSpam"
+copyattr -d -m bin/SoundUncertain "${HOME}/config/settings/AGMSBayesianSpam/SoundUncertain"
 # Create the MIME types and indices needed by the spam server.
 ~/config/bin/AGMSBayesianSpamServer InstallThings
 

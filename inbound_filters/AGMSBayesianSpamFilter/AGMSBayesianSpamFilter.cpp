@@ -11,6 +11,9 @@
  * Public Domain 2002, by Alexander G. M. Smith, no warranty.
  *
  * $Log$
+ * Revision 1.12  2002/12/18 02:27:45  agmsmith
+ * Added uncertain classification as suggested by BiPolar.
+ *
  * Revision 1.11  2002/12/16 16:03:20  agmsmith
  * Changed spam cutoff to 0.95 to work with default Chi-Squared scoring.
  *
@@ -89,9 +92,6 @@ AGMSBayesianSpamFilter::AGMSBayesianSpamFilter (BMessage *settings)
 	:	Mail::Filter (settings),
 		fAddSpamToSubject (true),
 		fAutoTraining (false),
-		fBeepGenuine (false),
-		fBeepSpam (false),
-		fBeepUncertain (false),
 		fGenuineCutoffRatio (0.05f),
 		fHeaderOnly (false),
 		fLaunchAttemptCount (0),
@@ -108,12 +108,6 @@ AGMSBayesianSpamFilter::AGMSBayesianSpamFilter (BMessage *settings)
 			fAddSpamToSubject = tempBool;
 		if (settings->FindBool ("AutoTraining", &tempBool) == B_OK)
 			fAutoTraining = tempBool;
-		if (settings->FindBool ("BeepGenuine", &tempBool) == B_OK)
-			fBeepGenuine = tempBool;
-		if (settings->FindBool ("BeepSpam", &tempBool) == B_OK)
-			fBeepSpam = tempBool;
-		if (settings->FindBool ("BeepUncertain", &tempBool) == B_OK)
-			fBeepUncertain = tempBool;
 		if (settings->FindFloat ("GenuineCutoffRatio", &tempFloat) == B_OK)
 			fGenuineCutoffRatio = tempFloat;
 		if (settings->FindBool ("NoWordsMeansSpam", &tempBool) == B_OK)
@@ -378,19 +372,17 @@ AGMSBayesianSpamFilter::ProcessMailMessage (
 		io_headers->ReplaceString ("Subject", newSubjectString);
 	}
 
-	// Beep if requested, different sounds for spam and genuine, as Jeremy
-	// Friesner nudged me to get around to implementing.  And add uncertain to
-	// that, as "BiPolar" suggested.
+	// Beep using different sounds for spam and genuine, as Jeremy Friesner
+	// nudged me to get around to implementing.  And add uncertain to that, as
+	// "BiPolar" suggested.  If the user doesn't want to hear the sound, they
+	// can turn it off in the system sound preferences.
 
 	if (spamRatio >= fSpamCutoffRatio) {
-		if (fBeepSpam)
-			system_beep (kAGMSBayesBeepSpamName);
+		system_beep (kAGMSBayesBeepSpamName);
 	} else if (spamRatio < fGenuineCutoffRatio) {
-		if (fBeepGenuine)
-			system_beep (kAGMSBayesBeepGenuineName);
+		system_beep (kAGMSBayesBeepGenuineName);
 	} else {
-		if (fBeepUncertain)
-			system_beep (kAGMSBayesBeepUncertainName);
+		system_beep (kAGMSBayesBeepUncertainName);
 	}
 
 	return MD_OK;
@@ -411,9 +403,6 @@ descriptive_name (
 {
 	bool		addMarker = true;
 	bool		autoTraining = false;
-	bool		beepGenuine = false;
-	bool		beepSpam = false;
-	bool		beepUncertain = false;
 	float		cutoffRatio = 0.95f;
 	bool		tempBool;
 	float		tempFloat;
@@ -425,12 +414,6 @@ descriptive_name (
 			autoTraining = tempBool;
 		if (settings->FindFloat ("SpamCutoffRatio", &tempFloat) == B_OK)
 			cutoffRatio = tempFloat;
-		if (settings->FindBool ("BeepGenuine", &tempBool) == B_OK)
-			beepGenuine = tempBool;
-		if (settings->FindBool ("BeepSpam", &tempBool) == B_OK)
-			beepSpam = tempBool;
-		if (settings->FindBool ("BeepUncertain", &tempBool) == B_OK)
-			beepUncertain = tempBool;
 	}
 
 	sprintf (buffer, "Spam >= %05.3f", (double) cutoffRatio);
@@ -438,8 +421,6 @@ descriptive_name (
 		strcat (buffer, ", Mark Subject");
 	if (autoTraining)
 		strcat (buffer, ", Self-training");
-	if (beepGenuine || beepSpam || beepUncertain)
-		strcat (buffer, ", Beep");
 	strcat (buffer, ".");
 
 	return B_OK;

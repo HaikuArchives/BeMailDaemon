@@ -33,6 +33,9 @@ copyattr -d bemail/obj.$CPU/BeMail $BUILD_PATH/bin
 copyattr -d AGMSBayesianSpamServer/obj.$CPU/AGMSBayesianSpamServer $BUILD_PATH/bin
 # Note name change from SampleDatabase to SampleSpamDatabase, to make it more obvious what it is to the user.
 copyattr -d AGMSBayesianSpamServer/SampleDatabase $BUILD_PATH/bin/SampleSpamDatabase
+copyattr -d AGMSBayesianSpamServer/SoundSpam $BUILD_PATH/bin/SoundSpam
+copyattr -d AGMSBayesianSpamServer/SoundGenuine $BUILD_PATH/bin/SoundGenuine
+copyattr -d AGMSBayesianSpamServer/SoundUncertain $BUILD_PATH/bin/SoundUncertain
 copyattr -d daemon/obj.$CPU/mail_daemon $BUILD_PATH/bin
 copyattr -d lib/libmail.so $BUILD_PATH/bin
 copyattr -d config/obj.$CPU/E-mail $BUILD_PATH/bin

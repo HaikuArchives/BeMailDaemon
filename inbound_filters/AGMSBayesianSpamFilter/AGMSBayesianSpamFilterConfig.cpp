@@ -3,6 +3,9 @@
  * settings related to the add-on, but not the server.
  *
  * $Log$
+ * Revision 1.5  2002/12/18 02:27:45  agmsmith
+ * Added uncertain classification as suggested by BiPolar.
+ *
  * Revision 1.4  2002/12/16 16:03:27  agmsmith
  * Changed spam cutoff to 0.95 to work with default Chi-Squared scoring.
  *
@@ -76,12 +79,6 @@ class AGMSBayesianSpamFilterConfig : public BView {
 		BCheckBox *fAddSpamToSubjectCheckBoxPntr;
 		bool fAutoTraining;
 		BCheckBox *fAutoTrainingCheckBoxPntr;
-		bool fBeepGenuine;
-		BCheckBox *fBeepGenuineCheckBoxPntr;
-		bool fBeepSpam;
-		BCheckBox *fBeepSpamCheckBoxPntr;
-		bool fBeepUncertain;
-		BCheckBox *fBeepUncertainCheckBoxPntr;
 		float fGenuineCutoffRatio;
 		BTextControl *fGenuineCutoffRatioTextBoxPntr;
 		bool fNoWordsMeansSpam;
@@ -93,9 +90,6 @@ class AGMSBayesianSpamFilterConfig : public BView {
 		BTextControl *fSpamCutoffRatioTextBoxPntr;
 		static const uint32 kAddSpamToSubjectPressed = 'ASbj';
 		static const uint32 kAutoTrainingPressed = 'AuTr';
-		static const uint32 kBeepGenuinePressed = 'BpGn';
-		static const uint32 kBeepSpamPressed = 'BpSp';
-		static const uint32 kBeepUncertainPressed = 'BpUn';
 		static const uint32 kNoWordsMeansSpam = 'NoWd';
 		static const uint32 kQuitWhenFinishedPressed = 'QuWF';
 		static const uint32 kServerSettingsPressed = 'SrvS';
@@ -103,18 +97,12 @@ class AGMSBayesianSpamFilterConfig : public BView {
 
 
 AGMSBayesianSpamFilterConfig::AGMSBayesianSpamFilterConfig (BMessage *settings)
-	:	BView (BRect (0,0,260,150), "agmsbayesianspamfilter_config",
+	:	BView (BRect (0,0,260,130), "agmsbayesianspamfilter_config",
 			B_FOLLOW_LEFT | B_FOLLOW_TOP, 0),
 		fAddSpamToSubject (true),
 		fAddSpamToSubjectCheckBoxPntr (NULL),
 		fAutoTraining (false),
 		fAutoTrainingCheckBoxPntr (NULL),
-		fBeepGenuine (false),
-		fBeepGenuineCheckBoxPntr (NULL),
-		fBeepSpam (false),
-		fBeepSpamCheckBoxPntr (NULL),
-		fBeepUncertain (false),
-		fBeepUncertainCheckBoxPntr (NULL),
 		fGenuineCutoffRatio (0.05f),
 		fGenuineCutoffRatioTextBoxPntr (NULL),
 		fNoWordsMeansSpam (true),
@@ -132,12 +120,6 @@ AGMSBayesianSpamFilterConfig::AGMSBayesianSpamFilterConfig (BMessage *settings)
 		fAddSpamToSubject = tempBool;
 	if (settings->FindBool ("AutoTraining", &tempBool) == B_OK)
 		fAutoTraining = tempBool;
-	if (settings->FindBool ("BeepGenuine", &tempBool) == B_OK)
-		fBeepGenuine = tempBool;
-	if (settings->FindBool ("BeepSpam", &tempBool) == B_OK)
-		fBeepSpam = tempBool;
-	if (settings->FindBool ("BeepUncertain", &tempBool) == B_OK)
-		fBeepUncertain = tempBool;
 	if (settings->FindFloat ("GenuineCutoffRatio", &tempFloat) == B_OK)
 		fGenuineCutoffRatio = tempFloat;
 	if (settings->FindBool ("NoWordsMeansSpam", &tempBool) == B_OK)
@@ -279,53 +261,6 @@ void AGMSBayesianSpamFilterConfig::AttachedToWindow ()
 	tempRect = Bounds ();
 	tempRect.top = fQuitServerWhenFinishedCheckBoxPntr->Frame().bottom + 1;
 	tempRect.bottom = tempRect.top + 20;
-
-    // A title and a trio of check boxes for the beep sounds.
-
-	labelViewPntr = new BStringView (tempRect, "beep", "Beep for:");
-	AddChild (labelViewPntr);
-	labelViewPntr->ResizeToPreferred ();
-	tempRect.left = labelViewPntr->Frame().right + 5;
-	deltaX = (int) (tempRect.Width() / 3);
-	tempRect.right = tempRect.left + deltaX;
-
-	fBeepGenuineCheckBoxPntr = new BCheckBox (
-		tempRect,
-		"BeepGenuine",
-		"Genuine",
-		new BMessage (kBeepGenuinePressed));
-	AddChild (fBeepGenuineCheckBoxPntr);
-	fBeepGenuineCheckBoxPntr->ResizeToPreferred ();
-	fBeepGenuineCheckBoxPntr->SetValue (fBeepGenuine);
-	fBeepGenuineCheckBoxPntr->SetTarget (this);
-    tempRect.left += deltaX;
-	tempRect.right = tempRect.left + deltaX;
-
-	fBeepUncertainCheckBoxPntr = new BCheckBox (
-		tempRect,
-		"BeepUncertain",
-		"Uncertain",
-		new BMessage (kBeepUncertainPressed));
-	AddChild (fBeepUncertainCheckBoxPntr);
-	fBeepUncertainCheckBoxPntr->ResizeToPreferred ();
-	fBeepUncertainCheckBoxPntr->SetValue (fBeepUncertain);
-	fBeepUncertainCheckBoxPntr->SetTarget (this);
-    tempRect.left += deltaX;
-	tempRect.right = tempRect.left + deltaX;
-
-	fBeepSpamCheckBoxPntr = new BCheckBox (
-		tempRect,
-		"BeepSpam",
-		"Spam",
-		new BMessage (kBeepSpamPressed));
-	AddChild (fBeepSpamCheckBoxPntr);
-	fBeepSpamCheckBoxPntr->ResizeToPreferred ();
-	fBeepSpamCheckBoxPntr->SetValue (fBeepSpam);
-	fBeepSpamCheckBoxPntr->SetTarget (this);
-
-	tempRect = Bounds ();
-	tempRect.top = fBeepSpamCheckBoxPntr->Frame().bottom + 1;
-	tempRect.bottom = tempRect.top + 20;
 }
 
 
@@ -343,15 +278,6 @@ AGMSBayesianSpamFilterConfig::Archive (BMessage *into, bool deep) const
 
 	if (errorCode == B_OK)
 		errorCode = into->AddBool ("QuitServerWhenFinished", fQuitServerWhenFinished);
-
-	if (errorCode == B_OK)
-		errorCode = into->AddBool ("BeepGenuine", fBeepGenuine);
-
-	if (errorCode == B_OK)
-		errorCode = into->AddBool ("BeepSpam", fBeepSpam);
-
-	if (errorCode == B_OK)
-		errorCode = into->AddBool ("BeepUncertain", fBeepUncertain);
 
 	if (errorCode == B_OK)
 		errorCode = into->AddBool ("NoWordsMeansSpam", fNoWordsMeansSpam);
@@ -377,7 +303,7 @@ AGMSBayesianSpamFilterConfig::Archive (BMessage *into, bool deep) const
 void
 AGMSBayesianSpamFilterConfig::GetPreferredSize (float *width, float *height) {
 	*width = 260;
-	*height = 150;
+	*height = 130;
 }
 
 
@@ -391,15 +317,6 @@ AGMSBayesianSpamFilterConfig::MessageReceived (BMessage *msg)
 			break;
 		case kAutoTrainingPressed:
 			fAutoTraining = fAutoTrainingCheckBoxPntr->Value ();
-			break;
-		case kBeepGenuinePressed:
-			fBeepGenuine = fBeepGenuineCheckBoxPntr->Value ();
-			break;
-		case kBeepSpamPressed:
-			fBeepSpam = fBeepSpamCheckBoxPntr->Value ();
-			break;
-		case kBeepUncertainPressed:
-			fBeepUncertain = fBeepUncertainCheckBoxPntr->Value ();
 			break;
 		case kNoWordsMeansSpam:
 			fNoWordsMeansSpam = fNoWordsMeansSpamCheckBoxPntr->Value ();

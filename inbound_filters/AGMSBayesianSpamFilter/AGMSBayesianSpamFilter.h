@@ -13,6 +13,9 @@
  * Public Domain 2002, by Alexander G. M. Smith, no warranty.
  *
  * $Log$
+ * Revision 1.5  2002/12/18 02:27:45  agmsmith
+ * Added uncertain classification as suggested by BiPolar.
+ *
  * Revision 1.4  2002/12/12 00:56:28  agmsmith
  * Added some new spam filter options - self training (not implemented yet)
  * and a button to edit the server settings.
@@ -66,9 +69,6 @@ class AGMSBayesianSpamFilter : public Zoidberg::Mail::Filter {
 	private:
 		bool fAddSpamToSubject;
 		bool fAutoTraining;
-		bool fBeepGenuine;
-		bool fBeepSpam;
-		bool fBeepUncertain;
 		float fGenuineCutoffRatio;
 		bool fHeaderOnly;
 		int fLaunchAttemptCount;

@@ -7,6 +7,10 @@
 <META NAME="description" CONTENT="Documentation for AGMSBayesianSpam, for classifying incoming e-mail messages as spam (junk mail) or genuine.">
 <!--
 ; $Log$
+; Revision 1.10  2002/12/16 17:32:43  agmsmith
+; Added Alex's settings paragraph.  Added screen shot of dangerous
+; header filter that deletes things on the server.
+;
 ; Revision 1.9  2002/12/13 22:45:22  agmsmith
 ; More changes for self training and chi-squared scoring.
 ;
@@ -59,7 +63,7 @@
 <BR>Author: agmsmith@rogers.com (Alexander G. M. Smith)
 <BR>Uploader: agmsmith@rogers.com (Alexander G. M. Smith)
 <BR>Website: <A HREF="http://members.rogers.com/agmsmith/">http://members.rogers.com/agmsmith/</A>
-<BR>Version: 1.74
+<BR>Version: 1.77
 <BR>Type: internet &amp; network/e-mail
 <BR>Requires: BeOS 5.0+
 <BR>Related things: <A HREF="http://www.paulgraham.com/spam.html">http://www.paulgraham.com/spam.html</A>, <A HREF="http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html">http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html</A></FONT>
@@ -157,14 +161,19 @@ mailing list.
     <A HREF="file:/boot/home/config/settings/AGMSBayesianSpam/"
     >/boot/home/config/settings/AGMSBayesianSpam/</A> when it exits.
   <LI>Use the Sounds preferences (or the installsound command) to associate
-    the names with your sound files (SoundGenuine and SoundSpam are included as
-    examples, no I don't have the rights to the Monty Python Spam skit).<BR>
+    the names with your sound files (SoundGenuine, SoundUncertain and SoundSpam
+    are included as examples with MDR in the <A
+    HREF="file:/boot/home/config/settings/AGMSBayesianSpam/"
+    >/boot/home/config/settings/AGMSBayesianSpam/</A> directory), no I don't
+    have the rights to the Monty Python Spam skit).  If you don't want it to
+    make sounds, don't do anything (you can also use the Sounds preferences
+    later on to disable or remove the sounds if you get tired of them).<BR>
     <IMG SRC="pictures/StartingSoundPreferences.png" WIDTH="291" HEIGHT="445"
     ALT="[Starting Sound Preferences]"> <IMG
-    SRC="pictures/SoundPrefChoosingAFile.png" WIDTH="332" HEIGHT="396"
+    SRC="pictures/SoundPrefChoosingAFile.png" WIDTH="318" HEIGHT="387"
     ALT="[Sound Preferences Choosing a File]">
     <P>When you're done, it should look something like this:<BR>
-    <IMG SRC="pictures/SoundPrefFinished.png" WIDTH="316" HEIGHT="241"
+    <IMG SRC="pictures/SoundPrefFinished.png" WIDTH="314" HEIGHT="245"
     ALT="[Sound Preferences Finished]">
   <LI>Add some example messages to the database.
   <OL TYPE="A">
@@ -197,10 +206,18 @@ mailing list.
       <IMG SRC="pictures/CommandLineSetSpam.png" ALT="[Command Line Set Spam]"
       WIDTH="634" HEIGHT="205">
     <LI>If you don't have a few hundred spam messages, instead of doing step
-      A copy the sample database file to "AGMSBayesianSpam Database" in the
-      <A HREF="file:/boot/home/config/settings/AGMSBayesianSpam/"
-      >/boot/home/config/settings/AGMSBayesianSpam/</A> directory
-      (the MDR installer will do this for you).<BR>
+      A copy the sample database file to "AGMSBayesianSpam Database" in the <A
+      HREF="file:/boot/home/config/settings/AGMSBayesianSpam/"
+      >/boot/home/config/settings/AGMSBayesianSpam/</A> directory (the MDR
+      installer will do this for you).  Due to complaints about the huge file
+      size, the sample spam database that comes with MDR is now very small
+      (10 spam, 10 genuine example messages), so you'll need to train it before
+      it gets accurate (auto-training is your friend).  Or you could get the
+      huge (976KB, 484 spam, 1009 genuine messages) one from version 2.0.0 Beta
+      8, available at: <A
+      HREF="http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/*checkout*/bemaildaemon/AGMSBayesianSpamServer/SampleDatabase?rev=release-2-0-0-beta8"
+      >http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/*checkout*/bemaildaemon/AGMSBayesianSpamServer/SampleDatabase?rev=release-2-0-0-beta8</A>
+      <BR>
       <IMG SRC="pictures/DatabaseFileLocation.png"
       ALT="[Database File Location]" WIDTH="609" HEIGHT="234"><BR>
       Run the AGMSBayesianSpamServer program again.  Hit the Purge button
@@ -231,7 +248,7 @@ mailing list.
     Then select the settings you wish.  If you installed sound files earlier,
     you can turn on the sound effects here.<BR>
     <IMG SRC="pictures/FilterSettings.png" ALT="[Filter Settings]"
-    WIDTH="455" HEIGHT="413">
+    WIDTH="454" HEIGHT="413">
   <LI>Test it.  Send yourself some e-mail and see if it gets rated correctly.
 </OL>
 
@@ -305,13 +322,13 @@ ALT="MakingTheWindowVisibleFromTheDeskbar" WIDTH="640" HEIGHT="109"><BR>
 
 <P>I'm currently using it with these settings: Chi-squared scoring,
 AnyTextAndHeader tokenizing, server mode on, ignore previous classification
-off, spam cutoff 0.95, mark subject with [Spam %] on, no words found on,
-self-training on, close AGMSBayesianSpamServer when Finished on, both beeps on
-(and my own short sound effects installed).  Because of the self training, I
-always correct it when it gets the classification wrong (that means I have to
-manually delete the messages, can't use a Match Header filter to do it).  My
-Tracker window shows the spam ratio, though with the mark subject option that
-isn't really needed, other than for the sorting convenience.
+off, mark subject with [Spam %] off, spam cutoff 0.95, genuine below 0.05, no
+words found on, self-training on, close AGMSBayesianSpamServer when Finished
+on.  Because of the self training, I always correct it when it gets the
+classification wrong (that means I have to manually delete the messages, can't
+use a Match Header filter to do it).  My Tracker window shows the
+Classification Group attribute rather than the Spam/Genuine Estimate number
+(which isn't pretty when using Chi-squared).
 
 <H1><A NAME="AdvancedUsage"></A>Advanced Usage</H1>
 
@@ -329,14 +346,14 @@ useful command, if you have a lot of spam messages to add, is
 current directory as examples of genuine text.
 
 <PRE>
-Fri Dec 13 15:57:22 568 /tmp>AGMSBayesianSpamServer help
+Sat Feb  8 16:30:51 274 /tmp>AGMSBayesianSpamServer help
 
 AGMSBayesianSpamServer - A Spam Database Server
 Copyright &copy; 2002 by Alexander G. M. Smith.  Released to the public domain.
 
-Compiled on Dec 13 2002 at 15:56:20.  $Revision$  $Header:
-/cvsroot/bemaildaemon/AGMSBayesianSpamServer/AGMSBayesianSpamServer.cpp,v 1.73
-2002/12/13 20:55:57 agmsmith Exp $
+Compiled on Feb  8 2003 at 11:13:28.  $Revision$  $Header:
+/cvsroot/bemaildaemon/AGMSBayesianSpamServer/AGMSBayesianSpamServer.cpp,v 1.77
+2003/01/22 03:19:48 agmsmith Exp $
 
 This is a program for classifying e-mail messages as spam (junk mail which
 you don't want to read) and regular genuine messages.  It can learn what's
@@ -555,7 +572,7 @@ score.
 
 ProcessArgs: The property specified isn't known or doesn't support the requested action (usually means it is an unknown command), error code $FFFFFFFF/-1 (General OS error) has occured.
 AGMSBayesianSpamServer shutting down...
-Fri Dec 13 15:57:25 569 /tmp>
+Sat Feb  8 16:30:58 275 /tmp>
 </PRE>
 <!-- End the C style comment which makes editing this look bad with BeIDE's syntax colouring. */ -->
 
@@ -735,6 +752,11 @@ accumulated minor changes, which you can see by looking at the log in the top of
 source code files.
 
 <UL>
+  <LI>Version 1.77 changed the tokenizing to not convert words to lower case,
+  the case is important for spam!  Minimize the window before opening it so
+  that it doesn't flash on the screen in server mode.  Also load the database
+  when the window is displayed so that the user can see the words.
+
   <LI>Version 1.73 added self training support and the Chi-Squared scoring
   method.
 
