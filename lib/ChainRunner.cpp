@@ -46,7 +46,28 @@ struct filter_image {
 BLocker list_lock("mdr_chainrunner_lock");
 BList running_chains, running_chain_pointers;
 
-ErrorLogWindow *win = NULL;
+
+static void
+show_error(alert_type type, const char *message, const char *tag)
+{
+	static ErrorLogWindow *window = NULL;
+	static BLocker lock("error window");
+
+	lock.Lock();
+
+	if (window == NULL) {
+		window = new ErrorLogWindow(BRect(200, 200, 500, 250),
+			"Mail Daemon Status Log", B_TITLED_WINDOW);
+	}
+
+	lock.Unlock();
+
+	window->AddError(type, message, tag);
+}
+
+
+//	#pragma mark -
+
 
 #if USE_NASTY_SYNC_THREAD_HACK
 	/* There is a memory leak in gethostbyname() that causes structures it
@@ -579,21 +600,16 @@ ChainRunner::ResetProgress(const char *message)
 void
 ChainRunner::ShowError(const char *error)
 {
-	if (win == NULL)
-		win = new ErrorLogWindow(BRect(200,200,500,250),"Mail Daemon Status Log",B_TITLED_WINDOW);
-	
 	BString tag = Chain()->Name();
 	tag << ": ";
-	win->AddError(B_WARNING_ALERT,error,tag.String());
+	show_error(B_WARNING_ALERT, error, tag.String());
 }
+
 
 void
 ChainRunner::ShowMessage(const char *error)
 {
-	if (win == NULL)
-		win = new ErrorLogWindow(BRect(200,200,500,250),"Mail Daemon Status Log",B_TITLED_WINDOW);
-	
 	BString tag = Chain()->Name();
 	tag << ": ";
-	win->AddError(B_INFO_ALERT,error,tag.String());
+	show_error(B_INFO_ALERT, error, tag.String());
 }
