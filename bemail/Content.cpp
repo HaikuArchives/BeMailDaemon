@@ -152,6 +152,8 @@ bool FilterHTMLTag(int32 *first,char **t,char *end)
 
 		const struct { char *name; int32 code; } entities[] = {
 			// this list is sorted alphabetically to be binary searchable
+			// the current implementation doesn't do this, though
+
 			// "name" is the entity name,
 			// "code" is the corresponding unicode
 			{"AElig;",	0x00c6},

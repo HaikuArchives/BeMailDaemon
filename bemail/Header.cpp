@@ -42,6 +42,7 @@ All rights reserved.
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <ctype.h>
 
 #include <StorageKit.h>
 #include <InterfaceKit.h>
@@ -1051,7 +1052,7 @@ void QPopupMenu::EntryCreated(const entry_ref &ref, ino_t node)
 		return;
 
 	BMessage 	*msg;
-	BMenu		*groupMenu = NULL;
+	BMenu		*groupMenu;
 	BMenuItem	*superItem = NULL;
 	int32 		items = CountItems();
 
@@ -1059,69 +1060,95 @@ void QPopupMenu::EntryCreated(const entry_ref &ref, ino_t node)
 		AddSeparatorItem();
 	
 	// Does the file have a group attribute
-	BString group;
-	if (ReadAttrString(&file,"META:group",&group) >= B_OK && group.Length() > 0)
+	BString groups;
+	ReadAttrString(&file,"META:group",&groups);
+	
+	do
 	{
-		BMenu *sub;
-
-		// Look for submenu with label == group name
-		for (int32 i = 0; i < items; i++)
+		// split comma separated string
+		BString group;
+		int32 comma;
+		if ((comma = groups.FindFirst(',')) > 0)
 		{
-			if ((sub = SubmenuAt(i)) != NULL)
+			groups.MoveInto(group,0,comma);
+			groups.Remove(0,1);
+		}
+		else
+			group.Adopt(groups);
+		
+		// trim white spaces
+		int32 i = 0;
+		for (i = 0;isspace(group.ByteAt(i));i++);
+		if (i)
+			group.Remove(0,i);
+		for (i = group.Length() - 1;isspace(group.ByteAt(i));i--);
+		group.Truncate(i + 1);
+
+		groupMenu = NULL;
+
+		if (group.Length() > 0)
+		{
+			BMenu *sub;
+	
+			// Look for submenu with label == group name
+			for (int32 i = 0; i < items; i++)
 			{
-				superItem = sub->Superitem();
-				if (!strcmp(superItem->Label(), group.String()))
+				if ((sub = SubmenuAt(i)) != NULL)
 				{
-					groupMenu = sub;
-					i++;
-					break;
+					superItem = sub->Superitem();
+					if (!strcmp(superItem->Label(), group.String()))
+					{
+						groupMenu = sub;
+						i++;
+						break;
+					}
 				}
+			}
+			
+			// If no submenu, create one
+			if (!groupMenu)
+			{
+				// Find where it should go (alphabetical)
+				int32 mindex = 0;
+				for (; mindex < fGroups; mindex++)
+				{
+					if (strcmp(ItemAt(mindex)->Label(), group.String()) > 0)
+						break;
+				}
+				
+				groupMenu = new BMenu(group.String());
+				groupMenu->SetFont(be_plain_font);
+				AddItem(groupMenu, mindex);
+				superItem = groupMenu->Superitem();
+				superItem->SetMessage(new BMessage(B_SIMPLE_DATA));
+				if (fTargetHandler)
+					superItem->SetTarget(fTargetHandler);
+	
+				fGroups++;
 			}
 		}
 		
-		// If no submenu, create one
-		if (!groupMenu)
+		msg = new BMessage(B_SIMPLE_DATA);
+		msg->AddRef("refs", &ref);
+		msg->AddInt64("node", node);
+		
+		BString	name;
+		ReadAttrString(&file,"META:name",&name);
+	
+		BString email;
+		ReadAttrString(&file,"META:email",&email);
+	
+		AddPersonItem(&ref,node,name,email,NULL,groupMenu,superItem);
+	
+		// support for 3rd-party People apps
+		for (int16 i = 2;i < 6;i++)
 		{
-			// Find where it should go (alphabetical)
-			int32 mindex = 0;
-			for (; mindex < fGroups; mindex++)
-			{
-				if (strcmp(ItemAt(mindex)->Label(), group.String()) > 0)
-					break;
-			}
-			
-			groupMenu = new BMenu(group.String());
-			groupMenu->SetFont(be_plain_font);
-			AddItem(groupMenu, mindex);
-			superItem = groupMenu->Superitem();
-			superItem->SetMessage(new BMessage(B_SIMPLE_DATA));
-			if (fTargetHandler)
-				superItem->SetTarget(fTargetHandler);
-
-			fGroups++;
+			char attr[16];
+			sprintf(attr,"META:email%d",i);
+			if (ReadAttrString(&file,attr,&email) >= B_OK && email.Length() > 0)
+				AddPersonItem(&ref,node,name,email,attr,groupMenu,superItem);
 		}
-	}
-	
-	msg = new BMessage(B_SIMPLE_DATA);
-	msg->AddRef("refs", &ref);
-	msg->AddInt64("node", node);
-	
-	BString	name;
-	ReadAttrString(&file,"META:name",&name);
-
-	BString email;
-	ReadAttrString(&file,"META:email",&email);
-
-	AddPersonItem(&ref,node,name,email,NULL,groupMenu,superItem);
-
-	// support for 3rd-party People apps
-	for (int16 i = 2;i < 6;i++)
-	{
-		char attr[16];
-		sprintf(attr,"META:email%d",i);
-		if (ReadAttrString(&file,attr,&email) >= B_OK && email.Length() > 0)
-			AddPersonItem(&ref,node,name,email,attr,groupMenu,superItem);
-	}
+	} while (groups.Length() > 0);
 }
 
 
