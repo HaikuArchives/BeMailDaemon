@@ -335,7 +335,7 @@ Message::SendViaAccount(const char *account_name)
 	}
 	
 	while (chains.CountItems() > 0)
-		delete chains.RemoveItem(0L);
+		delete (Mail::Chain *)chains.RemoveItem(0L);
 }
 
 	
