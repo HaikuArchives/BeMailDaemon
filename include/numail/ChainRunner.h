@@ -73,7 +73,9 @@ class ChainRunner : public BLooper {
 		status_t RunChain(bool asynchronous = true);
 		
 		void MessageReceived (BMessage *msg);
+
 	private:
+		void CallCallbacksFor(BList &list, status_t code);
 		void get_messages(StringList *list);
 	
 		Mail::Chain *_chain;
@@ -88,7 +90,7 @@ class ChainRunner : public BLooper {
 		uint32	_reserved[5];
 };
 
-ChainRunner *GetRunner(int32 chain_id, Mail::StatusWindow *status,bool self_destruct = true);
+ChainRunner *GetRunner(int32 chain_id, Mail::StatusWindow *status, bool selfDestruct = true);
 
 }	// namespace Mail
 }	// namespace Zoidberg
