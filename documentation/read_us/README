@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v2.2.2
+BEOS Mail Daemon Replacement v2.2.3
 
 ABOUT:
 
@@ -158,8 +158,8 @@ For IMAP, things are slightly more complicated. The IMAP folder structure is dup
 
 HISTORY:
 
-August XX 200x - v2.2.3
-- fixed crash in POP3 protocol when the mail server was not reachable
+August 22 2003 - v2.2.3
+- Fixed crash in POP3 protocol when the mail server was not reachable (was trying to send a QUIT command over a dead connection).
 
 August 20 2003 - v2.2.2
 - Automatic index creation changed, use an int for the MAIL:flags, not a string!
