@@ -934,7 +934,8 @@ _EXPORT ssize_t readfoldedline(BPositionIO &in, char **buffer, size_t *buflen)
 }
 
 
-_EXPORT ssize_t nextfoldedline(const char** header, char **buffer, size_t *buflen)
+_EXPORT ssize_t
+nextfoldedline(const char** header, char **buffer, size_t *buflen)
 {
 	ssize_t len = buflen && *buflen ? *buflen : 0;
 	char * buf = buffer && *buffer ? *buffer : NULL;
@@ -1013,7 +1014,8 @@ _EXPORT ssize_t nextfoldedline(const char** header, char **buffer, size_t *bufle
 }
 
 
-_EXPORT void TrimWhite (BString &string)
+_EXPORT void
+trim_white_space(BString &string)
 {
 	int32 i;
 	int32 length = string.Length();
@@ -1032,13 +1034,16 @@ _EXPORT void TrimWhite (BString &string)
 }
 
 
-_EXPORT void StripGook(BString* header)
+/** Tries to return a human-readable name from the specified
+ *	header parameter (should be from "To:" or "From:").
+ *	Tries to return the name rather than the eMail address.
+ */
+
+_EXPORT void
+extract_address_name(BString &header)
 {
-	//
-	// return human-readable name from From: or To: header
-	//
 	BString name;
-	const char *start = header->String();
+	const char *start = header.String();
 	const char *stop = start + strlen (start);
 
 	// Find a string S in the header (email foo) that matches:
@@ -1047,8 +1052,7 @@ _EXPORT void StripGook(BString* header)
 	//   New style no quotes if nothing else found: S <foo@bar.com>
 	//   If nothing else found then use the whole thing: S
 
-	for (int i=0; i<=3; ++i)
-	{
+	for (int i = 0; i <= 3; i++) {
 		// Set p1 to the first letter in the name and p2 to just past the last
 		// letter in the name.  p2 stays NULL if a name wasn't found in this
 		// pass.
@@ -1059,7 +1063,7 @@ _EXPORT void StripGook(BString* header)
 				if ((p1 = strchr(start,'(')) != NULL) {
 					p1++; // Advance to first letter in the name.
 					size_t nest = 1; // Handle nested brackets.
-					for (p2=p1; p2<stop; ++p2)
+					for (p2 = p1; p2 < stop; ++p2)
 					{
 						if (*p2 == ')')
 							--nest;
@@ -1073,13 +1077,13 @@ _EXPORT void StripGook(BString* header)
 				}
 				break;
 			case 1: // "S" <foo@bar.com>
-				if ((p1 = strchr(start,'\"')) != NULL)
-					p2 = strchr (++ /* skip past leading quote */ p1,'\"');
+				if ((p1 = strchr(start, '\"')) != NULL)
+					p2 = strchr(++p1, '\"');
 				break;
 			case 2: // S <foo@bar.com>
 				p1 = start;
 				if (name.Length() == 0)
-					p2 = strchr (start,'<');
+					p2 = strchr(start, '<');
 				break;
 			case 3: // S
 				p1 = start;
@@ -1099,35 +1103,27 @@ _EXPORT void StripGook(BString* header)
 
 			int newLength = p2 - p1;
 			if (name.Length() < newLength)
-				name.SetTo (p1, newLength);
+				name.SetTo(p1, newLength);
 		}
-	} // rof
+	}
 
+	int32 lessIndex = name.FindFirst('<');
+	int32 greaterIndex = name.FindLast('>');
 
-	int32	lessIndex;
-	int32	greaterIndex;
-
-	lessIndex = name.FindFirst ('<');
-	greaterIndex = name.FindLast ('>');
 	if (lessIndex == 0) {
 		// Have an address of the form <address> and nothing else, so remove
 		// the greater and less than signs, if any.
 		if (greaterIndex > 0)
-			name.Remove (greaterIndex, 1);
-		name.Remove (lessIndex, 1);
-	}
-	else if (lessIndex > 0 && lessIndex < greaterIndex) {
+			name.Remove(greaterIndex, 1);
+		name.Remove(lessIndex, 1);
+	} else if (lessIndex > 0 && lessIndex < greaterIndex) {
 		// Yahoo stupidly inserts the e-mail address into the name string, so
 		// this bit of code fixes: "Joe <joe@yahoo.com>" <joe@yahoo.com>
-		name.Remove (lessIndex, greaterIndex - lessIndex + 1);
+		name.Remove(lessIndex, greaterIndex - lessIndex + 1);
 	}
 
-	while (name.Length() > 0 && isspace (name[0]))
-		name.Remove (0, 1); // Remove more leading spaces.
-	while (name.Length() > 0 && isspace (name[name.Length() - 1]))
-		name.Remove (name.Length() - 1, 1); // Remove more trailing spaces.
-
-	*header = name;
+	trim_white_space(name);
+	header = name;
 }
 
 
@@ -1230,7 +1226,7 @@ _EXPORT void SubjectToThread (BString &string)
 	// Finally remove leading and trailing space.  Some software, like
 	// tm-edit 1.8, appends a space to the subject, which would break
 	// threading if we left it in.
-	TrimWhite (string);
+	trim_white_space(string);
 }
 
 
@@ -1329,6 +1325,94 @@ parse_header(BMessage &headers, BPositionIO &input)
 	free(buffer);
 
 	return B_OK;
+}
+
+
+void
+extract_address(BString &address)
+{
+	const char *string = address.String();
+	int32 first;
+
+	// first, remove all quoted text
+	
+	if ((first = address.FindFirst('"')) >= 0) {
+		int32 last = first + 1;
+		while (string[last] && string[last] != '"')
+			last++;
+
+		if (string[last] == '"')
+			address.Remove(first, last + 1 - first);
+	}
+
+	// try to extract the address now
+
+	if ((first = address.FindFirst('<')) >= 0) {
+		// the world likes us and we can just get the address the easy way...
+		int32 last = address.FindFirst('>');
+		if (last >= 0) {
+			address.Truncate(last);
+			address.Remove(0, first + 1);
+
+			return;
+		}
+	}
+
+	// then, see if there is anything in parenthesis to throw away
+
+	if ((first = address.FindFirst('(')) >= 0) {
+		int32 last = first + 1;
+		while (string[last] && string[last] != ')')
+			last++;
+
+		if (string[last] == ')')
+			address.Remove(first, last + 1 - first);
+	}
+
+	// now, there shouldn't be much else left
+
+	trim_white_space(address);
+}
+
+
+void
+get_address_list(BList &list, const char *string, void (*cleanupFunc)(BString &))
+{
+	if (string == NULL || !string[0])
+		return;
+
+	const char *start = string;
+
+	while (true) {
+		if (string[0] == '"') {
+			const char *quoteEnd = ++string;
+
+			while (quoteEnd[0] && quoteEnd[0] != '"')
+				quoteEnd++;
+
+			if (!quoteEnd[0])	// string exceeds line!
+				quoteEnd = string;
+
+			string = quoteEnd + 1;
+		}
+
+		if (string[0] == ',' || string[0] == '\0') {
+			BString address(start, string - start);
+			trim_white_space(address);
+
+			if (cleanupFunc)
+				cleanupFunc(address);
+
+			list.AddItem(strdup(address.String()));
+
+			start = string + 1;
+		}
+
+		if (!string[0])
+			break;
+
+		string++;
+	}
 }
 
 

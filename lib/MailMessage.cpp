@@ -119,41 +119,38 @@ Message::ReplyMessage(reply_to_mode replyTo, bool accountFromMail, const char *q
 	if (replyTo == MD_REPLY_TO_ALL) {
 		to_return->SetTo(From());
 
-		BString string = CC();
-		const char *to = To();
-		if (string.ByteAt(0)) {
-			if (to != NULL && to[0])
-				string << ',' << to;
-		} else if (to != NULL && to[0])
-			string << to;
+		BList list;
+		get_address_list(list, CC(), extract_address);
+		get_address_list(list, To(), extract_address);
 
-		// Filter out the sender: find the sender's email address in the list,
-		// then zap everything from the comma before the address to the comma
-		// after it, leaving just one comma.  Repeat until the sender's address
-		// isn't there.  To Do: fix bug where it will wipe out people with
-		// superset addresses (removing "smith@rogers.com" will also nuke
-		// "agmsmith@rogers.com").  Guess a real Name and Address class and
-		// associated parsing would help.
-		BString addr = Mail::Chain(Account()).MetaData()->FindString("reply_to");
-		if (addr.Length() > 0) {
-			int32 offset;
-			while ((offset = string.FindFirst(addr)) >= 0) {
-				int32 begin = string.FindLast(',', offset);
-				int32 end = string.FindFirst(',', offset);
-				begin = (begin < 0) ? 0 : begin;
-				end = (end < 0) ? string.Length() : end;
-				string.Remove(begin /* location */, end - begin /* count */);
+		// Filter out the sender
+		BString sender = Mail::Chain(Account()).MetaData()->FindString("reply_to");
+		extract_address(sender);
+
+		BString cc;
+
+		for (int32 i = list.CountItems(); i-- > 0;) {
+			char *address = (char *)list.RemoveItem(0L);
+
+			// add everything which is not the sender and not already in the list
+			if (sender.ICompare(address) && cc.FindFirst(address) < 0) {
+				if (cc.Length() > 0)
+					cc << ", ";
+
+				cc << address;
 			}
+
+			free(address);
 		}
 
-		if (string.Length() > 0)
-			to_return->SetCC(string.String());
+		if (cc.Length() > 0)
+			to_return->SetCC(cc.String());
 	} else if (replyTo == MD_REPLY_TO_SENDER || ReplyTo() == NULL)
 		to_return->SetTo(From());
 	else
 		to_return->SetTo(ReplyTo());
 
-	// Set special "In-Reply-To:" header
+	// Set special "In-Reply-To:" header (used for threading)
 	const char *messageID = _body ? _body->HeaderField("Message-Id") : NULL;
 	if (messageID != NULL)
 		to_return->SetHeaderField("In-Reply-To", messageID);
@@ -635,56 +632,20 @@ Message::RenderToRFC822(BPositionIO *file)
 	if (From() == NULL)
 		SendViaAccount(_chain_id); //-----Set the from string
 
+	BList recipientList;
+	get_address_list(recipientList, To(), extract_address);
+	get_address_list(recipientList, CC(), extract_address);
+	get_address_list(recipientList, _bcc, extract_address);
+
 	BString recipients;
+	for (int32 i = recipientList.CountItems(); i-- > 0;) {
+		char *address = (char *)recipientList.RemoveItem(0L);
 
-	recipients << To();
-	if ((CC() != NULL) && (strlen(CC()) > 0))
-		recipients << ',' << CC();
-
-	if ((_bcc != NULL) && (strlen(_bcc) > 0))
-		recipients << ',' << _bcc;
-
-	//----Turn "blorp" <blorp@foo.com>,foo@bar.com into <blorp@foo.com>,<foo@bar.com>
-	const char *flat = recipients.String();
-	StringList recipientsList;
-	BString little;
-	bool string = false;
-	int32 i,j;
-	for (i = j = 0; i <= recipients.Length(); i++) {
-		if (flat[i] == '"')
-		{
-			string = !string;
-			if (!string)
-				j = i+1;
-		}
-		else if (!string && (flat[i] == ',' || flat[i] == '\0')) {
-			little.SetTo(flat + j,i - j);
-
-			int32 first,last;
-			if ((first = little.FindFirst('(')) >= 0 && (last = little.FindFirst(')')) > 0)
-				little.Remove(first,last + 1 - first);
-
-			TrimWhite(little);
-			recipientsList.AddItem(little.String());
-
-			j = i + 1;
-		}
-	}
-	recipients = "";
-	for (i = 0; i < recipientsList.CountItems(); i++) {
-		little = recipientsList.ItemAt(i);
-		int32 first,last;
-		if ((first = little.FindFirst('<')) >= 0 && (last = little.FindFirst('>')) > 0) {
-			little.Remove(0,first);
-			little.Remove(last + 1,little.Length() - last);
-		} else {
-			little.Prepend("<");
-			little.Append(">");
-		}
-
+		recipients << '<' << address << '>';
 		if (i)
 			recipients << ',';
-		recipients << little;
+
+		free(address);
 	}
 
 	// add the date field
@@ -814,7 +775,7 @@ Message::RenderTo(BDirectory *dir)
 	name << " " << numericDateString;
 
 	worker = From();
-	StripGook (&worker);
+	extract_address_name(worker);
 	name << " " << worker;
 
 	name.Truncate(222);	// reserve space for the uniquer
