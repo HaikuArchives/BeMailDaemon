@@ -20,7 +20,8 @@ enum MDDeskbarMessages {
 	MD_CHECK_FOR_MAILS,
 	MD_SEND_MAILS,
 	MD_OPEN_NEW,
-	MD_OPEN_PREFS
+	MD_OPEN_PREFS,
+	MD_LAUNCH_IN_TRACKER
 };
 
 class BPopUpMenu;

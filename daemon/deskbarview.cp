@@ -243,6 +243,13 @@ void DeskbarView::MessageReceived(BMessage *message)
 			}
 			break;
 		}
+		case MD_LAUNCH_IN_TRACKER:
+		{
+			BMessenger tracker(kTrackerSignature);
+			message->what = B_REFS_RECEIVED;
+			tracker.SendMessage(message);
+		}
+		break;
 		default:
 			BView::MessageReceived(message);
 	}
@@ -393,25 +400,49 @@ BPopUpMenu *DeskbarView::BuildMenu()
 			count++;
 
 			path.SetTo(&ref);
-			menu->AddItem(item = new BMenuItem(
-				navMenu = new BNavMenu(path.Leaf(),B_REFS_RECEIVED,tracker),
-				msg = new BMessage(B_REFS_RECEIVED)));
-
-			BEntry entry;
-			while (entry.SetTo(&ref) == B_OK && entry.IsSymLink())
+			BEntry entry(&ref,true);
+			if(entry.InitCheck() != B_OK)
 			{
-				BSymLink link(&ref);
-				if (link.InitCheck() == B_OK)
-				{
-					BDirectory parent;
-					if (entry.GetParent(&parent) == B_OK
-						&& link.MakeLinkedPath(&parent,&path) >= B_OK)
-						get_ref_for_path(path.Path(),&ref);
-				}
+				//If we can't initialize the entry.. put the name in and disable it
+				//this happens with symlinks -> /nonexistant
+				menu->AddItem(item = new BMenuItem(path.Leaf(), msg = new BMessage(MD_LAUNCH_IN_TRACKER)));
+				item->SetEnabled(false);
+				msg->AddRef("refs", &ref);
+				continue;
 			}
 
-			navMenu->SetNavDir(&ref);
-			msg->AddRef("refs", &ref);
+			bool fUseNavMenu = false;
+			//do we want to use the NavMenu, or just an ordinary BMenuItem?
+			
+			if(entry.IsDirectory())
+				fUseNavMenu = true;
+			else if(entry.IsFile())
+			{
+				//Files should use the BMenuItem unless they are queries
+				char mimeString[B_MIME_TYPE_LENGTH];
+				BNode node(&entry);
+				BNodeInfo info(&node);
+				if(info.GetType(mimeString) == B_OK)
+					if(strcmp(mimeString, "application/x-vnd.Be-query") == 0)
+						fUseNavMenu = true;
+			}
+			
+			entry.GetRef(&ref);
+			//make ref now point to the dereferenced symlink instead of the symlink itself
+			//necessary for NavMenu i believe
+			if(fUseNavMenu)
+			{
+				menu->AddItem(item = new BMenuItem(
+					navMenu = new BNavMenu(path.Leaf(),B_REFS_RECEIVED,tracker),
+					msg = new BMessage(B_REFS_RECEIVED)));
+				navMenu->SetNavDir(&ref);
+				msg->AddRef("refs", &ref);
+			}
+			else
+			{
+				menu->AddItem(item = new BMenuItem(path.Leaf(), msg = new BMessage(MD_LAUNCH_IN_TRACKER)));
+				msg->AddRef("refs", &ref);
+			}
 		}
 		if (count > 0)
 			menu->AddSeparatorItem();
