@@ -158,7 +158,10 @@ void	StringList::AddList(const StringList *newItems) {
 bool	StringList::RemoveItem(const char *item) {
 	struct string_bucket *bkt = (struct string_bucket *)_buckets[string_hash(item)];
 	
-	if ((bkt != NULL) && (strcmp(bkt->string,item) == 0)) {
+	if (bkt == NULL)
+		return false;
+	
+	if (strcmp(bkt->string,item) == 0) {
 		_indexed->RemoveItem(IndexOf(item));
 		_buckets[string_hash(item)] = bkt->next;
 		free((void *)(bkt->string));
