@@ -1,6 +1,6 @@
 # makefile for all sample code
 
-SUBDIRS = \
+SUBDIRS = Fortune
 
 all: default
 
