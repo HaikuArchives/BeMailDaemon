@@ -93,6 +93,78 @@ status_t Message::InitCheck() const
 	return _status;
 }
 
+Message *Message::ReplyMessage(bool reply_to_all, const char *quote_style) {
+	Mail::Message *to_return = new Mail::Message;
+	if (reply_to_all) {
+		to_return->SetTo(From());
+		BString string = CC();
+		BString addr = Mail::Chain(Account()).MetaData()->FindString("reply_to");
+		int32 offset;
+		if ((offset = string.FindFirst(addr)) >= 0) {
+			int32 begin = string.FindLast(',',offset);
+			int32 end = string.FindFirst(',',offset);
+			begin = (begin < 0) ? 0 : begin;
+			end = (end < 0) ? string.Length() : end;
+			string.Remove(begin,end);
+		}
+		
+		BString too = To();
+		if ((offset = too.FindFirst(addr)) >= 0) {
+			int32 begin = too.FindLast(',',offset);
+			int32 end = too.FindFirst(',',offset);
+			begin = (begin < 0) ? 0 : begin;
+			end = (end < 0) ? too.Length() : end;
+			too.Remove(begin,end);
+		}
+		if (too.Length() > 0)
+			string << ',' << too;
+			
+		if (string.Length() > 0)	
+			to_return->SetCC(string.String());
+	} else {
+		to_return->SetTo(From());
+	}
+	
+	to_return->SetBodyTextTo(BodyText());
+	to_return->Body()->Quote(quote_style);
+	
+	to_return->SendViaAccount(Account());
+	return to_return;
+}
+	
+Message *Message::ForwardMessage(bool include_attachments) {
+	BString header = "-------Forwarded Message----------\n";
+	header << "To: " << To() << '\n';
+	header << "From: " << From() << '\n';
+	if (CC() != NULL)
+		header << "CC: " << CC() << '\n';
+	header << "Subject: " << Subject() << '\n';
+	header << "Date: " << Date() << "\n\n";
+	header << _text_body->Text() << '\n';
+	Mail::Message *message = new Mail::Message();
+	message->SetBodyTextTo(header.String());
+	
+	if (include_attachments) {
+		for (int32 i = 0; i < CountComponents(); i++) {
+			Mail::Component *cmpt = GetComponent(i);
+			if (cmpt == _text_body)
+				continue;
+				
+		//---I am ashamed to have the written the code between here and the next comment
+			BMallocIO io;
+			cmpt->RenderToRFC822(&io);
+			Mail::Component *clone = cmpt->WhatIsThis();
+			io.Seek(0,SEEK_SET);
+			clone->SetToRFC822(&io,io.BufferLength(),true);
+			message->AddComponent(clone);
+		//---
+		}
+	}
+	
+	message->SendViaAccount(Account());
+	return message;
+}
+
 const char *Message::To() {
 	return HeaderField("To");
 }

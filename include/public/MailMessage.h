@@ -27,11 +27,8 @@ class Message : public Container {
 		BPositionIO *Data() const { return fData; }
 			// is only set if the message owns the data
 
-		Message *ReplyMessage(bool reply_to_all,
-							  bool include_attachments = false,
-							  const char *quote_style = "> ");
-		Message *ForwardMessage(bool include_attachments = false,
-								const char *quote_style = "> ");
+		Message *ReplyMessage(bool reply_to_all, const char *quote_style = "> ");
+		Message *ForwardMessage(bool include_attachments = false);
 			// These return messages with the body quoted and
 			// ready to send via the appropriate channel. ReplyMessage()
 			// addresses the message appropriately, but ForwardMessage()
