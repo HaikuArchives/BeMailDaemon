@@ -17,8 +17,7 @@ MessageIO::MessageIO(SimpleMailProtocol *protocol, BPositionIO *dump_to, int32 s
 		
 ssize_t	MessageIO::ReadAt(off_t pos, void *buffer, size_t size) {
 	off_t old_pos = slave->Position();
-	void *test = malloc(2);
-	free(test);
+	
 	while ((pos + size) > this->size) {
 		if (state > 1)
 			break;
