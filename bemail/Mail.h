@@ -216,6 +216,7 @@ class TMailWindow : public BWindow
 		TMailWindow(BRect, const char *, const entry_ref *, const char *,
 			const BFont *font, bool, BMessenger*);
 		virtual ~TMailWindow();
+
 		virtual void FrameResized(float width, float height);
 		virtual void MenusBeginning();
 		virtual void MessageReceived(BMessage*);
@@ -247,6 +248,7 @@ class TMailWindow : public BWindow
 		void UpdateViews();
 		
 	protected:
+		void SetTitleForMessage();
 		void AddEnclosure(BMessage *msg);
 		void BuildButtonBar();
 	

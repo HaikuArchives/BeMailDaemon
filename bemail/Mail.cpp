@@ -1213,7 +1213,7 @@ skip:			if (!done)
 	}
 	else
 		fButtonBar = NULL;
-	
+
 	r.top = r.bottom = height + bbheight;
 	fHeaderView = new THeaderView(r, rect, fIncoming, fFile, resending);
 
@@ -1294,6 +1294,9 @@ skip:			if (!done)
 				printf("Query failed.\n");
 		}
 	}
+
+	if (fRef)
+		SetTitleForMessage();
 }
 
 
@@ -2877,6 +2880,34 @@ status_t TMailWindow::SaveAsDraft()
 	return B_OK;
 }
 
+
+void TMailWindow::SetTitleForMessage()
+{
+	//
+	//	Figure out the title of this message and set the title bar
+	//
+	BString title;
+
+	BFile file(fRef, O_RDONLY);
+	if (fIncoming && file.InitCheck() == B_NO_ERROR)
+	{
+		if (ReadAttrString(&file, B_MAIL_ATTR_NAME, &title) == B_OK)
+		{
+			BString string;
+			if (ReadAttrString(&file, B_MAIL_ATTR_SUBJECT, &string) == B_OK)
+				title << " -> " << string;
+		}
+		else if (fHeaderView->fSubject->TextView()->TextLength())
+			title = fHeaderView->fSubject->Text();
+		else
+			/* if something slips through the cracks (No NAME, no SUBJECT) */
+			/* we just play it safe. */
+			title = "BeMail";
+	}
+	SetTitle(title.String());
+}
+
+
 //
 //	Open *another* message in the existing mail window.  Some code here is 
 //	duplicated from various constructors.
@@ -2927,29 +2958,8 @@ status_t TMailWindow::OpenMessage(entry_ref *ref)
 		fHeaderView->LoadMessage(fFile);
 	}
 	
-	//
-	//	Figure out the title of this message and set the title bar
-	//
-	BString title;
+	SetTitleForMessage();
 
-	BFile file(ref, O_RDONLY);
-	if (fIncoming && file.InitCheck() == B_NO_ERROR)
-	{
-		if (ReadAttrString(&file, B_MAIL_ATTR_NAME, &title) == B_OK)
-		{
-			BString string;
-			if (ReadAttrString(&file, B_MAIL_ATTR_SUBJECT, &string) == B_OK)
-				title << " -> " << string;
-		}
-		else if (fHeaderView->fSubject->TextView()->TextLength())
-			title = fHeaderView->fSubject->Text();
-		else
-			/* if something slips through the cracks (No NAME, no SUBJECT) */
-			/* we just play it safe. */
-			title = "BeMail";
-	}
-	SetTitle(title.String());
-	
 	if (fIncoming)
 	{
 		//
@@ -3027,20 +3037,21 @@ status_t TMailWindow::OpenMessage(entry_ref *ref)
 
 		// Restore Fields from attributes
 
-		if (ReadAttrString(&file, B_MAIL_ATTR_TO, &string) == B_OK)
+		BNode node(fRef);
+		if (ReadAttrString(&node, B_MAIL_ATTR_TO, &string) == B_OK)
 			fHeaderView->fTo->SetText(string.String());
 
-		if (ReadAttrString(&file, B_MAIL_ATTR_SUBJECT, &string) == B_OK)
+		if (ReadAttrString(&node, B_MAIL_ATTR_SUBJECT, &string) == B_OK)
 			fHeaderView->fSubject->SetText(string.String());
 
-		if (ReadAttrString(&file, "MAIL:bcc", &string) == B_OK)
+		if (ReadAttrString(&node, "MAIL:bcc", &string) == B_OK)
 			fHeaderView->fBcc->SetText(string.String());
 
-		if (ReadAttrString(&file, B_MAIL_ATTR_CC, &string) == B_OK)
+		if (ReadAttrString(&node, B_MAIL_ATTR_CC, &string) == B_OK)
 			fHeaderView->fCc->SetText(string.String());
 
 		// Restore attachments
-		if (ReadAttrString(&file, "MAIL:attachments", &string) == B_OK)
+		if (ReadAttrString(&node, "MAIL:attachments", &string) == B_OK)
 		{
 			BMessage msg(REFS_RECEIVED);
 			entry_ref enc_ref;
