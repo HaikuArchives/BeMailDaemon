@@ -294,6 +294,10 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 			msg->SendReply(&reply);
 			}
 			break;
+		case 'numg':
+			if (new_messages > 0)
+				led->Start();
+			break;			
 		case B_QUERY_UPDATE:
 			{
 			int32 what;
@@ -301,7 +305,6 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 			switch (what) {
 				case B_ENTRY_CREATED:
 					new_messages++;
-					led->Start();
 					break;
 				case B_ENTRY_REMOVED:
 					new_messages--;

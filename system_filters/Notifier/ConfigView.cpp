@@ -6,12 +6,17 @@
 
 #include "ConfigView.h"
 
-#include <MenuField.h>
-#include <PopUpMenu.h>
-#include <MenuItem.h>
+#include <CheckBox.h>
 #include <String.h>
 #include <Message.h>
 
+#include <MailAddon.h>
+
+enum {
+	do_beep = 1,
+	alert = 2,
+	blink_leds = 4
+};
 
 ConfigView::ConfigView()
 	:	BView(BRect(0,0,20,20),"notifier_config",B_FOLLOW_LEFT | B_FOLLOW_TOP,0)
@@ -25,16 +30,17 @@ ConfigView::ConfigView()
 
 	BRect rect(5,4,250,25);
 	rect.bottom = rect.top - 2 + itemHeight;
-
-	BPopUpMenu *menu = new BPopUpMenu("<select method>");
-	char *strings[] = {"Beep","Alert","Beep & Alert","Central Notification"};
-	for (int i = 0;i < 4;i++)
-		menu->AddItem(new BMenuItem(strings[i],NULL));
-
-	BMenuField *field = new BMenuField(rect,"notification_method","New E-mail Notification:",menu,B_FOLLOW_LEFT_RIGHT | B_FOLLOW_TOP);
-	field->SetDivider(field->StringWidth(field->Label()) + 6);
-	AddChild(field);
-
+	
+	BRect frame = rect;
+	frame.right /= 4;
+	AddChild(new BCheckBox(frame,"beep","Beep",NULL));
+	frame.left = frame.right;
+	frame.right *= 2;
+	AddChild(new BCheckBox(frame,"alert","Alert",NULL));
+	rect.top += itemHeight;
+	rect.bottom += itemHeight;
+	
+	AddChild(new BCheckBox(rect,"blink","Blink Keyboard LEDs",NULL));
 	ResizeToPreferred();
 }		
 
@@ -45,19 +51,27 @@ void ConfigView::SetTo(BMessage *archive)
 	if (method <= 0)
 		method = 1;
 	
-	if (BMenuField *field = (BMenuField *)FindView("notification_method"))
-		field->Menu()->ItemAt(method-1)->SetMarked(true);
+	if (method & do_beep)
+		((BCheckBox *)(FindView("beep")))->SetValue(B_CONTROL_ON);
+	if (method & alert)
+		((BCheckBox *)(FindView("alert")))->SetValue(B_CONTROL_ON);
+	if (method & blink_leds)
+		((BCheckBox *)(FindView("blink")))->SetValue(B_CONTROL_ON);
 }
 
 
 status_t ConfigView::Archive(BMessage *into,bool) const
 {
-	if (BMenuField *field = (BMenuField *)FindView("notification_method"))
-	{
-		int32 method = field->Menu()->IndexOf(field->Menu()->FindMarked()) + 1;
-		if (into->ReplaceInt32("notification_method",method) != B_OK)
-			into->AddInt32("notification_method",method);
-	}
+	int32 method = 0;
+	if (((BCheckBox *)(FindView("beep")))->Value() == B_CONTROL_ON)
+		method |= do_beep;
+	if (((BCheckBox *)(FindView("alert")))->Value() == B_CONTROL_ON)
+		method |= alert;
+	if (((BCheckBox *)(FindView("blink")))->Value() == B_CONTROL_ON)
+		method |= blink_leds;
+		
+	if (into->ReplaceInt32("notification_method",method) != B_OK)
+		into->AddInt32("notification_method",method);
 
 	return B_OK;
 }
@@ -66,6 +80,13 @@ status_t ConfigView::Archive(BMessage *into,bool) const
 void ConfigView::GetPreferredSize(float *width, float *height)
 {
 	*width = 258;
-	*height = ChildAt(0)->Bounds().Height() + 8;
+	*height = ChildAt(0)->Bounds().Height()*2 + 8;
 }
 
+BView* instantiate_config_panel(BMessage *settings,BMessage *)
+{
+	ConfigView *view = new ConfigView();
+	view->SetTo(settings);
+
+	return view;
+}

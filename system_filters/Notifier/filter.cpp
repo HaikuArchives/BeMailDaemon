@@ -12,7 +12,7 @@
 enum {
 	do_beep = 1,
 	alert = 2,
-	central_notification = 4
+	blink_leds = 4
 };
 
 class NotifyCallback : public MailCallback {
@@ -76,7 +76,7 @@ void NotifyCallback::Callback(MDStatus result) {
 		(new BAlert("new_messages",msg.String(),"OK"))->Go(NULL);
 	}
 	
-	if (strategy & central_notification) {
+	if (strategy & blink_leds) {
 		BMessage msg('numg');
 		msg.AddInt32("num_messages",num_messages);
 		msg.AddString("chain_name",chain->Name());
