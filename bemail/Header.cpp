@@ -108,12 +108,14 @@ THeaderView::THeaderView(BRect rect,BRect windowRect,bool incoming,Mail::Message
 		fAccount(NULL),
 		fBcc(NULL),
 		fCc(NULL),
+		fSubject(NULL),
+		fTo(NULL),
+		fDate(NULL),
 		fIncoming(incoming),
 		fResending(resending),
 		fBccMenu(NULL),
 		fCcMenu(NULL),
-		fToMenu(NULL),
-		fDate(NULL)
+		fToMenu(NULL)
 {
 	BFont font = *be_plain_font;
 	font.SetSize(FONT_SIZE);
