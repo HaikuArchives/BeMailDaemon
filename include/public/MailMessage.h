@@ -1,17 +1,9 @@
 #include <MailContainer.h>
 
-typedef enum {
-	to,
-	cc,
-	bcc
-} recipient_class;
-
-class MailMessage : public HeaderedContainer {
+class MailMessage {
 	public:
-		MailMessage();
-		
-		void AddRecipient(recipient_class type, const char *recipient);
-		
+		MailMessage(BPositionIO *mail_file = NULL);
+				
 		const char *To();
 		const char *From();
 		const char *ReplyTo();
@@ -20,9 +12,12 @@ class MailMessage : public HeaderedContainer {
 		int Priority();
 		
 		void SetSubject(const char *subject);
-		
 		void SetReplyTo(const char *reply_to);
 		void SetFrom(const char *from);
+		void SetTo(const char *from);
+		void SetCC(const char *from);
+		void SetBCC(const char *from);
+		void SetPriority(int priority);
 		
 		void SendViaAccount(const char *account_name);
 		void SendViaAccount(int32 chain_id);
@@ -31,13 +26,11 @@ class MailMessage : public HeaderedContainer {
 		MailComponent *GetComponent(int32 i);
 		
 		void Send(bool send_now, bool delete_on_send);
-		
-		virtual status_t Instantiate(BDataIO *data, size_t length);
-		virtual status_t Render(BDataIO *render_to);
-		
-		virtual status_t MIMEType(BMimeType *mime);
 	
 	private:
-		int32 num_components;
-		MailComponent *body;
+		int32 _chain_id;
+		char *_bcc;
+	
+		int32 _num_components;
+		MailComponent *_body;
 };

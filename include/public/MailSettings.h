@@ -97,8 +97,8 @@ class MailSettings
 	//   namely, 'mnow' and 'msnd' have different functions, and some
 	//   distinction must be made to maintain compatibility. If you hate
 	//   me for this, too bad. --NathanW
-	status_t OutboundChains(BList *list);
-	status_t InboundChains(BList *list);
+	static status_t OutboundChains(BList *list);
+	static status_t InboundChains(BList *list);
 	
 	status_t Save(bigtime_t timeout = B_INFINITE_TIMEOUT);
 	status_t Reload();

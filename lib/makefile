@@ -34,7 +34,7 @@ SRCS= MailAddon.cpp numailkit.cpp MailProtocol.cpp SimpleMailProtocol.cpp \
 	MessageIO.cpp MailChain.cpp MailSettings.cpp StringList.cpp status.cp \
 	ChainRunner.cpp NodeMessage.cpp MailDaemon.cpp c_mail_api.cpp base64.c \
 	qp.c ProtocolConfigView.cpp mail_util.cpp MailComponent.cpp MailContainer.cpp \
-	MailAttachment.cpp
+	MailAttachment.cpp MailMessage.cpp
 
 #	specify the resource files to use
 #	full path or a relative path to the resource file can be used.
