@@ -16,7 +16,8 @@
 typedef enum {
 	Z_MOVE_TO,
 	Z_FLAG,
-	Z_TRASH
+	Z_TRASH,
+	Z_SET_REPLY
 } z_mail_action_flags;
 
 class RuleFilter : public Zoidberg::Mail::Filter {
@@ -35,6 +36,7 @@ class RuleFilter : public Zoidberg::Mail::Filter {
 		StringMatcher		matcher;
 		const char*			attribute;
 		const char*			arg;
+		int32				chain_id;
 		z_mail_action_flags	do_what;
 };
 

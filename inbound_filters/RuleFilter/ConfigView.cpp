@@ -12,12 +12,14 @@
 
 #include <MailAddon.h>
 #include <FileConfigView.h>
+#include <MailSettings.h>
 
 using namespace Zoidberg;
 
 const uint32 kMsgActionMoveTo = 'argm';
 const uint32 kMsgActionDelete = 'argd';
 const uint32 kMsgActionSetTo = 'args';
+const uint32 kMsgReplyWith = 'argr';
 
 
 class RuleFilterConfig : public BView {
@@ -31,8 +33,10 @@ class RuleFilterConfig : public BView {
 	private:
 		BTextControl *attr, *regex;
 		FileControl *arg;
-		BPopUpMenu *menu;
+		BPopUpMenu *menu, *outbound;
+		BMenuField *outbound_field;
 		int staging;
+		int32 chain;
 };
 
 RuleFilterConfig::RuleFilterConfig(BMessage *settings) : BView(BRect(0,0,260,85),"rulefilter_config", B_FOLLOW_LEFT | B_FOLLOW_TOP, 0) {
@@ -54,12 +58,26 @@ RuleFilterConfig::RuleFilterConfig(BMessage *settings) : BView(BRect(0,0,260,85)
 		control->SetEnabled(false);
 	if (settings->HasString("argument"))
 		arg->SetText(settings->FindString("argument"));
-	AddChild(arg);
 	
+	outbound = new BPopUpMenu("<Choose Account>");
+	BList list;
+	Mail::OutboundChains(&list);
+	if (settings->HasInt32("argument"))
+		chain = settings->FindInt32("argument");
+	else
+		chain = -1;
+	for (int32 i = 0; i < list.CountItems(); i++) {
+		BMenuItem *item = new BMenuItem(((Mail::Chain *)(list.ItemAt(i)))->Name(), new BMessage(((Mail::Chain *)(list.ItemAt(i)))->ID()));
+		outbound->AddItem(item);
+		if (((Mail::Chain *)(list.ItemAt(i)))->ID() == chain)
+			item->SetMarked(true);
+		delete (Mail::Chain *)(list.ItemAt(i));
+	}
 	if (settings->HasInt32("do_what"))
 		staging = settings->FindInt32("do_what");
 	else
 		staging = -1;
+		
 }
 	
 
@@ -68,16 +86,23 @@ void RuleFilterConfig::AttachedToWindow() {
 	menu->AddItem(new BMenuItem("Move To", new BMessage(kMsgActionMoveTo)));
 	menu->AddItem(new BMenuItem("Set Flags To", new BMessage(kMsgActionSetTo)));
 	menu->AddItem(new BMenuItem("Delete Message", new BMessage(kMsgActionDelete)));
+	menu->AddItem(new BMenuItem("Reply With", new BMessage(kMsgReplyWith)));
 	menu->SetTargetForItems(this);
 
 	BMenuField *field = new BMenuField(BRect(5,30,210,50),"do_what","Then",menu);
-	if (staging >= 0) {
-		menu->ItemAt(staging)->SetMarked(true);
-		MessageReceived(menu->ItemAt(staging)->Message());
-	}
 	field->ResizeToPreferred();
 	field->SetDivider(be_plain_font->StringWidth("Then") + 8);
 	AddChild(field);
+	
+	outbound_field = new BMenuField(BRect(5,55,255,80),"reply","Foo",outbound);
+	outbound_field->ResizeToPreferred();
+	outbound_field->SetDivider(0);
+	if (staging >= 0) {
+		menu->ItemAt(staging)->SetMarked(true);
+		MessageReceived(menu->ItemAt(staging)->Message());
+	} else {
+		AddChild(arg);
+	}
 }
 
 status_t RuleFilterConfig::Archive(BMessage *into, bool deep) const {
@@ -85,7 +110,10 @@ status_t RuleFilterConfig::Archive(BMessage *into, bool deep) const {
 	into->AddInt32("do_what",menu->IndexOf(menu->FindMarked()));
 	into->AddString("attribute",attr->Text());
 	into->AddString("regex",regex->Text());
-	into->AddString("argument",arg->Text());
+	if (into->FindInt32("do_what") == kMsgReplyWith)
+		into->AddInt32("argument",outbound->IndexOf(outbound->FindMarked()));
+	else
+		into->AddString("argument",arg->Text());
 	
 	return B_OK;
 }
@@ -99,9 +127,23 @@ void RuleFilterConfig::MessageReceived(BMessage *msg) {
 				arg->SetEnabled(true);
 			if (BControl *control = (BControl *)arg->FindView("select_file"))
 				control->SetEnabled(msg->what == kMsgActionMoveTo);
+			if (arg->Parent() == NULL) {
+				outbound_field->RemoveSelf();
+				AddChild(arg);
+			}
 			break;
 		case kMsgActionDelete:
 			arg->SetEnabled(false);
+			if (arg->Parent() == NULL) {
+				outbound_field->RemoveSelf();
+				AddChild(arg);
+			}
+			break;
+		case kMsgReplyWith:
+			if (outbound->Parent() == NULL) {
+				arg->RemoveSelf();
+				AddChild(outbound_field);
+			}
 			break;
 		default:
 			BView::MessageReceived(msg);

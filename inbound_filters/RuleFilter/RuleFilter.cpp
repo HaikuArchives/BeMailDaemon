@@ -30,6 +30,8 @@ RuleFilter::RuleFilter(BMessage *settings) : Mail::Filter(settings) {
 	
 	settings->FindString("argument",&arg);
 	settings->FindInt32("do_what",(long *)&do_what);
+	if (do_what == Z_SET_REPLY)
+		settings->FindInt32("argument",&chain_id);
 }
 
 RuleFilter::~RuleFilter()
@@ -76,6 +78,9 @@ MDStatus RuleFilter::ProcessMailMessage
 			BString string = arg;
 			BNode(entry).WriteAttrString("MAIL:filter_flags",&string);
 			}
+			break;
+		case Z_SET_REPLY:
+			BNode(entry).WriteAttr("MAIL:reply_with",B_INT32_TYPE,0,&chain_id,4);
 			break;
 		default:
 			fprintf(stderr,"Unknown do_what: 0x%04x!\n",do_what);

@@ -2614,16 +2614,21 @@ TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 
 	fMail = mail->ReplyMessage(Mail::reply_to_mode(type),
 		gUseAccountFrom == ACCOUNT_FROM_MAIL, QUOTE);
-
+	
 	// set header fields
 	fHeaderView->fTo->SetText(fMail->To());
 	fHeaderView->fCc->SetText(fMail->CC());
 	fHeaderView->fSubject->SetText(fMail->Subject());
-
+	int32 chain_id;
+	if (window->fFile->ReadAttr("MAIL:reply_with",B_INT32_TYPE,0,&chain_id,4) < B_OK)
+		chain_id = -1;
 	// set mail account
-	if (gUseAccountFrom == ACCOUNT_FROM_MAIL)
+	if ((gUseAccountFrom == ACCOUNT_FROM_MAIL) || (chain_id > -1))
 	{
-		fHeaderView->fChain = fMail->Account();
+		if (gUseAccountFrom == ACCOUNT_FROM_MAIL)
+			fHeaderView->fChain = fMail->Account();
+		else
+			fHeaderView->fChain = chain_id;
 
 		BMenu *menu = fHeaderView->fAccountMenu;
 		for (int32 i = menu->CountItems();i-- > 0;)
