@@ -163,6 +163,7 @@ status_t MailComponent::HeaderField(const char *key, BMessage *structure, int32 
 				end_piece.Remove(0,1);
 				end_piece.Truncate(end_piece.Length() - 1);
 			}
+			sub_cat.ToLower();
 			structure->AddString(sub_cat.String(),end_piece.String());
 		} else {
 			structure->AddString("unlabeled",sub_cat.String());
