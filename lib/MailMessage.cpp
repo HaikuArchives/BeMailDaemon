@@ -787,6 +787,10 @@ Message::RenderTo(BDirectory *dir,BEntry *msg)
 	name.ReplaceAll('\'','_');
 	name.ReplaceAll('"','_');
 	name.ReplaceAll('!','_');
+	name.ReplaceAll('<','_');
+	name.ReplaceAll('>','_');
+	while (name.FindFirst("  ") >= 0) // Remove multiple spaces.
+		name.Replace("  " /* Old */, " " /* New */, 1024 /* Count */);
 
 	int32 uniquer = time(NULL);
 	worker = name;

@@ -298,6 +298,7 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	name.ReplaceAll('/','_');
 	name.ReplaceAll('\'','_');
 	name.ReplaceAll('"','_');
+	name.ReplaceAll('!','_');
 	name.ReplaceAll('<','_');
 	name.ReplaceAll('>','_');
 	while (name.FindFirst("  ") >= 0) // Remove multiple spaces.
