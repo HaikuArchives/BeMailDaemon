@@ -1,4 +1,5 @@
 #include <RemoteStorageProtocol.h>
+#include <E-mail.h>
 #include <netdb.h>
 #include <errno.h>
 #include <Message.h>
@@ -327,7 +328,26 @@ status_t IMAP4Client::AddMessage(const char *mailbox, BPositionIO *data, BString
 	off_t size;
 	data->Seek(0,SEEK_END);
 	size = data->Position();
-	command << ((struct mailbox_info *)(box_info.ItemAt(box_index)))->server_mb_name << "\" (\\Seen) {" << size << '}';
+	
+	BString attributes = "\\Seen";
+	
+	{
+		BNode *node = dynamic_cast<BNode *>(data);
+		
+		if (node != NULL) {
+			BString status;
+			node->ReadAttrString(B_MAIL_ATTR_STATUS,&status);
+			/*if (status == "Sent")
+				attributes += " \\Sent";
+			if (status == "Pending")
+				attributes += " \\Sent";*/
+			if (status == "Replied")
+				attributes += " \\Answered";
+		}
+	}
+		
+	
+	command << ((struct mailbox_info *)(box_info.ItemAt(box_index)))->server_mb_name << "\" " << attributes << " {" << size << '}';
 	SendCommand(command.String());
 	status_t err = ReceiveLine(command);
 	if (err < B_OK)
@@ -703,6 +723,18 @@ status_t IMAP4Client::GetMessage(const char *mailbox, const char *message, BPosi
 		for (int32 i = 0; i < response[2][1].CountItems(); i++) {
 			if (strcmp(response[2][1][i](),"\\Seen") == 0) {
 				headers->AddString("STATUS","Read");
+			}
+			if (strcmp(response[2][1][i](),"\\Sent") == 0) {
+				if (headers->HasString("STATUS"))
+					headers->ReplaceString("STATUS","Sent");
+				else
+					headers->AddString("STATUS","Sent");
+			}
+			if (strcmp(response[2][1][i](),"\\Answered") == 0) {
+				if (headers->HasString("STATUS"))
+					headers->ReplaceString("STATUS","Replied");
+				else
+					headers->AddString("STATUS","Replied");
 			}
 		}
 		
