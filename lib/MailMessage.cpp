@@ -28,46 +28,12 @@ MailMessage::MailMessage(BPositionIO *mail_file)
             ,_num_components(0)
             ,_body(NULL)
             , _text_body(NULL)
-            ,_header_kludge_yikes(NULL)
 {
 	MailSettings settings;
 	_chain_id = settings.DefaultOutboundChainID();
-	
-	if (mail_file == NULL) {
-		_header_kludge_yikes = new BMessage;
-		return;
-	}
 		
-	MailComponent headers;
-	mail_file->Seek(0,SEEK_END);
-	size_t length = mail_file->Position();
-	mail_file->Seek(0,SEEK_SET);
-	
-	headers.Instantiate(mail_file,length);
-	_body = headers.WhatIsThis();
-	
-	mail_file->Seek(0,SEEK_SET);
-	_body->Instantiate(mail_file,length);
-	
-	MIMEMultipartContainer *cont = dynamic_cast<MIMEMultipartContainer *> (_body);
-	
-	_num_components = (cont == NULL) ? 1 : cont->CountComponents();
-	
-	_text_body = dynamic_cast<PlainTextBodyComponent *> (_body);
-	
-	if ((_text_body == NULL) && (cont != NULL)) {
-		MailComponent component, *it_is;
-		for (int32 i = 0; i < cont->CountComponents(); i++) {
-			cont->ManualGetComponent(&component,i);
-			it_is = component.WhatIsThis();
-			_text_body = dynamic_cast<PlainTextBodyComponent *> (it_is);
-			
-			if (_text_body != NULL)
-				break;
-			else
-				delete it_is;
-		}
-	}
+	if (mail_file != NULL)
+		Instantiate(mail_file,-1);
 }
 
 MailMessage::~MailMessage() {
@@ -76,9 +42,6 @@ MailMessage::~MailMessage() {
 		
 	if (_body != NULL)
 		delete _body;
-		
-	if (_header_kludge_yikes != NULL)
-		delete _header_kludge_yikes;
 }
 
 const char *MailMessage::To() {
@@ -126,30 +89,6 @@ void MailMessage::SetBCC(const char *bcc) {
 		free(_bcc);
 		
 	_bcc = strdup(bcc);
-}
-
-const char *MailMessage::HeaderField(const char *name) {
-	if (_header_kludge_yikes != NULL) {
-		if (_header_kludge_yikes->HasString(name))
-			return _header_kludge_yikes->FindString(name);
-	}
-	
-	if (_body == NULL)
-		return NULL;
-		
-	return _body->HeaderField(name);
-}
-		
- void MailMessage::SetHeaderField(const char *name, const char *with) {
-	if (_header_kludge_yikes != NULL) {
-		if (_header_kludge_yikes->ReplaceString(name,with) != B_OK)
-			_header_kludge_yikes->AddString(name,with);
-			
-		return;
-	}
-	
-	if (_body != NULL)
-		_body->SetHeaderField(name,with);
 }
 
 void MailMessage::SendViaAccount(const char *account_name) {
@@ -263,29 +202,69 @@ status_t MailMessage::SetBody(PlainTextBodyComponent *body) {
 	return B_OK;
 }
 
+status_t MailMessage::Instantiate(BPositionIO *mail_file, size_t length) {
+	if (BFile *file = dynamic_cast<BFile *>(mail_file))
+		file->ReadAttr("MAIL:chain",B_INT32_TYPE,0,&_chain_id,sizeof(_chain_id));
+	
+	MailComponent headers;
+	mail_file->Seek(0,SEEK_END);
+	length = mail_file->Position();
+	mail_file->Seek(0,SEEK_SET);
+	
+	MailComponent::Instantiate(mail_file,length);
+	mail_file->Seek(0,SEEK_SET);
+	
+	headers.Instantiate(mail_file,length);
+	_body = headers.WhatIsThis();
+	
+	mail_file->Seek(0,SEEK_SET);
+	_body->Instantiate(mail_file,length);
+	
+	//------------Move headers that we use to us, everything else to _body
+	const char *name;
+	for (int32 i = 0; (name = _body->HeaderAt(i)) != NULL; i++) {
+		if ((strcasecmp(name,"Subject") != 0)
+		  && (strcasecmp(name,"To") != 0)
+		  && (strcasecmp(name,"From") != 0)
+		  && (strcasecmp(name,"Reply-To") != 0)
+		  && (strcasecmp(name,"CC") != 0)) {
+			RemoveHeader(name);
+		}
+	}
+	
+	_body->RemoveHeader("Subject");
+	_body->RemoveHeader("To");
+	_body->RemoveHeader("From");
+	_body->RemoveHeader("Reply-To");
+	_body->RemoveHeader("CC");
+	
+			
+	MIMEMultipartContainer *cont = dynamic_cast<MIMEMultipartContainer *> (_body);
+	
+	_num_components = (cont == NULL) ? 1 : cont->CountComponents();
+	
+	_text_body = dynamic_cast<PlainTextBodyComponent *> (_body);
+	
+	if ((_text_body == NULL) && (cont != NULL)) {
+		MailComponent component, *it_is;
+		for (int32 i = 0; i < cont->CountComponents(); i++) {
+			cont->ManualGetComponent(&component,i);
+			it_is = component.WhatIsThis();
+			_text_body = dynamic_cast<PlainTextBodyComponent *> (it_is);
+			
+			if (_text_body != NULL)
+				break;
+			else
+				delete it_is;
+		}
+	}
+	
+	return B_OK;
+}
 
-status_t MailMessage::RenderTo(BFile *file) {
+status_t MailMessage::Render(BPositionIO *file) {
 	if (_body == NULL)
 		return B_MAIL_INVALID_MAIL;
-
-	//------Copy in headers from _header_kludge_yikes
-	if (_header_kludge_yikes != NULL) {
-		type_code type;
-
-#ifdef B_BEOS_VERSION_DANO
-		const
-#endif
-		char *name;
-		const char *data;
-		
-		for (int32 i = 0; _header_kludge_yikes->GetInfo(B_STRING_TYPE,i,&name,&type) >= B_OK; i++) {
-			if (_header_kludge_yikes->FindString(name,&data) >= B_OK)
-				_body->SetHeaderField(name,data);
-		}
-		
-		delete _header_kludge_yikes;
-		_header_kludge_yikes = NULL;
-	}
 	
 	//------Do real rendering
 	
@@ -326,38 +305,40 @@ status_t MailMessage::RenderTo(BFile *file) {
 			i = last_i = recipients.FindFirst(',',i) + 1;
 		}
 	}
+	
+	if (BFile *attributed = dynamic_cast <BFile *>(file)) {
+		attributed->WriteAttrString(B_MAIL_ATTR_RECIPIENTS,&recipients);
 		
-	file->WriteAttrString(B_MAIL_ATTR_RECIPIENTS,&recipients);
-	
-	BString attr;
-	
-	attr = To();
-	file->WriteAttrString(B_MAIL_ATTR_TO,&attr);
-	attr = CC();
-	file->WriteAttrString(B_MAIL_ATTR_CC,&attr);
-	attr = Subject();
-	file->WriteAttrString(B_MAIL_ATTR_SUBJECT,&attr);
-	attr = ReplyTo();
-	file->WriteAttrString(B_MAIL_ATTR_REPLY,&attr);
-	attr = From();
-	file->WriteAttrString(B_MAIL_ATTR_FROM,&attr);
-	attr = "Pending";
-	file->WriteAttrString(B_MAIL_ATTR_STATUS,&attr);
-	attr = "1.0";
-	file->WriteAttrString(B_MAIL_ATTR_MIME,&attr);
-	attr = MailChain(_chain_id).Name();
-	file->WriteAttrString("MAIL:account",&attr);
-	
-	int32 int_attr;
-	
-	int_attr = time(NULL);
-	file->WriteAttr(B_MAIL_ATTR_WHEN,B_TIME_TYPE,0,&int_attr,sizeof(int32));
-	int_attr = B_MAIL_PENDING | B_MAIL_SAVE;
-	file->WriteAttr(B_MAIL_ATTR_FLAGS,B_INT32_TYPE,0,&int_attr,sizeof(int32));
-	
-	file->WriteAttr("MAIL:chain",B_INT32_TYPE,0,&_chain_id,sizeof(int32));
-	
-	BNodeInfo(file).SetType(B_MAIL_TYPE);
+		BString attr;
+		
+		attr = To();
+		attributed->WriteAttrString(B_MAIL_ATTR_TO,&attr);
+		attr = CC();
+		attributed->WriteAttrString(B_MAIL_ATTR_CC,&attr);
+		attr = Subject();
+		attributed->WriteAttrString(B_MAIL_ATTR_SUBJECT,&attr);
+		attr = ReplyTo();
+		attributed->WriteAttrString(B_MAIL_ATTR_REPLY,&attr);
+		attr = From();
+		attributed->WriteAttrString(B_MAIL_ATTR_FROM,&attr);
+		attr = "Pending";
+		attributed->WriteAttrString(B_MAIL_ATTR_STATUS,&attr);
+		attr = "1.0";
+		attributed->WriteAttrString(B_MAIL_ATTR_MIME,&attr);
+		attr = MailChain(_chain_id).Name();
+		attributed->WriteAttrString("MAIL:account",&attr);
+		
+		int32 int_attr;
+		
+		int_attr = time(NULL);
+		attributed->WriteAttr(B_MAIL_ATTR_WHEN,B_TIME_TYPE,0,&int_attr,sizeof(int32));
+		int_attr = B_MAIL_PENDING | B_MAIL_SAVE;
+		attributed->WriteAttr(B_MAIL_ATTR_FLAGS,B_INT32_TYPE,0,&int_attr,sizeof(int32));
+		
+		attributed->WriteAttr("MAIL:chain",B_INT32_TYPE,0,&_chain_id,sizeof(int32));
+		
+		BNodeInfo(attributed).SetType(B_MAIL_TYPE);
+	}
 	
 	/* add a message-id */
 	BString message_id;
@@ -379,7 +360,13 @@ status_t MailMessage::RenderTo(BFile *file) {
 	#endif
 
 	message_id << ">";
-	_body->SetHeaderField("Message-ID", message_id.String());
+	SetHeaderField("Message-ID", message_id.String());
+	
+	status_t err = MailComponent::Render(file);
+	if (err < B_OK)
+		return err;
+	
+	file->Seek(-2,SEEK_CUR); //-----Remove division between headers
 	
 	return _body->Render(file);
 }
@@ -402,7 +389,7 @@ status_t MailMessage::RenderTo(BDirectory *dir) {
 	BFile file;
 	dir->CreateFile(worker.String(),&file);
 	
-	return RenderTo(&file);
+	return Render(&file);
 }
 	
 status_t MailMessage::Send(bool send_now) {

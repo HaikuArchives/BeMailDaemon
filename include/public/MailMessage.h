@@ -7,11 +7,21 @@
 #include <MailContainer.h>
 
 
-class MailMessage {
+class MailMessage : public MailComponent {
 	public:
 		MailMessage(BPositionIO *mail_file = NULL);
-		~MailMessage();
-				
+		virtual ~MailMessage();
+		
+		MailMessage *ReplyMessage(bool reply_to_all,
+								  bool include_attachments = false,
+								  const char *quote_style = "> ");
+		MailMessage *ForwardMessage(bool include_attachments = false,
+									const char *quote_style = "> ");
+		// These return messages with the body quoted and
+		// ready to send via the appropriate channel. ReplyMessage()
+		// addresses the message appropriately, but ForwardMessage()
+		// leaves it unaddressed.
+		
 		const char *To();
 		const char *From();
 		const char *ReplyTo();
@@ -26,9 +36,6 @@ class MailMessage {
 		void SetCC(const char *from);
 		void SetBCC(const char *from);
 		void SetPriority(int priority);
-		
-		const char *HeaderField(const char *key);
-		void SetHeaderField(const char *field, const char *value);
 		
 		void SendViaAccount(const char *account_name);
 		void SendViaAccount(int32 chain_id);
@@ -45,8 +52,10 @@ class MailMessage {
 		
 		status_t SetBody(PlainTextBodyComponent *body);
 		PlainTextBodyComponent *Body() const;
-
-		status_t RenderTo(BFile *file);
+		
+		virtual status_t Instantiate(BPositionIO *data, size_t length);
+		virtual status_t Render(BPositionIO *render_to);
+		
 		status_t RenderTo(BDirectory *dir);
 
 		status_t Send(bool send_now);
@@ -58,7 +67,6 @@ class MailMessage {
 		int32 _num_components;
 		MailComponent *_body;
 		PlainTextBodyComponent *_text_body;
-		BMessage *_header_kludge_yikes;
 };
 
 inline PlainTextBodyComponent *MailMessage::Body() const

@@ -163,6 +163,14 @@ status_t MailComponent::RemoveHeader(const char *key) {
 	return headers.RemoveName(key);
 }
 
+const char *MailComponent::HeaderAt(int32 index) {
+	char *name = NULL;
+	type_code type;
+	
+	headers.GetInfo(B_STRING_TYPE,index,&name,&type);
+	return name;
+}
+
 status_t MailComponent::GetDecodedData(BPositionIO *) {return B_OK;}
 status_t MailComponent::SetDecodedData(BPositionIO *) {return B_OK;}
 
