@@ -128,12 +128,16 @@ class NoopWorker : public BHandler {
 				if (tag == expected)
 					break;
 				
+				if (response[0].CountItems() == 2 && strcasecmp(response[0][0](),"UIDNEXT") == 0)
+					next_uid = atol(response[0][1]());
+					
+				if (response.CountItems() < 2)
+					continue;
+				
 				if (strcasecmp(response[1](),"RECENT") == 0)
 					num_messages = atoi(response[0]());
 				if (strcasecmp(response[1](),"EXISTS") == 0)
 					total = atoi(response[0]());
-				if (response[0].CountItems() == 2 && strcasecmp(response[0][0](),"UIDNEXT") == 0)
-					next_uid = atol(response[0][1]());
 			}
 			
 			
