@@ -328,12 +328,15 @@ CheckForURL(const char *string, size_t &urlLength, BString *url = NULL)
 		const char *at = strchr(string, '@');
 		if (at) {
 			const char *pos = string;
+			bool readName = false;
 			for (; pos < at; pos++) {
 				// ToDo: are these all allowed characters?
 				if (!isalnum(pos[0]) && pos[0] != '_' && pos[0] != '.')
 					break;
+
+				readName = true;
 			}
-			if (pos == at)
+			if (pos == at && readName)
 				type = TYPE_MAILTO;
 		}
 	}
