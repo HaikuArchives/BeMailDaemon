@@ -9,6 +9,7 @@
 #include <E-mail.h>
 #include <Locker.h>
 #include <malloc.h>
+#include <ctype.h> // For isspace.
 
 #include <MailAddon.h>
 #include <mail_util.h>
@@ -61,6 +62,7 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 	//
 	// Parse the header.  Add each header as a string to
 	// the headers message, under the header's name.
+	// Code similar to Component::SetToRFC822, so fix it if you change this.
 	//
 	while ((len = Mail::readfoldedline(**data, &buf, &buflen)) >= 2)
 	{
@@ -68,23 +70,25 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 		
 		// convert to UTF-8
 		len = Mail::rfc2047_to_utf8(&buf, &buflen, len);
-		
+
 		// terminate
 		buf[len] = 0;
-		string.SetTo(buf);
-		
-		if (string.FindFirst(": ") < 0)
+
+		const char *delimiter = strstr(buf, ":");
+		if (delimiter == NULL)
 			continue;
-		
-		string.CopyInto(piece,0,string.FindFirst(": "));
-		piece.CapitalizeEachWord(); // Unified case for later fetch
-		
-		// Add each header to the headers message
-		headers->AddString(piece.String(),string.String() + piece.Length() + 2);
+
+		piece.SetTo (buf, delimiter - buf /* length of header name */);
+		piece.CapitalizeEachWord(); //-------Unified case for later fetch
+
+		delimiter++; // Skip the colon.
+		while (isspace (*delimiter))
+			delimiter++; // Skip over leading white space and tabs.  To do: (comments in brackets).
+		headers->AddString(piece.String(),delimiter);
 	}
 	if (buf != NULL)
 		free(buf);
-	
+
 	//
 	// add pseudo-header THREAD, that contains the subject
 	// minus stuff in []s (added by mailing lists) and
