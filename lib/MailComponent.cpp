@@ -288,6 +288,19 @@ const char *PlainTextBodyComponent::Text() {
 	return text.String();
 }
 
+BString *PlainTextBodyComponent::BStringText() {
+	return &text;
+}
+
+void PlainTextBodyComponent::Quote(const char *message, const char *quote_style) {
+	BString string;
+	string << '\n' << quote_style;
+	text.ReplaceAll("\n",string.String());
+	
+	string = message;
+	string << '\n';
+	text.Prepend(string.String());
+}
 
 status_t PlainTextBodyComponent::GetDecodedData(BPositionIO *data) {
 	data->Write(text.String(),text.Length());

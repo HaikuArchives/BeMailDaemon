@@ -68,6 +68,10 @@ class PlainTextBodyComponent : public MailComponent {
 		void AppendText(const char *text);
 		
 		const char *Text();
+		BString *BStringText();
+		
+		void Quote(const char *message = NULL,
+				   const char *quote_style = "> ");
 	
 		virtual status_t GetDecodedData(BPositionIO *data);
 		virtual status_t SetDecodedData(BPositionIO *data);
