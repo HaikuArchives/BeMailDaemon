@@ -21,6 +21,8 @@ struct async_args {
 	StatusWindow *status;
 	
 	bool self_destruct;
+	bool destruct_chain;
+	bool save_chain;
 };
 
 struct filter_image {
@@ -57,7 +59,7 @@ MailChain *ChainRunner::Chain() {
 	return _chain;
 }
 
-status_t ChainRunner::RunChain(StatusWindow *status,bool self_destruct_when_done, bool asynchronous) {
+status_t ChainRunner::RunChain(StatusWindow *status,bool self_destruct_when_done, bool asynchronous, bool save_chain_when_done, bool destruct_chain_when_done) {
 	BString thread_name(_chain->Name());
 	thread_name += (_chain->ChainDirection() == inbound) ? "_inbound" : "_outbound";
 	
@@ -69,6 +71,8 @@ status_t ChainRunner::RunChain(StatusWindow *status,bool self_destruct_when_done
 	args->runner = this;
 	args->self_destruct = self_destruct_when_done;
 	args->status = status;
+	args->destruct_chain = destruct_chain_when_done;
+	args->save_chain = save_chain_when_done;
 	
 	if (asynchronous) {
 		thread_id thread = spawn_thread(&async_chain_runner,thread_name.String(),10,args);
@@ -87,6 +91,8 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 	ChainRunner *runner;
 	StatusView *status;
 	bool self_destruct;
+	bool destroy_chain;
+	bool save_chain;
 	
 	{
 		BString desc;
@@ -98,6 +104,8 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 		desc << ((chain->ChainDirection() == inbound) ? "Fetching" : "Sending") << " mail for " << chain->Name();
 		status = args->status->NewStatusView(desc.String(),chain->ChainDirection() == outbound);
 		self_destruct = args->self_destruct;
+		destroy_chain = args->destruct_chain;
+		save_chain = args->save_chain;
 		delete args;
 	}
 	
@@ -208,6 +216,12 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 	((StatusWindow *)(status->Window()))->RemoveView(status);
 	if (self_destruct)
 		delete runner;
+		
+	if (save_chain)
+		chain->Save();
+		
+	if (destroy_chain)
+		delete chain;
 	
 	return 0;
 }

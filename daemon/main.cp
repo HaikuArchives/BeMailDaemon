@@ -261,7 +261,7 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 		case 'wsch':	// workspace changed
 			status->PostMessage(msg);
 			break;
-		case 'stwg': //---StaT Window Gone
+		/*case 'stwg': //---StaT Window Gone
 			{
 			MailChain *chain;
 			while ((chain = (MailChain *)clean_up.RemoveItem(0L)) != NULL) {
@@ -269,7 +269,7 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 				delete chain;
 			}
 			}
-			break;  
+			break;  */ //-------Now handled by ChainRunner
 		case B_QUERY_UPDATE:
 			{
 			int32 what;
@@ -344,7 +344,7 @@ void MailDaemonApp::GetNewMessages() {
 	for (int32 i = 0; i < list->CountItems(); i++) {
 		chain = (MailChain *)(list->ItemAt(i));
 		
-		chain->RunChain(status);
+		chain->RunChain(status,true,true,true);
 	}
 	
 	clean_up.AddList(list);
@@ -358,7 +358,7 @@ void MailDaemonApp::SendPendingMessages() {
 	for (int32 i = 0; i < list->CountItems(); i++) {
 		chain = (MailChain *)(list->ItemAt(i));
 		
-		chain->RunChain(status);
+		chain->RunChain(status,true,true,true);
 	}
 	
 	clean_up.AddList(list);
