@@ -102,7 +102,7 @@ SMTPProtocol::SMTPProtocol(BMessage *message, Mail::StatusView *view)
 		//-----This is a really cool kind of error message. How can we make it work for POP3?
 		error_msg << "Error while logging in to " << fSettings->FindString("server") << ". The server said:\n" << fLog;
 		smtp_errlert(error_msg.String());
-	}			
+	}
 }
 
 
@@ -112,7 +112,7 @@ SMTPProtocol::~SMTPProtocol()
 }
 
 
-// Check for errors? 
+// Check for errors?
 status_t
 SMTPProtocol::InitCheck(BString *verbose)
 {
@@ -153,7 +153,7 @@ status_t
 SMTPProtocol::Open(const char *address, int port, bool esmtp)
 {
 	fStatusView->SetMessage("Connecting to server...");
-	
+
 	if (port <= 0)
 		port = 25;
 
@@ -161,7 +161,7 @@ SMTPProtocol::Open(const char *address, int port, bool esmtp)
 	status = fConnection.Connect(address, port);
 
 	if (status != B_OK)
-		return status;	
+		return status;
 
 	BString line;
 	ReceiveResponse(line);
@@ -171,7 +171,7 @@ SMTPProtocol::Open(const char *address, int port, bool esmtp)
 		::sprintf(cmd,"HELO %s"CRLF, address);
 	else
 		::sprintf(cmd,"EHLO %s"CRLF, address);
-			
+
 	if (SendCommand(cmd) != B_OK) {
 		delete[] cmd;
 		return B_ERROR;
@@ -187,7 +187,7 @@ SMTPProtocol::Open(const char *address, int port, bool esmtp)
 			if(::strstr(p, "LOGIN"))
 				fAuthType |= LOGIN;
 			if(::strstr(p, "PLAIN"))
-				fAuthType |= PLAIN;	
+				fAuthType |= PLAIN;
 			if(::strstr(p, "CRAM-MD5"))
 				fAuthType |= CRAM_MD5;
 			if(::strstr(p, "DIGEST-MD5"))
@@ -278,7 +278,7 @@ SMTPProtocol::Login(const char *_login, const char *password)
 	if (fAuthType == 0)
 		return B_OK;
 
-	const char *login = _login;		
+	const char *login = _login;
 	char hex_digest[33];
 	BString out;
 
@@ -326,21 +326,21 @@ SMTPProtocol::Login(const char *_login, const char *password)
 	if (fAuthType & DIGEST_MD5) {
 		//******* DIGEST-MD5 Authentication ( not written yet..)
 		fLog = "DIGEST-MD5 Authentication is not supported";
-	}	
+	}
 	if (fAuthType & LOGIN) {
 		//******* LOGIN Authentication ( tested. works fine)
 		ssize_t encodedsize; // required by our base64 implementation
 
 		SendCommand("AUTH LOGIN"CRLF);
 		const char *res = fLog.String();
-		
+
 		if (strncmp(res, "334", 3) != 0)
 			return B_ERROR;
 
 		// Send login name as base64
 		char *login64 = new char[loginlen*3 + 3];
 		encodedsize = ::encode_base64(login64, (char *)login, loginlen);
-		login64[encodedsize] = '\0';		
+		login64[encodedsize] = '\0';
 		// Hack! I'm sure there is a better way to do this
 		BString t1_login64(login64);
 		t1_login64.Append(CRLF);
@@ -366,7 +366,7 @@ SMTPProtocol::Login(const char *_login, const char *password)
 		if (atol(res) < 500)
 			return B_OK;
 	}
-	if (fAuthType & PLAIN) {	
+	if (fAuthType & PLAIN) {
 		//******* PLAIN Authentication ( not tested yet.)
 		char *login64 = new char[((loginlen + 1)*2 + passlen) * 3];
 		::memset(login64, 0,((loginlen + 1)*2 + passlen) * 3);
@@ -439,34 +439,98 @@ SMTPProtocol::Send(const char *to, const char *from, BPositionIO *message)
 	cmd = "DATA";
 	cmd += CRLF;
 	if (SendCommand(cmd.String()) != B_OK)
-		return B_ERROR;						
+		return B_ERROR;
 
-	BString line("");
-		
-	int32 sent_len = 0;
-	int32 front = 0;
+	// Send the message data.  Convert lines starting with a period to start
+	// with two periods and so on.  The actual sequence is CR LF Period.  The
+	// SMTP server will remove the periods.  Of course, the POP server may then
+	// add some of its own, but the POP client should take care of them.
+
+	ssize_t		amountRead;
+	ssize_t		amountToRead;
+	ssize_t		amountUnread;
+	ssize_t		bufferLen = 0;
+	const int	bufferMax = 2000;
+	bool		foundCRLFPeriod;
+	int			i;
+	bool		messageEndedWithCRLF = false;
+
 	message->Seek(0,SEEK_END);
-	len = message->Position();
+	amountUnread = message->Position();
 	message->Seek(0,SEEK_SET);
-	char *data = new char[500];
-	while (sent_len < len) {
-		front = 500;
-		if ((front + sent_len) > len)
-			front = len - sent_len;
+	char *data = new char[bufferMax];
 
-		message->Read(data,front);
-		fConnection.Send(data,front);
-		sent_len += front;
-		fStatusView->AddProgress(front);
+	while (true) {
+		// Fill the buffer if it is getting low, but not every time, to avoid
+		// small reads.
+		if (bufferLen < bufferMax / 2) {
+			amountToRead = bufferMax - bufferLen;
+			if (amountToRead > amountUnread)
+				amountToRead = amountUnread;
+			if (amountToRead > 0) {
+				amountRead = message->Read (data + bufferLen, amountToRead);
+				if (amountRead <= 0 || amountRead > amountToRead)
+					amountUnread = 0; // Just stop reading when an error happens.
+				else {
+					amountUnread -= amountRead;
+					bufferLen += amountRead;
+				}
+			}
+		}
+
+		// Look for the next CRLFPeriod triple.
+		foundCRLFPeriod = false;
+		for (i = 0; i <= bufferLen - 3; i++) {
+			if (data[i] == '\r' && data[i+1] == '\n' && data[i+2] == '.') {
+				foundCRLFPeriod = true;
+				// Send data up to the CRLF, and include the period too.
+				if (fConnection.Send (data, i + 3) < 0) {
+					amountUnread = 0; // Stop when an error happens.
+					bufferLen = 0;
+					break;
+				}
+				fStatusView->AddProgress (i + 2 /* Don't include the double period here */);
+				// Move the data over in the buffer, but leave the period there
+				// so it gets sent a second time.
+				memmove (data, data + (i + 2), bufferLen - (i + 2));
+				bufferLen -= i + 2;
+				break;
+			}
+		}
+
+		if (!foundCRLFPeriod) {
+			if (amountUnread <= 0) { // No more data, all we have is in the buffer.
+				if (bufferLen > 0) {
+					fConnection.Send (data, bufferLen);
+					fStatusView->AddProgress (bufferLen);
+					if (bufferLen >= 2)
+						messageEndedWithCRLF = (data[bufferLen-2] == '\r' &&
+							data[bufferLen-1] == '\n');
+				}
+				break; // Finished!
+			}
+			// Send most of the buffer, except a few characters to overlap with
+			// the next read, in case the CRLFPeriod is split between reads.
+			if (bufferLen > 3) {
+				if (fConnection.Send (data, bufferLen - 3) < 0)
+					break; // Stop when an error happens.
+				fStatusView->AddProgress (bufferLen - 3);
+				memmove (data, data + bufferLen - 3, 3);
+				bufferLen = 3;
+			}
+		}
 	}
 	delete [] data;
 
-	cmd = CRLF"."CRLF;
+	if (messageEndedWithCRLF)
+		cmd = "."CRLF; // The standard says don't add extra CRLF.
+	else
+		cmd = CRLF"."CRLF;
 	if( SendCommand(cmd.String()) != B_OK)
 		return B_ERROR;
 
 	return B_OK;
-} 
+}
 
 
 // Receives response from server.
@@ -477,8 +541,8 @@ SMTPProtocol::ReceiveResponse(BString &out)
 	int32 len = 0,r;
 	char buf[SMTP_RESPONSE_SIZE];
 	bigtime_t timeout = 1000000*180; //timeout 180 secs
-	
-	if (fConnection.IsDataPending(timeout)) {	
+
+	if (fConnection.IsDataPending(timeout)) {
 		while (1) {
 			r = fConnection.Receive(buf,SMTP_RESPONSE_SIZE-1);
 			if (r <= 0)

@@ -265,7 +265,20 @@ encode_qp(char *out, const char *in, off_t length, int encode_spaces)
 	int g = 0, i = 0;
 	
 	for (; i < length; i++) {
-		if ((((unsigned char *)(in))[i] > 127) || (in[i] == '?') || (in[i] == '=') || (in[i] == '_')) {
+		if ((((unsigned char *)(in))[i] > 127) ||
+			(in[i] == '?') ||
+			(in[i] == '=') ||
+			(in[i] == '_') ||
+			// Also encode the letter F in "From " at the start of the line,
+			// which Unix systems use to mark the start of messages in their
+			// mbox files.
+			(in[i] == 'F' &&
+				(i + 5 <= length) &&
+				(i == 0 || in[i-1] == '\n') &&
+				in[i+1] == 'r' &&
+				in[i+2] == 'o' &&
+				in[i+3] == 'm' &&
+				in[i+4] == ' ')) {
 			out[g++] = '=';
 			out[g++] = hex_alphabet[(in[i] >> 4) & 0x0f];
 			out[g++] = hex_alphabet[in[i] & 0x0f];
