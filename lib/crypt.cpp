@@ -23,7 +23,7 @@ _EXPORT char *get_passwd(BMessage *msg,const char *name)
 
 	char *buffer = new char[length];
 	passwd_crypt(encryptedPassword,buffer,length);
-	
+
 	return buffer;
 }
 
@@ -33,17 +33,17 @@ _EXPORT bool set_passwd(BMessage *msg,const char *name,const char *password)
 	if (!password)
 		return false;
 
-	char *buffer = new char[password ? strlen(password) + 1 : 0];
-	passwd_crypt((char *)password,buffer,sizeof(buffer));
+	ssize_t length = strlen(password) + 1;
+	char *buffer = new char[length];
+	passwd_crypt((char *)password,buffer,length);
 
-	if (msg->ReplaceData(name,B_RAW_TYPE,buffer,sizeof(buffer)) < B_OK) {
-		status_t err =  msg->AddData(name,B_RAW_TYPE,buffer,sizeof(buffer));
-		delete [] buffer;
-		return (err >= B_OK);
-	} 
-	
+	msg->RemoveName(name);
+	status_t status = msg->ReplaceData(name,B_RAW_TYPE,buffer,length);
+	if (status < B_OK)
+		status = msg->AddData(name,B_RAW_TYPE,buffer,length,false);
+
 	delete [] buffer;
-	return true;
+	return (status >= B_OK);
 }
 
 
