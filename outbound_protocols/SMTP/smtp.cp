@@ -130,7 +130,7 @@ status_t SMTPProtocol::Open(const char *server, int port, bool esmtp) {
 	cmd << server << CRLF;
 	if (SendCommand(cmd.String()) != B_OK)
 		return B_ERROR;
-		
+	
 	if (esmtp) 
 	{
 		int32 start;
@@ -441,7 +441,7 @@ int32 SMTPProtocol::ReceiveLine(BString &line,bool concat) {
 
 status_t SMTPProtocol::SendCommand(const char* cmd) {
 	int32 len;
-	puts(cmd);
+	printf("> %s\n",cmd);
 	
  	if (conn.Send(cmd, ::strlen(cmd)) == B_ERROR)
 		return B_ERROR;
@@ -453,14 +453,15 @@ status_t SMTPProtocol::SendCommand(const char* cmd) {
 		
 		if(len <= 0)
 			return B_ERROR;
-			
-		if(fLog.Length() > 4 && (fLog[3] == ' ' || fLog[3] == '-')) {
+
+		int32 pos = fLog.FindLast('\n') + 1;
+		if(fLog.Length() > pos + 4 && (fLog[pos + 3] == ' ' || fLog[pos + 3] == '-')) {
 			const char* top = fLog.String();
 			int32 num = atol (top);
 
 			if(num >= 500)
 				return B_ERROR;
-			else if (fLog[3] == ' ')
+			else if (fLog[pos + 3] == ' ')
 				break;
 		}
 	}
