@@ -565,6 +565,10 @@ TextComponent::RenderToRFC822(BPositionIO *render_to)
 		case quoted_printable:
 			transfer_encoding = "quoted-printable";
 			break;
+		case eight_bit:
+			transfer_encoding = "8bit";
+			break;
+		case seven_bit:
 		default:
 			transfer_encoding = "7bit";
 			break;
@@ -599,6 +603,8 @@ TextComponent::RenderToRFC822(BPositionIO *render_to)
 				len = encode_qp(raw,alt.String(),alt.Length(), false);
 				raw[len] = 0;
 				break;
+			case eight_bit:
+			case seven_bit:
 			default:
 				len = alt.Length();
 				strcpy(raw,alt.String());

@@ -20,6 +20,8 @@
 typedef enum {
 	base64 				= 'b',
 	quoted_printable 	= 'q',
+	seven_bit			= '7',
+	eight_bit			= '8',
 	uuencode			= 'u', // Invalid to encode something using uuencode.
 	null_encoding		= 0,   // For not changing existing settings.
 	no_encoding			= -1

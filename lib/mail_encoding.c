@@ -26,6 +26,8 @@ encode(mail_encoding encoding, char *out, const char *in, off_t length, int enco
 			return encode_base64(out,in,length);
 		case quoted_printable:
 			return encode_qp(out,in,length,encode_spaces);
+		case seven_bit:
+		case eight_bit:
 		case no_encoding:
 			memcpy(out,in,length);
 			return length;
@@ -46,6 +48,8 @@ decode(mail_encoding encoding, char *out, const char *in, off_t length, int unde
 			return decode_base64(out, in, length);
 		case uuencode:
 			return uu_decode(out, in, length);
+		case seven_bit:
+		case eight_bit:
 		case no_encoding:
 			memcpy(out, in, length);
 			return length;
@@ -73,6 +77,8 @@ max_encoded_length(mail_encoding encoding, off_t cur_length)
 		}
 		case quoted_printable:
 			return cur_length*3;
+		case seven_bit:
+		case eight_bit:
 		case no_encoding:
 			return cur_length;
 		case uuencode:
@@ -96,7 +102,11 @@ encoding_for_cte(const char *cte)
 		return base64;
 	if (strcasecmp(cte,"quoted-printable") == 0)
 		return quoted_printable;
-		
+	if (strcasecmp(cte,"7bit") == 0)
+		return seven_bit;
+	if (strcasecmp(cte,"8bit") == 0)
+		return eight_bit;
+
 	return no_encoding;
 }
 

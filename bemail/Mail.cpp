@@ -2755,9 +2755,10 @@ TMailWindow::Send(bool now)
 	// particularly Japanese stuff, they only understand base64.  They also
 	// prefer it for the smaller size.
 	if (gMailCharacterSet == B_SJIS_CONVERSION ||
-		gMailCharacterSet == B_JIS_CONVERSION ||
 		gMailCharacterSet == B_EUC_CONVERSION)
 		encodingRelatedToCharset = base64;
+	else if (gMailCharacterSet == B_JIS_CONVERSION)
+		encodingRelatedToCharset = seven_bit;
 
 	if (!now)
 	{

@@ -409,8 +409,11 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, cha
 		}
 	}
 
+	// Encode words which aren't plain ASCII.  Only quoted printable and base64
+	// are allowed for header encoding, according to the standards.
 	while ((current = (struct word *)words.RemoveItem(0L)) != NULL) {
-		if (encoding <= 0 /* no encoding */ || !current->has_8bit) {
+		if ((encoding != quoted_printable && encoding != base64) ||
+		!current->has_8bit) {
 			rfc2047.Append(current->begin, current->length + 1);
 			delete current;
 		} else {
@@ -440,7 +443,7 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, cha
 			rfc2047.Append(encoded,encoded_len);
 			rfc2047 << "?=" << current->begin[current->length];
 
-			if (encoding > 0)
+			if (encoding == quoted_printable || encoding == base64)
 				free(encoded);
 		}
 	}

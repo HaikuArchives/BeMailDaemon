@@ -255,8 +255,12 @@ void SimpleAttachment::SetEncoding(mail_encoding encoding) {
 		case base64:
 			cte = "base64";
 			break;
+		case seven_bit:
 		case no_encoding:
 			cte = "7bit";
+			break;
+		case eight_bit:
+			cte = "8bit";
 			break;
 		case uuencode:
 			cte = "uuencode";
@@ -301,6 +305,10 @@ status_t SimpleAttachment::SetToRFC822(BPositionIO *data, size_t length, bool pa
 		_encoding = quoted_printable;
 	else if (encoding.IFindFirst("uuencode") >= 0)
 		_encoding = uuencode;
+	else if (encoding.IFindFirst("7bit") >= 0)
+		_encoding = seven_bit;
+	else if (encoding.IFindFirst("8bit") >= 0)
+		_encoding = eight_bit;
 	else
 		_encoding = no_encoding;
 
@@ -339,7 +347,6 @@ void SimpleAttachment::ParseNow() {
 
 status_t SimpleAttachment::RenderToRFC822(BPositionIO *render_to) {
 	Mail::Component::RenderToRFC822(render_to);
-
 	//---------Massive memory squandering!---ALERT!----------
 	//	now with error checks, dumb :-) -- axeld.
 
@@ -353,33 +360,26 @@ status_t SimpleAttachment::RenderToRFC822(BPositionIO *render_to) {
 
 	ssize_t read = _data->Read(src,size);
 	if (read < B_OK)
-		return read;
+		return read; // Return an error code and leak memory.
 
-	//--The encoded text will never be more than twice as large with any conceivable encoding
-	char *dest = (char *)malloc(max_encoded_length(_encoding,read));
+	// The encoded text will never be more than twice as large with any
+	// conceivable encoding.  But just in case, there's a function call which
+	// will tell us how much space is needed.
+	ssize_t destSize = max_encoded_length(_encoding,read);
+	if (destSize < B_OK) // Invalid encodings like uuencode rejected here.
+		return destSize;
+	char *dest = (char *)malloc(destSize);
 	if (dest == NULL)
 		return B_NO_MEMORY;
 
-	switch (_encoding) {
-		case base64:
-			size = encode_base64(dest,src,read);
-			free(src);
-			break;
-		case quoted_printable:
-			size = decode_qp(dest,src,read,0);
-			free(src);
-			break;
-		case no_encoding:
-			src = dest;
-			break;
-		default:
-			return B_BAD_TYPE;
-	}
-
-	read = render_to->Write(dest,size);
-	free(dest);
-
-	return read > 0 ? B_OK : read;
+	destSize = encode (_encoding, dest, src, read, false /* encode_spaces */);
+	if (destSize < B_OK)
+		return destSize;
+	if (destSize > 0)
+		read = render_to->Write(dest,destSize);
+	free (src);
+	free (dest);
+	return (read > 0) ? B_OK : read;
 }
 
 
