@@ -2845,7 +2845,8 @@ status_t TMailWindow::OpenMessage(entry_ref *ref)
 		free(fStartingText);
 		fStartingText = NULL;
 	}
-	
+	fTrackerPositionSaved = false;
+
 	delete fFile;
 	fFile = new BFile(fRef, O_RDONLY);
 	status_t err = fFile->InitCheck();
