@@ -181,7 +181,7 @@ BEOS Mail Daemon Replacement v2.1.0 Beta 1
 
 履歴：
 
-June 9 2003 - v2.1.0b1
+June 16 2003 - v2.1.0b1
 - Added US-ASCII encoding and decoding, which also uses 7bit rather than quoted printable.
 - Remove leading and trailing spaces from the thread string (subject minus the Re: etc bits), since some other mail software likes adding a trailing space, which messes up the thread sorting.
 - Replace NUL bytes after conversion to UTF-8 with the substitute character.  This is because the BeOS ISO-2022-JP to UTF-8 conversion sometimes gets it wrong and inserts a NUL.
@@ -193,6 +193,7 @@ June 9 2003 - v2.1.0b1
 - Partial Message Downloading (double click on the message file to finish downloading).
 - Reworked the protocol framework. And the add-on framework. And everything else. Except BeMail. AGMS did things to that... I'm scared of it.  AGMS is too.
 - Miscellaneous really awesome things.
+- Spam checker now looks at file names of attachments to see if they are text files, sometimes the MIME type is specified incorrectly by those naughty spammers.
 
 April 13 2003 - v2.0.1b2
 - Make the encoding menu slide around when resizing the window.  Can only do it for reading a mail message, not when composing, since pop-up menus don't resize (a BeOS bug).
