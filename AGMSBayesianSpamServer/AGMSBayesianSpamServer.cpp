@@ -74,6 +74,10 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
+ * Revision 1.68  2002/11/29 22:08:25  agmsmith
+ * Change default purge age to 2000 so that hitting the purge button
+ * doesn't erase stuff from the new sample database.
+ *
  * Revision 1.67  2002/11/25 20:39:39  agmsmith
  * Don't need to massage the MIME type since the mail library now does
  * the lower case conversion and converts TEXT to text/plain too.
@@ -457,6 +461,7 @@ typedef enum PropertyNumbersEnum
   PN_RESET_TO_DEFAULTS,
   PN_INSTALL_THINGS,
   PN_TOKENIZE_MODE,
+  PN_SCORING_MODE,
   PN_MAX
 } PropertyNumbers;
 
@@ -476,7 +481,8 @@ static char * g_PropertyNames [PN_MAX] =
   "EvaluateString",
   "ResetToDefaults",
   "InstallThings",
-  "TokenizeMode"
+  "TokenizeMode",
+  "ScoringMode"
 };
 
 /* This array lists the scripting commands we can handle, in a format that the
@@ -636,7 +642,39 @@ static struct property_info g_ScriptingPropertyList [] =
   {g_PropertyNames[PN_TOKENIZE_MODE], {B_GET_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "Gets the method used for breaking up the "
     "message into words.", PN_TOKENIZE_MODE, {}, {}, {}},
+  {g_PropertyNames[PN_SCORING_MODE], {B_SET_PROPERTY, 0},
+    {B_DIRECT_SPECIFIER, 0}, "Sets the method used for combining the "
+    "probabilities of individual words into an overall score.  "
+    "\"Robinson\" mode will use Gary Robinson's nth root of the product "
+    "method.  It gives a nice range of values between 0 and 1 so you can "
+    "see shades of spaminess.  The cutoff point between spam and genuine "
+    "varies depending on your database of words (0.56 was one point in "
+    "some experiments).  \"ChiSquared\" mode will use chi-squared "
+    "statistics to evaluate the probability that the lists of word ratios "
+    "are random.  The result is very close to 0 for genuine and very close "
+    "to 1 for spam, and near the middle if it is uncertain.", PN_SCORING_MODE,
+    {}, {}, {}},
+  {g_PropertyNames[PN_SCORING_MODE], {B_GET_PROPERTY, 0},
+    {B_DIRECT_SPECIFIER, 0}, "Gets the method used for combining the "
+    "individual word ratios into an overall score.", PN_SCORING_MODE,
+    {}, {}, {}},
   {0, {0}, {0}, 0, 0, {}, {}, {}} /* End of list of property commands. */
+};
+
+
+/* The various scoring modes as text and enums.  See PN_SCORING_MODE. */
+
+typedef enum ScoringModeEnum
+{
+  SM_ROBINSON = 0,
+  SM_CHISQUARED,
+  SM_MAX
+} ScoringModes;
+
+static char * g_ScoringModeNames [SM_MAX] =
+{
+  "Robinson",
+  "ChiSquared"
 };
 
 
@@ -846,6 +884,9 @@ private:
   uint32          m_PurgePopularityCachedValue;
   BTextControl   *m_PurgePopularityTextboxPntr;
   BButton        *m_ResetToDefaultsButtonPntr;
+  ScoringModes    m_ScoringModeCachedValue;
+  BMenuBar       *m_ScoringModeMenuBarPntr;
+  BPopUpMenu     *m_ScoringModePopUpMenuPntr;
   bool            m_ServerModeCachedValue;
   BCheckBox      *m_ServerModeCheckboxPntr;
   uint32          m_SpamCountCachedValue;
@@ -1092,6 +1133,10 @@ public:
     the number of messages (spam and genuine) which have the word.  Zero means
     no words. */
 
+  ScoringModes m_ScoringMode;
+    /* Controls how to combine the word probabilities into an overall score.
+    See the PN_SCORING_MODE comments for details. */
+
   BPath m_SettingsDirectoryPath;
     /* The constructor initialises this to the settings directory path.  It
     never changes after that. */
@@ -1294,6 +1339,11 @@ ostream& PrintUsage (ostream& OutputStream)
 "Gary Robinson came up with the improved algorithm, which you can read about at:\n"
 "http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html\n"
 "\n"
+"Then he, Tim Peters and the SpamBayes mailing list developed the Chi-Squared\n"
+"test, see http://mail.python.org/pipermail/spambayes/2002-October/001036.html\n"
+"for one of the earlier messages leading from the central limit theorem to\n"
+"the current chi-squared scoring method.\n"
+"\n"
 "Thanks go to Isaac Yonemoto for providing a better icon.\n"
 "\n"
 "Usage: Specify the operation as the first argument followed by more\n"
@@ -1301,8 +1351,8 @@ ostream& PrintUsage (ostream& OutputStream)
 "actual operation (things like the name of the database file to use, or\n"
 "whether it should allow non-email messages to be added).  In command line\n"
 "mode it will do the operation and exit.  In GUI/server mode a command line\n"
-"invocation will just send the command to the server.  You can also use BeOS\n"
-"scripting (see the \"Hey\" command which you can get from\n"
+"invocation will just send the command to the running server.  You can also\n"
+"use BeOS scripting (see the \"Hey\" command which you can get from\n"
 "http://www.bebits.com/app/2042 ) to control the Spam server.  And finally,\n"
 "there's also a GUI interface which shows up if you start it without any\n"
 "command line arguments.\n"
@@ -1489,7 +1539,7 @@ static void EstimateRefFilesAndDisplay (BMessage *MessagePntr)
     sprintf (TempString, "%f spam ratio for \"%s\".\nThe top words are:",
       (double) TempFloat, Path.Path ());
 
-    for (j = 0; j < 30 /* g_MaxInterestingWords */; j++)
+    for (j = 0; j < 20 /* Don't print too many! */; j++)
     {
       if (ReplyMessage.FindString ("words", j, &StringPntr) != B_OK ||
       ReplyMessage.FindFloat ("ratios", j, &TempFloat) != B_OK)
@@ -1498,11 +1548,60 @@ static void EstimateRefFilesAndDisplay (BMessage *MessagePntr)
       sprintf (TempString + strlen (TempString), "\n%s / %f",
         StringPntr, TempFloat);
     }
+    if (j >= 20 && j < g_MaxInterestingWords)
+      sprintf (TempString + strlen (TempString), "\nAnd up to %d more words.",
+        g_MaxInterestingWords - j);
 
     AlertPntr = new BAlert ("Estimate", TempString, "OK");
     if (AlertPntr != NULL)
       AlertPntr->Go ();
   }
+}
+
+
+
+/******************************************************************************
+ * A utility function from the http://sourceforge.net/projects/spambayes
+ * SpamBayes project.  Return prob(chisq >= x2, with v degrees of freedom).  It
+ * computes the probability that the chi-squared value (a kind of normalized
+ * error measurement), with v degrees of freedom, would be larger than a given
+ * number (x2; chi is the Greek letter X thus x2).  So you can tell if the
+ * error is really unusual (the returned probability is near zero meaning that
+ * your measured error number is kind of large - actual chi-squared is rarely
+ * above that number merely due to random effects), or if it happens often
+ * (usually if the probability is over 5% then it's within 3 standard
+ * deviations - meaning that chi-squared goes over your number fairly often due
+ * merely to random effects).  v must be even for this calculation to work.
+ */
+
+static double ChiSquaredProbability (double x2, int v)
+{
+  int    halfV = v / 2;
+  int    i;
+  double m;
+  double sum;
+  double term;
+
+  if (v & 1)
+    return -1.0; /* Out of range return value as a hint v is odd. */
+
+  /* If x2 is very large, exp(-m) will underflow to 0. */
+  m = x2 / 2.0;
+  sum = term = exp (-m);
+  for (i = 1; i < halfV; i++)
+  {
+    term *= m / i;
+    sum += term;
+  }
+
+  /* With small x2 and large v, accumulated roundoff error, plus error in the
+  platform exp(), can cause this to spill a few ULP above 1.0.  For example,
+  ChiSquaredProbability(100, 300) on my box has sum == 1.0 + 2.0**-52 at this
+  point.  Returning a value even a teensy bit over 1.0 is no good. */
+
+  if (sum > 1.0)
+    return 1.0;
+  return sum;
 }
 
 
@@ -1623,6 +1722,9 @@ writeup at: http://www.paulgraham.com/spam.html\n\n"
 
 "Gary Robinson came up with the improved algorithm, which you can read about \
 at: http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html\n\n"
+
+"Mr. Robinson, Tim Peters and the SpamBayes mailing list people then \
+developed the chi-squared scoring method.\n\n"
 
 "Icon courtesy of Isaac Yonemoto.\n\n"
 
@@ -1932,6 +2034,7 @@ void ABSApp::DefaultSettings ()
   g_ServerMode = false;
   m_PurgeAge = 2000;
   m_PurgePopularity = 3;
+  m_ScoringMode = SM_ROBINSON;
   m_TokenizeMode = TM_ANY_TEXT_HEADER;
 
   m_SettingsHaveChanged = true;
@@ -2028,8 +2131,9 @@ it fails, an error code is returned and an error message written to the
 ErrorMessage string (which is at least MAX_PATH + 1024 bytes long).
 OptionalFileName is only used in the error message.
 
-The math used in my method is based on Gary Robinson's method (formerly it was
-a variation of Paul Graham's method).  It's input is the database of words that
+The math used for combining the individual word probabilities in my method is
+based on Gary Robinson's method (formerly it was a variation of Paul Graham's
+method) or the Chi-Squared method.  It's input is the database of words that
 has a count of the number of spam and number of genuine messages each word
 appears in (doesn't matter if it appears more than once in a message, it still
 counts as 1).
@@ -2050,14 +2154,40 @@ the raw spam ratio.  This gives you the compensated spam ratio for the word.
 
 The top N (150 was good in the spambayes tests) extreme words are selected by
 the distance of each word's compensated spam ratio from 0.5.  Then the ratios
-of the words are combined.  One value is the Nth root of the product of all the
-word ratios.  The other is the Nth root of the product of (1 - ratio) for all
-the words.  The final result is the first value divided by the sum of the two
-values.  The Nth root helps spread the resulting range of values more evenly
-between 0.0 and 1.0, otherwise the values all clump together at 0 or 1.  Also
-you can think of the Nth root as a kind of average for products; it's like a
-generic word probability which when multiplied by itself N times gives you the
-same result as the N separate actual word probabilities multiplied together.
+of the words are combined.
+
+The Gary Robinson combining (scoring) method gets one value from the Nth root
+of the product of all the word ratios.  The other is the Nth root of the
+product of (1 - ratio) for all the words.  The final result is the first value
+divided by the sum of the two values.  The Nth root helps spread the resulting
+range of values more evenly between 0.0 and 1.0, otherwise the values all clump
+together at 0 or 1.  Also you can think of the Nth root as a kind of average
+for products; it's like a generic word probability which when multiplied by
+itself N times gives you the same result as the N separate actual word
+probabilities multiplied together.
+
+The Chi-Squared combining (scoring) method assumes that the spam word
+probabilities are uniformly distributed and computes an error measurement
+(called chi squared - see http://bmj.com/collections/statsbk/8.shtml for a good
+tutorial) and then sees how likely that error value would be observed in
+practice.  If it's rare to observe, then the words are likely not just randomly
+occuring and it's spammy.  The same is done for genuine words.  The two
+resulting unlikelynesses are compared to see which is more unlikely, if neither
+is, then the method says it can't decide.  The SpamBayes notes (see the
+classifier.py file in CVS in http://sourceforge.net/projects/spambayes) say:
+
+"Across vectors of length n, containing random uniformly-distributed
+probabilities, -2*sum(ln(p_i)) follows the chi-squared distribution with 2*n
+degrees of freedom.  This has been proven (in some appropriate sense) to be the
+most sensitive possible test for rejecting the hypothesis that a vector of
+probabilities is uniformly distributed.  Gary Robinson's original scheme was
+monotonic *with* this test, but skipped the details.  Turns out that getting
+closer to the theoretical roots gives a much sharper classification, with a
+very small (in # of msgs), but also very broad (in range of scores), "middle
+ground", where most of the mistakes live.  In particular, this scheme seems
+immune to all forms of "cancellation disease": if there are many strong ham
+*and* spam clues, this reliably scores close to 0.5.  Most other schemes are
+extremely certain then -- and often wrong."
 
 I did a test with 448 example genuine messages including personal mail (some
 with HTML attachments) and mailing lists, and 267 spam messages for 27471 words
@@ -2110,6 +2240,7 @@ status_t ABSApp::EvaluatePositionIO (
   float                              ResultRatio;
   double                             SpamProbability;
   StatisticsPointer                  StatisticsPntr;
+  double                             TempDouble;
   double                             TotalGenuine;
   double                             TotalSpam;
   WordAndRatioStruct                 WordAndRatio;
@@ -2181,10 +2312,11 @@ status_t ABSApp::EvaluatePositionIO (
      PriorityQueue.push (WordAndRatio);
   }
 
-  /* Compute the combined probability of the top few words.  To avoid numeric
-  underflow (doubles can only get as small as 1E-300), logarithms are also
-  used.  But avoid the logarithms (sum of logs of numbers is the same as the
-  product of numbers) as much as possible due to reduced accuracy. */
+  /* Compute the combined probability (multiply them together) of the top few
+  words.  To avoid numeric underflow (doubles can only get as small as 1E-300),
+  logarithms are also used.  But avoid the logarithms (sum of logs of numbers
+  is the same as the product of numbers) as much as possible due to reduced
+  accuracy and slowness. */
 
   ProductGenuine = 1.0;
   ProductLogGenuine = 0.0;
@@ -2195,7 +2327,6 @@ status_t ABSApp::EvaluatePositionIO (
   i++, PriorityQueue.pop())
   {
     WordRatioPntr = &PriorityQueue.top();
-
     ProductSpam *= WordRatioPntr->probabilityRatio;
     ProductGenuine *= 1.0 - WordRatioPntr->probabilityRatio;
 
@@ -2218,18 +2349,66 @@ status_t ABSApp::EvaluatePositionIO (
     ReplyMessagePntr->AddFloat ("ratios", WordRatioPntr->probabilityRatio);
   }
 
-  /* Take the Nth root of the products.  This is easiest in logarithm form. */
+  /* Get the resulting log of the complete products. */
 
   if (i > 0)
   {
     ProductLogSpam += log (ProductSpam);
     ProductLogGenuine += log (ProductGenuine);
-    ProductSpam = exp (ProductLogSpam / i);
-    ProductGenuine = exp (ProductLogGenuine / i);
-    ResultRatio = ProductSpam / (ProductGenuine + ProductSpam);
   }
-  else /* Somehow got no words! */
-    ResultRatio = g_RobinsonX;
+
+  if (m_ScoringMode == SM_ROBINSON)
+  {
+    /* Apply Gary Robinson's scoring method where we take the Nth root of the
+    products.  This is easiest in logarithm form. */
+
+    if (i > 0)
+    {
+      ProductSpam = exp (ProductLogSpam / i);
+      ProductGenuine = exp (ProductLogGenuine / i);
+      ResultRatio = ProductSpam / (ProductGenuine + ProductSpam);
+    }
+    else /* Somehow got no words! */
+      ResultRatio = g_RobinsonX;
+  }
+  else if (m_ScoringMode == SM_CHISQUARED)
+  {
+    /* From the SpamBayes notes: "We compute two chi-squared statistics, one
+    for ham and one for spam.  The sum-of-the-logs business is more sensitive
+    to probs near 0 than to probs near 1, so the spam measure uses 1-p (so that
+    high-spamprob words have greatest effect), and the ham measure uses p
+    directly (so that lo-spamprob words have greatest effect)."  That means we
+    just reversed the meaning of the previously calculated spam and genuine
+    products!  Oh well. */
+
+    TempDouble = ProductLogSpam;
+    ProductLogSpam = ProductLogGenuine;
+    ProductLogGenuine = TempDouble;
+
+    if (i > 0)
+    {
+      ProductSpam =
+        1.0 - ChiSquaredProbability (-2.0 * ProductLogSpam, 2 * i);
+      ProductGenuine =
+        1.0 - ChiSquaredProbability (-2.0 * ProductLogGenuine, 2 * i);
+
+      /* The SpamBayes notes say: "How to combine these into a single spam
+      score?  We originally used (S-H)/(S+H) scaled into [0., 1.], which equals
+      S/(S+H).  A systematic problem is that we could end up being near-certain
+      a thing was (for example) spam, even if S was small, provided that H was
+      much smaller.  Rob Hooft stared at these problems and invented the
+      measure we use now, the simpler S-H, scaled into [0., 1.]." */
+
+      ResultRatio = (ProductSpam - ProductGenuine + 1.0) / 2.0;
+    }
+    else /* No words to analyse. */
+      ResultRatio = 0.5;
+  }
+  else /* Unknown scoring mode. */
+  {
+    strcpy (ErrorMessage, "Unknown scoring mode specified in settings");
+    return B_BAD_VALUE;
+  }
 
   ReplyMessagePntr->AddFloat (g_ResultName, ResultRatio);
   return B_OK;
@@ -2915,6 +3094,17 @@ status_t ABSApp::LoadSaveSettings (bool DoLoad)
   else if (ErrorCode == B_OK)
     ErrorCode = Settings.AddInt32 (NamePntr, m_PurgePopularity);
 
+  NamePntr = "ScoringMode";
+  if (DoLoad)
+  {
+    if (Settings.FindInt32 (NamePntr, &TempInt32) == B_OK)
+      m_ScoringMode = (ScoringModes) TempInt32;
+    if (m_ScoringMode < 0 || m_ScoringMode >= SM_MAX)
+      m_ScoringMode = (ScoringModes) 0;
+  }
+  else if (ErrorCode == B_OK)
+    ErrorCode = Settings.AddInt32 (NamePntr, m_ScoringMode);
+
   NamePntr = "TokenizeMode";
   if (DoLoad)
   {
@@ -3453,6 +3643,48 @@ void ABSApp::ProcessScriptingMessage (
       (ErrorCode = InstallThings (TempString)) == B_OK)
         break;
       goto ErrorExit;
+
+    case PN_SCORING_MODE:
+      switch (PropInfoPntr->commands[0])
+      {
+        case B_GET_PROPERTY:
+          ReplyMessage.AddString (g_ResultName,
+            g_ScoringModeNames[m_ScoringMode]);
+          break;
+
+        case B_SET_PROPERTY:
+          i = SM_MAX;
+          if (ArgumentGotString)
+            for (i = 0; i < SM_MAX; i++)
+            {
+              if (strcasecmp (ArgumentString, g_ScoringModeNames [i]) == 0)
+              {
+                m_ScoringMode = (ScoringModes) i;
+                m_SettingsHaveChanged = true;
+                break;
+              }
+            }
+          if (i >= SM_MAX) /* Didn't find a valid scoring mode word. */
+          {
+            ErrorCode = B_BAD_TYPE;
+            sprintf (TempString, "You used the unrecognized \"%s\" as "
+              "a scoring mode for the SET %s command.  Should be one of: ",
+              ArgumentGotString ? ArgumentString : "not specified",
+              PropInfoPntr->name);
+            for (i = 0; i < SM_MAX; i++)
+            {
+              strcat (TempString, g_ScoringModeNames [i]);
+              if (i < SM_MAX - 1)
+                strcat (TempString, ", ");
+            }
+            goto ErrorExit;
+          }
+          break;
+
+        default: /* Unknown operation code, error message already set. */
+          goto ErrorExit;
+      }
+      break;
 
     case PN_TOKENIZE_MODE:
       switch (PropInfoPntr->commands[0])
@@ -4717,6 +4949,8 @@ ControlsView::ControlsView (BRect NewBounds)
   m_PurgeButtonPntr (NULL),
   m_PurgePopularityTextboxPntr (NULL),
   m_ResetToDefaultsButtonPntr (NULL),
+  m_ScoringModeMenuBarPntr (NULL),
+  m_ScoringModePopUpMenuPntr (NULL),
   m_ServerModeCheckboxPntr (NULL),
   m_SpamCountTextboxPntr (NULL),
   m_TimeOfLastPoll (0),
@@ -4752,6 +4986,7 @@ void ControlsView::AttachedToWindow ()
   float         Margin;
   float         RowHeight;
   float         RowTop;
+  ScoringModes  ScoringMode;
   char         *StringPntr;
   BMenuItem    *TempMenuItemPntr;
   BRect         TempRect;
@@ -5066,6 +5301,66 @@ void ControlsView::AttachedToWindow ()
   }
   m_TokenizeModeMenuBarPntr->AddItem (m_TokenizeModePopUpMenuPntr);
   AddChild (m_TokenizeModeMenuBarPntr);
+
+  /* This row just contains a huge pop-up menu which shows the scoring mode
+  and an explanation of what each mode does. */
+
+  RowTop += RowHeight /* previous row's RowHeight */;
+  TempRect = Bounds ();
+  RowHeight = g_PopUpMenuHeight;
+  RowHeight = ceilf (RowHeight * 1.1);
+
+  Margin = ceilf ((RowHeight - g_PopUpMenuHeight) / 2);
+  TempRect.top = RowTop + Margin;
+  TempRect.bottom = TempRect.top + g_PopUpMenuHeight;
+
+  m_ScoringModeCachedValue = SM_MAX; /* Illegal value will force redraw. */
+  m_ScoringModeMenuBarPntr = new BMenuBar (TempRect, "ScoringModeMenuBar",
+    B_FOLLOW_LEFT_RIGHT | B_FOLLOW_TOP, B_ITEMS_IN_COLUMN,
+    false /* resize to fit items */);
+  if (m_ScoringModeMenuBarPntr == NULL) goto ErrorExit;
+  m_ScoringModePopUpMenuPntr = new BPopUpMenu ("ScoringModePopUpMenu");
+  if (m_ScoringModePopUpMenuPntr == NULL) goto ErrorExit;
+
+  for (ScoringMode = (ScoringModes) 0;
+  ScoringMode < SM_MAX;
+  ScoringMode = (ScoringModes) ((int) ScoringMode + 1))
+  {
+    /* Each different scoring mode gets its own menu item.  Selecting the item
+    will send a canned command to the application to switch to the appropriate
+    scoring mode.  An optional explanation of each mode is added to the mode
+    name string. */
+
+    CommandMessage.MakeEmpty ();
+    CommandMessage.what = B_SET_PROPERTY;
+    CommandMessage.AddSpecifier (g_PropertyNames[PN_SCORING_MODE]);
+    CommandMessage.AddString (g_DataName, g_ScoringModeNames[ScoringMode]);
+    strcpy (TempString, g_ScoringModeNames[ScoringMode]);
+    switch (ScoringMode)
+    {
+      case SM_ROBINSON:
+        strcat (TempString, " - Gary Robinson's invention.  Score varies "
+          "evenly between 0 and 1, so you get shades of spaminess.  Cutoff "
+          "point varies depending on your training examples.");
+        break;
+
+      case SM_CHISQUARED:
+        strcat (TempString, " - Uses Chi-Squared statistics test.  Score "
+          "near 0 for genuine, near 1 for spam and inbetween if it is "
+          "unsure.  No shades of spaminess.");
+        break;
+
+      default:
+        break;
+    }
+    TempMenuItemPntr =
+      new BMenuItem (TempString, new BMessage (CommandMessage));
+    if (TempMenuItemPntr == NULL) goto ErrorExit;
+    TempMenuItemPntr->SetTarget (be_app);
+    m_ScoringModePopUpMenuPntr->AddItem (TempMenuItemPntr);
+  }
+  m_ScoringModeMenuBarPntr->AddItem (m_ScoringModePopUpMenuPntr);
+  AddChild (m_ScoringModeMenuBarPntr);
 
   /* The next row has the install MIME types button and the reset to defaults
   button, one on the left and the other on the right. */
@@ -5387,6 +5682,7 @@ properly. */
 
 void ControlsView::FrameResized (float, float)
 {
+  m_ScoringModeCachedValue = SM_MAX; /* Force it to reset the mark. */
   m_TokenizeModeCachedValue = TM_MAX; /* Force it to reset the mark. */
 }
 
@@ -5546,6 +5842,16 @@ void ControlsView::PollServerForChanges ()
     m_SpamCountTextboxPntr->SetText (TempString);
   }
 
+  /* Update the word count. */
+
+  if (MyAppPntr->m_WordCount != m_WordCountCachedValue &&
+  m_WordCountTextboxPntr != NULL)
+  {
+    m_WordCountCachedValue = MyAppPntr->m_WordCount;
+    sprintf (TempString, "%lu", m_WordCountCachedValue);
+    m_WordCountTextboxPntr->SetText (TempString);
+  }
+
   /* Update the tokenize mode pop-up menu. */
 
   if (MyAppPntr->m_TokenizeMode != m_TokenizeModeCachedValue &&
@@ -5558,14 +5864,16 @@ void ControlsView::PollServerForChanges ()
       TempMenuItemPntr->SetMarked (true);
   }
 
-  /* Update the word count. */
+  /* Update the scoring mode pop-up menu. */
 
-  if (MyAppPntr->m_WordCount != m_WordCountCachedValue &&
-  m_WordCountTextboxPntr != NULL)
+  if (MyAppPntr->m_ScoringMode != m_ScoringModeCachedValue &&
+  m_ScoringModePopUpMenuPntr != NULL)
   {
-    m_WordCountCachedValue = MyAppPntr->m_WordCount;
-    sprintf (TempString, "%lu", m_WordCountCachedValue);
-    m_WordCountTextboxPntr->SetText (TempString);
+    m_ScoringModeCachedValue = MyAppPntr->m_ScoringMode;
+    TempMenuItemPntr =
+      m_ScoringModePopUpMenuPntr->ItemAt ((int) m_ScoringModeCachedValue);
+    if (TempMenuItemPntr != NULL)
+      TempMenuItemPntr->SetMarked (true);
   }
 
   /* Lock the application.  This will stop it from processing any further
