@@ -491,11 +491,16 @@ TextComponent::ParseRaw()
 
 	char *string = decoded.LockBuffer(bytes + 1);
 	bytes = decode(encoding, string, buffer, bytes, 0);
-	decoded.UnlockBuffer(bytes);
 	free (buffer);
 	buffer = NULL;
-
-	decoded.ReplaceAll("\r\n", "\n");
+	
+	char *dest;
+	for (dest = string; *string != 0; string++) {
+	 	if (*string != '\r')
+	 		*dest++ = *string;
+	}
+	*dest = 0;
+	decoded.UnlockBuffer(bytes);
 	bytes = decoded.Length(); // Might have shrunk a bit.
 
 	// If the character set wasn't specified, try to guess.  ISO-2022-JP
