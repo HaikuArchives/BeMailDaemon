@@ -382,21 +382,25 @@ void IMAP4Client::SyncAllBoxes() {
 	for (int32 i = 0; i < temp.CountItems(); i++) {
 		command = "";
 		
-		boxes += temp[i];
 		struct mailbox_info *info = new struct mailbox_info;
 		info->exists = -1;
 		info->next_uid = -1;
 		info->server_mb_name = temp[i];
 		info->server_mb_name.ReplaceAll("/",hierarchy_delimiter.String());
-		box_info.AddItem(info);
 		
 		command << "CREATE \"" << info->server_mb_name << '\"';
 		SendCommand(command.String());
-		if (!WasCommandOkay(command)) {
+		BString response;
+		if (!WasCommandOkay(response)) {
 			command = "Error creating mailbox ";
-			command << temp[i] << '.';
+			command << temp[i] << ". The server said: \n" << response;
 			runner->ShowError(command.String());
+			delete info;
+			continue;
 		}
+		
+		boxes += temp[i];
+		box_info.AddItem(info);
 	}		
 			
 	for (int32 i = 0; i < boxes.CountItems(); i++) {
@@ -724,7 +728,7 @@ class IMAP4PartialReader : public BPositionIO {
 			//response.PrintToStream();
 			
 			us->WasCommandOkay(command);
-			for (int32 i = 0; i < response[2].CountItems(); i++) {
+			for (int32 i = 0; (i+1) < response[2].CountItems(); i++) {
 				if (strcmp(response[2][i](),part) == 0) {
 					slave->Write(response[2][i+1](),strlen(response[2][i+1]()));
 					break;
@@ -982,12 +986,18 @@ bool IMAP4Client::WasCommandOkay(BString &response) {
 			runner->ShowError("No response from server");
 	} while (response[0] == '*');
 		
+	bool to_ret = false;
 	static char cmd[255];
 	::sprintf(cmd,"a%.7ld OK",commandCount);
 	if (strncmp(response.String(),cmd,strlen(cmd)) == 0)
-		return true;
+		to_ret = true;
 	
-	return false;
+	int32 i = response.FindFirst(' ');
+	i = response.FindFirst(' ',i+1);
+	response.Remove(0,i+1);
+	response.ReplaceAll("\r\n","\n");
+	
+	return to_ret;
 }
 
 Mail::Filter *instantiate_mailfilter(BMessage *settings, Mail::ChainRunner *runner)
