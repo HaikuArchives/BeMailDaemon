@@ -108,9 +108,11 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		
 	create_directory(path.Path(),0777);
 	dir.SetTo(path.Path());
+
+	BNode node(e);
 	
-	status_t err = e->MoveTo(&dir);
-	if (err != B_OK)
+	status_t err = (*io)->Seek(0,SEEK_END);
+	if (err < 0)
 	{
 		BString error;
 		error << "An error occurred while saving the message " << out_headers->FindString("Subject") << " to " << path.Path() << ": " << strerror(err);
@@ -119,10 +121,6 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		
 		return MD_ERROR;
 	}
-
-	BNode node(e);
-	
-	(*io)->Seek(0,SEEK_END);
 	
 	BNodeInfo info(&node);
 	info.SetType(B_MAIL_TYPE);
@@ -164,6 +162,17 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		attributes.AddString(B_MAIL_ATTR_STATUS,"New");
 	
 	node << attributes;
+	
+	err = e->MoveTo(&dir);
+	if (err != B_OK)
+	{
+		BString error;
+		error << "An error occurred while saving the message " << out_headers->FindString("Subject") << " to " << path.Path() << ": " << strerror(err);
+		
+		Mail::ShowAlert("Folder Error",error.String(),"OK",B_WARNING_ALERT);
+		
+		return MD_ERROR;
+	}
 	
 	BString name = attributes.FindString("MAIL:subject");
 	

@@ -69,7 +69,9 @@ ssize_t	MessageIO::WriteAt(off_t pos, const void *buffer, size_t size) {
 
 off_t MessageIO::Seek(off_t position, uint32 seek_mode) {
 	if (seek_mode == SEEK_END) {
-		network->Retrieve(message_id,slave);
+		status_t result = network->Retrieve(message_id,slave);
+		if (result < 0)
+			return result;
 		state = 1;
 	}
 	return slave->Seek(position,seek_mode);
