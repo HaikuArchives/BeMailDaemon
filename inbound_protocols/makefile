@@ -1,7 +1,6 @@
 # makefile for all sample code
 
 SUBDIRS = \
-	IMAP \
 	POP3 \
 
 all: default
