@@ -158,6 +158,8 @@ December 13 2002 - v2.0.0b7
 - Reclassifying a message as spam or genuine will now also update the spam ratio attribute (it runs an EvaluateFile on it).
 - Subject prefix of [Spam 99.9%] removed from the subject attribute when you evaluate a message (the number would become incorrect, and we can't tell if it is spam since the cut-off value is in the filter client, not the server).
 - Implemented self-training mode in the spam filter.
+- Load the database when the spam server window is displayed.
+- Hide the spam server window so it doesn't flash briefly onto the screen when the program starts up.
 
 December 1 2002 - v2.0.0b6
 - Fixed Reply-All bug where it would get stuck in an infinite loop when it tried to remove the sender's address from the list of addresses.
