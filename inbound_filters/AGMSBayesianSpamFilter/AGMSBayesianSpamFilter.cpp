@@ -11,6 +11,9 @@
  * Public Domain 2002, by Alexander G. M. Smith, no warranty.
  *
  * $Log$
+ * Revision 1.7  2002/11/10 19:36:26  agmsmith
+ * Retry launching server a few times, but not too many.
+ *
  * Revision 1.6  2002/11/03 02:21:02  agmsmith
  * Never mind, just use the SourceForge version numbers.  Ugh.
  *
@@ -71,6 +74,7 @@ AGMSBayesianSpamFilter::AGMSBayesianSpamFilter (BMessage *settings)
 		fAddSpamToSubject (false),
 		fBeepGenuine (false),
 		fBeepSpam (false),
+		fHeaderOnly (false),
 		fLaunchAttemptCount (0),
 		fNoWordsMeansSpam (false),
 		fQuitServerWhenFinished (true),
@@ -128,6 +132,8 @@ AGMSBayesianSpamFilter::ProcessMailMessage (
 	off_t		 dataSize;
 	BPositionIO	*dataStreamPntr = *io_message;
 	status_t	 errorCode = B_OK;
+	int32        headerLength;
+	BString      headerString;
 	BString		 newSubjectString;
 	BNode        nodeForOutputFile;
 	const char	*oldSubjectStringPntr;
@@ -137,35 +143,9 @@ AGMSBayesianSpamFilter::ProcessMailMessage (
 	team_id		 serverTeam;
 	float		 spamRatio;
 	char		*stringBuffer = NULL;
-
-	// Copy the message to a string so that we can pass it to the spam database
-	// (the even messier alternative is a temporary file).  Do it in a fashion
-	// which allows NUL bytes in the string.  This method of course limits the
-	// message size to a few hundred megabytes.  This may take a while to
-	// execute, so do it before firing up the spam database server to reduce
-	// the risk of someone else closing off the server while the message
-	// downloads.
-
-	dataSize = dataStreamPntr->Seek (0, SEEK_END);
-	if (dataSize <= 0)
-		goto ErrorExit;
-
-	stringBuffer = new char [dataSize + 1];
-	if (stringBuffer == NULL)
-		goto ErrorExit;
-
-	dataStreamPntr->Seek (0, SEEK_SET);
-	amountRead = dataStreamPntr->Read (stringBuffer, dataSize);
-	if (amountRead != dataSize)
-		goto ErrorExit;
-	stringBuffer[dataSize] = 0; // Add an end of string NUL, just in case.
-
-	scriptingMessage.what = B_SET_PROPERTY;
-	scriptingMessage.AddSpecifier ("EvaluateString");
-	errorCode = scriptingMessage.AddData ("data", B_STRING_TYPE,
-		stringBuffer, dataSize + 1, false /* fixed size */);
-	if (errorCode != B_OK)
-		goto ErrorExit;
+	char         tempChar;
+	status_t     tempErrorCode;
+	const char  *tokenizeModeStringPntr;
 
 	// Get a connection to the spam database server.  Launch if needed, should
 	// only need it once, unless another e-mail thread shuts down the server
@@ -192,6 +172,71 @@ AGMSBayesianSpamFilter::ProcessMailMessage (
 			BMessenger (kServerSignature, serverTeam, &errorCode);
 		if (!fMessengerToServer.IsValid ())
 			goto ErrorExit;
+
+		// Check if the server is running in headers only mode.  If so, we only
+		// need to download the header rather than the entire message.
+		scriptingMessage.what = B_GET_PROPERTY;
+		scriptingMessage.AddSpecifier ("TokenizeMode");
+		if ((errorCode = fMessengerToServer.SendMessage (&scriptingMessage,
+			&replyMessage)) != B_OK)
+			goto ErrorExit;
+		if ((errorCode = replyMessage.FindInt32 ("error", &tempErrorCode))
+			!= B_OK)
+			goto ErrorExit;
+		if ((errorCode = tempErrorCode) != B_OK)
+			goto ErrorExit;
+		if ((errorCode = replyMessage.FindString ("result",
+			&tokenizeModeStringPntr)) != B_OK)
+			goto ErrorExit;
+		fHeaderOnly = (tokenizeModeStringPntr != NULL
+			&& strcmp (tokenizeModeStringPntr, "JustHeader") == 0);
+		scriptingMessage.MakeEmpty ();
+		replyMessage.MakeEmpty ();
+	}
+
+	// Copy the message to a string so that we can pass it to the spam database
+	// (the even messier alternative is a temporary file).  Do it in a fashion
+	// which allows NUL bytes in the string.  This method of course limits the
+	// message size to a few hundred megabytes.  If we're using header mode,
+	// only read the header rather than the full message.
+
+	if (fHeaderOnly) {
+		// Read just the header, it ends with an empty CRLF line.
+		dataStreamPntr->Seek (0, SEEK_SET);
+		while ((errorCode = dataStreamPntr->Read (&tempChar, 1)) == 1) {
+			headerString.Append (tempChar, 1);
+			headerLength = headerString.Length();
+			if (headerLength >= 4 && strcmp (headerString.String() +
+				headerLength - 4, "\r\n\r\n") == 0)
+				break;
+		}
+		if (errorCode < 0)
+			goto ErrorExit;
+
+		dataSize = headerString.Length();
+		stringBuffer = new char [dataSize + 1];
+		if (stringBuffer == NULL)
+			goto ErrorExit;
+
+		memcpy (stringBuffer, headerString.String(), dataSize);
+		stringBuffer[dataSize] = 0;
+	} else {
+		// Read the whole file.  The seek to the end may take a while since
+		// that triggers downloading of the entire message (and caching in a
+		// slave file - see the MessageIO class).
+		dataSize = dataStreamPntr->Seek (0, SEEK_END);
+		if (dataSize <= 0)
+			goto ErrorExit;
+
+		stringBuffer = new char [dataSize + 1];
+		if (stringBuffer == NULL)
+			goto ErrorExit;
+
+		dataStreamPntr->Seek (0, SEEK_SET);
+		amountRead = dataStreamPntr->Read (stringBuffer, dataSize);
+		if (amountRead != dataSize)
+			goto ErrorExit;
+		stringBuffer[dataSize] = 0; // Add an end of string NUL, just in case.
 	}
 
 	// Send off a scripting command to the database server, asking it to
@@ -200,6 +245,12 @@ AGMSBayesianSpamFilter::ProcessMailMessage (
 	// if you are using plain text only tokenization), so we could use that
 	// as a spam marker too.
 
+	scriptingMessage.what = B_SET_PROPERTY;
+	scriptingMessage.AddSpecifier ("EvaluateString");
+	errorCode = scriptingMessage.AddData ("data", B_STRING_TYPE,
+		stringBuffer, dataSize + 1, false /* fixed size */);
+	if (errorCode != B_OK)
+		goto ErrorExit;
 	errorCode = fMessengerToServer.SendMessage (&scriptingMessage,
 		&replyMessage);
 	if (errorCode != B_OK

@@ -13,6 +13,9 @@
  * Public Domain 2002, by Alexander G. M. Smith, no warranty.
  *
  * $Log$
+ * Revision 1.2  2002/11/10 19:36:27  agmsmith
+ * Retry launching server a few times, but not too many.
+ *
  * Revision 1.1  2002/11/03 02:06:15  agmsmith
  * Added initial version.
  *
@@ -56,6 +59,7 @@ class AGMSBayesianSpamFilter : public Zoidberg::Mail::Filter {
 		bool fAddSpamToSubject;
 		bool fBeepGenuine;
 		bool fBeepSpam;
+		bool fHeaderOnly;
 		int fLaunchAttemptCount;
 		BMessenger fMessengerToServer;
 		bool fNoWordsMeansSpam;
