@@ -97,19 +97,21 @@ typedef struct {
 	char *encoding;
 	int32 text_start;
 	int32 text_end;
-	off_t file_offset;
-	off_t file_length;
+	MailComponent *component;
+//	bool delete_component;
+//	off_t file_offset;
+//	off_t file_length;
 	bool saved;
 	bool have_ref;
 	entry_ref ref;
 	node_ref node;
 } hyper_text;
 
-bool acquire_window_sem(BWindow *, sem_id *);
-status_t release_window_sem(BWindow *, sem_id *);
-bool insert(reader_info *, char*, int32, bool);
+bool acquire_window_sem(BWindow *, sem_id);
+status_t release_window_sem(BWindow *, sem_id);
+bool insert(reader_info *, const char *, int32, bool);
 bool parse_header(char *, char *, off_t, char *, reader_info *, off_t *);
-bool strip_it(char *, int32, reader_info *);
+bool strip_it(const char *, int32, reader_info *);
 
 class TSavePanel;
 
@@ -156,7 +158,7 @@ public:
 	void ClearList();
 	void LoadMessage(BFile*, bool, bool, const char*);
 	void Open(hyper_text*);
-	static status_t	Reader(reader_info *);
+//	static status_t	Reader(reader_info *);
 	status_t Save(BMessage *, bool makeNewFile = true);
 	void SaveBeFile(BFile *, char *, ssize_t);
 	void StopLoad();
@@ -172,10 +174,14 @@ public:
 
 private:
 	void ContentChanged( void );
-	
+
+	class Reader;
+	friend TTextView::Reader;
+
 	char *fYankBuffer;
 	int32 fLastPosition;
 	BFile *fFile;
+	MailMessage *fMail;	// for incoming mails only
 	BFont fFont;
 	TContentView *fParent;
 	sem_id fStopSem;
@@ -188,6 +194,31 @@ private:
 	bool fSpellCheck;
 	bool fRaw;
 	bool fCursor;
+	
+	class Reader
+	{
+		public:
+			Reader(bool header,bool raw,bool quote,bool incoming,bool close,bool mime,
+				TTextView *view,BFile *file,BList *list,sem_id sem);
+
+			static status_t Run(void *);
+
+		private:
+			bool ParseMail(MailContainer *container,PlainTextBodyComponent *ignore);
+			bool Process(const char *data, int32 len, bool isHeader = false);
+			bool Insert(const char *line, int32 count, bool isHyperLink, bool isHeader = false);
+
+			bool fHeader;
+			bool fRaw;
+			bool fQuote;
+			bool fIncoming;
+			bool fClose;
+			bool fMime;
+			TTextView *fView;
+			BFile *fFile;
+			BList *fEnclosures;
+			sem_id fStopSem;
+	};
 };
 
 

@@ -41,7 +41,10 @@ All rights reserved.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include <Alert.h>
+#include <String.h>
+
 #include "Utilities.h"
 
 
@@ -343,34 +346,37 @@ int32 linelen(char *str, int32 len, bool header)
 // get named parameter from string
 //
 
-bool get_parameter(char *src, char *param, char *dst)
+bool get_parameter(const char *src, char *param, BString *dest)
 {
-	char		*offset;
-	int32		len;
+	if (!src)
+		return false;
 
-	if ((offset = cistrstr(src, param)) != NULL) {
-		offset += strlen(param);
-		len = strlen(src) - (offset - src);
-		if (*offset == '"') {
-			offset++;
-			len = 0;
-			while (offset[len] != '"') {
-				if (offset[len] == '\0') {
-					(new BAlert("Error", "There is an error in the header "
-					  "of this message, some information may not appear "
-					  "correctly.", "OK", NULL, NULL, B_WIDTH_AS_USUAL,
-					  B_WARNING_ALERT))->Go();
-					return false;						
-				}
-			
-				len++;
+	const char *offset;
+	if ((offset = cistrstr((char *)src, param)) == NULL)
+		return false;
+
+	offset += strlen(param);
+	int32 len = strlen(src) - (offset - src);
+	if (*offset == '"') {
+		offset++;
+		len = 0;
+		while (offset[len] != '"')
+		{
+			if (offset[len++] == '\0')
+			{
+				(new BAlert("Error", "There is an error in the header "
+				  "of this message, some information may not appear "
+				  "correctly.", "OK", NULL, NULL, B_WIDTH_AS_USUAL,
+				  B_WARNING_ALERT))->Go();
+				return false;						
 			}
-			offset[len] = 0;
 		}
-		strcpy(dst, offset);
-		return true;
+		dest->Append(offset,len);
 	}
-	return false;
+	else
+		dest->SetTo(offset);
+
+	return true;
 }
 
 
