@@ -44,24 +44,29 @@ IMAP4Client::IMAP4Client(BMessage *settings,Mail::StatusView *status)
 	SetTimeout(kIMAP4ClientTimeout);
 	error = Open(settings->FindString("server"),settings->FindInt32("port"),settings->FindInt32("flavor"));
 
-	const char *password = settings->FindString("password");
-	char *passwd = get_passwd(settings,"cpasswd");
-	if (passwd)
-		password = passwd;
-
-	BString uname = "\"";
-	uname << settings->FindString("username") << "\"";
-	error = Login(uname.String(), password, settings->FindInt32("auth_method"));
-
-	if( B_ERROR == error )
+	if( B_OK == error )
 	{
-		PRINT(("Error from Login()\n"));
-		_status->SetMessage("Error Logging in");
+		const char *password = settings->FindString("password");
+		char *passwd = get_passwd(settings,"cpasswd");
+		if (passwd)
+			password = passwd;
+	
+		BString uname = "\"";
+		uname << settings->FindString("username") << "\"";
+		error = Login(uname.String(), password, settings->FindInt32("auth_method"));
 	}
-	else
+
+	if( B_OK == error )
 	{
 		num_messages = Select(settings->FindString("folder"));
 		_status->SetMessage("Logged in");
+	}
+	else
+	{
+		BString errdesc("Error Logging in: ");
+		errdesc << strerror(error));
+		PRINT((errdesc.String()));
+		_status->SetMessage(errdesc.String());
 	}
 }
 

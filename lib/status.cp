@@ -10,6 +10,7 @@
 #include <StringView.h>
 #include <Screen.h>
 #include <String.h>
+#include <StatusBar.h>
 
 #include <stdio.h>
 #include <assert.h>

@@ -10,8 +10,8 @@
 #include <Box.h>
 #include <List.h>
 #include <Alert.h>
-#include <StatusBar.h>
 
+class BStatusBar;
 class BStringView;
 
 
