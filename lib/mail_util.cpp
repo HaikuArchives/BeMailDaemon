@@ -53,7 +53,6 @@ extern const CharsetConversionEntry charsets [] =
 	{"iso-2022-jp", B_JIS_CONVERSION},
 	{"euc-jp",		B_EUC_CONVERSION},
 	{"euc-kr",      B_EUC_KR_CONVERSION}, // Shift encoding 7 bit and KSC-5601 if bit 8 is on.
-	{"iso-2022-kr",	B_EUC_KR_CONVERSION}, // Shift encoding 7 bit.
 	{"ksc5601",		B_EUC_KR_CONVERSION}, // Not sure if 7 or 8 bit.
 	{"ks_c_5601-1987", B_EUC_KR_CONVERSION}, // Not sure if 7 or 8 bit.
 	{"koi8-r",      B_KOI8R_CONVERSION},
