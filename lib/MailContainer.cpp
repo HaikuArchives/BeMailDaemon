@@ -170,7 +170,7 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length)
 		return B_BAD_TYPE;
 		
 	_boundary = strdup(content_type.FindString("boundary"));
-		
+	
 	BString type = content_type.FindString("boundary");
 	type.Prepend("--");
 
@@ -204,10 +204,7 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length)
 			line.Truncate(len);
 		}
 		
-			/*printf("line: %s,",line.String());
-			printf(" offset: %d\n",(int)offset);*/
 		if (strncmp(line.String(),type.String(), type.Length()) == 0) {
-			//puts(line.String());
 			if (last_boundary >= 0) {
 				_components_in_raw.AddItem(new message_part(last_boundary, offset));
 				_components_in_code.AddItem(NULL);

@@ -30,7 +30,9 @@ uint32 MailComponent::ComponentType()
 	BMimeType type, super;
 	MIMEType(&type);
 	type.GetSupertype(&super);
-
+	
+	puts(type.Type());
+	
 	//---------ATT-This code *desperately* needs to be improved
 	if (super == "multipart") {
 		if (type == "multipart/x-bfile")
@@ -219,7 +221,7 @@ status_t MailComponent::Instantiate(BPositionIO *data, size_t /*length*/) {
 			continue;
 		
 		string.CopyInto(piece,0,string.FindFirst(": "));
-		//piece.ToLower(); //-------Unified case for later fetch
+		piece.CapitalizeEachWord(); //-------Unified case for later fetch
 		
 		headers.AddString(piece.String(),string.String() + piece.Length() + 2);
 	}
