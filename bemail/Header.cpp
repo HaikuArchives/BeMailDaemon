@@ -61,6 +61,7 @@ All rights reserved.
 #include "Utilities.h"
 #include "QueryMenu.h"
 #include "FieldMsg.h"
+#include "Prefs.h"
 
 #include <MDRLanguage.h>
 
@@ -70,6 +71,7 @@ extern uint32 gDefaultChain;
 
 const char	*kDateLabel = "Date:";
 const uint32 kMsgFrom = 'hFrm';
+const uint32 kMsgEncoding = 'encd';
 
 
 class QPopupMenu : public QueryMenu
@@ -110,6 +112,7 @@ THeaderView::THeaderView (
 	uint32 defaultCharacterSet
 	) :	BBox(rect, "m_header", B_FOLLOW_LEFT_RIGHT, B_WILL_DRAW, B_NO_BORDER),
 		fAccountMenu(NULL),
+		fEncodingMenu(NULL),
 		fChain(gDefaultChain),
 		fAccountTo(NULL),
 		fAccount(NULL),
@@ -128,7 +131,7 @@ THeaderView::THeaderView (
 	BFont font = *be_plain_font;
 	font.SetSize(FONT_SIZE);
 	SetFont(&font);
-	float x = font.StringWidth(
+	float x = font.StringWidth( /* The longest title string in the header area */
 		MDR_DIALECT_CHOICE ("Enclosures: ","添付ファイル：")) + 9;
 	float y = TO_FIELD_V;
 
@@ -178,17 +181,54 @@ THeaderView::THeaderView (
 		AddChild(field);
 	}
 
-	//	"From:" accounts Menu
+	// "From:" accounts Menu and Encoding Menu.
 	if (!fIncoming || resending)
 	{
+		bool marked;
+		float widestStringWidth;
+
+		// First do the pop-up encoding menu, to the right of the From Account
+		// menu.  It lets the user quickly select a character set different
+		// from the application wide default one, and also shows them which
+		// character set is active.  Only works for encoding, not for decoding
+		// existing emails (due to some awkwardness in overriding the library
+		// and the need to reload the message).
+
+		fEncodingMenu = new BPopUpMenu(B_EMPTY_STRING);
+		marked = false;
+		widestStringWidth = 0;
+		for (int32 i = 0; kEncodings[i].flavor != MDR_NULL_CONVERSION; i++) {
+			msg = new BMessage(kMsgEncoding);
+			msg->AddInt32 ("charset", kEncodings[i].flavor);
+			BMenuItem *item = new BMenuItem (kEncodings[i].name, msg);
+			if (kEncodings[i].flavor == fCharacterSetForEncoding && !marked) {
+				item->SetMarked (true);
+				marked = true;
+			}
+			fEncodingMenu->AddItem (item);
+			if (font.StringWidth (kEncodings[i].name) > widestStringWidth)
+				widestStringWidth = font.StringWidth (kEncodings[i].name);
+		}
+
+		r.Set (windowRect.Width() - widestStringWidth - 40,
+			y - 1, windowRect.Width() - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT);
+		field = new BMenuField (r, "encoding", ENCODING_TEXT, fEncodingMenu,
+			B_FOLLOW_TOP | B_FOLLOW_LEFT,
+			B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
+		field->SetFont (&font);
+		field->SetDivider (font.StringWidth(ENCODING_TEXT) + 5);
+		AddChild(field);
+
+		// And now the "from account" pop-up menu, on the left side, taking the
+		// remaining space.
+
 		fAccountMenu = new BPopUpMenu(B_EMPTY_STRING);
-		//fAccountMenu->SetRadioMode(true);
 
 		BList chains;
 		if (Mail::OutboundChains(&chains) >= B_OK)
 		{
 			BMessage *msg;
-			bool marked = false;
+			marked = false;
 			for (int32 i = 0;i < chains.CountItems();i++)
 			{
 				Mail::Chain *chain = (Mail::Chain *)chains.ItemAt(i);
@@ -229,14 +269,16 @@ THeaderView::THeaderView (
 			}
 		}
 		r.Set(x - font.StringWidth(FROM_TEXT) - 11, y - 1,
-			  windowRect.Width() - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT);
-		y += FIELD_HEIGHT;
-		field = new BMenuField(r, "account", "From:", fAccountMenu,B_FOLLOW_TOP,
-								B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
+			  field->Frame().left - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT);
+		field = new BMenuField(r, "account", FROM_TEXT, fAccountMenu,
+			false /* fixedSize */,
+			B_FOLLOW_TOP | B_FOLLOW_LEFT,
+			B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
 		field->SetFont(&font);
-		field->SetDivider(font.StringWidth("From:") + 11);
-		//menu->SetAlignment(B_ALIGN_RIGHT);
+		field->SetDivider(font.StringWidth(FROM_TEXT) + 11);
 		AddChild(field);
+
+		y += FIELD_HEIGHT;
 	}
 	else	// To: account
 	{
@@ -485,6 +527,14 @@ THeaderView::MessageReceived(BMessage *msg)
 				fChain = chain;
 			break;
 		}
+
+		case kMsgEncoding:
+		{
+			int32 tempInt;
+			if (msg->FindInt32("charset", &tempInt) == B_OK)
+				fCharacterSetForEncoding = tempInt;
+			break;
+		}
 	}
 }
 
@@ -519,6 +569,8 @@ THeaderView::AttachedToWindow(void)
 		fAccount->SetTarget(Looper());
 	if (fAccountMenu)
 		fAccountMenu->SetTargetForItems(this);
+	if (fEncodingMenu)
+		fEncodingMenu->SetTargetForItems(this);
 
 	BBox::AttachedToWindow();
 }
@@ -1049,7 +1101,7 @@ QPopupMenu::AddPersonItem(
 		BMessage *superMsg = superItem->Message();
 		superMsg->AddRef("refs", ref);
 	}
-	
+
 	// Add it to the appropriate menu.  Use alphabetical order by sortKey to
 	// insert it in the right spot (a dumb linear search so this will be slow).
 	// Start searching from the end of the menu, since the main menu includes

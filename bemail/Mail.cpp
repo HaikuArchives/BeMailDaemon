@@ -2791,18 +2791,22 @@ TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 status_t
 TMailWindow::Send(bool now)
 {
-	mail_encoding encodingRelatedToCharset = quoted_printable;
-	
+	uint32			characterSetToUse = gMailCharacterSet;
+	mail_encoding	encodingRelatedToCharset = quoted_printable;
+
+	if (fHeaderView != NULL)
+		characterSetToUse = fHeaderView->fCharacterSetForEncoding;
+
 	// Set up the encoding to use for converting binary to printable ASCII.
 	// Normally this will be quoted printable, but for some old software,
 	// particularly Japanese stuff, they only understand base64.  They also
 	// prefer it for the smaller size.
-	if (gMailCharacterSet == B_SJIS_CONVERSION ||
-		gMailCharacterSet == B_EUC_CONVERSION)
+	if (characterSetToUse == B_SJIS_CONVERSION ||
+		characterSetToUse == B_EUC_CONVERSION)
 		encodingRelatedToCharset = base64;
-	else if (gMailCharacterSet == B_JIS_CONVERSION)
+	else if (characterSetToUse == B_JIS_CONVERSION)
 		encodingRelatedToCharset = seven_bit;
-	else if (gMailCharacterSet == B_EUC_KR_CONVERSION)
+	else if (characterSetToUse == B_EUC_KR_CONVERSION)
 		encodingRelatedToCharset = eight_bit;
 
 	if (!now)
@@ -2828,7 +2832,7 @@ TMailWindow::Send(bool now)
 		if (result == B_OK)
 		{
 			Zoidberg::Mail::Message mail(&file);
-			mail.SetTo(fHeaderView->fTo->Text(), gMailCharacterSet, quoted_printable);
+			mail.SetTo(fHeaderView->fTo->Text(), characterSetToUse, quoted_printable);
 
 			if (fHeaderView->fChain != ~0L)
 				mail.SendViaAccount(fHeaderView->fChain);
@@ -2848,11 +2852,11 @@ TMailWindow::Send(bool now)
 		// field meant that it got sent out anyway, so pass in empty strings
 		// when changing the header to force it to remove the header.
 
-		fMail->SetTo(fHeaderView->fTo->Text(), gMailCharacterSet, quoted_printable);
+		fMail->SetTo(fHeaderView->fTo->Text(), characterSetToUse, quoted_printable);
 
-		fMail->SetSubject(fHeaderView->fSubject->Text(), gMailCharacterSet, quoted_printable);
+		fMail->SetSubject(fHeaderView->fSubject->Text(), characterSetToUse, quoted_printable);
 
-		fMail->SetCC(fHeaderView->fCc->Text(), gMailCharacterSet, quoted_printable);
+		fMail->SetCC(fHeaderView->fCc->Text(), characterSetToUse, quoted_printable);
 
 		fMail->SetBCC(fHeaderView->fBcc->Text());
 
@@ -2860,7 +2864,7 @@ TMailWindow::Send(bool now)
 
 		// the content text is always added to make sure there is a mail body
 		fMail->SetBodyTextTo("");
-		fContentView->fTextView->AddAsContent(fMail, wrap_mode, gMailCharacterSet,
+		fContentView->fTextView->AddAsContent(fMail, wrap_mode, characterSetToUse,
 			encodingRelatedToCharset);
 
 		if (fEnclosuresView != NULL)

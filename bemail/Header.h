@@ -53,6 +53,7 @@ All rights reserved.
 
 #define TO_TEXT				"To:"
 #define FROM_TEXT			"From:"
+#define ENCODING_TEXT		"Encoding:"
 #define TO_FIELD_H			 39
 #define FROM_FIELD_H		 31
 #define TO_FIELD_V			  7
@@ -103,6 +104,7 @@ class THeaderView : public BBox
 		status_t		LoadMessage(Mail::Message *);
 
 		BPopUpMenu		*fAccountMenu;
+		BPopUpMenu		*fEncodingMenu;
 		int32			fChain;
 		TTextControl	*fAccountTo;
 		TTextControl	*fAccount;

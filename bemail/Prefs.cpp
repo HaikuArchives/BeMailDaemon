@@ -96,12 +96,6 @@ enum	P_MESSAGES			{P_OK = 128, P_CANCEL, P_REVERT, P_FONT,
 
 extern BPoint	prefs_window;
 
-struct EncodingItem
-{
-	char	*name;
-	uint32	flavor;
-};
-
 const EncodingItem kEncodings[] =
 {
 	// B_MS_WINDOWS is a superset of B_ISO1, MS mailers lie and send Windows chars as ISO-1
@@ -121,17 +115,18 @@ const EncodingItem kEncodings[] =
 	{"ISO-8859-13", B_ISO13_CONVERSION},
 	{"ISO-8859-14", B_ISO14_CONVERSION},
 	{"ISO-8859-15", B_ISO15_CONVERSION},
-	{"SHIFT-JIS (obsolete, avoid using)", B_SJIS_CONVERSION},
+	{"SHIFT-JIS (obsolete)", B_SJIS_CONVERSION},
 	{"ISO-2022-JP", B_JIS_CONVERSION},
-	{"EUC-JP (obsolete, avoid using)", B_EUC_CONVERSION},
+	{"EUC-JP (obsolete)", B_EUC_CONVERSION},
 	{"EUC-KR",      B_EUC_KR_CONVERSION},
 	{"KOI8-R",      B_KOI8R_CONVERSION},
 	{"Windows-1251",B_MS_WINDOWS_1251_CONVERSION},
-	{"Windows-1252 (Windows ANSI)",B_MS_WINDOWS_CONVERSION},
+	{"Windows-1252 (\"ANSI\")",B_MS_WINDOWS_CONVERSION},
 	{"DOS-437 (common)", B_MS_DOS_CONVERSION},
 	{"DOS-866 (rarer)", B_MS_DOS_866_CONVERSION},
 	{"Macintosh Roman", B_MAC_ROMAN_CONVERSION},
-	{"UTF-8 (BeOS Native)", MDR_UTF8_CONVERSION}
+	{"UTF-8 (BeOS Native)", MDR_UTF8_CONVERSION},
+	{NULL, MDR_NULL_CONVERSION}
 };
 
 #define  ATTRIBUTE_ON_TEXT MDR_DIALECT_CHOICE ("Include BeOS Attributes in Attachments", "BeOSの属性を付ける")
@@ -448,7 +443,7 @@ TPrefsWindow::MessageReceived(BMessage *msg)
 				if (item)
 					item->SetMarked(true);
 
-				for (uint32 index = 0; index < sizeof(kEncodings) / sizeof(kEncodings[0]); index++)
+				for (uint32 index = 0; kEncodings[index].flavor != MDR_NULL_CONVERSION; index++)
 				{
 					if (kEncodings[index].flavor == *fNewEncoding)
 					{
@@ -873,7 +868,7 @@ TPrefsWindow::BuildEncodingMenu(uint32 encoding)
 	BPopUpMenu	*menu;
 
 	menu = new BPopUpMenu("");
-	for (loop = 0; loop < sizeof(kEncodings) / sizeof(kEncodings[0]); loop++) {
+	for (loop = 0; kEncodings[loop].flavor != MDR_NULL_CONVERSION; loop++) {
 		msg = new BMessage(P_ENC);
 		msg->AddInt32("encoding", kEncodings[loop].flavor);
 		menu->AddItem(item = new BMenuItem(kEncodings[loop].name, msg));

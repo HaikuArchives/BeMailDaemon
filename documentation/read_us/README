@@ -157,6 +157,7 @@ February 18 2003 - v2.0.1b1
 - Add BeOS USer Guide Replacement for the E-mail preferences aaplication.
 - Do a "sync" to flush data to disk at the end of each chain processing, so that a crash soon after receiving e-mail won't lose data.
 - Sort the pop-up lists of e-mail addresses by last name (formerly e-mail address).  Also list people in the groups they belong to and in the main list too.  Note it uses an n-squared stupid sort algorithm, so it will be slow if you have thousands of People files.
+- Added an Encoding menu to chose the character set when sending mail, in case you want to temporarily override the default set in preferences.  Sorry, can't get the pop-up menu to dynamically resize when the window size changes (BeOS BMenuField bug) so they're fixed in place for now.
 
 February 6 2003 - v2.0.0b9
 - Use quoted printable for the headers to avoid base64 extra CRLF insertion which makes a mess if the header (like Subject) is too long to fit on a line.
