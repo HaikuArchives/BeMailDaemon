@@ -46,7 +46,8 @@ class ChainRunner : public BLooper {
 		void RegisterProcessCallback(ChainCallback *callback);
 		// Your callback->Callback() function will be called when
 		// a filter returns MD_PASS_COMPLETE and before we go back
-		// to waiting for new messages.
+		// to waiting for new messages, or when the fetch list
+		// runs out.
 		
 		void RegisterChainCallback(ChainCallback *callback);
 		// Your callback->Callback() function will be called when
