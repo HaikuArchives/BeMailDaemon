@@ -22,6 +22,7 @@
 #include <MenuBar.h>
 #include <TabView.h>
 #include <Box.h>
+#include <Alert.h>
 #include <Bitmap.h>
 #include <Roster.h>
 #include <Resources.h>
@@ -285,11 +286,10 @@ ConfigWindow::ConfigWindow()
 	BPopUpMenu *lookPopUp = new BPopUpMenu(B_EMPTY_STRING);
 	BMessage *msg;
 	const char *windowLookStrings[] = {"Normal, With Tab","Normal, Border Only","Floating","Thin Border","No Border"};
-	const int32 windowLooks[] = {MD_STATUS_LOOK_TITLED,MD_STATUS_LOOK_NORMAL_BORDER,MD_STATUS_LOOK_FLOATING,MD_STATUS_LOOK_THIN_BORDER,MD_STATUS_LOOK_NO_BORDER};
 	for (int32 i = 0;i < 5;i++)
 	{
 		lookPopUp->AddItem(item = new BMenuItem(windowLookStrings[i],msg = new BMessage(kMsgStatusLookChanged)));
-		msg->AddInt32("look",windowLooks[i]);
+		msg->AddInt32("StatusWindowLook",i);
 		if (i == 0)
 			item->SetMarked(true);
 	}
@@ -454,17 +454,18 @@ void ConfigWindow::SaveSettings()
 		settings.SetAutoCheckInterval(time * 1e6);
 		settings.SetCheckOnlyIfPPPUp(fPPPActiveCheckBox->Value() == B_CONTROL_ON);
 
-//		mail_notification how;
-//		how.alert = mAlertOnNewMailCB->Value() == B_CONTROL_ON;
-//		how.beep = mBeepOnNewMailCB->Value() == B_CONTROL_ON;
-//		settings.SetNotifyType(how);
-
 		settings.SetDaemonAutoStarts(fAutoStartCheckBox->Value() == B_CONTROL_ON);
 		int32 index = fStatusModeField->Menu()->IndexOf(fStatusModeField->Menu()->FindMarked());
 		settings.SetShowStatusWindow(index);
 		index = fStatusLookField->Menu()->IndexOf(fStatusLookField->Menu()->FindMarked());
 		settings.SetStatusWindowLook(index);
 	}
+	else
+	{
+		// restore status window look
+		settings.SetStatusWindowLook(settings.StatusWindowLook());
+	}
+
 	settings.SetConfigWindowFrame(Frame());
 	settings.Save();
 
@@ -478,12 +479,7 @@ void ConfigWindow::SaveSettings()
 bool ConfigWindow::QuitRequested()
 {
 	// remove config views
-	for (int32 i = fConfigView->CountChildren();i-- > 0;)
-	{
-		BView *view = fConfigView->ChildAt(i);
-		if (fConfigView->RemoveChild(view))
-			delete view;
-	}
+	((CenterContainer *)fConfigView)->DeleteChildren();
 
 	SaveSettings();
 
@@ -549,6 +545,7 @@ void ConfigWindow::MessageReceived(BMessage *msg)
 		}
 		case kMsgStatusLookChanged:
 		{
+			// the status window look is the only "live" setting
 			BMessenger messenger("application/x-vnd.Be-POST");
 			if (messenger.IsValid())
 				messenger.SendMessage(msg);
@@ -612,15 +609,7 @@ status_t ConfigWindow::SetToGeneralSettings(MailSettings *settings)
 
 	fPPPActiveCheckBox->SetValue(settings->CheckOnlyIfPPPUp());
 
-//	mBeepOnNewMailCB->SetValue(how.beep);
-//	mAlertOnNewMailCB->SetValue(how.alert);
-
 	fAutoStartCheckBox->SetValue(settings->DaemonAutoStarts());
-
-//	if (BMenuItem *item = mTimeTypePU->Menu()->ItemAt(time_type_index))
-//		item->SetMarked(true);
-//	else if (BMenuItem *item = mTimeTypePU->Menu()->ItemAt(0))
-//		item->SetMarked(true);
 
 	if (BMenuItem *item = fStatusModeField->Menu()->ItemAt(settings->ShowStatusWindow()))
 		item->SetMarked(true);
@@ -642,38 +631,28 @@ status_t ConfigWindow::SetToGeneralSettings(MailSettings *settings)
 void ConfigWindow::RevertToLastSettings()
 {
 	// revert general settings
-	MailSettings *settings = new MailSettings();
-	status_t status = SetToGeneralSettings(settings);
+	MailSettings settings = MailSettings();
+
+	// restore status window look
+	settings.SetStatusWindowLook(settings.StatusWindowLook());
+
+	status_t status = SetToGeneralSettings(&settings);
 	if (status != B_OK)
-		printf("Error retrieving general settings: %s\n", strerror(status));
-	delete settings;
+	{
+		char text[256];
+		sprintf(text,"\nThe general settings couldn't be reverted.\n\nError retrieving general settings:\n%s\n",strerror(status));
+		(new BAlert("Error",text,"Ok",NULL,NULL,B_WIDTH_AS_USUAL,B_WARNING_ALERT))->Go();
+	}
 
 	// revert account data
-//	for (int32 i = 0; AccountItem *item = (AccountItem *)mAccountsLV->ItemAt(i); i++)
-//	{
-//		if (item->is_new)
-//		{
-//			item->settings->Delete();
-//			delete item->settings;
-//			mAccountsLV->RemoveItem(item);
-//			delete item;
-//			i--;
-//		}
-//		else
-//		{
-//			item->settings->Reload();
-//		}
-//	}
-//	while (MailAccount *account = (MailAccount *)mDeletedAccounts.RemoveItem(0L))
-//	{
-//		mAccountsLV->AddItem(new AccountItem(account, false));
-//	}
-//	if ((mLastSelectedAccount = (AccountItem *)mAccountsLV->ItemAt(0)))
-//	{
-//		mAccountsLV->Select(0);
-//		SetToAccount(mLastSelectedAccount->settings);
-//	}
-//	else
-//		DisableAccountControls();
+
+	if (fAccountsListView->CurrentSelection() != -1)
+		((CenterContainer *)fConfigView)->DeleteChildren();
+
+	Accounts::Delete();
+	Accounts::Create(fAccountsListView,fConfigView);
+
+	if (fConfigView->CountChildren() == 0)
+		MakeHowToView();
 }
 
