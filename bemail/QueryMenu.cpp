@@ -226,11 +226,9 @@ int32 QueryMenu::QueryThread()
 	fQuery->Fetch();
 
 	// Build Menu
-	// The leash is a work-around for when something in the query breaks and prevents
-	// GetNextRef() from ever returning B_ENTRY_NOT_FOUND
 	entry_ref ref;
 	node_ref node;
-	for (int32 leash = 0;fQuery->GetNextRef(&ref) != B_ENTRY_NOT_FOUND && !fCancelQuery && leash < 128;leash++)
+	while (fQuery->GetNextRef(&ref) == B_OK && !fCancelQuery)
 	{
 		BEntry entry(&ref);
 		entry.GetNodeRef(&node);

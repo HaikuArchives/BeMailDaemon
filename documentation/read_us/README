@@ -150,12 +150,16 @@ ADDON INSTALLATION.
 
 HISTORY:
 
-March 31 2003 - v2.0.1b2
+April 5 2003 - v2.0.1b2
 - Make the encoding menu slide around when resizing the window.  Can only do it for reading a mail message, not when composing, since pop-up menus don't resize (a BeOS bug).
 - Changed encoding to work on a per-word basis to reduce the chance of making words longer than the 75 character RFC2047 limit.  Will even split up a Japanese subject line with no spaces into encoded "words" which should get reassembled without spaces.
 - Changed header encoding to base64 rather than quoted-printable for Asian languages, for cell phone system compatability.
 - Word wrap long header lines so that if you send a message to hundreds of people, the To: header won't go over the 1000 byte line limit.
 - Also recognize Content-Disposition: filename="logo.jpg" as specifying the name, though they really should use "name" rather than "filename".
+- Removed query "leash" limit of 1024 max e-mail addresses in the typing auto-completion list.  Note that as usual the addresses are found via query from files only on the boot volume with the META:email attribute (and META:email[2-5] too), and groups with the META:group attribute.
+- Removed 128 item leash on the pop-up email address choice menu, also avoid deadlock when choosing hundreds of names (which used to exceed the message queue size) by batching them up into one operation.
+- Add All People menu item, now only people not in any group are listed at the bottom of the pop-up address menu.
+- Fixed a PPC (PowerPC CPU version of BeOS) bug in AGMSBayesianSpamServer (atoll wasn't working so word database wasn't read), and changed sound effect format so they work for PPC.
 
 February 20 2003 - v2.0.1b1
 - Yet more Japanese translations, courtesy of Jun Suzki this time.
