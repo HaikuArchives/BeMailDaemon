@@ -54,6 +54,64 @@ extern const CharsetConversionEntry charsets[] =
 };
 
 
+static int handle_non_rfc2047_encoding(char **buffer,size_t *sourceLength)
+{
+	char *string = *buffer;
+	int32 length = *sourceLength;
+	int32 i;
+
+	// check for 8-bit characters
+	for (i = 0;i < length;i++)
+		if (string[i] & 0x80)
+			break;
+	if (i == length)
+		return false;
+
+	// check for groups of 8-bit characters - this code is not very smart;
+	// it just can detect some sort of single-byte encoded stuff, the rest
+	// is regarded as UTF-8
+
+	int32 singletons = 0,doubles = 0;
+
+	for (i = 0;i < length;i++)
+	{
+		if (string[i] & 0x80)
+		{
+			if ((string[i + 1] & 0x80) == 0)
+				singletons++;
+			else doubles++;
+			i++;
+		}
+	}
+printf("singletons = %ld, doubles = %ld\n",singletons,doubles);
+	if (singletons != 0)	// can't be valid UTF-8 anymore, so we assume ISO-Latin-1
+	{
+		int32 state = 0;
+		// just to be sure
+		int32 destLength = length * 4 + 1;
+		char *dest = (char *)malloc(destLength);
+		if (dest == NULL)
+			return 0;
+
+		if (convert_to_utf8(B_ISO1_CONVERSION,string,&length,dest,&destLength,&state) == B_OK)
+		{
+			printf("NON-COMPLIANT-RFC2047: converted from Latin-1: %s\n",string);
+			free(*buffer);
+			*buffer = dest;
+			*sourceLength = destLength;
+			return true;
+		}
+		printf("NON-COMPLIANT-RFC2047: Latin-1 conversion failed for: %s\n",string);
+		free(dest);
+		return false;
+	}
+	printf("NON-COMPLIANT-RFC2047: seems to be UTF-8: %s\n",string);
+
+	// we assume a valid UTF-8 string here, but yes, we don't check it
+	return true;
+}
+
+
 _EXPORT ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 {
 	char *string = *bufp;
@@ -64,21 +122,16 @@ _EXPORT ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 	if (bufp==NULL || *bufp==NULL)
 		return -1;
 	
+	//---------Handle *&&^%*&^ non-RFC compliant, 8bit mail
+	if (handle_non_rfc2047_encoding(bufp,&strLen))
+		return strLen;
+
 	// set up string length
 	if (strLen==0)
 		strLen = strlen(*bufp);
 	char lastChar = (*bufp)[strLen];
 	(*bufp)[strLen] = '\0';
-	
-	//---------Handle *&&^%*&^ non-RFC compliant, 8bit mail
-	{
-	int32 state = 0;
-	int32 len = strLen;
-	//-----Just try
-	convert_to_utf8(B_ISO1_CONVERSION,*bufp,&len,*bufp,&len,&state);
-	strLen = len;
-	}
-	
+
 	//---------Whew! Now for RFC compliant mail
 	for (head = tail = string;
 		((charset = strstr(tail, "=?")) != NULL)
