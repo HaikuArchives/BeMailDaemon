@@ -812,7 +812,7 @@ Message::RenderTo(BDirectory *dir)
 	if (name.Length() <= 0)
 		name = "No Subject";
 	if (name[0] == '.')
-		name[0] = '_'; // Avoid hidden files, starting with a dot.
+		name.Prepend ("_"); // Avoid hidden files, starting with a dot.
 
 	// Convert the date into a year-month-day fixed digit width format, so that
 	// sorting by file name will give all the messages with the same subject in
