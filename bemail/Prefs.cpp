@@ -777,7 +777,7 @@ TPrefsWindow::BuildSizeMenu(BFont *font)
 {
 	char		label[16];
 	uint32		loop;
-	int32		sizes[] = {9, 10, 12, 14, 18, 24};
+	int32		sizes[] = {9, 10, 11, 12, 14, 18, 24};
 	float		size;
 	BMenuItem	*item;
 	BMessage	*msg;
