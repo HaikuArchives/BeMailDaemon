@@ -127,6 +127,11 @@ int32 		gDictCount = 0;
 uint32		gDefaultChain;
 int32		gUseAccountFrom;
 
+// Spam related globals.
+static bool			 gShowSpamGUI = true;
+static BMessenger	 gMessengerToSpamServer;
+static const char	*kSpamServerSignature = "application/x-vnd.agmsmith.AGMSBayesianSpamServer";
+
 static const char *kDraftPath = "mail/draft";
 static const char *kDraftType = "text/x-vnd.Be-MailDraft";
 static const char *kMailFolder = "mail";
@@ -137,6 +142,15 @@ static const char *kIndexDirectory = "word_index";
 static const char *kWordsPath = "/boot/optional/goodies/words";
 static const char *kExact = ".exact";
 static const char *kMetaphone = ".metaphone";
+
+// Text for both the main menu and the pop-up menu.  The short form (for the
+// main menu) stops at the first period.
+static const char * kSpamMenuItemTextArray [4] = {
+	"Spam Training, then Move to Trash.  The system learns this message as an example of spam, then deletes it.", // M_TRAIN_SPAM_AND_DELETE
+	"Spam Training.  Shows the system this message as an example of what your junk e-mail looks like.", // M_TRAIN_SPAM
+	"Untrain.  Useful for undoing previously trained confusing messages, such as your friends talking about spam.", // M_UNTRAIN
+	"Genuine Training.  The system needs to know what good messages look like too, and have roughly as many examples of good as bad!" // M_TRAIN_GENUINE
+};
 
 
 //====================================================================
@@ -322,7 +336,9 @@ TMailApp::~TMailApp()
 void TMailApp::AboutRequested()
 {
 	(new BAlert("", "BeMail\nBy Robert Polic\n\n"
-					"Enhanced by Axel Dörfler and the Dr. Zoidberg crew",
+					"Enhanced by Axel Dörfler and the Dr. Zoidberg crew\n\n"
+					"Mail.cpp $Revision$\n"
+					"Compiled on " __DATE__ " at " __TIME__ ".",
 					"Close"))->Go();
 }
 
@@ -1182,6 +1198,20 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 		fDeleteNext = new BMenuItem(MDR_DIALECT_CHOICE ("Move to Trash","T) 削除"), new BMessage(M_DELETE_NEXT), 'T');
 		menu->AddItem(fDeleteNext);
 		menu->AddSeparatorItem();
+		if (gShowSpamGUI) {
+			int i;
+			int messageCode;
+			char tempString [200];
+			for (i = 0; i < 4; i++) {
+				messageCode = M_TRAIN_SPAM_AND_DELETE + i;
+				strcpy (tempString, kSpamMenuItemTextArray [i]);
+				strchr (tempString, '.') [0] = 0; // Cut off text at the first period.
+				menu->AddItem(new BMenuItem(tempString, new BMessage(messageCode),
+					(messageCode == M_TRAIN_SPAM || messageCode == M_TRAIN_GENUINE) ? 'K' : 0,
+					(messageCode == M_TRAIN_GENUINE) ? B_SHIFT_KEY : 0));
+			}
+			menu->AddSeparatorItem();
+		}
 		fPrevMsg = new BMenuItem(MDR_DIALECT_CHOICE ("Previous Message","B) 前のメッセージ"), new BMessage(M_PREVMSG), 
 		 B_UP_ARROW);
 		menu->AddItem(fPrevMsg);
@@ -1422,6 +1452,10 @@ TMailWindow::BuildButtonBar()
 		button->InvokeOnButton(B_SECONDARY_MOUSE_BUTTON);
 		fPrintButton = bbar->AddButton(MDR_DIALECT_CHOICE ("Print","印刷"), 16, new BMessage(M_PRINT));
 		bbar->AddButton(MDR_DIALECT_CHOICE ("Trash","削除"), 0, new BMessage(M_DELETE_NEXT));
+		if (gShowSpamGUI) {
+			button = bbar->AddButton("Spam", 48, new BMessage(M_SPAM_BUTTON));
+			button->InvokeOnButton(B_SECONDARY_MOUSE_BUTTON);
+		}
 		bbar->AddDivider(5);
 		bbar->AddButton(MDR_DIALECT_CHOICE ("Next","次へ"), 24, new BMessage(M_NEXTMSG));
 		bbar->AddButton(MDR_DIALECT_CHOICE ("Previous","前へ"), 20, new BMessage(M_PREVMSG));
@@ -1771,6 +1805,43 @@ TMailWindow::MessageReceived(BMessage *msg)
 			be_app->PostMessage(&message);
 			break;
 		}
+
+		case M_SPAM_BUTTON:
+		{
+			uint32 buttons;
+			int    i;
+			if (msg->FindInt32("buttons", (int32 *)&buttons) == B_OK
+				&& buttons == B_SECONDARY_MOUSE_BUTTON)
+			{
+				BPopUpMenu menu("Spam Actions", false, false);
+				for (i = 0; i < 4; i++)
+					menu.AddItem(new BMenuItem(kSpamMenuItemTextArray [i], new BMessage(M_TRAIN_SPAM_AND_DELETE + i)));
+				BPoint where;
+				msg->FindPoint("where", &where);
+				BMenuItem *item;
+				if ((item = menu.Go(where, false, false)) != NULL)
+					PostMessage(item->Message());
+				break;
+			}
+			else // Default action for left clicking on the spam button.
+				PostMessage (new BMessage (M_TRAIN_SPAM_AND_DELETE));
+			break;
+		}
+
+		case M_TRAIN_SPAM_AND_DELETE:
+			PostMessage (M_DELETE_NEXT);
+		case M_TRAIN_SPAM:
+			TrainMessageAs ("Spam");
+			break;
+
+		case M_UNTRAIN:
+			TrainMessageAs ("Uncertain");
+			break;
+		
+		case M_TRAIN_GENUINE:
+			TrainMessageAs ("Genuine");
+			break;
+
 		case M_REPLY:
 		{
 			uint32 buttons;
@@ -1816,6 +1887,7 @@ TMailWindow::MessageReceived(BMessage *msg)
 				break;
 			}
 		}
+
 		// Fall Through
 		case M_REPLY_ALL:
 		case M_REPLY_TO_SENDER:
@@ -3233,6 +3305,78 @@ status_t TMailWindow::SaveAsDraft()
 	fChanged = false;
 	
 	return B_OK;
+}
+
+
+status_t TMailWindow::TrainMessageAs (const char *CommandWord)
+{
+	status_t	errorCode = -1;
+	char		errorString [1500];
+	BEntry		fileEntry;
+	BPath		filePath;
+	BMessage	replyMessage;
+	BMessage	scriptingMessage;
+	team_id		serverTeam;
+
+	if (fRef == NULL)
+		goto ErrorExit; // Need to have a real file and name.
+	errorCode = fileEntry.SetTo (fRef, true /* traverse */);
+	if (errorCode != B_OK)
+		goto ErrorExit;
+	errorCode = fileEntry.GetPath (&filePath);
+	if (errorCode != B_OK)
+		goto ErrorExit;
+	fileEntry.Unset ();
+
+	// Get a connection to the spam database server.  Launch if needed.
+
+	if (!gMessengerToSpamServer.IsValid ()) {
+		// Make sure the server is running.
+		if (!be_roster->IsRunning (kSpamServerSignature)) {
+			errorCode = be_roster->Launch (kSpamServerSignature);
+			if (errorCode != B_OK)
+				goto ErrorExit;
+		}
+
+		// Set up the messenger to the database server.
+		errorCode = B_SERVER_NOT_FOUND;
+		serverTeam = be_roster->TeamFor (kSpamServerSignature);
+		if (serverTeam < 0)
+			goto ErrorExit;
+		gMessengerToSpamServer =
+			BMessenger (kSpamServerSignature, serverTeam, &errorCode);
+		if (!gMessengerToSpamServer.IsValid ())
+			goto ErrorExit;
+	}
+
+	// Ask the server to train on the message.  Give it the command word and
+	// the absolute path name to use.
+
+	scriptingMessage.MakeEmpty ();
+	scriptingMessage.what = B_SET_PROPERTY;
+	scriptingMessage.AddSpecifier (CommandWord);
+	errorCode = scriptingMessage.AddData ("data", B_STRING_TYPE,
+		filePath.Path(), strlen (filePath.Path()) + 1, false /* fixed size */);
+	if (errorCode != B_OK)
+		goto ErrorExit;
+	replyMessage.MakeEmpty ();
+	errorCode = gMessengerToSpamServer.SendMessage (&scriptingMessage,
+		&replyMessage);
+	if (errorCode != B_OK
+		|| replyMessage.FindInt32 ("error", &errorCode) != B_OK
+		|| errorCode != B_OK)
+		goto ErrorExit; // Classification failed in one of many ways.
+
+	return B_OK;
+
+ErrorExit:
+	beep();
+	sprintf (errorString, "Unable to train the message file \"%s\" as %s.  "
+		"Possibly useful error code: %s (%ld).",
+		filePath.Path(), CommandWord, strerror (errorCode), errorCode);
+	(new BAlert("", errorString,
+		MDR_DIALECT_CHOICE ("Ok","了解")))->Go();
+	return errorCode;
 }
 
 

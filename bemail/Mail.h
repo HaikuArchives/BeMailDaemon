@@ -140,7 +140,13 @@ enum MENUS
 	M_NEXTMSG,
 	M_PREVMSG,
 	M_SAVE_POSITION,
-	
+	/* Spam GUI button and menu items.  Order is important. */
+	M_SPAM_BUTTON,
+	M_TRAIN_SPAM_AND_DELETE,
+	M_TRAIN_SPAM,
+	M_UNTRAIN,
+	M_TRAIN_GENUINE,
+
 	M_REDO
 };
 
@@ -262,6 +268,7 @@ class TMailWindow : public BWindow
 		void SetTitleForMessage();
 		void AddEnclosure(BMessage *msg);
 		void BuildButtonBar();
+		status_t TrainMessageAs (const char *CommandWord);
 
 	private:
 		Mail::Message	*fMail;
