@@ -472,7 +472,6 @@ SMTPProtocol::Send(const char *to, const char *from, BPositionIO *message)
 			if (amountToRead > 0) {
 				amountRead = message->Read (data + bufferLen, amountToRead);
 				if (amountRead <= 0 || amountRead > amountToRead)
-
 					amountUnread = 0; // Just stop reading when an error happens.
 				else {
 					amountUnread -= amountRead;
