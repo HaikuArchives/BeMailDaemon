@@ -218,12 +218,9 @@ void DeskbarView::MessageReceived(BMessage *message)
 			break;
 		}
 		case B_QUIT_REQUESTED:
-		{
-			BMessenger mess("application/x-vnd.Be-POST");
-			if (mess.IsValid())
-				mess.SendMessage(message);
+			Zoidberg::Mail::QuitDaemon();
 			break;
-		}
+
 		case B_REFS_RECEIVED:	// open received files in the standard mail application
 		{
 			BMessage argv(B_ARGV_RECEIVED);
