@@ -249,7 +249,7 @@ Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::StatusView *statu
 BView* instantiate_config_panel(BMessage *settings, BMessage *meta_data)
 {
 	Mail::FileConfigView *view = new Mail::FileConfigView(
-		MDR_DIALECT_CHOICE ("Destination Folder:","受信箱フォルダー："),
+		MDR_DIALECT_CHOICE ("Destination Folder:","受信箱："),
 		"path",true,"/boot/home/mail/in");
 	view->SetTo(settings,meta_data);
 

@@ -15,6 +15,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <MDRLanguage.h>
+
 namespace Zoidberg {
 namespace Mail {
 	class _EXPORT ProtocolConfigView;
@@ -100,13 +102,13 @@ ProtocolConfigView::ProtocolConfigView(uint32 options_mask) : BView (BRect(0,0,1
 	rect.bottom = rect.top - 2 + gItemHeight;
 
 	if (options_mask & MP_HAS_HOSTNAME)
-		AddChild(AddTextField(rect,"host","Mail Host:"));
+		AddChild(AddTextField(rect,"host",MDR_DIALECT_CHOICE ("Mail Host:","サーバ名　：")));
 	
 	if (options_mask & MP_HAS_USERNAME)
-		AddChild(AddTextField(rect,"user","User Name:"));
+		AddChild(AddTextField(rect,"user",MDR_DIALECT_CHOICE ("User Name:","ユーザーID：")));
 	
 	if (options_mask & MP_HAS_PASSWORD) {
-		BTextControl *control = AddTextField(rect,"pass","Password:");
+		BTextControl *control = AddTextField(rect,"pass",MDR_DIALECT_CHOICE ("Password:","パスワード："));
 		control->TextView()->HideTyping(true);
 		AddChild(control);
 	}
@@ -115,7 +117,7 @@ ProtocolConfigView::ProtocolConfigView(uint32 options_mask) : BView (BRect(0,0,1
 		AddChild(AddMenuField(rect,"flavor","Connection Type:"));
 	
 	if (options_mask & MP_HAS_AUTH_METHODS)
-		AddChild(AddMenuField(rect,"auth_method","Authentication Method:"));
+		AddChild(AddMenuField(rect,"auth_method",MDR_DIALECT_CHOICE ("Authentication Method:","認証方法　：")));
 
 	// set divider
 	float width = FindWidestLabel(this);
@@ -125,8 +127,8 @@ ProtocolConfigView::ProtocolConfigView(uint32 options_mask) : BView (BRect(0,0,1
 	}
 
 	if (options_mask & MP_CAN_LEAVE_MAIL_ON_SERVER) {
-		AddChild(AddCheckBox(rect,"leave_mail_remote","Leave Mail On Server",new BMessage('lmos')));
-		BCheckBox *box = AddCheckBox(rect,"delete_remote_when_local","Delete Mail From Server When Deleted Locally");
+		AddChild(AddCheckBox(rect,"leave_mail_remote",MDR_DIALECT_CHOICE ("Leave Mail On Server","受信後にサーバ内のメールを削除しない"),new BMessage('lmos')));
+		BCheckBox *box = AddCheckBox(rect,"delete_remote_when_local",MDR_DIALECT_CHOICE ("Delete Mail From Server When Deleted Locally","端末で削除されたらサーバ保存分も削除"));
 		box->SetEnabled(false);
 		AddChild(box);
 	}

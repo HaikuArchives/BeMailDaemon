@@ -24,6 +24,8 @@ namespace Zoidberg {
 
 #include <FileConfigView.h>
 
+#include <MDRLanguage.h>
+
 const uint32 kMsgSelectButton = 'fsel';
 
 
@@ -52,7 +54,7 @@ FileControl::FileControl(BRect rect,const char *name,const char *label,const cha
 	rect.left = rect.right + 6;
 	rect.right += labelWidth;
 	rect.OffsetBy(0,-3);
-	fButton = new BButton(rect,"select_file","Select" B_UTF8_ELLIPSIS,new BMessage(kMsgSelectButton));
+	fButton = new BButton(rect,"select_file",MDR_DIALECT_CHOICE ("Select","選択") B_UTF8_ELLIPSIS,new BMessage(kMsgSelectButton));
 	AddChild(fButton);
 
 	fPanel = new BFilePanel(B_OPEN_PANEL,NULL,NULL,flavors,false);

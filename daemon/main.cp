@@ -33,6 +33,8 @@
 #include "deskbarview.h"
 #include "LEDAnimation.h"
 
+#include <MDRLanguage.h>
+
 #ifdef BONE
 	#ifdef _KERNEL_MODE
 		#undef _KERNEL_MODE
@@ -113,12 +115,17 @@ void MailDaemonApp::ReadyToRun() {
 	for (new_messages = 0; query->GetNextEntry(&entry) == B_OK; new_messages++);
 	
 	BString string;
-	if (new_messages > 0)
-		string << new_messages;
-	else
-		string << "No";
-		
-	string << " new messages.";
+	MDR_DIALECT_CHOICE (
+		if (new_messages > 0)
+			string << new_messages;
+		else
+			string << "No";
+		string << " new messages.";,
+		if (new_messages > 0)
+			string << new_messages << " 通の未読メッセージがあります ";
+		else
+			string << "未読メッセージはありません";
+	);	
 	
 	status->SetDefaultMessage(string);
 	
@@ -241,11 +248,17 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 		case 'numg':
 			{
 			int32 num_messages = msg->FindInt32("num_messages");
-			alert_string << num_messages << " new message";
-			if (num_messages > 1)
-				alert_string << 's';
-				
-			alert_string << " for " << msg->FindString("chain_name") << '\n';
+			MDR_DIALECT_CHOICE (
+				alert_string << num_messages << " new message";
+				if (num_messages > 1)
+					alert_string << 's';
+	
+				alert_string << " for " << msg->FindString("chain_name") << '\n';,
+
+				alert_string << msg->FindString("chain_name") << "より\n" << num_messages
+					<< " 通のメッセージが届きました";
+			);
+			
 			}
 			break;
 		case B_QUERY_UPDATE:
@@ -262,12 +275,18 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 			}
 			
 			BString string;
-			if (new_messages > 0)
-				string << new_messages;
-			else
-				string << "No";
-				
-			string << " new messages.";
+			
+			MDR_DIALECT_CHOICE (
+				if (new_messages > 0)
+					string << new_messages;
+				else
+					string << "No";
+				string << " new messages.";,
+				if (new_messages > 0)
+					string << new_messages << " 通の未読メッセージがあります";
+				else
+					string << "未読メッセージはありません";
+			);
 			
 			status->SetDefaultMessage(string.String());
 			

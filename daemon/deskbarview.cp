@@ -457,7 +457,9 @@ DeskbarView::BuildMenu()
 	if (fNewMessages > 0)
 	{
 		BString string;
-		string << fNewMessages << " new message" << ((fNewMessages != 1) ? "s" : B_EMPTY_STRING);
+		MDR_DIALECT_CHOICE (
+		string << fNewMessages << " new message" << ((fNewMessages != 1) ? "s" : B_EMPTY_STRING),
+		string << fNewMessages << " 通の未読メッセージ");
 
 		find_directory(B_USER_SETTINGS_DIRECTORY, &path);
 		path.Append("Mail/New E-mail");
@@ -478,7 +480,7 @@ DeskbarView::BuildMenu()
 	else
 	{
 		menu->AddItem(item = new BMenuItem(
-			MDR_DIALECT_CHOICE ("No new messages","新しいメッセージなし"), NULL));
+			MDR_DIALECT_CHOICE ("No new messages","未読メッセージなし"), NULL));
 		item->SetEnabled(false);
 	}
 	

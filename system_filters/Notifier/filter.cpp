@@ -84,17 +84,12 @@ void NotifyCallback::Callback(MDStatus result) {
 		
 	if (strategy & alert) {
 		BString text;
-		text << MDR_DIALECT_CHOICE ("You have ","新しいメッセージ")
-		<< num_messages
-		<< MDR_DIALECT_CHOICE (" new message","件届いています。")
-		<< MDR_DIALECT_CHOICE (
-			((num_messages != 1) ? "s" : ""),
-			"" /* Does Japanese have a plural postfix for numbers?  I assume
-			not so don't append anything to the word "message". */
-			)
-		<< " for "
-		<< chain->Name()
-		<< ".";
+		MDR_DIALECT_CHOICE (
+		text << "You have " << num_messages << " new message" << ((num_messages != 1) ? "s" : "")
+		<< " for " << chain->Name() << ".",
+
+		text << chain->Name() << "より\n" << num_messages << " 通のメッセージが届きました");
+
 		Mail::ShowAlert(
 			MDR_DIALECT_CHOICE ("New Messages","新着メッセージ"),
 			text.String());

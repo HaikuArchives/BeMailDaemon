@@ -14,6 +14,8 @@
 #include <StringList.h>
 #include <ProtocolConfigView.h>
 
+#include <MDRLanguage.h>
+
 #include "pop3.h"
 #include "md5.h"
 
@@ -49,7 +51,7 @@ void POP3Protocol::SetStatusReporter(Mail::StatusView *view)
 
 status_t POP3Protocol::Open(const char *server, int port, int)
 {
-	status_view->SetMessage("Connecting to POP3 Server...");
+	status_view->SetMessage(MDR_DIALECT_CHOICE ("Connecting to POP3 Server...","POP3サーバに接続しています..."));
 
 	if (port <= 0)
 		port = 110;
@@ -58,7 +60,7 @@ status_t POP3Protocol::Open(const char *server, int port, int)
 	
 	//-----Prime the error message
 	BString error_msg;
-	error_msg << "Error while connecting to server " << server;
+	error_msg << MDR_DIALECT_CHOICE ("Error while connecting to server "," サーバに接続中にエラーが発生しました ") << server;
 	if (port != 110)
 		error_msg << ":" << port;
 
@@ -66,7 +68,7 @@ status_t POP3Protocol::Open(const char *server, int port, int)
 	err = conn.Connect(server, port);
 
 	if (err != B_OK) {
-		error_msg << ": Connection refused or host not found";
+		error_msg << MDR_DIALECT_CHOICE (": Connection refused or host not found","：接続が拒否されたかサーバーが見つかりません");
 		pop3_error(error_msg.String());
 		
 		return err;
@@ -81,7 +83,7 @@ status_t POP3Protocol::Open(const char *server, int port, int)
 	}
 	
 	if(strncmp(line.String(),"+OK",3) != 0) {
-		error_msg << ". The server said:\n" << line.String();
+		error_msg << MDR_DIALECT_CHOICE (". The server said:\n","サーバのメッセージです\n") << line.String();
 		pop3_error(error_msg.String());
 			
 		return B_ERROR;	
@@ -98,12 +100,12 @@ status_t POP3Protocol::Login(const char *uid, const char *password, int method)
 	status_t err;
 	
 	BString error_msg;
-	error_msg << "Error while authenticating user " << uid;
+	error_msg << MDR_DIALECT_CHOICE ("Error while authenticating user ","ユーザー認証中にエラーが発生しました ") << uid;
 	
 	if (method == 1) {	//APOP
 		int32 index = fLog.FindFirst("<");
 		if(index != B_ERROR) {
-			status_view->SetMessage("Sending APOP authentication...");		
+			status_view->SetMessage(MDR_DIALECT_CHOICE ("Sending APOP authentication...","APOP認証情報を送信中..."));
 			int32 end = fLog.FindFirst(">",index);
 			BString timestamp("");
 			fLog.CopyInto(timestamp,index,end-index+1);
@@ -118,7 +120,7 @@ status_t POP3Protocol::Login(const char *uid, const char *password, int method)
 
 			err = SendCommand(cmd.String());
 			if (err != B_OK) {
-				error_msg << ". The server said:\n" << fLog;
+				error_msg << MDR_DIALECT_CHOICE (". The server said:\n","サーバのメッセージです\n") << fLog;
 				pop3_error(error_msg.String());
 				
 				return err;
@@ -126,12 +128,12 @@ status_t POP3Protocol::Login(const char *uid, const char *password, int method)
 
 			return B_OK;
 		} else {
-			error_msg << ": The server does not support APOP.";
+			error_msg << MDR_DIALECT_CHOICE (": The server does not support APOP.","サーバはAPOPをサポートしていません");
 			pop3_error(error_msg.String());
 			return B_NOT_ALLOWED;
 		}
 	}
-	status_view->SetMessage("Sending username...");
+	status_view->SetMessage(MDR_DIALECT_CHOICE ("Sending username...","ユーザーIDを送信中..."));
 
 	BString cmd = "USER ";
 	cmd += uid;
@@ -139,20 +141,20 @@ status_t POP3Protocol::Login(const char *uid, const char *password, int method)
 
 	err = SendCommand(cmd.String());
 	if (err != B_OK) {
-		error_msg << ". The server said:\n" << fLog;
+		error_msg << MDR_DIALECT_CHOICE (". The server said:\n","サーバのメッセージです\n") << fLog;
 		pop3_error(error_msg.String());
 		
 		return err;
 	}
 
-	status_view->SetMessage("Sending password...");
+	status_view->SetMessage(MDR_DIALECT_CHOICE ("Sending password...","パスワードを送信中..."));
 	cmd = "PASS ";
 	cmd += password;
 	cmd += CRLF;
 
 	err = SendCommand(cmd.String());
 	if (err != B_OK) {
-		error_msg << ". The server said:\n" << fLog;
+		error_msg << MDR_DIALECT_CHOICE (". The server said:\n","サーバのメッセージです\n") << fLog;
 		pop3_error(error_msg.String());
 		
 		return err;
@@ -164,7 +166,7 @@ status_t POP3Protocol::Login(const char *uid, const char *password, int method)
 
 status_t POP3Protocol::Stat()
 {
-	status_view->SetMessage("Getting mailbox size...");	
+	status_view->SetMessage(MDR_DIALECT_CHOICE ("Getting mailbox size...","メールボックスのサイズを取得しています..."));	
 
 	if (SendCommand("STAT" CRLF) < B_OK)
 		return B_ERROR;
@@ -283,7 +285,7 @@ status_t POP3Protocol::RetrieveInternal(const char *command, int32,
 
 status_t POP3Protocol::UniqueIDs() {
 	status_t ret = B_OK;
-	status_view->SetMessage("Getting UniqueIDs...");
+	status_view->SetMessage(MDR_DIALECT_CHOICE ("Getting UniqueIDs...","固有のIDを取得中..."));
 	
 	ret = SendCommand("UIDL" CRLF);
 	if (ret != B_OK) return ret;

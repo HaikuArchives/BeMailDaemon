@@ -18,6 +18,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <MDRLanguage.h>
+
 namespace Zoidberg {
 namespace Mail {
 	class _EXPORT ChainRunner;
@@ -119,7 +121,11 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 		chain = args->home;
 		runner = args->runner;
 		
-		desc << ((chain->ChainDirection() == inbound) ? "Fetching" : "Sending") << " mail for " << chain->Name();
+		MDR_DIALECT_CHOICE (
+		desc << ((chain->ChainDirection() == inbound) ? "Fetching" : "Sending") << " mail for " << chain->Name(),
+		desc << chain->Name() << ((chain->ChainDirection() == inbound) ? "より受信中..." : "へ送信中...")
+		);
+
 		stat_win = args->status;
 		status = stat_win->NewStatusView(desc.String(),chain->ChainDirection() == outbound);
 		self_destruct = args->self_destruct;

@@ -25,6 +25,8 @@ namespace Mail {
 #include "status.h"
 #include "MailSettings.h"
 
+#include <MDRLanguage.h>
+
 /*------------------------------------------------
 
 StatusWindow
@@ -45,7 +47,7 @@ StatusWindow::StatusWindow(BRect rect, const char *name, uint32 s)
 	BRect frame(Bounds());
 	frame.InsetBy(90.0 + 5.0, 5.0);
 
-	BButton *button = new BButton(frame, "check_mail", "Check Mail Now", new BMessage('mbth'),
+	BButton *button = new BButton(frame, "check_mail", MDR_DIALECT_CHOICE ("Check Mail Now","メールチェック"), new BMessage('mbth'),
 								  B_FOLLOW_LEFT_RIGHT,
 								  B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE | B_NAVIGABLE);
 	button->ResizeToPreferred();
@@ -60,7 +62,7 @@ StatusWindow::StatusWindow(BRect rect, const char *name, uint32 s)
 	message_view = new BStringView(frame, "message_view", "",
 								   B_FOLLOW_LEFT_RIGHT, B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE);
 	message_view->SetAlignment(B_ALIGN_CENTER);
-	message_view->SetText("No new messages.");
+	message_view->SetText(MDR_DIALECT_CHOICE ("No new messages.","未読メッセージはありません"));
 	float framewidth = frame.Width();
 	message_view->ResizeToPreferred();
 	message_view->ResizeTo(framewidth,message_view->Bounds().Height());

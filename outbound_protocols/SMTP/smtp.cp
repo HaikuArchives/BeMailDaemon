@@ -26,6 +26,8 @@
 #include "smtp.h"
 #include "md5.h"
 
+#include <MDRLanguage.h>
+
 using namespace Zoidberg;
 
 
@@ -470,6 +472,7 @@ SMTPProtocol::Send(const char *to, const char *from, BPositionIO *message)
 			if (amountToRead > 0) {
 				amountRead = message->Read (data + bufferLen, amountToRead);
 				if (amountRead <= 0 || amountRead > amountToRead)
+
 					amountUnread = 0; // Just stop reading when an error happens.
 				else {
 					amountUnread -= amountRead;
@@ -608,12 +611,12 @@ instantiate_config_panel(BMessage *settings, BMessage *)
 {
 	Mail::ProtocolConfigView *view = new Mail::ProtocolConfigView(Mail::MP_HAS_AUTH_METHODS | Mail::MP_HAS_USERNAME | Mail::MP_HAS_PASSWORD | Mail::MP_HAS_HOSTNAME);
 
-	view->AddAuthMethod("None", false);
-	view->AddAuthMethod("ESMTP");
-	view->AddAuthMethod("POP3 before SMTP", false);
+	view->AddAuthMethod(MDR_DIALECT_CHOICE ("None","無し"), false);
+	view->AddAuthMethod(MDR_DIALECT_CHOICE ("ESMTP","ESMTP"));
+	view->AddAuthMethod(MDR_DIALECT_CHOICE ("POP3 before SMTP","送信前に受信する"), false);
 
 	BTextControl *control = (BTextControl *)(view->FindView("host"));
-	control->SetLabel("SMTP Host: ");
+	control->SetLabel(MDR_DIALECT_CHOICE ("SMTP Host: ","SMTPサーバ: "));
 	//control->SetDivider(be_plain_font->StringWidth("SMTP Host: "));
 
 	view->SetTo(settings);

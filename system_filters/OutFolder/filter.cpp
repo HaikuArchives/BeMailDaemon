@@ -19,6 +19,8 @@
 #include <status.h>
 #include <FileConfigView.h>
 
+#include <MDRLanguage.h>
+
 using namespace Zoidberg;
 
 
@@ -154,7 +156,7 @@ Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::StatusView *statu
 
 BView* instantiate_config_panel(BMessage *settings,BMessage *metadata)
 {
-	Mail::FileConfigView *view = new Mail::FileConfigView("Source Folder:","path",true,"/boot/home/mail/out");
+	Mail::FileConfigView *view = new Mail::FileConfigView(MDR_DIALECT_CHOICE ("Source Folder:","送信箱："),"path",true,"/boot/home/mail/out");
 	view->SetTo(settings,metadata);
 
 	return view;

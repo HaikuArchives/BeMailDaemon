@@ -71,9 +71,9 @@ AccountConfigView::AccountConfigView(BRect rect,Account *account)
 
 	view->AddChild(fNameControl = new BTextControl(rect,NULL,MDR_DIALECT_CHOICE ("Account Name:","アカウント名："),NULL,new BMessage(kMsgAccountNameChanged)));
 	fNameControl->SetDivider(labelWidth);
-	view->AddChild(fRealNameControl = new BTextControl(rect,NULL,MDR_DIALECT_CHOICE ("Real Name:","名前："),NULL,NULL));
+	view->AddChild(fRealNameControl = new BTextControl(rect,NULL,MDR_DIALECT_CHOICE ("Real Name:","名前　　　　："),NULL,NULL));
 	fRealNameControl->SetDivider(labelWidth);
-	view->AddChild(fReturnAddressControl = new BTextControl(rect,NULL,MDR_DIALECT_CHOICE ("Return Address:","返信アドレス"),NULL,NULL));
+	view->AddChild(fReturnAddressControl = new BTextControl(rect,NULL,MDR_DIALECT_CHOICE ("Return Address:","返信アドレス："),NULL,NULL));
 	fReturnAddressControl->SetDivider(labelWidth);
 //			control->TextView()->HideTyping(true);
 
@@ -86,7 +86,7 @@ AccountConfigView::AccountConfigView(BRect rect,Account *account)
 	for (int32 i = 0;i < 3;i++)
 		chainsPopUp->AddItem(item = new BMenuItem(chainModes[i],new BMessage(kMsgAccountTypeChanged)));
 
-	fTypeField = new BMenuField(rect,NULL,MDR_DIALECT_CHOICE ("Account Type:","アカウントの種類："),chainsPopUp);
+	fTypeField = new BMenuField(rect,NULL,MDR_DIALECT_CHOICE ("Account Type:","用途　　　　："),chainsPopUp);
 	fTypeField->SetDivider(labelWidth + 3);
 	view->AddChild(fTypeField);
 
@@ -540,13 +540,13 @@ FiltersConfigView::FiltersConfigView(BRect rect,Account *account)
 	BMessage *msg;
 	if (fChain = fAccount->Inbound())
 	{
-		menu->AddItem(item = new BMenuItem("Incoming E-mail Filters",msg = new BMessage(kMsgChainSelected)));
+		menu->AddItem(item = new BMenuItem(MDR_DIALECT_CHOICE ("Incoming E-mail Filters","受信フィルタ"),msg = new BMessage(kMsgChainSelected)));
 		msg->AddPointer("chain",fChain);
 		item->SetMarked(true);
 	}
 	if (Mail::Chain *chain = fAccount->Outbound())
 	{
-		menu->AddItem(item = new BMenuItem("Outgoing E-mail Filters",msg = new BMessage(kMsgChainSelected)));
+		menu->AddItem(item = new BMenuItem(MDR_DIALECT_CHOICE ("Outgoing E-mail Filters","送信フィルタ"),msg = new BMessage(kMsgChainSelected)));
 		msg->AddPointer("chain",chain);
 		if (fChain == NULL)
 		{
@@ -576,18 +576,18 @@ FiltersConfigView::FiltersConfigView(BRect rect,Account *account)
 	fListView->SetSelectionMessage(new BMessage(kMsgFilterSelected));
 
 	rect.top = rect.bottom + 8;  rect.bottom = rect.top + height;
-	BRect sizeRect = rect;	sizeRect.right = sizeRect.left + 30 + fChainsField->StringWidth("Add Filter");
+	BRect sizeRect = rect;	sizeRect.right = sizeRect.left + 30 + fChainsField->StringWidth(MDR_DIALECT_CHOICE ("Add Filter","フィルタの追加"));
 
-	menu = new BPopUpMenu("Add Filter");
+	menu = new BPopUpMenu(MDR_DIALECT_CHOICE ("Add Filter","フィルタの追加"));
 	menu->SetRadioMode(false);
 
 	fAddField = new BMenuField(rect,NULL,NULL,menu);
 	fAddField->ResizeToPreferred();
 	AddChild(fAddField);
 
-	sizeRect.left = sizeRect.right + 5;	sizeRect.right = sizeRect.left + 30 + fChainsField->StringWidth("Remove");
+	sizeRect.left = sizeRect.right + 5;	sizeRect.right = sizeRect.left + 30 + fChainsField->StringWidth(MDR_DIALECT_CHOICE ("Remove","削除"));
 	sizeRect.top--;
-	AddChild(fRemoveButton = new BButton(sizeRect,NULL,"Remove",new BMessage(kMsgRemoveFilter),B_FOLLOW_BOTTOM));
+	AddChild(fRemoveButton = new BButton(sizeRect,NULL,MDR_DIALECT_CHOICE ("Remove","削除"),new BMessage(kMsgRemoveFilter),B_FOLLOW_BOTTOM));
 
 	ResizeTo(Bounds().Width(),sizeRect.bottom + 10);
 	SetTo(fChain);
@@ -812,7 +812,9 @@ void FiltersConfigView::MessageReceived(BMessage *msg)
 				
 				if (fChain->AddFilter(to,settings,ref) < B_OK)
 				{
-					(new BAlert("E-mail","Could not move filter, filter deleted.","Ok"))->Go();
+					(new BAlert("E-mail",MDR_DIALECT_CHOICE (
+					"Could not move filter, filter deleted.",
+					"フィルターが削除された為、移動できません"),"Ok"))->Go();
 
 					// the filter view belongs to the moved filter
 					if (fFilterView && fFilterView->fIndex == -1)
