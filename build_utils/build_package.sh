@@ -83,5 +83,7 @@ cp documentation/AGMSBayesianSpam/pictures/*png $BUILD_PATH/AGMSBayesianSpamDocu
 mkdir -p $BUILD_PATH/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/art
 cp -v documentation/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/*html $BUILD_PATH/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/
 cp documentation/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/art/*.* $BUILD_PATH/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/art/
+mkdir -p $BUILD_PATH/Mass\ Mailing
+cp --preserve --verbose documentation/Mass\ Mailing/* $BUILD_PATH/Mass\ Mailing/
 
 mimeset -f $BUILD_PATH
