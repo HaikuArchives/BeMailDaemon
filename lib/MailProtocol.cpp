@@ -66,8 +66,6 @@ Protocol::Protocol(BMessage* settings) : Filter(settings) {
 	
 	settings->FindPointer("chain_runner",(void **)&parent);
 	parent->Chain()->MetaData()->FindFlat("manifest",manifest); //---no error checking, because if it doesn't exist, it will stay empty anyway
-	
-	parent->RegisterProcessCallback(new DeletePass(this));
 };
 
 Protocol::~Protocol() {
@@ -100,6 +98,7 @@ MDStatus Protocol::ProcessMailMessage
 				error_alert("fetching unique ids",error);
 				return MD_NO_MORE_MESSAGES;
 			}
+			parent->RegisterProcessCallback(new DeletePass(this));
 			PrepareStatusWindow(manifest);
 		}
 				
