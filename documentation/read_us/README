@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v2.1.0 Release Candidate 2
+BEOS Mail Daemon Replacement v2.1.0 Release Candidate 3
 
 ABOUT:
 
@@ -149,6 +149,9 @@ ADDON INSTALLATION.
    pretty pictures.  Also see the note about SampleSpamDatabase.
 
 HISTORY:
+
+July 8 2003 - v2.1.0rc3
+- Added Mark Heeren's alternate new mail deskbar icons to the mail daemon resource.  They're a blue and red envelope, rather than the empty and full mailbox icon.  Use QuickRes to copy them over the existing icons in /boot/beos/system/servers/mail_daemon if you want to use them.
 
 July 6 2003 - v2.1.0rc2
 - Fixed some IMAP bugs.  Not all IMAP servers are the same, or even standard.
