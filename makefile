@@ -20,6 +20,8 @@ else
 	CPU = ppc
 endif
 
+MDR_PATH = $(shell pwd)
+
 ifeq ($(shell ls 2>/dev/null -1 /boot/develop/headers/be/bone/bone_api.h), /boot/develop/headers/be/bone/bone_api.h)
 	CPU = bone
 endif
@@ -49,6 +51,13 @@ endif
 package :: default
 	./build_utils/build_package.sh $(shell pwd) v$(VERSION)
 	zip -rym mail_daemon_v$(VERSION)_$(CPU).zip mail_daemon_v$(VERSION)_$(CPU)
+
+srcpackage:
+	mimeset *
+	rm -f /tmp/mail_daemon_v$(VERSION)_src
+	ln -s $(shell pwd) /tmp/mail_daemon_v$(VERSION)_src
+	sh -c "cd /tmp; zip -r $(MDR_PATH)/mail_daemon_v$(VERSION)_src.zip mail_daemon_v$(VERSION)_src -x mail_daemon_v$(VERSION)_src/CVS/ mail_daemon_v$(VERSION)_src/CVSROOT/ mail_daemon_v$(VERSION)_src/CVS/* mail_daemon_v$(VERSION)_src/CVSROOT/* mail_daemon_v$(VERSION)_src/*/obj.*/*  mail_daemon_v$(VERSION)_src/*/obj.*/  mail_daemon_v$(VERSION)_src/*/*/obj.*/*  mail_daemon_v$(VERSION)_src/*/*/obj.*/ mail_daemon_v$(VERSION)_src/*/CVS/* mail_daemon_v$(VERSION)_src/*/CVS/ mail_daemon_v$(VERSION)_src/*/*/CVS/* mail_daemon_v$(VERSION)_src/*/*/CVS/ */.cvsignore mail_daemon_v$(VERSION)_src/*/*/.cvsignore mail_daemon_v$(VERSION)_src/lib/libmail.so mail_daemon_v$(VERSION)_src/build_utils/LanguageSpecificInstallFileName"
+	rm /tmp/mail_daemon_v$(VERSION)_src
 
 clean:
 	-@for f in $(SUBDIRS) ; do \
