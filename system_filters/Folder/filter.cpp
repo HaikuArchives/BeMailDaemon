@@ -156,7 +156,6 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	if ((out_headers->FindBool("ENTIRE_MESSAGE", &tempBool) == B_OK && tempBool)
 		|| !out_headers->HasInt32("SIZE")
 		|| (size_limit < 0 || size_limit >= out_headers->FindInt32("SIZE"))) {
-		puts("Getting whole message!");
 		err = (*io)->Seek(0,SEEK_END); // Force protocol to read the whole message.
 		if (err < 0)
 		{
