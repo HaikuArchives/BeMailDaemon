@@ -157,8 +157,9 @@ Note that if you have a large number of archived e-mail messages on your system,
 
 HISTORY:
 
-March 20 2004 -v2.3.1
+June 3 2004 - v2.3.1
 - Fixed code so IMAP could compile if OpenSSL not used.
+- Added User Provided Scripts directory to the package.
 
 March 9 2004 - v2.3.0
 - Fix date parsing to handle time zone offset numbers inside round brackets.
