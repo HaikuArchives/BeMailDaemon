@@ -472,8 +472,10 @@ TContentView::MessageReceived(BMessage *msg)
 
 				char *signature = (char *)malloc(size);
 				ssize_t bytesRead = file.Read(signature, size);
-				if (bytesRead < B_OK)
+				if (bytesRead < B_OK) {
+					free (signature);
 					break;
+				}
 
 				const char *text = fTextView->Text();
 				int32 length = fTextView->TextLength();
@@ -494,6 +496,7 @@ TContentView::MessageReceived(BMessage *msg)
 
 				fTextView->Select(start, finish);
 				fTextView->ScrollToSelection();
+				free (signature);
 			} else {
 				beep();
 				(new BAlert("", MDR_DIALECT_CHOICE ("An error occurred trying to open this signature.","この署名を開くときにエラーが発生しました"),
