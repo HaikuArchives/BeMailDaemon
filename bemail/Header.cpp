@@ -106,10 +106,6 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 		fFile(NULL),
 		fDate(NULL)
 {
-	char		string[20];
-	BRect		r;
-	BMessage	*msg;
-
 	BFont font = *be_plain_font;
 	font.SetSize(FONT_SIZE);
 	SetFont(&font);
@@ -121,6 +117,9 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 		InitEmailCompletion();
 		InitGroupCompletion();
 	}
+
+	BRect r;
+	char string[20];
 	if (fIncoming && !resending)
 	{
 		r.Set(x - font.StringWidth(FROM_TEXT) - 11, y,
@@ -129,13 +128,12 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 	}
 	else
 	{
-		r.Set(x - 11, y,
-			  windowRect.Width() - SEPERATOR_MARGIN, y + TO_FIELD_HEIGHT);
+		r.Set(x - 11, y, windowRect.Width() - SEPERATOR_MARGIN, y + TO_FIELD_HEIGHT);
 		string[0] = 0;
 	}
 	y += FIELD_HEIGHT;
-	fTo = new TTextControl(r, string, new BMessage(TO_FIELD),
-		fIncoming, resending, B_FOLLOW_LEFT_RIGHT);
+	fTo = new TTextControl(r, string, new BMessage(TO_FIELD), fIncoming, resending,
+						   B_FOLLOW_LEFT_RIGHT);
 
 	if (!fIncoming)
 	{
@@ -143,17 +141,18 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 		fTo->SetAutoComplete(true);
 	}
 	AddChild(fTo);
-	(msg = new BMessage(FIELD_CHANGED))->AddInt32("bitmask", FIELD_TO);
+	BMessage *msg = new BMessage(FIELD_CHANGED);
+	msg->AddInt32("bitmask", FIELD_TO);
 	fTo->SetModificationMessage(msg);
-	
+
 	BMenuField	*field;
-	if (!fIncoming || resending) {
+	if (!fIncoming || resending)
+	{
 		r.right = r.left + 8;
 		r.left = r.right - be_plain_font->StringWidth(TO_TEXT) - 30;
 		r.top -= 1;
 		fToMenu = new QPopupMenu(TO_TEXT);
-		field = new BMenuField(r, "", "", fToMenu, B_FOLLOW_LEFT | B_FOLLOW_TOP,
-													B_WILL_DRAW);
+		field = new BMenuField(r, "", "", fToMenu, B_FOLLOW_LEFT | B_FOLLOW_TOP, B_WILL_DRAW);
 		field->SetDivider(0.0);
 		field->SetEnabled(true);
 		AddChild(field);
@@ -210,7 +209,7 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 			}
 		}
 		r.Set(x - font.StringWidth(FROM_TEXT) - 11, y - 1,
-				windowRect.Width() - SEPERATOR_MARGIN, y + TO_FIELD_HEIGHT);
+			  windowRect.Width() - SEPERATOR_MARGIN, y + TO_FIELD_HEIGHT);
 		y += FIELD_HEIGHT;
 		field = new BMenuField(r, "account", "From:", fAccountMenu,B_FOLLOW_TOP,
 								B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
@@ -234,10 +233,8 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 	
 	if (!fIncoming)
 	{
-		r.Set(x - 11, y,
-			  CC_FIELD_H + CC_FIELD_WIDTH, y + CC_FIELD_HEIGHT);
-		fCc = new TTextControl(r, "", new BMessage(CC_FIELD),
-											fIncoming, false);
+		r.Set(x - 11, y, CC_FIELD_H + CC_FIELD_WIDTH, y + CC_FIELD_HEIGHT);
+		fCc = new TTextControl(r, "", new BMessage(CC_FIELD), fIncoming, false);
 		fCc->SetChoiceList(&emailList);
 		fCc->SetAutoComplete(true);
 		AddChild(fCc);
@@ -248,15 +245,15 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 		r.left = r.right - be_plain_font->StringWidth(CC_TEXT) - 30;
 		r.top -= 1;
 		fCcMenu = new QPopupMenu(CC_TEXT);
-		field = new BMenuField(r, "", "", fCcMenu, B_FOLLOW_LEFT | B_FOLLOW_TOP,
-									B_WILL_DRAW);
+		field = new BMenuField(r, "", "", fCcMenu, B_FOLLOW_LEFT | B_FOLLOW_TOP, B_WILL_DRAW);
 
 		field->SetDivider(0.0);
 		field->SetEnabled(true);
 		AddChild(field);
 
 		r.Set(BCC_FIELD_H + be_plain_font->StringWidth(BCC_TEXT), y,
-		  windowRect.Width() - SEPERATOR_MARGIN, y + BCC_FIELD_HEIGHT);
+			  windowRect.Width() - SEPERATOR_MARGIN, y + BCC_FIELD_HEIGHT);
+		y += FIELD_HEIGHT;
 		fBcc = new TTextControl(r, "", new BMessage(BCC_FIELD),
 						fIncoming, false, B_FOLLOW_LEFT_RIGHT);
 		fBcc->SetChoiceList(&emailList);
@@ -269,13 +266,10 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 		r.left = r.right - be_plain_font->StringWidth(BCC_TEXT) - 30;
 		r.top -= 1;
 		fBccMenu = new QPopupMenu(BCC_TEXT);
-		field = new BMenuField(r, "", "", fBccMenu, B_FOLLOW_LEFT | 
-		  B_FOLLOW_TOP, B_WILL_DRAW);
+		field = new BMenuField(r, "", "", fBccMenu, B_FOLLOW_LEFT | B_FOLLOW_TOP, B_WILL_DRAW);
 		field->SetDivider(0.0);
 		field->SetEnabled(true);
 		AddChild(field);
-		
-		y += FIELD_HEIGHT;
 	}
 	else
 	{

@@ -170,7 +170,10 @@ static int32 decode(char *encoding, void *data, int32 size, bool /*isText*/)
 	return size;
 };
 
+
 //====================================================================
+//	#pragma mark -
+
 
 TContentView::TContentView(BRect rect, bool incoming, BFile *file, BFont *font)
 			 :BView(rect, "m_content", B_FOLLOW_ALL, B_WILL_DRAW |
@@ -198,9 +201,6 @@ TContentView::TContentView(BRect rect, bool incoming, BFile *file, BFont *font)
 	  true);
 	AddChild(scroll);
 }
-
-//--------------------------------------------------------------------
-
 
 
 void TContentView::MessageReceived(BMessage *msg)
@@ -348,7 +348,6 @@ void TContentView::MessageReceived(BMessage *msg)
 	}
 }
 
-//--------------------------------------------------------------------
 
 void TContentView::FindString(const char *str)
 {
@@ -414,7 +413,6 @@ void TContentView::FindString(const char *str)
 	}
 }
 
-//--------------------------------------------------------------------
 
 void TContentView::Focus(bool focus)
 {
@@ -424,7 +422,6 @@ void TContentView::Focus(bool focus)
 	}
 }
 
-//--------------------------------------------------------------------
 
 void TContentView::FrameResized(float /* width */, float /* height */)
 {
@@ -442,6 +439,7 @@ void TContentView::FrameResized(float /* width */, float /* height */)
 
 
 //====================================================================
+//	#pragma mark -
 
 
 TTextView::TTextView(BRect frame, BRect text, bool incoming, BFile *file,
@@ -490,7 +488,6 @@ TTextView::TTextView(BRect frame, BRect text, bool incoming, BFile *file,
 	SetDoesUndo(true);
 }
 
-//--------------------------------------------------------------------
 
 TTextView::~TTextView()
 {
@@ -502,7 +499,6 @@ TTextView::~TTextView()
 	delete_sem(fStopSem);
 }
 
-//--------------------------------------------------------------------
 
 void TTextView::AttachedToWindow()
 {
@@ -516,7 +512,6 @@ void TTextView::AttachedToWindow()
 	}
 }
 
-//--------------------------------------------------------------------
 
 void TTextView::KeyDown(const char *key, int32 count)
 {
@@ -705,7 +700,6 @@ void TTextView::KeyDown(const char *key, int32 count)
 	}
 }
 
-//--------------------------------------------------------------------
 
 void TTextView::MakeFocus(bool focus)
 {
@@ -713,7 +707,6 @@ void TTextView::MakeFocus(bool focus)
 	fParent->Focus(focus);
 }
 
-//--------------------------------------------------------------------
 
 void TTextView::MessageReceived(BMessage *msg)
 {
@@ -972,7 +965,6 @@ void TTextView::MessageReceived(BMessage *msg)
 	}
 }
 
-//--------------------------------------------------------------------
 
 void TTextView::MouseDown(BPoint where)
 {
@@ -1280,7 +1272,6 @@ void TTextView::MouseDown(BPoint where)
 	BTextView::MouseDown(where);
 }
 
-//--------------------------------------------------------------------
 
 void TTextView::MouseMoved(BPoint where, uint32 code, const BMessage *msg)
 {
@@ -1311,7 +1302,6 @@ void TTextView::MouseMoved(BPoint where, uint32 code, const BMessage *msg)
 	BTextView::MouseMoved(where, code, msg);
 }
 
-//--------------------------------------------------------------------
 
 void TTextView::ClearList()
 {
@@ -1335,7 +1325,6 @@ void TTextView::ClearList()
 	}
 }
 
-//--------------------------------------------------------------------
 
 void TTextView::LoadMessage(BFile *file, bool quote_it, bool close,
 							const char *text)
@@ -1373,7 +1362,6 @@ void TTextView::LoadMessage(BFile *file, bool quote_it, bool close,
 							   "reader", B_NORMAL_PRIORITY, info));
 }
 
-//--------------------------------------------------------------------
 
 void TTextView::Open(hyper_text *enclosure)
 {
@@ -1479,7 +1467,6 @@ void TTextView::Open(hyper_text *enclosure)
 	}
 }
 
-//--------------------------------------------------------------------
 
 status_t TTextView::Reader(reader_info *info)
 {
@@ -1540,7 +1527,6 @@ done:;
 	return B_NO_ERROR;
 }
 
-//--------------------------------------------------------------------
 
 status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 {
@@ -1659,7 +1645,6 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 	return result;
 }
 
-//--------------------------------------------------------------------
 
 void TTextView::SaveBeFile(BFile *file, char *data, ssize_t size)
 {
@@ -1753,7 +1738,6 @@ void TTextView::SaveBeFile(BFile *file, char *data, ssize_t size)
 	}
 }
 
-//--------------------------------------------------------------------
 
 void TTextView::StopLoad()
 {
@@ -1769,7 +1753,6 @@ void TTextView::StopLoad()
 	}
 }
 
-//--------------------------------------------------------------------
 
 void TTextView::AddAsContent(MailMessage *mail, bool wrap)
 {
@@ -1881,7 +1864,10 @@ void TTextView::AddAsContent(MailMessage *mail, bool wrap)
 	}
 }
 
+
 //--------------------------------------------------------------------
+//	#pragma mark -
+
 
 status_t release_window_sem(BWindow *window, sem_id *sem)
 {
@@ -1901,7 +1887,6 @@ bool acquire_window_sem(BWindow *window, sem_id *sem)
 	return true;
 }
 
-//--------------------------------------------------------------------
 
 bool insert(reader_info *info, char *line, int32 count, bool hyper)
 {
@@ -2388,6 +2373,8 @@ bool strip_it(char* data, int32 data_len, reader_info *info)
 
 
 //====================================================================
+//	#pragma mark -
+
 
 TSavePanel::TSavePanel(hyper_text *enclosure, TTextView *view)
 		   :BFilePanel(B_SAVE_PANEL)
@@ -2398,7 +2385,6 @@ TSavePanel::TSavePanel(hyper_text *enclosure, TTextView *view)
 		SetSaveText(enclosure->name);
 }
 
-//--------------------------------------------------------------------
 
 void TSavePanel::SendMessage(const BMessenger * /* messenger */, BMessage *msg)
 {
@@ -2414,7 +2400,6 @@ void TSavePanel::SendMessage(const BMessenger * /* messenger */, BMessage *msg)
 	}
 }
 
-//--------------------------------------------------------------------
 
 void TSavePanel::SetEnclosure(hyper_text *enclosure)
 {
@@ -2427,6 +2412,11 @@ void TSavePanel::SetEnclosure(hyper_text *enclosure)
 		Show();
 	Window()->Activate();
 }
+
+
+//--------------------------------------------------------------------
+//	#pragma mark -
+
 
 void TTextView::InsertText(const char *text, int32 length, int32 offset,
 	const text_run_array *runs)

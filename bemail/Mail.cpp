@@ -2429,7 +2429,8 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, bool all)
 	file = new BFile(ref, O_RDONLY);
 	if (file->InitCheck() == B_NO_ERROR) {
 		// set reply-to address and subject
-		if (file->GetAttrInfo(B_MAIL_ATTR_REPLY, &info) == B_NO_ERROR) {
+		if (file->GetAttrInfo(B_MAIL_ATTR_REPLY, &info) == B_NO_ERROR
+			&& info.size > 1) {
 			to = (char *)malloc(info.size);
 			file->ReadAttr(B_MAIL_ATTR_REPLY, B_STRING_TYPE, 0, to, info.size);
 			fHeaderView->fTo->SetText(to);
@@ -2469,9 +2470,17 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, bool all)
 
 				delete chain;
 			}
-			if (BMenuItem *item = fHeaderView->fAccountMenu->FindItem(str))
-				item->SetMarked(true);
 			free(str);
+
+			BMenu *menu = fHeaderView->fAccountMenu;
+			for (int32 i = menu->CountItems();i-- > 0;) {
+				BMenuItem *item = menu->ItemAt(i);
+				BMessage *msg;
+				if (item
+					&& (msg = item->Message()) != NULL
+					&& msg->FindInt32("id") == *(int32 *)&fHeaderView->fChain)
+					item->SetMarked(true);
+			}
 		}
 		
 		window->fContentView->fTextView->GetSelection(&start, &finish);
