@@ -110,7 +110,7 @@ StatusWindow::StatusWindow(BRect rect, const char *name, uint32 s)
 		int32 workspace = general.StatusWindowWorkspaces();
 		int32 workspacesCount = count_workspaces();
 		uint32 workspacesMask = (workspacesCount > 31 ? 0 : 1L << workspacesCount) - 1;
-		if (workspacesMask & workspace)
+		if ((workspacesMask & workspace) && (workspace != Workspaces()))
 			SetWorkspaces(workspace);
 
 		// set look
@@ -164,9 +164,9 @@ void StatusWindow::WorkspaceActivated(int32 workspace, bool active)
 		// make the window visible if the screen's frame doesn't contain it
 		BScreen screen;
 		if (screen.Frame().bottom < window_frame.top)
-			MoveTo(window_frame.left, screen.Frame().bottom - window_frame.Height() - 5);
+			MoveTo(window_frame.left-1, screen.Frame().bottom - window_frame.Height() - 4);
 		if (screen.Frame().right < window_frame.left)
-			MoveTo(window_frame.left, screen.Frame().bottom - window_frame.Height() - 5);
+			MoveTo(window_frame.left-1, screen.Frame().bottom - window_frame.Height() - 4);
 	}
 }
 
@@ -186,7 +186,11 @@ void StatusWindow::MessageReceived(BMessage *msg)
 		case 'wsch':
 		{
 			int32 workspaces;
-			if (msg->FindInt32("StatusWindowWorkSpace",&workspaces) == B_OK)
+			if (msg->FindInt32("StatusWindowWorkSpace",&workspaces) != B_OK)
+				break;
+			if ((Workspaces() != B_ALL_WORKSPACES) && (workspaces != B_ALL_WORKSPACES))
+				break;
+			if (workspaces != Workspaces())
 				SetWorkspaces(workspaces);
 			break;
 		}
