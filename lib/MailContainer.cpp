@@ -32,7 +32,19 @@ typedef struct message_part {
 	// boundary line) in the message file.
 	int32 start;
 
-	// Offset just past the last byte of data, so length == end - start.
+	// Offset just past the last byte of data, so total length == end - start.
+	// Note that the CRLF that starts the next boundary isn't included in the
+	// data, the end points at the start of the next CRLF+Boundary.  This can
+	// lead to weird things like the blank line ending the subheader being the
+	// same as the boundary starting CRLF.  So if you have something malformed
+	// like this:
+	// ------=_NextPart_005_0040_ENBYSXVW.VACTSCVC
+    // Content-Type: text/plain; charset="ISO-8859-1"
+    //
+    // ------=_NextPart_005_0040_ENBYSXVW.VACTSCVC
+    // If you subtract the header length (which includes the blank line) from
+    // the MIME part total length (which doesn't include the blank line - it's
+    // part of the next boundary), you get -2.
 	int32 end;
 } message_part;
 

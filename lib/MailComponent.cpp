@@ -470,7 +470,11 @@ TextComponent::SetToRFC822(BPositionIO *data, size_t length, bool parseNow)
 	off_t position = data->Position();
 	Component::SetToRFC822(data, length);
 
+	// Some malformed MIME headers can have the header running into the
+	// boundary of the next MIME chunk, resulting in a negative length.
 	length -= data->Position() - position;
+	if ((ssize_t) length < 0)
+	  length = 0;
 
 	raw_data = data;
 	raw_length = length;
