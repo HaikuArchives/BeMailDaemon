@@ -313,7 +313,7 @@ status_t Component::MIMEType(BMimeType *mime) {
 	const char *boundaryString;
 	unsigned int i;
 	BMessage msg;
-	const char *typeAsString;
+	const char *typeAsString = NULL;
 	char typeAsLowerCaseString [B_MIME_TYPE_LENGTH];
 
 	// Find the best Content-Type header to use.  There should really be just
