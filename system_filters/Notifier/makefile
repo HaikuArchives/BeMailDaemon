@@ -7,7 +7,7 @@
 ## Application Specific Settings ---------------------------------------------
 
 # specify the name of the binary
-NAME= Notifier
+NAME= New\ Mail\ Notification
 
 # specify the type of binary
 #	APP:	Application

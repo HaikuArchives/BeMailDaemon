@@ -1,4 +1,4 @@
-/* Parser - parses the header of incoming e-mail
+/* Message Parser - parses the header of incoming e-mail
 **
 ** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
 */

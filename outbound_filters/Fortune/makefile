@@ -7,7 +7,7 @@
 ## Application Specific Settings ---------------------------------------------
 
 # specify the name of the binary
-NAME= Fortune
+NAME= Add\ Fortune
 
 # specify the type of binary
 #	APP:	Application

@@ -7,7 +7,7 @@
 ## Application Specific Settings ---------------------------------------------
 
 # specify the name of the binary
-NAME= OutFolder
+NAME= Outbox
 
 # specify the type of binary
 #	APP:	Application

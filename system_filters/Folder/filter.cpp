@@ -1,4 +1,4 @@
-/* Folder - places the incoming mail to their destination folder
+/* Inbox - places the incoming mail to their destination folder
 **
 ** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
 */

@@ -7,7 +7,7 @@
 ## Application Specific Settings ---------------------------------------------
 
 # specify the name of the binary
-NAME= Compatibility
+NAME= R5\ Daemon\ Filter
 
 # specify the type of binary
 #	APP:	Application

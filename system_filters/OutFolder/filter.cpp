@@ -1,4 +1,4 @@
-/* OutFolder - scans outgoing mail in a specific folder
+/* Outbox - scans outgoing mail in a specific folder
 **
 ** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
 */

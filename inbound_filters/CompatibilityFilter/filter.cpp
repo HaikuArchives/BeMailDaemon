@@ -1,4 +1,4 @@
-/* CompatibilityFilter - a filter comparable with the one from the original mail_daemon
+/* R5 Daemon Filter - a filter comparable with the one from the original mail_daemon
 **
 ** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
 */

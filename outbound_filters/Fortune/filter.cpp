@@ -1,4 +1,4 @@
-/* Fortune - adds fortunes to your mail
+/* Add Fortune - adds fortunes to your mail
 **
 ** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
 */

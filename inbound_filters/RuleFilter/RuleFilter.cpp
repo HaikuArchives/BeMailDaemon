@@ -1,4 +1,4 @@
-/* RuleFilter - performs action depending on matching a header value
+/* Match Header - performs action depending on matching a header value
 **
 ** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
 */
@@ -16,9 +16,6 @@ using namespace Zoidberg;
 
 
 //class StatusView;
-
-_EXPORT const char *pretty_name = "Match Header";
-
 
 RuleFilter::RuleFilter(BMessage *settings) : Mail::Filter(settings) {
 	// attribute is adapted to our "capitalize-each-word-in-the-header" policy

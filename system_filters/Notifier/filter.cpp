@@ -1,4 +1,4 @@
-/* Notifier - notifies incoming e-mail
+/* New Mail Notification - notifies incoming e-mail
 **
 ** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
 */
