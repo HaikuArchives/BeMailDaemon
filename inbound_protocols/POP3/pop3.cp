@@ -57,7 +57,8 @@ POP3Protocol::~POP3Protocol()
 }
 
 
-status_t POP3Protocol::Open(const char *server, int port, int)
+status_t
+POP3Protocol::Open(const char *server, int port, int)
 {
 	runner->ReportProgress(0,0,MDR_DIALECT_CHOICE ("Connecting to POP3 Server...","POP3サーバに接続しています..."));
 
@@ -112,8 +113,13 @@ status_t POP3Protocol::Open(const char *server, int port, int)
 	
 	BString line;
 	status_t err;
-	while( (err = ReceiveLine(line)) == 0) {}
-	
+	int32 tries = 200000;
+		// no endless loop here
+	while ((err = ReceiveLine(line)) == 0) {
+		if (tries-- < 0)
+			return B_ERROR;
+	}
+
 	if (err < 0) {
 		error_msg << ": " << strerror(err);
 		pop3_error(error_msg.String());
@@ -121,7 +127,7 @@ status_t POP3Protocol::Open(const char *server, int port, int)
 		return B_ERROR;
 	}
 
-	if(strncmp(line.String(),"+OK",3) != 0) {
+	if (strncmp(line.String(), "+OK", 3) != 0) {
 		error_msg << MDR_DIALECT_CHOICE (". The server said:\n","サーバのメッセージです\n") << line.String();
 		pop3_error(error_msg.String());
 
@@ -457,8 +463,10 @@ size_t POP3Protocol::MessageSize(int32 index) {
 }
 
 
-int32 POP3Protocol::ReceiveLine(BString &line) {
-	int32 len = 0,rcv;
+int32
+POP3Protocol::ReceiveLine(BString &line)
+{
+	int32 len = 0, rcv;
 	int8 c = 0;
 	bool flag = false;
 
@@ -482,11 +490,11 @@ int32 POP3Protocol::ReceiveLine(BString &line) {
 	
 	if (result > 0) {
 		while (true) { // Hope there's an end of line out there else this gets stuck.
-			rcv = recv(conn,&c,1,0);
+			rcv = recv(conn, &c, 1, 0);
 			if (rcv < 0)
 				return errno; //--An error!
-				
-			if((c == '\n') || (rcv == 0 /* EOF */))
+
+			if ((c == '\n') || (rcv == 0 /* EOF */))
 				break;
 
 			if (c == '\r') {
