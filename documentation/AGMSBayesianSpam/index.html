@@ -7,6 +7,9 @@
 <META NAME="description" CONTENT="Documentation for AGMSBayesianSpam, for classifying incoming e-mail messages as spam (junk mail) or genuine.">
 <!--
 ; $Log$
+; Revision 1.6  2002/11/29 22:20:02  agmsmith
+; Updated version numbers in the text
+;
 ; Revision 1.5  2002/11/28 21:19:41  agmsmith
 ; Updated to explain how to check for spam without downloading the
 ; whole message.
@@ -47,7 +50,7 @@
 <BR>Author: agmsmith@rogers.com (Alexander G. M. Smith)
 <BR>Uploader: agmsmith@rogers.com (Alexander G. M. Smith)
 <BR>Website: <A HREF="http://members.rogers.com/agmsmith/">http://members.rogers.com/agmsmith/</A>
-<BR>Version: 1.65
+<BR>Version: 1.68
 <BR>Type: internet &amp; network/e-mail
 <BR>Requires: BeOS 5.0+
 <BR>Related things: <A HREF="http://www.paulgraham.com/spam.html">http://www.paulgraham.com/spam.html</A>, <A HREF="http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html">http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html</A></FONT>
@@ -68,6 +71,7 @@
   <UL>
     <LI><A HREF="#CommandLine">Command Line Mode and Scripting</A>
     <LI><A HREF="#Spreadsheet">Using a Spreadsheet to Examine Word Statistics</A>
+    <LI><A HREF="#WordDisplay">Understanding and Using the Word Display</A>
     <LI><A HREF="#Tokenizing">Tokenizing Modes Compared</A>
     <LI><A HREF="#HeadersOnly">High Speed and High Danger - Headers Only Trick</A>
   </UL>
@@ -497,6 +501,45 @@ HREF="file:/boot/home/config/settings/AGMSBayesianSpam/AGMSBayesianSpam%20Databa
 >/boot/home/config/settings/AGMSBayesianSpam/AGMSBayesianSpam Database</A>".
 Have fun!
 
+
+<H2><A NAME="WordDisplay"></A>Understanding and Using the Word Display</H2>
+
+<P><IMG ALIGN="RIGHT" SRC="pictures/WordDisplay.png" WIDTH="285" HEIGHT="645"
+ALT="[Narrow Word Display Window]">The word display tells you more than you
+need to know about the words in the database.  Those colour bars actually mean
+something.
+
+<P>Obviously words which are more genuine than spamish show up in <FONT
+COLOR="BLUE">blue</FONT>, while spammier words are in <FONT
+COLOR="RED">red</FONT>.  It's proportionally based on the total message counts
+so that a word which shows up in 10% of the genuine messages and 9% of the spam
+will show up in blue, even if it was in more spam messages than genuine
+messages (this compensates a bit for not training on an equal number of spam
+and genuine messages).  The length of the bar shows the ratio of the
+proportions; further to the left for larger genuine proportions, and similarly
+further right for larger spam proportions.
+
+<P>The thickness of the bar shows how many messages the word was found in.
+It's kind of a weight, saying how frequently used that word is and thus how
+significant it is.
+
+<P>The paleness of the bar shows you how old that word is.  A light colour
+means that the word was last added to the database long ago.  A darker, more
+saturated colour means that the word was added more recently, when you added
+example messages to the database.
+
+<P>Finally, if you click on the word display, the background will change from a
+pale blue tint into solid white, to show you that it is the active keyboard
+focus.  That means you can type in letters to find a particular word (delay for
+one second to start typing the letters for a new word).  The arrow keys, page
+up/down keys and the mouse scroll wheel also show you different words.  Sorry,
+there's no scroll bar since finding the Nth word is a slow operation with a set
+of words (they aren't numbered); each twitch of the scroll bar would mean going
+through the list of tens or even hundreds of thousands of words and counting to
+find the scroll position.
+
+<BR CLEAR="ALL">
+
 <H2><A NAME="Tokenizing"></A>Tokenizing Modes Compared</H2>
 
 <P>I did some tests with tokenizing different parts of mail messages to see
@@ -595,8 +638,9 @@ Front of Subject" option turned on, and the ratio set to a nice safe high level
 like 0.95 (so that your genuine mail is less likely to get deleted, but it will
 still delete the 1% of your real mail that looks like spam, which is why this
 is dangerous).  Finally in the E-mail preferences, add a "Match Header" filter
-after the spam filter and set it so that If <B>Subject</B> is <B>[Spam*</B>
-then <B>Delete Message</B>.  Now it will download the headers, check them
+after the spam filter and set it so that If <B>Subject</B> is <B>\[Spam*</B>
+then <B>Delete Message</B>.  That's backslash, left square bracket, Spam with
+the S capitalised, asterix.  Now it will download the headers, check them
 against the spam database, and then delete the spam ones on the server without
 downloading the rest of their contents.
 
@@ -617,6 +661,8 @@ accumulated minor changes, which you can see by looking at the log in the top of
 source code files.
 
 <UL>
+  <LI>Version 1.68 nothing significant changed.  Just very minor tweaking.
+
   <LI>Version 1.65 added a time delay for exiting the program.  This is so that
   multiple e-mail accounts can simultaneously download mail, without having the
   server close when one of the accounts finishes downloading.  Scripting
