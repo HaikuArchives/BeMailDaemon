@@ -1,3 +1,9 @@
+/* SimpleProtocol - the base protocol implementation
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <Message.h>
 #include <Path.h>
 #include <String.h>
@@ -5,8 +11,10 @@
 
 #include <stdio.h>
 
+namespace Zoidberg {
 namespace Mail {
 	class _EXPORT SimpleProtocol;
+}
 }
 
 #include <crypt.h>
@@ -17,7 +25,9 @@ namespace Mail {
 
 #include "MessageIO.h"
 
-using Mail::SimpleProtocol;
+
+namespace Zoidberg {
+namespace Mail {
 
 SimpleProtocol::SimpleProtocol(BMessage *settings, Mail::StatusView *view) :
 	Mail::Protocol(settings),
@@ -101,8 +111,8 @@ status_t SimpleProtocol::GetMessage(
 	int32 to_retrieve = unique_ids->IndexOf(uid);
 	if (to_retrieve < 0)
 		return B_NAME_NOT_FOUND;
-		
-	*out_file = new Mail::MessageIO(this,*out_file,to_retrieve);
+
+	*out_file = new Zoidberg::Mail::MessageIO(this,*out_file,to_retrieve);
 	
 	if (out_folder_location != NULL)
 		out_folder_location->SetTo("in");
@@ -121,3 +131,6 @@ status_t SimpleProtocol::DeleteMessage(const char* uid) {
 status_t SimpleProtocol::InitCheck(BString* /*out_message*/) {
 	return error;
 }
+
+}	// namespace Mail
+}	// namespace Zoidberg

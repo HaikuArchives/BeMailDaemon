@@ -1,3 +1,9 @@
+/* POP3Protocol - implementation of the POP3 protocol
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <DataIO.h>
@@ -11,10 +17,15 @@
 #include "pop3.h"
 #include "md5.h"
 
+using namespace Zoidberg;
+
 #define CRLF	"\r\n"
 #define pop3_error(string) (new BAlert("POP3 Error",string,"OK",NULL,NULL,B_WIDTH_AS_USUAL,B_WARNING_ALERT))->Go()
 
-POP3Protocol::POP3Protocol(BMessage *settings, Mail::StatusView *status) : Mail::SimpleProtocol(settings,status) {
+
+POP3Protocol::POP3Protocol(BMessage *settings, Mail::StatusView *status)
+	: Mail::SimpleProtocol(settings,status)
+{
 	Init();
 }
 
@@ -367,7 +378,7 @@ Mail::Filter *instantiate_mailfilter(BMessage *settings, Mail::StatusView *view)
 }
 
 BView* instantiate_config_panel(BMessage *settings,BMessage *) {
-	Mail::ProtocolConfigView *view = new Mail::ProtocolConfigView(Z_HAS_USERNAME | Z_HAS_AUTH_METHODS | Z_HAS_PASSWORD | Z_HAS_HOSTNAME | Z_CAN_LEAVE_MAIL_ON_SERVER);
+	Mail::ProtocolConfigView *view = new Mail::ProtocolConfigView(Mail::Z_HAS_USERNAME | Mail::Z_HAS_AUTH_METHODS | Mail::Z_HAS_PASSWORD | Mail::Z_HAS_HOSTNAME | Mail::Z_CAN_LEAVE_MAIL_ON_SERVER);
 	view->AddAuthMethod("Plain Text");
 	view->AddAuthMethod("APOP");
 	

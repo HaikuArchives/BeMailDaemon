@@ -1,3 +1,9 @@
+/* Parser - parses the header of incoming e-mail
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <Message.h>
 #include <String.h>
 #include <E-mail.h>
@@ -7,17 +13,19 @@
 #include <MailAddon.h>
 #include <mail_util.h>
 
+using namespace Zoidberg;
+
 
 void subject2thread(BString&);
 
-class ParseFilter: public Mail::Filter
+class ParseFilter : public Mail::Filter
 {
 	BString name_field;
 	
   public:
 	ParseFilter(BMessage*);
 	virtual status_t InitCheck(BString *err);
-	virtual MDStatus ProcessMailMessage
+	virtual Mail::MDStatus ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* io_entry,
 		BMessage* io_headers, BPath* io_folder, BString* io_uid
@@ -25,15 +33,18 @@ class ParseFilter: public Mail::Filter
 };
 
 ParseFilter::ParseFilter(BMessage* msg)
-: Mail::Filter(msg), name_field("from")
+	: Mail::Filter(msg), name_field("from")
 {
 	const char *n = msg->FindString("name_field");
 	if (n) name_field = n;
 }
 
-status_t ParseFilter::InitCheck(BString* err){ return B_OK; }
+status_t ParseFilter::InitCheck(BString* err)
+{
+	return B_OK;
+}
 
-MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* headers, BPath*, BString*)
+Mail::MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* headers, BPath*, BString*)
 {
 	char *		buf = NULL;
 	size_t		buflen = 0;
@@ -50,13 +61,13 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 	// Parse the header.  Add each header as a string to
 	// the headers message, under the header's name.
 	//
-	while ((len = readfoldedline(**data, &buf, &buflen)) > 2)
+	while ((len = Mail::readfoldedline(**data, &buf, &buflen)) > 2)
 	{
 		if (buf[len-2] == '\r') len -= 2;
 		else if (buf[len-1] == '\n') --len;
 		
 		// convert to UTF-8
-		len = rfc2047_to_utf8(&buf, &buflen, len);
+		len = Mail::rfc2047_to_utf8(&buf, &buflen, len);
 		
 		// terminate
 		buf[len] = 0;
@@ -87,7 +98,7 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 	// name
 	if (headers->FindString(name_field.String(),0,&string)==B_OK)
 	{
-		StripGook(&string);
+		Mail::StripGook(&string);
 		headers->AddString("NAME",string);
 	}
 	
@@ -98,8 +109,11 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 	//--NathanW says let the disk consumer do that
 	
 	(*data)->Seek(0,SEEK_SET);
-	return MD_OK;
+	return Mail::MD_OK;
 }
 
 Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::StatusView *view)
-{ return new ParseFilter(settings); }
+{
+	return new ParseFilter(settings);
+}
+

@@ -80,6 +80,9 @@ All rights reserved.
 #include "FieldMsg.h"
 #include "Words.h"
 
+
+using namespace Zoidberg;
+
 const char *kUndoStrings[] = {
 	"Undo",
 	"Undo Typing",

@@ -1,12 +1,18 @@
-#ifndef ZOIDBERG_NUMAIL_MAIL_MESSAGE_H
-#define ZOIDBERG_NUMAIL_MAIL_MESSAGE_H
+#ifndef ZOIDBERG_MAIL_MESSAGE_H
+#define ZOIDBERG_MAIL_MESSAGE_H
+/* Message - the main general purpose mail message class
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
 
 
 #include <MailContainer.h>
 
+
+namespace Zoidberg {
 namespace Mail {
 
-class Message : public Mail::Container {
+class Message : public Container {
 	public:
 		Message(BPositionIO *mail_file = NULL);
 		virtual ~Message();
@@ -80,6 +86,7 @@ inline status_t Message::InitCheck() const
 	return _status;
 }
 
-}
+}	// namespace Mail
+}	// namespace Zoidberg
 
-#endif	/* ZOIDBERG_NUMAIL_MAIL_MESSAGE_H */
+#endif	/* ZOIDBERG_MAIL_MESSAGE_H */

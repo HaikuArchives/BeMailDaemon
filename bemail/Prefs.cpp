@@ -51,6 +51,9 @@ All rights reserved.
 #include "Mail.h"
 #include "Prefs.h"
 
+
+using namespace Zoidberg;
+
 #define BUTTON_WIDTH		70
 #define BUTTON_HEIGHT		20
 #define ITEM_SPACE			6

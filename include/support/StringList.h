@@ -1,6 +1,17 @@
+#ifndef ZOIDBERG_STRING_LIST_H
+#define ZOIDBERG_STRING_LIST_H
+/* StringList - a string list implementation
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <Flattenable.h>
 
 class BList;
+
+
+namespace Zoidberg {
 
 class StringList : public BFlattenable {
 	public:
@@ -59,3 +70,7 @@ class StringList : public BFlattenable {
 		int32 _items;
 		BList *_indexed;
 };
+
+}	// namespace Zoidberg
+
+#endif	/* ZOIDBERG_STRING_LIST_H */

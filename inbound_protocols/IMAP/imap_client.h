@@ -1,5 +1,10 @@
-#ifndef __IMAP4CLIENT_H__
-#define __IMAP4CLIENT_H__
+#ifndef ZOIDBERG_IMAP4CLIENT_H
+#define ZOIDBERG_IMAP4CLIENT_H
+/* IMAP4Client - implements the IMAP mail protocol
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
 
 #include <NetworkKit.h>
 #include <String.h>
@@ -7,27 +12,29 @@
 
 #include <MailProtocol.h>
 
-enum{
+
+enum {
 	IMAP_SESSION_CONTINUED = 0,
 	IMAP_SESSION_OK,
 	IMAP_SESSION_BAD	
 };
 
 //! IMAP4 client socket.
-class IMAP4Client :public BNetEndpoint, public Mail::Protocol {
-public:
+class IMAP4Client : public BNetEndpoint, public Zoidberg::Mail::Protocol {
+	public:
 		//!Constructor.
-					IMAP4Client(BMessage *settings,Mail::StatusView *status);
+					IMAP4Client(BMessage *settings,Zoidberg::Mail::StatusView *status);
 					virtual status_t InitCheck(BString* out_message = NULL);
 		//!Destructor.
-	virtual			~IMAP4Client();
+		virtual		~IMAP4Client();
+
 		//!Connect to IMAP4 server.
 		virtual status_t	Open(const char* addr,int port,int protocol);
 		//!Login to IMAP4 server.
 		virtual status_t	Login(const char* login,const char* password, int method);
 		//!Fetch mail list.
 		virtual status_t UniqueIDs();
-		virtual void PrepareStatusWindow(StringList *manifest);
+		virtual void PrepareStatusWindow(Zoidberg::StringList *manifest);
 		//! Select folder and returns how number of mail contains.
 		int32		Select(const char* folder_name); 
 		//!Mark mail as read.
@@ -48,8 +55,8 @@ public:
 		
 		virtual status_t GetNextNewUid
 		(
-			BString* out_uid,
-			StringList *manifest,
+			BString *out_uid,
+			Zoidberg::StringList *manifest,
 			time_t timeout = B_INFINITE_TIMEOUT
 		);
 		virtual status_t GetMessage(
@@ -57,10 +64,12 @@ public:
 			BPositionIO** out_file, BMessage* out_headers,
 			BPath* out_folder_location
 		);
+
 protected:
 		status_t	SendCommand(const char* str);
 		int32		ReceiveLine(BString &out);
 		int32		CheckSessionEnd(const char* line,int32 session);
+
 private:
 		friend class IMAP4Reader;
 		
@@ -78,7 +87,8 @@ private:
 		status_t error;
 		
 		BMessage *_settings;
-		Mail::StatusView *_status;
-		StringList *to_fetch;
+		Zoidberg::Mail::StatusView *_status;
+		Zoidberg::StringList *to_fetch;
 };
-#endif
+
+#endif	/* ZOIDBERG_IMAP4CLIENT_H */

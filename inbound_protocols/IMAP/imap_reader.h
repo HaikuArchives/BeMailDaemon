@@ -1,8 +1,18 @@
+#ifndef ZOIDBERG_IMAP4READER_H
+#define ZOIDBERG_IMAP4READER_H
+/* IMAP4Reader - reads IMAP mails
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
+
 #include <DataIO.h>
 #include <Path.h>
 #include <Message.h>
 
 #include "imap_client.h"
+
 
 class IMAP4Reader : public BPositionIO {
 	public:
@@ -30,3 +40,5 @@ class IMAP4Reader : public BPositionIO {
 		size_t size;
 		int state;
 };
+
+#endif	/* ZOIDBERG_IMAP4READER_H */

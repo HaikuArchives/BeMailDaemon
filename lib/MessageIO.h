@@ -1,7 +1,17 @@
+#ifndef ZOIDBERG_MAIL_MESSAGE_IO_H
+#define ZOIDBERG_MAIL_MESSAGE_IO_H
+/* MessageIO - reading/writing messages (directly from the protocols)
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <DataIO.h>
 #include <Path.h>
 #include <Message.h>
 
+
+namespace Zoidberg {
 namespace Mail {
 
 class SimpleProtocol;
@@ -29,4 +39,7 @@ class MessageIO : public BPositionIO {
 		int state;
 };
 
-}
+}	// namespace Mail
+}	// namespace Zoidberg
+
+#endif	/* ZOIDBERG_MAIL_MESSAGE_IO_H */

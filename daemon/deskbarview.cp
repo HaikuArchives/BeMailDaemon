@@ -3,6 +3,7 @@
 ** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
 */
 
+
 #include <PopUpMenu.h>
 #include <Bitmap.h>
 #include <Rect.h>
@@ -182,13 +183,13 @@ void DeskbarView::MessageReceived(BMessage *message)
 		case MD_CHECK_SEND_NOW:
 			// also happens in DeskbarView::MouseUp() with
 			// B_TERTIARY_MOUSE_BUTTON pressed
-			Mail::CheckMail(true);
+			Zoidberg::Mail::CheckMail(true);
 			break;
 		case MD_CHECK_FOR_MAILS:
-			Mail::CheckMail(false);
+			Zoidberg::Mail::CheckMail(false);
 			break;
 		case MD_SEND_MAILS:
-			Mail::SendQueuedMail();
+			Zoidberg::Mail::SendQueuedMail();
 			break;
 
 		case MD_OPEN_NEW:
@@ -298,7 +299,7 @@ void DeskbarView::MouseUp(BPoint pos)
 		OpenFolder("mail/mailbox");
 
 	if (fLastButtons & B_TERTIARY_MOUSE_BUTTON)
-		Mail::CheckMail(true);
+		Zoidberg::Mail::CheckMail(true);
 }
 
 void DeskbarView::MouseDown(BPoint pos)

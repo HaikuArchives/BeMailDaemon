@@ -25,6 +25,8 @@
 #include <MailSettings.h>
 #include <stdio.h>
 
+using namespace Zoidberg;
+
 static BList gAccounts;
 static BListView *gListView;
 static BView *gConfigView;
@@ -254,7 +256,7 @@ void Account::CreateInbound()
 		(new BAlert("E-mail","Could not create inbound chain.","Ok"))->Go();
 		return;
 	}
-	fInbound->SetChainDirection(inbound);
+	fInbound->SetChainDirection(Mail::inbound);
 
 	BPath path,addOnPath;
 	find_directory(B_USER_ADDONS_DIRECTORY,&addOnPath);
@@ -303,7 +305,7 @@ void Account::CreateOutbound()
 		(new BAlert("E-mail","Could not create outbound chain.","Ok"))->Go();
 		return;
 	}
-	fOutbound->SetChainDirection(outbound);
+	fOutbound->SetChainDirection(Mail::outbound);
 
 	BPath path,addOnPath;
 	find_directory(B_USER_ADDONS_DIRECTORY,&addOnPath);

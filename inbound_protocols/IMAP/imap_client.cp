@@ -1,4 +1,11 @@
+/* IMAP4Client - implements the IMAP mail protocol
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include "imap_client.h"
+
 #include <stdlib.h>
 #include <Alert.h>
 #include <Debug.h>
@@ -10,6 +17,9 @@
 #include <crypt.h>
 
 #include "imap_reader.h"
+
+using namespace Zoidberg;
+
 
 #define CRLF "\r\n";
 

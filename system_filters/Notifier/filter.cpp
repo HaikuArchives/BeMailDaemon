@@ -1,3 +1,9 @@
+/* Notifier - notifies incoming e-mail
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <Message.h>
 #include <String.h>
 #include <Alert.h>
@@ -10,10 +16,13 @@
 
 #include "ConfigView.h"
 
+using namespace Zoidberg;
+
+
 class NotifyCallback : public Mail::ChainCallback {
 	public:
 		NotifyCallback (int32 notification_method, Mail::Chain *us);
-		virtual void Callback(MDStatus result);
+		virtual void Callback(Mail::MDStatus result);
 		
 		uint32 num_messages;
 	private:
@@ -21,12 +30,12 @@ class NotifyCallback : public Mail::ChainCallback {
 		int32 strategy;
 };
 
-class NotifyFilter: public Mail::Filter
+class NotifyFilter : public Mail::Filter
 {
   public:
 	NotifyFilter(BMessage*);
 	virtual status_t InitCheck(BString *err);
-	virtual MDStatus ProcessMailMessage
+	virtual Mail::MDStatus ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* io_entry,
 		BMessage* io_headers, BPath* io_folder, BString* io_uid
@@ -36,8 +45,9 @@ class NotifyFilter: public Mail::Filter
   	NotifyCallback *callback;
 };
 
+
 NotifyFilter::NotifyFilter(BMessage* msg)
-: Mail::Filter(msg)
+	: Mail::Filter(msg)
 {
 	Mail::ChainRunner *runner;
 	msg->FindPointer("chain_runner",(void **)&runner);
@@ -47,21 +57,26 @@ NotifyFilter::NotifyFilter(BMessage* msg)
 	runner->RegisterProcessCallback(callback);
 }
 
-status_t NotifyFilter::InitCheck(BString* err){ return B_OK; }
+status_t NotifyFilter::InitCheck(BString* err)
+{
+	return B_OK;
+}
 
-MDStatus NotifyFilter::ProcessMailMessage(BPositionIO**, BEntry*, BMessage*, BPath*, BString*)
+Mail::MDStatus NotifyFilter::ProcessMailMessage(BPositionIO**, BEntry*, BMessage*, BPath*, BString*)
 {
 	callback->num_messages ++;
 	
-	return MD_OK;
+	return Mail::MD_OK;
 }
 
 NotifyCallback::NotifyCallback (int32 notification_method, Mail::Chain *us) : 
 	strategy(notification_method),
 	chain(us),
-	num_messages(0) {}
+	num_messages(0)
+{
+}
 
-void NotifyCallback::Callback(MDStatus result) {
+void NotifyCallback::Callback(Mail::MDStatus result) {
 	if (strategy & do_beep)
 		system_beep("New E-mail");
 		
@@ -69,7 +84,7 @@ void NotifyCallback::Callback(MDStatus result) {
 		BString text;
 		text << "You have " << num_messages << " new message" << ((num_messages != 1) ? "s" : "")
 			 << " for " << chain->Name() << ".";
-		ShowAlert("New Messages", text.String());
+		Mail::ShowAlert("New Messages", text.String());
 	}
 	
 	if (strategy & blink_leds)

@@ -60,6 +60,9 @@ All rights reserved.
 #include "QueryMenu.h"
 #include "FieldMsg.h"
 
+
+using namespace Zoidberg;
+
 extern uint32 gDefaultChain;
 
 const char	*kDateLabel = "Date:";

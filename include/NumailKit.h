@@ -1,5 +1,10 @@
 #ifndef NUMAIL_H
 #define NUMAIL_H
+/* Numail Kit - general header for using the kit
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
 //
 // On that mediakit/mailkit schtick
 // The goal of this mail kit is to create a framework for inter-
@@ -53,6 +58,12 @@ BMessenger*& mail_daemon_messenger_func();
 // remove the chain with id in the message's field
 // ChainID
 
+namespace Zoidberg {
+namespace Mail {
+
 status_t WriteMessageFile(const BMessage& archive, const BPath& path, const char* name);
 
-#endif
+}	// namespace Mail
+}	// namespace Zoidberg
+
+#endif	/* ZOIDBERG_NUMAIL_H */

@@ -27,6 +27,8 @@
 
 #include <MailSettings.h>
 
+using namespace Zoidberg;
+
 // AccountConfigView
 const uint32 kMsgAccountTypeChanged = 'atch';
 const uint32 kMsgAccountNameChanged = 'anmc';
@@ -280,7 +282,7 @@ ProtocolsConfigView::ProtocolsConfigView(Mail::Chain *chain,int32 index,BMessage
 
 	path.Append("mail_daemon");
 	
-	if (chain->ChainDirection() == inbound)
+	if (chain->ChainDirection() == Mail::inbound)
 		path.Append("inbound_protocols");
 	else
 		path.Append("outbound_protocols");
@@ -669,7 +671,7 @@ void FiltersConfigView::SetTo(Mail::Chain *chain)
 		delete item;
 	}
 
-	if (chain->ChainDirection() == inbound)
+	if (chain->ChainDirection() == Mail::inbound)
 	{
 		fFirst = 2;		// skip protocol (e.g. POP3), and Parser
 		fLast = 2;		// skip Notifier, and Folder
@@ -712,7 +714,7 @@ void FiltersConfigView::SetTo(Mail::Chain *chain)
 
 	path.Append("mail_daemon");
 	
-	if (fChain->ChainDirection() == inbound)
+	if (fChain->ChainDirection() == Mail::inbound)
 		path.Append("inbound_filters");
 	else
 		path.Append("outbound_filters");

@@ -1,13 +1,22 @@
-#ifndef MAIL_PROTOCOL_H
-#define MAIL_PROTOCOL_H
+#ifndef ZOIDBERG_MAIL_PROTOCOL_H
+#define ZOIDBERG_MAIL_PROTOCOL_H
+/* Protocol - the base class for protocol filters
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
 
 #include <OS.h>
 
 #include <MailAddon.h>
 
+
+namespace Zoidberg {
+
 class StringList;
 
 namespace Mail {
+
 class ChainRunner;
 
 class Protocol : public Filter
@@ -199,7 +208,7 @@ class SimpleProtocol : public Protocol {
 		int32 last_message;
 };
 
-}
+}	// namespace Mail
+}	// namespace Zoidberg
 
-#endif // MAIL_PROTOCOL_H
-
+#endif // ZOIDBERG_MAIL_PROTOCOL_H

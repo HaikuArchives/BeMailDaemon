@@ -1,5 +1,10 @@
 #ifndef ZOIDBERG_NUMAIL_ADDON_H
 #define ZOIDBERG_NUMAIL_ADDON_H
+/* Filter - the base class for all mail filters
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
 
 class BMessage;
 class BView;
@@ -10,6 +15,10 @@ class BView;
 class BString;
 class BPositionIO;
 class BEntry;
+
+
+namespace Zoidberg {
+namespace Mail {
 
 typedef enum
 {
@@ -40,8 +49,6 @@ typedef enum
 	// occur: (1) there are no messages left on the server,
 	// or (2) we run out of disk space. That's it.
 } MDStatus;
-
-namespace Mail {
 
 class StatusView;
 
@@ -95,7 +102,8 @@ class Filter
 	// chain (and thus ChainID) will be called at a time.
 };
 
-}
+}	// namespace Mail
+}	// namespace Zoidberg
 
 //
 // The addon interface: export instantiate_mailfilter()
@@ -115,7 +123,8 @@ extern "C" _EXPORT BView* instantiate_config_panel(BMessage *settings,BMessage *
 // you must cache this pointer yourself! You will never get it again.
 // Also note that it is possible for it to be NULL. 
 
-extern "C" _EXPORT Mail::Filter* instantiate_mailfilter(BMessage *settings,Mail::StatusView *status);
+extern "C" _EXPORT Zoidberg::Mail::Filter* instantiate_mailfilter(BMessage *settings,
+	Zoidberg::Mail::StatusView *status);
 // Return a MailProtocol or MailFilter ready to do its thing,
 // based on settings produced by archiving your config panel.
 // Note that a MailProtocol is a MailFilter, so use
@@ -163,4 +172,5 @@ extern "C" _EXPORT status_t descriptive_name(BMessage *msg, char *buffer);
 // view ordered by the chain type and the chain's AccountName().
 // Their config views should be shown, one after the other,
 // in the config panel.
-#endif
+
+#endif	/* ZOIDBERG_NUMAIL_ADDON_H */

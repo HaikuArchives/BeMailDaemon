@@ -40,6 +40,7 @@
 #include <stdio.h>
 #include <string.h>
 
+using namespace Zoidberg;
 
 // define if you want to have an apply button
 //#define HAVE_APPLY_BUTTON

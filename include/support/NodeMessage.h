@@ -1,5 +1,10 @@
-#ifndef GARGOYLE_NODEMESSAGE_H
-#define GARGOYLE_NODEMESSAGE_H
+#ifndef ZOIDBERG_GARGOYLE_NODE_MESSAGE_H
+#define ZOIDBERG_GARGOYLE_NODE_MESSAGE_H
+/* NodeMessage - "streaming" interface and support functions for BNodes
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
 /*
    These functions gives a nice BMessage interface to node attributes,
    by letting you transfer attributes to and from BMessages.  It makes
@@ -27,4 +32,4 @@ _IMPEXP_MAIL BNode& operator>>(BNode& n, BMessage& m);
 inline const BMessage& operator>>(const BMessage& m, BNode& n){n<<m;return m;}
 inline       BMessage& operator<<(      BMessage& m, BNode& n){n>>m;return m;}
 
-#endif
+#endif	/* ZOIDBERG_GARGOYLE_NODE_MESSAGE_H */

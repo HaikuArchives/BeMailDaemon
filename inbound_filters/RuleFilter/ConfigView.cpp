@@ -1,3 +1,9 @@
+/* RuleFilter's config view - performs action depending on matching a header value
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <MenuField.h>
 #include <PopUpMenu.h>
 #include <Message.h>
@@ -6,6 +12,8 @@
 
 #include <MailAddon.h>
 #include <FileConfigView.h>
+
+using namespace Zoidberg;
 
 const uint32 kMsgActionMoveTo = 'argm';
 const uint32 kMsgActionDelete = 'argd';

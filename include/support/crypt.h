@@ -1,5 +1,5 @@
-#ifndef CRYPT_H
-#define CRYPT_H
+#ifndef ZOIDBERG_CRYPT_H
+#define ZOIDBERG_CRYPT_H
 /* crypt - simple encryption algorithm used for passwords
 **
 ** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
@@ -14,4 +14,4 @@ bool set_passwd(BMessage *msg,const char *name,const char *password);
 
 void passwd_crypt(char *in,char *out,int length);
 
-#endif	/* CRYPT_H */
+#endif	/* ZOIDBERG_CRYPT_H */

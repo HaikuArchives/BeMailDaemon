@@ -1,3 +1,9 @@
+/* Folder - places the incoming mail to their destination folder
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <FileConfigView.h>
 
 #include <Directory.h>
@@ -16,6 +22,7 @@
 #include <ChainRunner.h>
 #include <status.h>
 
+using namespace Zoidberg;
 
 _EXPORT const char *pretty_name = "Incoming Mail Folder";
 
@@ -44,7 +51,8 @@ static const mail_header_field gDefaultFields[] =
 	{ NULL,              NULL,                 0 }
 };
 
-class FolderFilter: public Mail::Filter
+
+class FolderFilter : public Mail::Filter
 {
 	BString dest_string;
 	BDirectory destination;
@@ -53,16 +61,17 @@ class FolderFilter: public Mail::Filter
   public:
 	FolderFilter(BMessage*);
 	virtual status_t InitCheck(BString *err);
-	virtual MDStatus ProcessMailMessage
+	virtual Mail::MDStatus ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* io_entry,
 		BMessage* io_headers, BPath* io_folder, BString* io_uid
 	);
 };
 
+
 FolderFilter::FolderFilter(BMessage* msg)
-: Mail::Filter(msg),
-  chain_id(msg->FindInt32("chain"))
+	: Mail::Filter(msg),
+	chain_id(msg->FindInt32("chain"))
 {
 	Mail::ChainRunner *runner = NULL;
 	msg->FindPointer("chain_runner", (void**)&runner);
@@ -84,7 +93,7 @@ status_t FolderFilter::InitCheck(BString* err)
 	}
 }
 
-MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* out_headers, BPath*, BString* io_uid)
+Mail::MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* out_headers, BPath*, BString* io_uid)
 {
 	BDirectory dir;
 	
@@ -108,9 +117,9 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		BString error;
 		error << "An error occurred while saving the message " << out_headers->FindString("subject") << " to " << path.Path() << ": " << strerror(err);
 		
-		ShowAlert("Folder Error",error.String(),"OK",B_WARNING_ALERT);
+		Mail::ShowAlert("Folder Error",error.String(),"OK",B_WARNING_ALERT);
 		
-		return MD_ERROR;
+		return Mail::MD_ERROR;
 	} else {
 		BNode node(e);
 		
@@ -172,7 +181,7 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		
 		e->Rename(worker.String());
 		
-		return MD_HANDLED;
+		return Mail::MD_HANDLED;
 	}
 }
 

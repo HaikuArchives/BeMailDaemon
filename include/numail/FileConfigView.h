@@ -13,6 +13,8 @@ class BTextControl;
 class BButton;
 
 
+namespace Zoidberg {
+
 class FileControl : public BView
 {
 	public:
@@ -52,6 +54,7 @@ class FileConfigView : public FileControl
 		const char	*fName;
 };
 
-}
+}	// namespace Mail
+}	// namespace Zoidberg
 
 #endif	/* FILE_CONFIG_VIEW */

@@ -1,13 +1,22 @@
+#ifndef ZOIDBERG_SMTP_H
+#define ZOIDBERG_SMTP_H
+/* SMTPProtocol - implementation of the SMTP protocol
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <NetEndpoint.h>
 #include <String.h>
 
 #include <MailAddon.h>
 
-class SMTPProtocol : public Mail::Filter {
+
+class SMTPProtocol : public Zoidberg::Mail::Filter {
 public:
-	SMTPProtocol(BMessage *message, Mail::StatusView *view);
+	SMTPProtocol(BMessage *message, Zoidberg::Mail::StatusView *view);
 	virtual status_t InitCheck(BString *verbose);
-	virtual MDStatus ProcessMailMessage
+	virtual Zoidberg::Mail::MDStatus ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* io_entry,
 		BMessage* io_headers, BPath* io_folder, BString* io_uid
@@ -26,8 +35,10 @@ private:
 	BNetEndpoint conn;
 	BString fLog;
 	BMessage *_settings;
-	Mail::StatusView *status_view;
+	Zoidberg::Mail::StatusView *status_view;
 	int32 fAuthType;
 	
 	status_t err;
 };
+
+#endif	/* ZOIDBERG_SMTP_H */

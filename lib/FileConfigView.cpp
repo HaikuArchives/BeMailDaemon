@@ -14,15 +14,19 @@
 
 class _EXPORT FileControl;
 
+namespace Zoidberg {
 namespace Mail {
 	class _EXPORT FileConfigView;
 }
-
-using Mail::FileConfigView;
+}
 
 #include "FileConfigView.h"
 
 const uint32 kMsgSelectButton = 'fsel';
+
+
+namespace Zoidberg {
+namespace Mail {
 
 
 FileControl::FileControl(BRect rect,const char *name,const char *label,const char *pathOfFile,uint32 flavors)
@@ -170,3 +174,6 @@ status_t FileConfigView::Archive(BMessage *into, bool /*deep*/) const
 	return B_OK;
 }
 
+
+}	// namespace Mail
+}	// namespace Zoidberg

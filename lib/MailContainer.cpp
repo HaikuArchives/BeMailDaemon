@@ -1,3 +1,9 @@
+/* Container - message part container class
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <String.h>
 #include <List.h>
 #include <Mime.h>
@@ -6,14 +12,18 @@
 #include <unistd.h>
 #include <malloc.h>
 
+namespace Zoidberg {
 namespace Mail {
 	class _EXPORT MIMEMultipartContainer;
+}
 }
 
 #include <MailContainer.h>
 #include <MailAttachment.h>
 
-using Mail::MIMEMultipartContainer;
+
+namespace Zoidberg {
+namespace Mail {
 
 typedef struct message_part {
 	message_part(off_t start, off_t end) { this->start = start; this->end = end; }
@@ -308,3 +318,6 @@ status_t MIMEMultipartContainer::RenderToRFC822(BPositionIO *render_to) {
 	
 	return B_OK;
 }
+
+}	// namespace Mail
+}	// namespace Zoidberg

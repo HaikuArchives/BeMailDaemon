@@ -1,3 +1,11 @@
+#ifndef ZOIDBERG_RULE_FILTER_H
+#define ZOIDBERG_RULE_FILTER_H
+/* RuleFilter - performs action depending on matching a header value
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <Message.h>
 #include <List.h>
 #include <MailAddon.h>
@@ -11,13 +19,13 @@ typedef enum {
 	Z_TRASH
 } z_mail_action_flags;
 
-class RuleFilter : public Mail::Filter {
+class RuleFilter : public Zoidberg::Mail::Filter {
 	public:
 							RuleFilter(BMessage *settings);
 		virtual				~RuleFilter() { }					
 		virtual status_t	InitCheck(BString* out_message = NULL);
 		
-		virtual MDStatus	ProcessMailMessage(BPositionIO** io_message,
+		virtual Zoidberg::Mail::MDStatus ProcessMailMessage(BPositionIO** io_message,
 											   BEntry* io_entry,
 											   BMessage* io_headers,
 											   BPath* io_folder,
@@ -29,3 +37,4 @@ class RuleFilter : public Mail::Filter {
 		z_mail_action_flags	do_what;
 };
 
+#endif	/* ZOIDBERG_RULE_FILTER_H */

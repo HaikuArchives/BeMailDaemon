@@ -1,3 +1,9 @@
+/* CompatibilityFilter - a filter comparable with the one from the original mail_daemon
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <Message.h>
 #include <FindDirectory.h>
 #include <Entry.h>
@@ -9,9 +15,13 @@
 #include <image.h>
 #include <stdlib.h>
 #include <MailAddon.h>
+
 #include "NodeMessage.h"
 
-class CompatibilityFilter: public Mail::Filter
+using namespace Zoidberg;
+
+
+class CompatibilityFilter : public Mail::Filter
 {
 	bool enabled;
 	BPath path;
@@ -21,7 +31,7 @@ class CompatibilityFilter: public Mail::Filter
   public:
 	CompatibilityFilter(BMessage*);
 	virtual status_t InitCheck(BString *err);
-	virtual MDStatus ProcessMailMessage
+	virtual Mail::MDStatus ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* io_entry,
 		BMessage* io_headers, BPath* io_folder, BString* io_uid
@@ -29,9 +39,9 @@ class CompatibilityFilter: public Mail::Filter
 };
 
 CompatibilityFilter::CompatibilityFilter(BMessage* msg)
-: Mail::Filter(msg), enabled(msg->FindBool("enabled")), status(B_OK)
+	: Mail::Filter(msg), enabled(msg->FindBool("enabled")), status(B_OK)
 {
-	if(find_directory(B_USER_ADDONS_DIRECTORY, &path) != B_OK) {
+	if (find_directory(B_USER_ADDONS_DIRECTORY, &path) != B_OK) {
 		status = B_NAME_NOT_FOUND;
 		return;
 	}
@@ -39,10 +49,13 @@ CompatibilityFilter::CompatibilityFilter(BMessage* msg)
 	BEntry filter(path.Path());
 }
 
-status_t CompatibilityFilter::InitCheck(BString* err){ return status; }
+status_t CompatibilityFilter::InitCheck(BString* err)
+{
+	return status;
+}
 
-MDStatus CompatibilityFilter::ProcessMailMessage
-(BPositionIO** , BEntry* io_entry, BMessage* headers, BPath* , BString*)
+Mail::MDStatus CompatibilityFilter::ProcessMailMessage
+	(BPositionIO** , BEntry* io_entry, BMessage* headers, BPath* , BString*)
 {
 	int32 ret;
 	
@@ -68,8 +81,10 @@ MDStatus CompatibilityFilter::ProcessMailMessage
 		}
 		else fprintf(stderr,"%s\n", strerror(fil));
 	} 
-	return MD_OK;
+	return Mail::MD_OK;
 }
 
 Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::StatusView*)
-{ return new CompatibilityFilter(settings); }
+{
+	return new CompatibilityFilter(settings);
+}

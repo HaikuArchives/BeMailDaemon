@@ -1,10 +1,16 @@
-#ifndef MAIL_CHAINRUNNER_H
-#define MAIL_CHAINRUNNER_H
+#ifndef ZOIDBERG_MAIL_CHAIN_RUNNER_H
+#define ZOIDBERG_MAIL_CHAIN_RUNNER_H
+/* ChainRunner - runs the mail inbound and outbound chains
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
 
 #include <MailAddon.h>
 #include <MailSettings.h>
 
 
+namespace Zoidberg {
 namespace Mail {
 
 class StatusWindow;
@@ -53,5 +59,6 @@ class ChainRunner {
 };
 
 }	// namespace Mail
+}	// namespace Zoidberg
 
-#endif //MAIL_CHAINRUNNER_H
+#endif	/* ZOIDBERG_MAIL_CHAIN_RUNNER_H */

@@ -1,7 +1,16 @@
-#ifndef MAIL_PROTOCOLCONFIGVIEW_H
-#define MAIL_PROTOCOLCONFIGVIEW_H
+#ifndef ZOIDBERG_PROTOCOL_CONFIG_VIEW_H
+#define ZOIDBERG_PROTOCOL_CONFIG_VIEW_H
+/* ProtocolConfigView - the standard config view for all protocols
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
 
 #include <View.h>
+
+
+namespace Zoidberg {
+namespace Mail {
 
 typedef enum {
 	Z_HAS_AUTH_METHODS 			= 1,
@@ -11,8 +20,6 @@ typedef enum {
 	Z_HAS_HOSTNAME 				= 16,
 	Z_CAN_LEAVE_MAIL_ON_SERVER 	= 32
 } config_options;
-
-namespace Mail {
 
 class ProtocolConfigView : public BView {
 	public:
@@ -30,6 +37,7 @@ class ProtocolConfigView : public BView {
 		virtual void MessageReceived(BMessage *msg);
 };
 
-}
+}	// namespace Mail
+}	// namespace Zoidberg
 
-#endif
+#endif	/* ZOIDBERG_PROTOCOL_CONFIG_VIEW_H */

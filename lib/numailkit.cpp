@@ -1,3 +1,9 @@
+/* Numail Kit - general header for using the kit
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <Messenger.h>
 #include <String.h>
 #include <Entry.h>
@@ -28,7 +34,7 @@ BMessenger *&mail_daemon_messenger_func()
 }
 
 
-status_t WriteMessageFile(const BMessage& archive, const BPath& path, const char* name)
+status_t Zoidberg::Mail::WriteMessageFile(const BMessage& archive, const BPath& path, const char* name)
 {
 	status_t ret = B_OK;
 	BString leaf = name;
@@ -184,3 +190,4 @@ status_t WriteMessageFile(const BMessage& archive, const BPath& path, const char
 	
 	return B_OK;
 }
+

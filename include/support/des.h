@@ -1,5 +1,5 @@
-#ifndef DES_H
-#define DES_H
+#ifndef ZOIDBERG_DES_H
+#define ZOIDBERG_DES_H
 /* DES - encryption algorithm, removed double and triple DES
 **
 ** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
@@ -54,4 +54,4 @@ extern void des_decrypt(char *from,int fromLength,char *to);
 }
 #endif
 
-#endif	/* DES_H */
+#endif	/* ZOIDBERG_DES_H */

@@ -67,8 +67,10 @@ class BFile;
 class BList;
 class BPopupMenu;
 
+namespace Zoidberg {
 namespace Mail {
 	class Message;
+}
 }
 
 struct text_run_array;
@@ -103,7 +105,7 @@ typedef struct
 	char *encoding;
 	int32 text_start;
 	int32 text_end;
-	Mail::Component *component;
+	Zoidberg::Mail::Component *component;
 	bool saved;
 	bool have_ref;
 	entry_ref ref;
@@ -159,7 +161,7 @@ class TTextView : public BTextView
 		void Open(hyper_text*);
 		status_t Save(BMessage *, bool makeNewFile = true);
 		void StopLoad();
-		void AddAsContent(Mail::Message*, bool);
+		void AddAsContent(Zoidberg::Mail::Message *, bool);
 		void CheckSpelling(int32 start, int32 end,
 			int32 flags = S_CLEAR_ERRORS | S_SHOW_ERRORS);
 		void FindSpellBoundry(int32 length, int32 offset, int32 *start,
@@ -178,7 +180,7 @@ class TTextView : public BTextView
 		char *fYankBuffer;
 		int32 fLastPosition;
 		BFile *fFile;
-		Mail::Message *fMail;	// for incoming mails only
+		Zoidberg::Mail::Message *fMail;	// for incoming mails only
 		BFont fFont;
 		TContentView *fParent;
 		sem_id fStopSem;
@@ -201,13 +203,14 @@ class TTextView : public BTextView
 				static status_t Run(void *);
 	
 			private:
-				bool ParseMail(Mail::Container *container,Mail::TextComponent *ignore);
+				bool ParseMail(Zoidberg::Mail::Container *container,
+					Zoidberg::Mail::TextComponent *ignore);
 				bool Process(const char *data, int32 len, bool isHeader = false);
 				bool Insert(const char *line, int32 count, bool isHyperLink, bool isHeader = false);
-	
+
 				bool Lock();
 				status_t Unlock();
-	
+
 				bool fHeader;
 				bool fRaw;
 				bool fQuote;

@@ -1,3 +1,9 @@
+/* Attachment - classes which handle mail attachments
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <DataIO.h>
 #include <String.h>
 #include <File.h>
@@ -8,19 +14,23 @@
 
 #include <malloc.h>
 
+namespace Zoidberg {
 namespace Mail {
 	class _EXPORT SimpleAttachment;
 	class _EXPORT AttributedAttachment;
+}
 }
 
 #include <MailAttachment.h>
 #include <mail_encoding.h>
 #include <NodeMessage.h>
 
-using Mail::SimpleAttachment;
-using Mail::AttributedAttachment;
-
 #include <stdio.h>
+
+
+namespace Zoidberg {
+namespace Mail {
+
 //--------------SimpleAttachment-No attributes or awareness of the file system at large-----
 
 SimpleAttachment::SimpleAttachment()
@@ -280,7 +290,11 @@ status_t SimpleAttachment::RenderToRFC822(BPositionIO *render_to) {
 	return read > 0 ? B_OK : read;
 }
 
+
 //-------AttributedAttachment--Awareness of bfs, sends attributes--
+//	#pragma mark -
+
+
 AttributedAttachment::AttributedAttachment() : MIMEMultipartContainer("++++++BFile++++++"),
 		_data(NULL),
 		_attributes_attach(NULL) {}
@@ -505,3 +519,24 @@ status_t AttributedAttachment::RenderToRFC822(BPositionIO *render_to) {
 status_t AttributedAttachment::MIMEType(BMimeType *mime) {
 	return _data->MIMEType(mime);
 }
+
+
+//	The reserved function stubs
+//	#pragma mark -
+
+void Attachment::_ReservedAttachment1() {}
+void Attachment::_ReservedAttachment2() {}
+void Attachment::_ReservedAttachment3() {}
+void Attachment::_ReservedAttachment4() {}
+void Attachment::_ReservedAttachment5() {}
+
+void SimpleAttachment::_ReservedSimple1() {}
+void SimpleAttachment::_ReservedSimple2() {}
+void SimpleAttachment::_ReservedSimple3() {}
+
+void AttributedAttachment::_ReservedAttributed1() {}
+void AttributedAttachment::_ReservedAttributed2() {}
+void AttributedAttachment::_ReservedAttributed3() {}
+
+}	// namespace Mail
+}	// namespace Zoidberg

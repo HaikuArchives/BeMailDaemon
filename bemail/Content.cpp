@@ -73,6 +73,8 @@ All rights reserved.
 #include "Words.h"
 
 
+using namespace Zoidberg;
+
 const rgb_color kNormalTextColor = { 0, 0, 0, 0};
 const rgb_color kHyperLinkColor = {0, 0, 255, 0};
 const rgb_color kHeaderColor = {72, 72, 72, 0};
@@ -1987,7 +1989,7 @@ bool TTextView::Reader::ParseMail(Mail::Container *container,Mail::TextComponent
 		if (component == ignore)
 			continue;
 
-		if (component->ComponentType() == MC_MULTIPART_CONTAINER)
+		if (component->ComponentType() == Mail::MC_MULTIPART_CONTAINER)
 		{
 			Mail::MIMEMultipartContainer *c = (Mail::MIMEMultipartContainer *)container->GetComponent(i);
 			if (!ParseMail(c,ignore))
@@ -2241,7 +2243,7 @@ status_t TTextView::Reader::Run(void *_this)
 	 		
 		 		memcpy(buffer,header,length);
 
-				length = rfc2047_to_utf8(&buffer, &length, length);
+				length = Mail::rfc2047_to_utf8(&buffer, &length, length);
 
 		 		if (!strncasecmp(header,"Reply-To: ",10)
 		 			|| !strncasecmp(header,"To: ",4)

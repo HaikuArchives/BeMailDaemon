@@ -1,3 +1,9 @@
+/* OutFolder - scans outgoing mail in a specific folder
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <Directory.h>
 #include <String.h>
 #include <Entry.h>
@@ -13,11 +19,13 @@
 #include <status.h>
 #include <FileConfigView.h>
 
+using namespace Zoidberg;
+
 
 class StatusChanger : public Mail::ChainCallback {
 	public:
 		StatusChanger(entry_ref entry);
-		void Callback(MDStatus result);
+		void Callback(Mail::MDStatus result);
 		
 	private:
 		entry_ref to_change;
@@ -35,14 +43,15 @@ class DiskProducer : public Mail::Filter
   public:
 	DiskProducer(BMessage*,Mail::StatusView*);
 	virtual status_t InitCheck(BString *err);
-	virtual MDStatus ProcessMailMessage
+	virtual Mail::MDStatus ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* io_entry,
 		BMessage* io_headers, BPath* io_folder, BString* io_uid
 	);
 };
+
 DiskProducer::DiskProducer(BMessage* msg,Mail::StatusView*status)
-: Mail::Filter(msg)
+	: Mail::Filter(msg)
 {
 	entry_ref entry;
 	mail_flags flags;
@@ -84,7 +93,8 @@ status_t DiskProducer::InitCheck(BString* err)
 {
 	status_t ret = source.InitCheck();
 	
-	if (ret==B_OK) return B_OK;
+	if (ret == B_OK)
+		return B_OK;
 	else
 	{
 		if (err) *err
@@ -94,10 +104,10 @@ status_t DiskProducer::InitCheck(BString* err)
 	}
 }
 
-MDStatus DiskProducer::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* out_headers, BPath*, BString* io_uid)
+Mail::MDStatus DiskProducer::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* out_headers, BPath*, BString* io_uid)
 {
 	if (entries_to_send.CountItems() == 0)
-		return MD_NO_MORE_MESSAGES;
+		return Mail::MD_NO_MORE_MESSAGES;
 		
 	e->Remove();
 	
@@ -114,16 +124,18 @@ MDStatus DiskProducer::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	
 	delete ref;
 	
-	return MD_OK;
+	return Mail::MD_OK;
 }
 
-StatusChanger::StatusChanger(entry_ref entry) :
-	to_change(entry) {}
+StatusChanger::StatusChanger(entry_ref entry)
+	: to_change(entry)
+{
+}
 
-void StatusChanger::Callback(MDStatus result) {
+void StatusChanger::Callback(Mail::MDStatus result) {
 	BNode node(&to_change);
 	
-	if (result == MD_HANDLED) {
+	if (result == Mail::MD_HANDLED) {
 		mail_flags flags = B_MAIL_SENT;
 		
 		node.WriteAttr(B_MAIL_ATTR_FLAGS,B_INT32_TYPE,0,&flags,4);

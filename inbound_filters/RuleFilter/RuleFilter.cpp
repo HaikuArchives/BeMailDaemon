@@ -1,3 +1,9 @@
+/* RuleFilter - performs action depending on matching a header value
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <Node.h>
 #include <String.h>
 
@@ -5,7 +11,10 @@
 
 #include "RuleFilter.h"
 
-class StatusView;
+using namespace Zoidberg;
+
+
+//class StatusView;
 
 _EXPORT const char *pretty_name = "Match Header";
 
@@ -25,17 +34,17 @@ status_t RuleFilter::InitCheck(BString* out_message) {
 	return B_OK;
 }
 
-MDStatus RuleFilter::ProcessMailMessage
+Mail::MDStatus RuleFilter::ProcessMailMessage
 (
 	BPositionIO** , BEntry* entry,
 	BMessage* io_headers, BPath* io_folder, BString* 
 ) {
 	const char *data;
 	if (io_headers->FindString(attribute,&data) < B_OK)
-		return MD_OK; //----That field doesn't exist? NO match
+		return Mail::MD_OK; //----That field doesn't exist? NO match
 
 	if (!matcher.Match(data))
-		return MD_OK; //-----There wasn't an error. We're just not supposed to do anything
+		return Mail::MD_OK; //-----There wasn't an error. We're just not supposed to do anything
 		
 	switch (do_what) {
 		case Z_MOVE_TO:
@@ -43,7 +52,7 @@ MDStatus RuleFilter::ProcessMailMessage
 				io_headers->AddString("DESTINATION",arg);
 			break;
 		case Z_TRASH:
-			return MD_DISCARD;
+			return Mail::MD_DISCARD;
 		case Z_FLAG:
 			{
 			BString string = arg;
@@ -54,7 +63,7 @@ MDStatus RuleFilter::ProcessMailMessage
 			fprintf(stderr,"Unknown do_what: 0x%04x!\n",do_what);
 	}
 	
-	return MD_OK;
+	return Mail::MD_OK;
 }
 
 status_t descriptive_name(BMessage *settings, char *buffer) {
@@ -81,4 +90,6 @@ status_t descriptive_name(BMessage *settings, char *buffer) {
 }
 
 Mail::Filter* instantiate_mailfilter(BMessage* settings,Mail::StatusView *)
-{ return new RuleFilter(settings); }
+{
+	return new RuleFilter(settings);
+}

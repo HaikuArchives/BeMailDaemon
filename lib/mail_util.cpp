@@ -1,3 +1,9 @@
+/* mail util - header parsing
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <UTF8.h>
 #include <String.h>
 #include <DataIO.h>
@@ -11,6 +17,10 @@
 #include <mail_encoding.h>
 
 #include <mail_util.h>
+
+
+namespace Zoidberg {
+namespace Mail {
 
 struct CharsetConversionEntry
 {
@@ -42,6 +52,7 @@ extern const CharsetConversionEntry charsets[] =
 	{"euc-kr",      B_EUC_KR_CONVERSION},
 	{"x-mac-roman", B_MAC_ROMAN_CONVERSION}
 };
+
 
 _EXPORT ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 {
@@ -559,3 +570,5 @@ _EXPORT void StripGook(BString* header)
 	*header = name;
 }
 
+}	// namespace Mail
+}	// namespace Zoidberg

@@ -1,8 +1,18 @@
-#ifndef GARGOYLE_MAIL_UTIL_H
-#define GARGOYLE_MAIL_UTIL_H
+#ifndef ZOIDBERG_GARGOYLE_MAIL_UTIL_H
+#define ZOIDBERG_GARGOYLE_MAIL_UTIL_H
+/* mail util - header parsing
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <stdio.h>
 
 class BString;
+
+
+namespace Zoidberg {
+namespace Mail {
 
 size_t unqp(char *data, size_t dataLen);
 // convert text inplace
@@ -43,5 +53,7 @@ ssize_t readfoldedline(BPositionIO &in, char **buffer, size_t *buflen);
 // if the end of *header or EOF is encountered,
 //   the last byte read ((*buffer)[retval-1]) might not be a newline.
 
+}	// namespace Mail
+}	// namespace Zoidberg
 
-#endif
+#endif	/* ZOIDBERG_GARGOYLE_MAIL_UTIL_H */

@@ -12,6 +12,9 @@
 
 #include <FileConfigView.h>
 
+using namespace Zoidberg;
+
+
 ConfigView::ConfigView()
 	:	BView(BRect(0,0,20,20),"fortune_filter",B_FOLLOW_LEFT | B_FOLLOW_TOP,0)
 {

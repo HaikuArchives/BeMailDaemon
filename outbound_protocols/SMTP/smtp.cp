@@ -1,3 +1,9 @@
+/* SMTPProtocol - implementation of the SMTP protocol
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <DataIO.h>
 #include <Message.h>
 #include <Alert.h>
@@ -19,6 +25,9 @@
 
 #include "smtp.h"
 #include "md5.h"
+
+using namespace Zoidberg;
+
 
 #define CRLF "\r\n"
 #define SMTP_RESPONSE_SIZE 8192
@@ -86,7 +95,7 @@ status_t SMTPProtocol::InitCheck(BString *verbose) {
 
 
 // Process EMail to be sent
-MDStatus SMTPProtocol::ProcessMailMessage
+Mail::MDStatus SMTPProtocol::ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* /*io_entry*/,
 		BMessage* io_headers, BPath* /*io_folder*/, BString* /*io_uid*/
@@ -99,13 +108,13 @@ MDStatus SMTPProtocol::ProcessMailMessage
 
 	if (to && from && Send(to,from,*io_message) == B_OK) {
 		status_view->AddItem();
-		return MD_HANDLED;
+		return Mail::MD_HANDLED;
 	} else {
 		BString error;
 		error << "An error occurred while sending the message " << io_headers->FindString("MAIL:subject") << " to " << to << ":\n" << fLog;
 		smtp_errlert(error.String());
 		status_view->AddItem();
-		return MD_ERROR;
+		return Mail::MD_ERROR;
 	}
 }
 
@@ -496,7 +505,7 @@ Mail::Filter* instantiate_mailfilter(BMessage *settings,Mail::StatusView *status
 
 // Configuration interface
 BView* instantiate_config_panel(BMessage *settings,BMessage *) {
-	Mail::ProtocolConfigView *view = new Mail::ProtocolConfigView(Z_HAS_AUTH_METHODS | Z_HAS_USERNAME | Z_HAS_PASSWORD | Z_HAS_HOSTNAME);
+	Mail::ProtocolConfigView *view = new Mail::ProtocolConfigView(Mail::Z_HAS_AUTH_METHODS | Mail::Z_HAS_USERNAME | Mail::Z_HAS_PASSWORD | Mail::Z_HAS_HOSTNAME);
 	
 	view->AddAuthMethod("None",false);
 	view->AddAuthMethod("ESMTP");

@@ -1,3 +1,9 @@
+/* Chain - the mail account's inbound and outbound chain
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <Message.h>
 #include <FindDirectory.h>
 #include <Directory.h>
@@ -9,8 +15,10 @@
 #include <string.h>
 #include <stdio.h>
 
+namespace Zoidberg {
 namespace Mail {
 	class _EXPORT Chain;
+}
 }
 
 #include <MailSettings.h>
@@ -18,7 +26,9 @@ namespace Mail {
 #include <ChainRunner.h>
 #include <status.h>
 
-using Mail::Chain;
+
+namespace Zoidberg {
+namespace Mail {
 
 Chain::Chain(uint32 i)
 : id(i), meta_data(NULL), _err(B_OK), direction(inbound), settings_ct(0), addons_ct(0) 
@@ -425,3 +435,6 @@ status_t Chain::RemoveFilter(int32 index)
 void Chain::RunChain(StatusWindow *window, bool async, bool save_when_done, bool delete_when_done) {
 	(new ChainRunner(this))->RunChain(window,true,async,save_when_done,delete_when_done);
 }
+
+}	// namespace Mail
+}	// namespace Zoidberg

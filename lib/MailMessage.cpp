@@ -1,3 +1,9 @@
+/* Message - the main general purpose mail message class
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <List.h>
 #include <String.h>
 #include <Directory.h>
@@ -14,8 +20,10 @@
 #include <sys/utsname.h>
 #include <ctype.h>
 
+namespace Zoidberg {
 namespace Mail {
 	class _EXPORT Message;
+}
 }
 
 #include <MailMessage.h>
@@ -24,7 +32,8 @@ namespace Mail {
 #include <MailDaemon.h>
 #include <StringList.h>
 
-using Mail::Message;
+namespace Zoidberg {
+namespace Mail {
 
 //-------Change the following!----------------------
 #define mime_boundary "----------Zoidberg-BeMail-temp--------"
@@ -483,4 +492,5 @@ status_t Message::Send(bool send_now) {
 	return status;
 }
 
-
+}	// namespace Mail
+}	// namespace Zoidberg

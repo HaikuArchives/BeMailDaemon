@@ -1,12 +1,20 @@
+/* (Text)Component - message component base class and plain text
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <String.h>
 #include <Mime.h>
 
 #include <malloc.h>
 #include <ctype.h>
 
+namespace Zoidberg {
 namespace Mail {
 	class _EXPORT Component;
 	class _EXPORT TextComponent;
+}
 }
 
 #include <MailComponent.h>
@@ -14,8 +22,9 @@ namespace Mail {
 #include <MailContainer.h>
 #include <mail_util.h>
 
-using Mail::Component;
-using Mail::TextComponent;
+
+namespace Zoidberg {
+namespace Mail {
 
 struct CharsetConversionEntry
 {
@@ -25,8 +34,14 @@ struct CharsetConversionEntry
 
 extern const CharsetConversionEntry charsets[21];
 
-Component::Component() {}
-Component::~Component() {}
+
+Component::Component()
+{
+}
+
+Component::~Component()
+{
+}
 
 uint32 Component::ComponentType()
 {
@@ -529,3 +544,5 @@ status_t TextComponent::RenderToRFC822(BPositionIO *render_to) {
 	return B_OK;
 }
 
+}	// namespace Mail
+}	// namespace Zoidberg

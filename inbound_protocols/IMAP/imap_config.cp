@@ -1,7 +1,16 @@
+/* IMAPConfig - config view for the IMAP protocol add-on
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <TextControl.h>
 
 #include <ProtocolConfigView.h>
 #include <MailAddon.h>
+
+using namespace Zoidberg;
+
 
 class IMAPConfig : public Mail::ProtocolConfigView {
 	public:
@@ -11,7 +20,9 @@ class IMAPConfig : public Mail::ProtocolConfigView {
 		virtual void GetPreferredSize(float *width, float *height);
 };
 
-IMAPConfig::IMAPConfig(BMessage *archive) : Mail::ProtocolConfigView(Z_HAS_USERNAME | Z_HAS_PASSWORD | Z_HAS_HOSTNAME | Z_CAN_LEAVE_MAIL_ON_SERVER) {
+IMAPConfig::IMAPConfig(BMessage *archive)
+	: Mail::ProtocolConfigView(Mail::Z_HAS_USERNAME | Mail::Z_HAS_PASSWORD | Mail::Z_HAS_HOSTNAME | Mail::Z_CAN_LEAVE_MAIL_ON_SERVER)
+{
 	SetTo(archive);
 		
 	((BControl *)(FindView("leave_mail_remote")))->SetValue(B_CONTROL_ON);

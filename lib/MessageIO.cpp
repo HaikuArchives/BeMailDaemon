@@ -1,3 +1,9 @@
+/* MessageIO - reading/writing messages (directly from the protocols)
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <BeBuild.h>
 
 #include <stdio.h>
@@ -6,7 +12,9 @@
 #include "MessageIO.h"
 #include "MailProtocol.h"
 
-using Mail::MessageIO;
+
+namespace Zoidberg {
+namespace Mail {
 
 MessageIO::MessageIO(Mail::SimpleProtocol *protocol, BPositionIO *dump_to, int32 seq_id) :
 	slave(dump_to),
@@ -83,3 +91,6 @@ void MessageIO::ResetSize(void) {
 MessageIO::~MessageIO() {
 	delete slave;
 }
+
+}	// namespace Mail
+}	// namespace Zoidberg

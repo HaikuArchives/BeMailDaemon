@@ -1,20 +1,33 @@
-#ifndef ZOIDBERG_NUMAIL_MAILATTACHMENT_H
-#define ZOIDBERG_NUMAIL_MAILATTACHMENT_H
+#ifndef ZOIDBERG_MAIL_ATTACHMENT_H
+#define ZOIDBERG_MAIL_ATTACHMENT_H
+/* Attachment - classes which handle mail attachments
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
 
 #include <Node.h>
 
 #include <MailContainer.h>
 #include <MailComponent.h>
 
+
+namespace Zoidberg {
 namespace Mail {
 
 class Attachment {
 	public:
 		virtual void SetFileName(const char *name) = 0;
 		virtual status_t FileName(char *name) = 0;
+	
+	private:
+		virtual void _ReservedAttachment1();
+		virtual void _ReservedAttachment2();
+		virtual void _ReservedAttachment3();
+		virtual void _ReservedAttachment4();
+		virtual void _ReservedAttachment5();
 };
 
-class SimpleAttachment : public Mail::Component, public Mail::Attachment {
+class SimpleAttachment : public Component, public Attachment {
 	public:
 		SimpleAttachment();
 		
@@ -38,18 +51,24 @@ class SimpleAttachment : public Mail::Component, public Mail::Attachment {
 		
 		virtual status_t SetToRFC822(BPositionIO *data, size_t length, bool parse_now = false);
 		virtual status_t RenderToRFC822(BPositionIO *render_to);
+
 	private:
+		void ParseNow();
+		
+		virtual void _ReservedSimple1();
+		virtual void _ReservedSimple2();
+		virtual void _ReservedSimple3();
+
 		BPositionIO *_data, *_raw_data;
 		size_t _raw_length;
 		off_t _raw_offset;
 		bool _we_own_data;
-		
-		void ParseNow();
-		
 		mail_encoding _encoding;
+		
+		uint32 _reserved[5];
 };
 
-class AttributedAttachment : public Mail::MIMEMultipartContainer, public Mail::Attachment {
+class AttributedAttachment : public MIMEMultipartContainer, public Attachment {
 	public:
 		AttributedAttachment(BFile *file, bool delete_when_done);
 		AttributedAttachment(entry_ref *ref);
@@ -76,11 +95,19 @@ class AttributedAttachment : public Mail::MIMEMultipartContainer, public Mail::A
 		virtual status_t RenderToRFC822(BPositionIO *render_to);
 		
 		virtual status_t MIMEType(BMimeType *mime);
+
 	private:
-		Mail::SimpleAttachment *_data, *_attributes_attach;
+		virtual void _ReservedAttributed1();
+		virtual void _ReservedAttributed2();
+		virtual void _ReservedAttributed3();
+
+		SimpleAttachment *_data, *_attributes_attach;
 		BMessage _attributes;
+
+		uint32 _reserved[5];
 };
 
-}
+}	// namespace Mail
+}	// namespace Zoidberg
 
-#endif
+#endif	/* ZOIDBERG_MAIL_ATTACHMENT_H */

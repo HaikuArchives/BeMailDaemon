@@ -1,3 +1,9 @@
+/* C-mail API - compatibility function (stubs) for the old mail kit
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <E-mail.h>
 #include <FindDirectory.h>
 #include <Path.h>
@@ -13,22 +19,25 @@
 #include <crypt.h>
 
 
-_EXPORT status_t	check_for_mail(int32 * incoming_count) {
-	status_t err = Mail::CheckMail(true);
+_EXPORT status_t check_for_mail(int32 * incoming_count)
+{
+	status_t err = Zoidberg::Mail::CheckMail(true);
 	if (err < B_OK)
 		return err;
 		
 	if (incoming_count != NULL)
-		*incoming_count = Mail::CountNewMessages(true);
+		*incoming_count = Zoidberg::Mail::CountNewMessages(true);
 		
 	return B_OK;
 }
 	
-_EXPORT status_t	send_queued_mail(void) {
-	return Mail::SendQueuedMail();
+_EXPORT status_t send_queued_mail(void)
+{
+	return Zoidberg::Mail::SendQueuedMail();
 }
 
-_EXPORT int32		count_pop_accounts(void) {
+_EXPORT int32 count_pop_accounts(void)
+{
 	BPath path;
 	status_t status = find_directory(B_USER_SETTINGS_DIRECTORY,&path);
 	if (status < B_OK)
@@ -51,15 +60,16 @@ _EXPORT status_t set_mail_notification(mail_notification *, bool)
 	return B_NO_REPLY;
 }
 
-_EXPORT status_t	get_pop_account(mail_pop_account* account, int32 index) {
+_EXPORT status_t get_pop_account(mail_pop_account* account, int32 index)
+{
 	status_t err = B_OK;
 	const char *password, *passwd;
 	BMessage settings;
 	
 	BList chains;
-	Mail::InboundChains(&chains);
+	Zoidberg::Mail::InboundChains(&chains);
 	
-	Mail::Chain *chain = (Mail::Chain *)(chains.ItemAt(index));
+	Zoidberg::Mail::Chain *chain = (Zoidberg::Mail::Chain *)(chains.ItemAt(index));
 	if (chain == NULL) {
 		err = B_BAD_INDEX;
 		goto clean_up; //------Eek! A goto!
@@ -91,8 +101,9 @@ _EXPORT status_t set_pop_account(mail_pop_account *, int32, bool)
 	return B_NO_REPLY;
 }
 
-_EXPORT status_t	get_smtp_host(char* buffer) {
-	Mail::Chain chain(Mail::Settings().DefaultOutboundChainID());
+_EXPORT status_t get_smtp_host(char* buffer)
+{
+	Zoidberg::Mail::Chain chain(Zoidberg::Mail::Settings().DefaultOutboundChainID());
 	status_t err = chain.InitCheck();
 	if (err < B_OK)
 		return err;
@@ -110,7 +121,7 @@ _EXPORT status_t	get_smtp_host(char* buffer) {
 	return B_OK;
 }
 
-_EXPORT status_t set_smtp_host(char *, bool)
+_EXPORT status_t set_smtp_host(char * /* host */, bool /* save */)
 {
 	return B_NO_REPLY;
 }
@@ -122,7 +133,7 @@ _EXPORT status_t forward_mail(entry_ref *ref, const char *recipients, bool now)
 	if (status < B_OK)
 		return status;
 
-	Mail::Message mail(&file);
+	Zoidberg::Mail::Message mail(&file);
 	mail.SetTo(recipients);
 	
 	return mail.Send(now);

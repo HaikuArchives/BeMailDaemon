@@ -1,3 +1,9 @@
+/* StatusWindow - the status window while fetching/sending mails
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <Application.h>
 #include <Box.h>
 #include <Button.h>
@@ -8,22 +14,24 @@
 #include <stdio.h>
 #include <assert.h>
 
+namespace Zoidberg {
 namespace Mail {
 	class _EXPORT StatusWindow;
 	class _EXPORT StatusView;
 }
+}
 
 #include "status.h"
 #include "MailSettings.h"
-
-using Mail::StatusWindow;
-using Mail::StatusView;
 
 /*------------------------------------------------
 
 StatusWindow
 
 ------------------------------------------------*/
+
+namespace Zoidberg {
+namespace Mail {
 
 // constructor
 StatusWindow::StatusWindow(BRect rect, const char *name, uint32 s)
@@ -413,3 +421,5 @@ _EXPORT void ShowAlert(const char *title, const char *body, const char *button, 
 	alert->Go(NULL);
 }
 
+}	// namespace Mail
+}	// namespace Zoidberg

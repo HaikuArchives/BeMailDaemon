@@ -1,12 +1,19 @@
-#ifndef ZOIDBERG_NUMAIL_MAILCONTAINER_H
-#define ZOIDBERG_NUMAIL_MAILCONTAINER_H
+#ifndef ZOIDBERG_MAIL_CONTAINER_H
+#define ZOIDBERG_MAIL_CONTAINER_H
+/* Container - message part container class
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
 
-class BPositionIO;
 
 #include <List.h>
 
 #include <MailComponent.h>
 
+class BPositionIO;
+
+
+namespace Zoidberg {
 namespace Mail {
 
 class Container : public Mail::Component {
@@ -17,7 +24,6 @@ class Container : public Mail::Component {
 		virtual Mail::Component *GetComponent(int32 index) = 0;
 		virtual int32 CountComponents() const = 0;
 };
-
 
 class MIMEMultipartContainer : public Mail::Container {
 	public:
@@ -51,6 +57,7 @@ class MIMEMultipartContainer : public Mail::Container {
 		BList _components_in_code;
 };
 
-}
+}	// namespace Mail
+}	// namespace Zoidberg
 
-#endif
+#endif	/* ZOIDBERG_MAIL_CONTAINER_H */

@@ -1,8 +1,14 @@
 #ifndef ZOIDBERG_MAIL_ENCODING_H
 #define ZOIDBERG_MAIL_ENCODING_H
+/* mail encoding - mail de-/encoding functions (base64 and friends)
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
 
 #include <size_t.h>
 #include <sys/types.h>
+
 
 #define BASE64_LINELENGTH 76
 
@@ -19,12 +25,14 @@ typedef enum {
 extern "C" {
 #endif 
 
-ssize_t encode(mail_encoding encoding, char *out, const char *in, off_t length, int mask_spaces);
+ssize_t encode(mail_encoding encoding, char *out, const char *in,
+	off_t length, int mask_spaces);
  // the value of mask_spaces only matters for quoted_printable
 ssize_t decode(mail_encoding encoding, char *out, const char *in, off_t length);
 
 ssize_t max_encoded_length(mail_encoding encoding, off_t cur_length);
 mail_encoding encoding_for_cte(const char *content_transfer_encoding);
+
 ssize_t	encode_base64(char *out, const char *in, off_t length);
 ssize_t	decode_base64(char *out, const char *in, off_t length);
 
@@ -37,4 +45,4 @@ ssize_t	uu_decode(char *out, const char *in, off_t length);
 }
 #endif
 
-#endif // ZOIDBERG_MAIL_ENCODING_H
+#endif	/* ZOIDBERG_MAIL_ENCODING_H */

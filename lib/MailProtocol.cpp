@@ -1,3 +1,9 @@
+/* Protocol - the base class for protocol filters
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <String.h>
 #include <Alert.h>
 #include <Query.h>
@@ -6,8 +12,10 @@
 #include <stdio.h>
 #include <assert.h>
 
+namespace Zoidberg {
 namespace Mail {
 	class _EXPORT Protocol;
+}
 }
 
 #include <MailProtocol.h>
@@ -15,8 +23,8 @@ namespace Mail {
 #include <ChainRunner.h>
 #include <status.h>
 
-using Mail::Protocol;
 
+namespace Zoidberg {
 namespace Mail {
 
 class DeletePass : public Mail::ChainCallback {
@@ -38,10 +46,6 @@ class MessageDeletion : public Mail::ChainCallback {
 		BString *message_id;
 };
 
-}
-
-using Mail::DeletePass;
-using Mail::MessageDeletion;
 
 inline void error_alert(const char *process, status_t error) {
 	BString string;
@@ -49,7 +53,7 @@ inline void error_alert(const char *process, status_t error) {
 	ShowAlert("error_alert",string.String(),"Ok",B_WARNING_ALERT);
 }
 
-Protocol::Protocol(BMessage* settings) : Mail::Filter(settings) {
+Protocol::Protocol(BMessage* settings) : Filter(settings) {
 	unique_ids = NULL;
 	Protocol::settings = settings;
 	
@@ -167,3 +171,6 @@ void MessageDeletion::Callback(MDStatus /*result*/) {
 	#endif
 	us->DeleteMessage(message_id->String());
 }
+
+}	// namespace Mail
+}	// namespace Zoidberg

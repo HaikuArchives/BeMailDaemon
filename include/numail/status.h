@@ -1,7 +1,10 @@
-// status.h
+#ifndef ZOIDBERG_STATUS_WINDOW_H
+#define ZOIDBERG_STATUS_WINDOW_H
+/* StatusWindow - the status window while fetching/sending mails
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
 
-#ifndef STATUS_WINDOW_H
-#define STATUS_WINDOW_H
 
 #include <Window.h>
 #include <Box.h>
@@ -11,7 +14,10 @@
 
 class BStringView;
 
+
+namespace Zoidberg {
 namespace Mail {
+
 class StatusView;
 
 class StatusWindow : public BWindow {
@@ -67,9 +73,10 @@ class StatusView : public BBox {
 		int32			total_items;
 };
 
-}
-
 extern void ShowAlert(const char *title, const char *body, const char *button = "Ok",
 		alert_type type = B_INFO_ALERT);
 
-#endif // STATUS_WINDOW_H
+}	// namespace Mail
+}	// namespace Zoidberg
+
+#endif	/* ZOIDBERG_STATUS_WINDOW_H */

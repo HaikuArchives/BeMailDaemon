@@ -1,3 +1,9 @@
+/* ProtocolConfigView - the standard config view for all protocols
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <TextControl.h>
 #include <MenuField.h>
 #include <PopUpMenu.h>
@@ -9,15 +15,19 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+namespace Zoidberg {
 namespace Mail {
 	class _EXPORT ProtocolConfigView;
+}
 }
 
 #include <crypt.h>
 
 #include "ProtocolConfigView.h"
 
-using Mail::ProtocolConfigView;
+
+namespace Zoidberg {
+namespace Mail {
 
 //--------------------Support functions and #defines---------------
 #define enable_control(name) if (FindView(name) != NULL) ((BControl *)(FindView(name)))->SetEnabled(true)
@@ -315,3 +325,6 @@ void ProtocolConfigView::GetPreferredSize(float *width, float *height) {
 	*width = minWidth + 10;
 	*height = (CountChildren() * gItemHeight) + 5;
 }
+
+}	// namespace Mail
+}	// namespace Zoidberg

@@ -1,7 +1,17 @@
+/* Daemon - talking to the mail daemon
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <Messenger.h>
 #include <Message.h>
 
 #include <MailDaemon.h>
+
+
+namespace Zoidberg {
+namespace Mail {
 
 _EXPORT status_t Mail::CheckMail(bool send_queued_mail) {
 	BMessenger daemon("application/x-vnd.Be-POST");
@@ -51,3 +61,6 @@ _EXPORT status_t Mail::QuitDaemon() {
 		
 	return B_OK;
 }
+
+}	// namespace Mail
+}	// namespace Zoidberg

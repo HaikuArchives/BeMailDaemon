@@ -1,3 +1,9 @@
+/* main - the daemon's inner workings
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <Application.h>
 #include <Message.h>
 #include <File.h>
@@ -34,7 +40,11 @@
 	#include <unistd.h>
 #endif
 
-Mail::StatusWindow *status;
+
+namespace Zoidberg {
+namespace Mail {
+
+StatusWindow *status;
 
 class MailDaemonApp : public BApplication {
 	public:
@@ -53,7 +63,7 @@ class MailDaemonApp : public BApplication {
 		void UpdateAutoCheck(bigtime_t interval);
 
 		BMessageRunner *auto_check;
-		Mail::Settings settings_file;
+		Settings settings_file;
 		
 		int32 new_messages;
 		BList fetch_done_respondents;
@@ -65,107 +75,12 @@ class MailDaemonApp : public BApplication {
 };
 
 
-void makeIndices()
-{
-	const char *stringIndices[] = {	"MAIL:account","MAIL:cc","MAIL:draft","MAIL:flags",
-									"MAIL:from","MAIL:name","MAIL:priority","MAIL:reply",
-									"MAIL:status","MAIL:subject","MAIL:to","MAIL:to","MAIL:thread",NULL};
-
-	// add mail indices for all devices capable of querying
-
-	int32 cookie = 0;
-	dev_t device;
-	while ((device = next_dev(&cookie)) >= B_OK)
-	{
-		fs_info info;
-		if (fs_stat_dev(device,&info) < 0 || (info.flags & B_FS_HAS_QUERY) == 0)
-			continue;
-
-		int32 i = 0;
-		for (;stringIndices[i];i++)
-			fs_create_index(device,stringIndices[i],B_STRING_TYPE,0);
-
-		fs_create_index(device,"MAIL:when",B_INT32_TYPE,0);
-		fs_create_index(device,"MAIL:chain",B_INT32_TYPE,0);
-	}
-}
-
-
-int main (int argc, const char **argv) {
-	for (int i = 1; i < argc; i++) {
-		if (strcmp(argv[i],"-E") == 0) {
-			if (!Mail::Settings().DaemonAutoStarts())
-				return 0;
-		}
-	}
-
-	MailDaemonApp app;
-	
-	// Add MAIL:account attribute if necessary
-	BMimeType email_mime_type("text/x-email");
-	BMessage info;
-	
-	email_mime_type.GetAttrInfo(&info);
-
-	bool ok = true;
-	int32 cnt = 0;
-	const char * result;
-	 
-	while (ok) {
-		if (info.FindString("attr:name", cnt, &result) == B_OK) {
-			cnt++;
-			if (strcmp(result, "MAIL:account") == 0)
-				ok = false;
-		} else {	
-			info.AddString ("attr:name"        , "MAIL:account");
-			info.AddString ("attr:public_name" , "Account"     );
-			info.AddInt32  ("attr:type"        , B_STRING_TYPE );
-			info.AddBool   ("attr:editable"    , false         );
-			info.AddBool   ("attr:viewable"	   , true		   );
-			info.AddBool   ("attr:extra"	   , false		   );
-			info.AddInt32  ("attr:alignment"   , 0             );
-			info.AddInt32  ("attr:width"       , 20            );
-					
-			email_mime_type.SetAttrInfo(&info);
-			ok = false;
-		}
-	}
-	
-	cnt = 0;
-	ok =true;
-	while (ok) {
-		if (info.FindString("attr:name", cnt, &result) == B_OK) {
-			cnt++;
-			if (strcmp(result, "MAIL:thread") == 0)
-				ok = false;
-		} else {	
-			info.AddString ("attr:name"        , "MAIL:thread");
-			info.AddString ("attr:public_name" , "Thread"     );
-			info.AddInt32  ("attr:type"        , B_STRING_TYPE );
-			info.AddBool   ("attr:editable"    , false         );
-			info.AddBool   ("attr:viewable"	   , true		   );
-			info.AddBool   ("attr:extra"	   , false		   );
-			info.AddInt32  ("attr:alignment"   , 0             );
-			info.AddInt32  ("attr:width"       , 20            );
-					
-			email_mime_type.SetAttrInfo(&info);
-			ok = false;
-		}
-	}
-	
-	makeIndices();
-
-	be_app->Run();
-	return 0;
-}
-
-
 MailDaemonApp::MailDaemonApp(void)
   : BApplication("application/x-vnd.Be-POST" /* mail daemon sig */ )
 {
 	InstallDeskbarIcon();
 	
-	status = new Mail::StatusWindow(BRect(40,400,360,400),"Mail Status", settings_file.ShowStatusWindow());
+	status = new StatusWindow(BRect(40,400,360,400),"Mail Status", settings_file.ShowStatusWindow());
 	auto_check = NULL;
 }
 
@@ -386,11 +301,11 @@ bool MailDaemonApp::QuitRequested() {
 
 void MailDaemonApp::GetNewMessages() {
 	BList *list = new BList;
-	Mail::InboundChains(list);
-	Mail::Chain *chain;
+	InboundChains(list);
+	Chain *chain;
 	
 	for (int32 i = 0; i < list->CountItems(); i++) {
-		chain = (Mail::Chain *)(list->ItemAt(i));
+		chain = (Chain *)(list->ItemAt(i));
 		
 		chain->RunChain(status,true,true,true);
 	}	
@@ -398,11 +313,11 @@ void MailDaemonApp::GetNewMessages() {
 
 void MailDaemonApp::SendPendingMessages() {
 	BList *list = new BList;
-	Mail::OutboundChains(list);
-	Mail::Chain *chain;
+	OutboundChains(list);
+	Chain *chain;
 
 	for (int32 i = 0; i < list->CountItems(); i++) {
-		chain = (Mail::Chain *)(list->ItemAt(i));
+		chain = (Chain *)(list->ItemAt(i));
 		
 		chain->RunChain(status,true,true,true);
 	}
@@ -413,3 +328,105 @@ void MailDaemonApp::Pulse() {
 	if (led->IsRunning() && (idle < 100000))
 		led->Stop();
 }
+
+}	// namespace Mail
+}	// namespace Zoidberg
+
+//	#pragma mark -
+
+
+void makeIndices()
+{
+	const char *stringIndices[] = {	"MAIL:account","MAIL:cc","MAIL:draft","MAIL:flags",
+									"MAIL:from","MAIL:name","MAIL:priority","MAIL:reply",
+									"MAIL:status","MAIL:subject","MAIL:to","MAIL:to","MAIL:thread",NULL};
+
+	// add mail indices for all devices capable of querying
+
+	int32 cookie = 0;
+	dev_t device;
+	while ((device = next_dev(&cookie)) >= B_OK)
+	{
+		fs_info info;
+		if (fs_stat_dev(device,&info) < 0 || (info.flags & B_FS_HAS_QUERY) == 0)
+			continue;
+
+		int32 i = 0;
+		for (;stringIndices[i];i++)
+			fs_create_index(device,stringIndices[i],B_STRING_TYPE,0);
+
+		fs_create_index(device,"MAIL:when",B_INT32_TYPE,0);
+		fs_create_index(device,"MAIL:chain",B_INT32_TYPE,0);
+	}
+}
+
+
+int main (int argc, const char **argv)
+{
+	for (int i = 1; i < argc; i++) {
+		if (strcmp(argv[i],"-E") == 0) {
+			if (!Zoidberg::Mail::Settings().DaemonAutoStarts())
+				return 0;
+		}
+	}
+
+	Zoidberg::Mail::MailDaemonApp app;
+	
+	// Add MAIL:account attribute if necessary
+	BMimeType email_mime_type("text/x-email");
+	BMessage info;
+	
+	email_mime_type.GetAttrInfo(&info);
+
+	bool ok = true;
+	int32 cnt = 0;
+	const char * result;
+	 
+	while (ok) {
+		if (info.FindString("attr:name", cnt, &result) == B_OK) {
+			cnt++;
+			if (strcmp(result, "MAIL:account") == 0)
+				ok = false;
+		} else {	
+			info.AddString ("attr:name"        , "MAIL:account");
+			info.AddString ("attr:public_name" , "Account"     );
+			info.AddInt32  ("attr:type"        , B_STRING_TYPE );
+			info.AddBool   ("attr:editable"    , false         );
+			info.AddBool   ("attr:viewable"	   , true		   );
+			info.AddBool   ("attr:extra"	   , false		   );
+			info.AddInt32  ("attr:alignment"   , 0             );
+			info.AddInt32  ("attr:width"       , 20            );
+					
+			email_mime_type.SetAttrInfo(&info);
+			ok = false;
+		}
+	}
+	
+	cnt = 0;
+	ok = true;
+	while (ok) {
+		if (info.FindString("attr:name", cnt, &result) == B_OK) {
+			cnt++;
+			if (strcmp(result, "MAIL:thread") == 0)
+				ok = false;
+		} else {	
+			info.AddString ("attr:name"        , "MAIL:thread");
+			info.AddString ("attr:public_name" , "Thread"     );
+			info.AddInt32  ("attr:type"        , B_STRING_TYPE );
+			info.AddBool   ("attr:editable"    , false         );
+			info.AddBool   ("attr:viewable"	   , true		   );
+			info.AddBool   ("attr:extra"	   , false		   );
+			info.AddInt32  ("attr:alignment"   , 0             );
+			info.AddInt32  ("attr:width"       , 20            );
+					
+			email_mime_type.SetAttrInfo(&info);
+			ok = false;
+		}
+	}
+	
+	makeIndices();
+
+	be_app->Run();
+	return 0;
+}
+

@@ -1,3 +1,9 @@
+/* ChainRunner - runs the mail inbound and outbound chains
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <List.h>
 #include <OS.h>
 #include <Path.h>
@@ -12,14 +18,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+namespace Zoidberg {
 namespace Mail {
 	class _EXPORT ChainRunner;
+}
 }
 
 #include "ChainRunner.h"
 #include "status.h"
 
-using Mail::ChainRunner;
+
+namespace Zoidberg {
+namespace Mail {
 
 struct async_args {
 	Mail::Chain *home;
@@ -254,3 +264,5 @@ void unload(void *id) {
 	unload_add_on((image_id)(id));
 }
 
+}	// namespace Mail
+}	// namespace Zoidberg

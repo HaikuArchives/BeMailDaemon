@@ -1,3 +1,9 @@
+/* Settings - the mail daemon's settings
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <Message.h>
 #include <FindDirectory.h>
 #include <Directory.h>
@@ -11,14 +17,18 @@
 #include <string.h>
 #include <stdlib.h>
 
+namespace Zoidberg {
 namespace Mail {
 	class _EXPORT Settings;
+}
 }
 
 #include <MailSettings.h>
 #include <NumailKit.h>
 
-using Mail::Settings;
+
+namespace Zoidberg {
+namespace Mail {
 
 Settings::Settings()
 {
@@ -316,3 +326,6 @@ void Settings::SetDefaultOutboundChainID(uint32 to) {
 	if (data.ReplaceInt32("DefaultOutboundChainID",to))
 		data.AddInt32("DefaultOutboundChainID",to);
 }
+
+}	// namespace Mail
+}	// namespace Zoidberg

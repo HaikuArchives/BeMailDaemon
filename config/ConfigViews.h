@@ -14,8 +14,10 @@ class BListView;
 class BMenuField;
 class BButton;
 
+namespace Zoidberg {
 namespace Mail {
-class Chain;
+	class Chain;
+}
 }
 
 class Account;
@@ -47,7 +49,7 @@ class FiltersConfigView;
 class FilterConfigView : public BBox
 {
 	public:
-		FilterConfigView(Mail::Chain *chain,int32 index,BMessage *msg,entry_ref *ref);
+		FilterConfigView(Zoidberg::Mail::Chain *chain,int32 index,BMessage *msg,entry_ref *ref);
 		~FilterConfigView();
 
 		status_t InitCheck();
@@ -63,7 +65,7 @@ class FilterConfigView : public BBox
 
 		BView		*fConfigView;
 		
-		Mail::Chain	*fChain;
+		Zoidberg::Mail::Chain *fChain;
 		int32		fIndex;
 		BMessage	*fMessage;
 		entry_ref	*fEntryRef;
@@ -77,7 +79,7 @@ class FilterConfigView : public BBox
 class ProtocolsConfigView : public FilterConfigView
 {
 	public:
-		ProtocolsConfigView(Mail::Chain *chain, int32 index, BMessage *msg, entry_ref *ref);
+		ProtocolsConfigView(Zoidberg::Mail::Chain *chain, int32 index, BMessage *msg, entry_ref *ref);
 
 		void AttachedToWindow();
 		void MessageReceived(BMessage *msg);
@@ -102,10 +104,10 @@ class FiltersConfigView : public BBox
 
 	private:
 		void			SelectFilter(int32 index);
-		void			SetTo(Mail::Chain *chain);
+		void			SetTo(Zoidberg::Mail::Chain *chain);
 
 		Account				*fAccount;
-		Mail::Chain			*fChain;
+		Zoidberg::Mail::Chain *fChain;
 		int32				fFirst, fLast;
 
 		BMenuField			*fChainsField;

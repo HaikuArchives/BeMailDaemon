@@ -1,6 +1,12 @@
-#ifndef MAIL_DAEMON_H
-#define MAIL_DAEMON_H
+#ifndef ZOIDBERG_MAIL_DAEMON_H
+#define ZOIDBERG_MAIL_DAEMON_H
+/* Daemon - talking to the mail daemon
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
 
+
+namespace Zoidberg {
 namespace Mail {
 
 status_t CheckMail(bool send_queued_mail = true);
@@ -9,7 +15,8 @@ int32	CountNewMessages(bool wait_for_fetch_completion = false);
 
 status_t QuitDaemon();
 
-}
+}	// namespace Mail
+}	// namespace Zoidberg
 
-#endif // MAIL_DAEMON_H
+#endif	/* ZOIDBERG_MAIL_DAEMON_H */
 

@@ -1,5 +1,10 @@
-#ifndef ZOIDBERG_NUMAIL_MAILCOMPONENT_H
-#define ZOIDBERG_NUMAIL_MAILCOMPONENT_H
+#ifndef ZOIDBERG_MAIL_COMPONENT_H
+#define ZOIDBERG_MAIL_COMPONENT_H
+/* (Text)Component - message component base class and plain text
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
 
 #include <UTF8.h>
 #include <Message.h>
@@ -9,14 +14,16 @@
 
 class BMimeType;
 
+
+namespace Zoidberg {
+namespace Mail {
+
 enum component_type {
 	MC_PLAIN_TEXT_BODY = 0,
 	MC_SIMPLE_ATTACHMENT,
 	MC_ATTRIBUTED_ATTACHMENT,
 	MC_MULTIPART_CONTAINER
 };
-
-namespace Mail {
 
 class Component {
 	public:
@@ -97,6 +104,7 @@ class TextComponent : public Mail::Component {
 		off_t raw_offset;
 };
 
-}
+}	// namespace Mail
+}	// namespace Zoidberg
 
-#endif
+#endif	/* ZOIDBERG_MAIL_COMPONENT_H */

@@ -1,11 +1,20 @@
-#ifndef ZOIDBERG_NUMAIL_SETTINGS_H
-#define ZOIDBERG_NUMAIL_SETTINGS_H
+#ifndef ZOIDBERG_MAIL_SETTINGS_H
+#define ZOIDBERG_MAIL_SETTINGS_H
+/* Settings - the mail daemon's settings
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
 
 #include <Archivable.h>
 #include <List.h>
 #include <Message.h>
 
 class BPath;
+
+
+namespace Zoidberg {
+namespace Mail {
 
 typedef enum {
 	inbound,
@@ -28,12 +37,11 @@ typedef enum
 	MD_STATUS_LOOK_NO_BORDER             = 4
 } mail_status_window_look;
 
-namespace Mail {
 class StatusWindow;
 class Chain;
 
-Mail::Chain* NewChain();
-Mail::Chain* GetChain(uint32 id);
+Chain* NewChain();
+Chain* GetChain(uint32 id);
 
 status_t OutboundChains(BList *list);
 status_t InboundChains(BList *list);
@@ -138,6 +146,7 @@ class Settings
 	BMessage data;
 };
 
-}
+}	// namespace Mail
+}	// namespace Zoidberg
 
 #endif

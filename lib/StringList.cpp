@@ -1,12 +1,23 @@
+/* StringList - a string list implementation
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include <List.h>
 
 #include <string.h>
 #include <malloc.h>
 #include <assert.h>
 
-class _EXPORT StringList;
+namespace Zoidberg {
+	class _EXPORT StringList;
+}
 
 #include "StringList.h"
+
+
+namespace Zoidberg {
 
 uint8 string_hash(const char *string);
 
@@ -341,3 +352,5 @@ StringList::~StringList() {
 	
 	delete _indexed;
 }
+
+}	// namespace Zoidberg

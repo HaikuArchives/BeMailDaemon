@@ -1,3 +1,9 @@
+/* Fortune - adds fortunes to your mail
+**
+** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+*/
+
+
 #include "ConfigView.h"
 
 #include <Message.h>
@@ -8,13 +14,16 @@
 #include <MailAddon.h>
 #include "NodeMessage.h"
 
-class FortuneFilter: public Mail::Filter
+using namespace Zoidberg;
+
+
+class FortuneFilter : public Mail::Filter
 {
 	BMessage *settings;
   public:
 	FortuneFilter(BMessage*);
 	virtual status_t InitCheck(BString *err);
-	virtual MDStatus ProcessMailMessage
+	virtual Mail::MDStatus ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* io_entry,
 		BMessage* io_headers, BPath* io_folder, BString* io_uid
@@ -22,12 +31,16 @@ class FortuneFilter: public Mail::Filter
 };
 
 FortuneFilter::FortuneFilter(BMessage* msg)
-: Mail::Filter(msg), settings(msg)
-{}
+	: Mail::Filter(msg), settings(msg)
+{
+}
 
-status_t FortuneFilter::InitCheck(BString* err){ return B_OK; }
+status_t FortuneFilter::InitCheck(BString* err)
+{
+	return B_OK;
+}
 
-MDStatus FortuneFilter::ProcessMailMessage
+Mail::MDStatus FortuneFilter::ProcessMailMessage
 (BPositionIO** io, BEntry* io_entry, BMessage* headers, BPath* , BString*)
 {
 	BString fortune_file;
@@ -58,12 +71,13 @@ MDStatus FortuneFilter::ProcessMailMessage
 	} else {
 		printf("Damnit!\n");
 	}
-	return MD_OK;
+	return Mail::MD_OK;
 }
 
 Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::StatusView*)
-{ return new FortuneFilter(settings); }
-
+{
+	return new FortuneFilter(settings);
+}
 
 BView* instantiate_config_panel(BMessage *settings,BMessage *)
 {
