@@ -2794,17 +2794,19 @@ TMailWindow::Send(bool now)
 			// the mail will be deleted when the window is closed
 			fMail = new Zoidberg::Mail::Message;
 
+		// Headers are always in quoted_printable since base64 encoding tends
+		// to add line feeds at the wrong times, which is bad for headers.
 		if (strlen(fHeaderView->fTo->Text()) != 0)
 			fMail->SetTo(fHeaderView->fTo->Text(),
-			gMailCharacterSet, encodingRelatedToCharset);
+			gMailCharacterSet, quoted_printable);
 
 		if (strlen(fHeaderView->fSubject->Text()) != 0)
 			fMail->SetSubject(fHeaderView->fSubject->Text(),
-			gMailCharacterSet, encodingRelatedToCharset);
+			gMailCharacterSet, quoted_printable);
 
 		if (strlen(fHeaderView->fCc->Text()) != 0)
 			fMail->SetCC(fHeaderView->fCc->Text(),
-			gMailCharacterSet, encodingRelatedToCharset);
+			gMailCharacterSet, quoted_printable);
 
 		if (strlen(fHeaderView->fBcc->Text()) != 0)
 			fMail->SetBCC(fHeaderView->fBcc->Text());
