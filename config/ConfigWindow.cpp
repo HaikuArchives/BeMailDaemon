@@ -453,10 +453,14 @@ void ConfigWindow::LoadSettings()
 	if (status == B_OK)
 	{
 		// adjust own window frame
-		BRect frame = settings->ConfigWindowFrame();
 		BScreen screen(this);
-		if (screen.Frame().Contains(frame.LeftTop()))
+		BRect screenFrame(screen.Frame().InsetByCopy(0,5));
+		BRect frame(settings->ConfigWindowFrame());
+
+		if (screenFrame.Contains(frame.LeftTop()))
 			MoveTo(frame.LeftTop());
+		else // center on screen
+			MoveTo((screenFrame.Width() - frame.Width()) / 2,(screenFrame.Height() - frame.Height()) / 2);
 	}
 	else
 		printf("Error retrieving general settings: %s\n", strerror(status));
