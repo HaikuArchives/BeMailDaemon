@@ -2,7 +2,7 @@
 #define ZOIDBERG_STATUS_WINDOW_H
 /* StatusWindow - the status window while fetching/sending mails
 **
-** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+** Copyright 2001-2003 Dr. Zoidberg Enterprises. All rights reserved.
 */
 
 
@@ -22,39 +22,38 @@ class StatusView;
 
 class StatusWindow : public BWindow {
 	public:
-						StatusWindow(BRect rect, const char *name, uint32 show_when);
-						~StatusWindow();
+		StatusWindow(BRect rect, const char *name, uint32 show_when);
+		~StatusWindow();
 
-		virtual	void	FrameMoved(BPoint origin);
-		virtual void	WorkspaceActivated(int32 workspace, bool active);
-		virtual void	MessageReceived(BMessage *msg);
+		virtual	void FrameMoved(BPoint origin);
+		virtual void WorkspaceActivated(int32 workspace, bool active);
+		virtual void MessageReceived(BMessage *msg);
 
-	Mail::StatusView	*NewStatusView(const char *description, bool upstream);
-				void	RemoveView(StatusView *view);
-				int32	CountVisibleItems();
+		StatusView *NewStatusView(const char *description, bool upstream);
+		void	RemoveView(StatusView *view);
+		int32	CountVisibleItems();
 
-				bool	HasItems(void);
-				void	SetShowCriterion(uint32);
-				void	SetDefaultMessage(const BString& m);
+		bool	HasItems(void);
+		void	SetShowCriterion(uint32);
+		void	SetDefaultMessage(const BString &message);
 
 	private:
-		friend	class	Mail::StatusView;
+		friend class Mail::StatusView;
 
-				void	SetBorderStyle(int32 look);
-				void	ActuallyAddStatusView(StatusView *status);
+		void	SetBorderStyle(int32 look);
+		void	ActuallyAddStatusView(StatusView *status);
 
-		BList			stat_views;
-		uint32			show;
-		BView			*default_view;
-		BStringView		*message_view;
-		float			min_width;
-		float			min_height;
-		bool			default_is_hidden;
-		int32			window_moved;
-		int32			last_workspace;
-		BRect			window_frame;
+		BList		fStatusViews;
+		uint32		fShowMode;
+		BView		*fDefaultView;
+		BStringView	*fMessageView;
+		float		fMinWidth;
+		float		fMinHeight;
+		int32		fWindowMoved;
+		int32		fLastWorkspace;
+		BRect		fFrame;
 		
-		uint32			_reserved[5];
+		uint32		_reserved[5];
 };
 
 class StatusView : public BBox {
