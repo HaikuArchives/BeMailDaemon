@@ -68,21 +68,16 @@ status_t MailChain::Load(BMessage* settings)
 	settings->GetInfo("filter_addons",&t,(int32 *)(&addons_ct));
 	if (settings_ct!=addons_ct) return B_MISMATCHED_VALUES;
 
-	for(int i = 0;;i++)
+	for (int i = 0;;i++)
 	{
 		BMessage *filter = new BMessage();
 		entry_ref *ref = new entry_ref();
 		char *addon_path;
 
-		if (settings->FindMessage("filter_settings",i,filter) != B_OK
-			|| settings->FindString("filter_addons",i,(const char **)&addon_path) != B_OK)
-		{
-			delete filter;
-			delete ref;
-			break;
-		}
-		
-		if (get_ref_for_path(addon_path,ref) != B_OK)
+		if (settings->FindMessage("filter_settings",i,filter) < B_OK
+			|| (settings->FindString("filter_addons",i,(const char **)&addon_path) < B_OK
+				|| get_ref_for_path(addon_path,ref) < B_OK)
+			&& settings->FindRef("filter_addons",i,ref) < B_OK)
 		{
 			delete filter;
 			delete ref;
@@ -142,20 +137,23 @@ status_t MailChain::Archive(BMessage* archive, bool deep) const
 		BMessage* settings;
 		entry_ref* ref;
 		
-		int32 i=1;
-		for(i=0;
-			((settings = (BMessage*)filter_settings.ItemAt(i)) != NULL)
-			&&  ((ref = (entry_ref*)filter_addons.ItemAt(i)) != NULL);
+		int32 i;
+		for (i = 0;((settings = (BMessage*)filter_settings.ItemAt(i)) != NULL)
+					&& ((ref = (entry_ref*)filter_addons.ItemAt(i)) != NULL);
 			++i)
 		{
-		//------ATT-WTF?
 			ret = archive->AddMessage("filter_settings",settings);
-			if (ret!=B_OK) return ret;
+			if (ret < B_OK)
+				return ret;
 			
-			ret = archive->AddString("filter_addons",BPath(ref).Path());
-			if (ret!=B_OK) return ret;
+			BPath path(ref);
+			if ((ret = path.InitCheck()) < B_OK)
+				return ret;
+			ret = archive->AddString("filter_addons",path.Path());
+			if (ret < B_OK)
+				return ret;
 		}
-		if (i!=settings_ct)
+		if (i != settings_ct)
 			return B_MISMATCHED_VALUES;
 	}
 	
