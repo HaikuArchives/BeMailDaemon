@@ -5,14 +5,9 @@
 #include <Message.h>
 #include <String.h>
 
-class BMimeType;
+#include <mail_encoding.h>
 
-typedef enum {
-	base64 				= 'b',
-	quoted_printable 	= 'q',
-	
-	no_encoding			= -1
-} mail_encoding;
+class BMimeType;
 
 enum component_type {
 	MC_PLAIN_TEXT_BODY = 0,

@@ -32,10 +32,10 @@ TYPE= SHARED
 #	in folder names do not work well with this makefile.
 SRCS= MailAddon.cpp numailkit.cpp MailProtocol.cpp SimpleMailProtocol.cpp \
 	MessageIO.cpp MailChain.cpp MailSettings.cpp StringList.cpp status.cp \
-	ChainRunner.cpp NodeMessage.cpp MailDaemon.cpp c_mail_api.cpp base64.c \
-	qp.c des.c crypt.cpp ProtocolConfigView.cpp mail_util.cpp MailComponent.cpp \
+	ChainRunner.cpp NodeMessage.cpp MailDaemon.cpp c_mail_api.cpp \
+	des.c crypt.cpp ProtocolConfigView.cpp mail_util.cpp MailComponent.cpp \
 	MailContainer.cpp MailAttachment.cpp MailMessage.cpp b_mail_message.cpp \
-	cpp_abi_base64.c FileConfigView.cpp
+	cpp_abi_base64.c FileConfigView.cpp mail_encoding.c
 
 #	specify the resource files to use
 #	full path or a relative path to the resource file can be used.

@@ -12,7 +12,7 @@ class _EXPORT SimpleMailAttachment;
 class _EXPORT AttributedMailAttachment;
 
 #include <MailAttachment.h>
-#include <base64.h>
+#include <mail_encoding.h>
 #include <NodeMessage.h>
 
 #include <stdio.h>
@@ -116,9 +116,13 @@ void SimpleMailAttachment::SetEncoding(mail_encoding encoding) {
 			cte = "base64";
 			break;
 		case quoted_printable:
+			cte = "quoted-printable";
+			break;
 		case no_encoding:
-			// if there is really nothing to do here, we should
-			// rearrange the "switch" statement to a simple "if"
+			cte = "7bit";
+			break;
+		case uuencode:
+			cte = "uuencode";
 			break;
 	}
 
@@ -140,8 +144,12 @@ status_t SimpleMailAttachment::Instantiate(BPositionIO *data, size_t length) {
 	BString encoding = HeaderField("Content-Transfer-Encoding");
 	if (encoding.IFindFirst("base64") >= 0)
 		_encoding = base64;
+	else if (encoding.IFindFirst("quoted-printable") >= 0)
+		_encoding = quoted_printable;
+	else if (encoding.IFindFirst("uuencode") >= 0)
+		_encoding = uuencode;
 	else
-		return B_BAD_TYPE;
+		_encoding = no_encoding;
 	
 	char *src = (char *)malloc(length);
 	size_t size = length;
@@ -154,10 +162,10 @@ status_t SimpleMailAttachment::Instantiate(BPositionIO *data, size_t length) {
 	BMallocIO *buffer = new BMallocIO;
 	buffer->SetSize(size); //-------8bit is *always* more efficient than an encoding, so the buffer will *never* be larger than before
 	
-	size = decode_base64((char *)(buffer->Buffer()),src,size);
-	buffer->SetSize(size);
-	
+	size = decode(_encoding,(char *)(buffer->Buffer()),src,size);
 	free(src);
+	
+	buffer->SetSize(size);
 	
 	_data = buffer;
 	_we_own_data = true;
@@ -179,10 +187,23 @@ status_t SimpleMailAttachment::Render(BPositionIO *render_to) {
 	
 	size = _data->Read(src,size);
 	
-	char *dest = (char *)malloc(size*2); //--The encoded text will never be more than twice as large with base64
+	char *dest = (char *)malloc(max_encoded_length(_encoding,size)); //--The encoded text will never be more than twice as large with any conceivable encoding
 	
-	size = encode_base64(dest,src,size);
-	free(src);
+	switch (_encoding) {
+		case base64:
+			size = encode_base64(dest,src,size);
+			free(src);
+			break;
+		case quoted_printable:
+			size = decode_qp(dest,src,size);
+			free(src);
+			break;
+		case no_encoding:
+			src = dest;
+			break;
+		default:
+			return B_BAD_TYPE;
+	}
 	
 	render_to->Write(dest,size);
 	free(dest);

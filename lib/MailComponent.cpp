@@ -12,9 +12,6 @@ class _EXPORT PlainTextBodyComponent;
 #include <MailContainer.h>
 #include <mail_util.h>
 
-#include <base64.h>
-#include <qp.h>
-
 struct CharsetConversionEntry
 {
 	const char *charset;

@@ -1,4 +1,4 @@
-#include <base64.h>
+#include <mail_encoding.h>
 
 #if __POWERPC__
 #define encode_base64__local_abi encode_base64__FPcPcx

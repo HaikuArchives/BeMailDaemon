@@ -8,8 +8,7 @@
 #include <stdio.h>
 #include <ctype.h>
 
-#include <base64.h>
-#include <qp.h>
+#include <mail_encoding.h>
 
 #include <mail_util.h>
 
