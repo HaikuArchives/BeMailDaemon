@@ -394,6 +394,35 @@ CheckForURL(const char *string, size_t &urlLength, BString *url = NULL)
 }
 
 
+static void
+CopyQuotes(const char *text, size_t length, char *outText, size_t &outLength)
+{
+	// count qoute level (to be able to wrap quotes correctly)
+
+	char *quote = QUOTE;
+	int32 level = 0;
+	for (size_t i = 0; i < length; i++) {
+		if (text[i] == quote[0])
+			level++;
+		else if (text[i] != ' ' && text[i] != '\t')
+			break;
+	}
+
+	// if there are too much quotes, try to preserve the quote color level
+	if (level > 10)
+		level = kNumQuoteColors * 3 + (level % kNumQuoteColors);
+
+	// copy the quotes to outText
+
+	const int32 quoteLength = strlen(QUOTE);
+	outLength = 0;
+	while (level-- > 0) {
+		strcpy(outText, QUOTE);
+		outLength += quoteLength;
+	}
+}
+
+
 /** Fills the specified text_run_array with the correct values for the
  *	specified text.
  *	If "view" is NULL, it will assume that "line" lies on a line break,
@@ -1958,7 +1987,7 @@ TTextView::AddAsContent(Mail::Message *mail, bool wrap, uint32 charset, mail_enc
 	if (mail == NULL)
 		return;
 
-	int32 textLen = TextLength();
+	int32 textLength = TextLength();
 	const char *text = Text();
 
 	Mail::TextComponent *body = mail->Body();
@@ -1977,6 +2006,7 @@ TTextView::AddAsContent(Mail::Message *mail, bool wrap, uint32 charset, mail_enc
 	// ... do word wrapping.
 
 	BWindow	*window = Window();
+	char *saveText = strdup(text);
 	BRect saveTextRect = TextRect();
 
 	// do this before we start messing with the fonts
@@ -2020,65 +2050,102 @@ TTextView::AddAsContent(Mail::Message *mail, bool wrap, uint32 charset, mail_enc
 	}
 
 	if (missingCharactersFixedWidth > missingCharactersPreferredFont)
-		SetFontAndColor(0, textLen, &fFont);
+		SetFontAndColor(0, textLength, &fFont);
 	else // All things being equal, the fixed font is better for wrapping.
-		SetFontAndColor(0, textLen, be_fixed_font);
+		SetFontAndColor(0, textLength, be_fixed_font);
 
 	// calculate a text rect that is 72 columns wide
 	BRect newTextRect = saveTextRect;
-	newTextRect.right = newTextRect.left + (be_fixed_font->StringWidth("m") * 72);
+	newTextRect.right = newTextRect.left + be_fixed_font->StringWidth("m") * 72;
 	SetTextRect(newTextRect);
 
 	// hard-wrap, based on TextView's soft-wrapping
 	int32 numLines = CountLines();
-	char *content = (char *)malloc(textLen + numLines * 72);	// more we'll ever need
+	bool spaceMoved = false;
+	char *content = (char *)malloc(textLength + numLines * 72);	// more we'll ever need
 	if (content != NULL) {
-		int32 contentLen = 0;
+		int32 contentLength = 0;
 
 		for (int32 i = 0; i < numLines; i++) {
 			int32 startOffset = OffsetAt(i);
+			if (spaceMoved) {
+				startOffset++;
+				spaceMoved = false;
+			}
 			int32 endOffset = OffsetAt(i + 1);
-			int32 lineLen = endOffset - startOffset;
+			int32 lineLength = endOffset - startOffset;
 
-			memcpy(content + contentLen, text + startOffset, lineLen);
-			contentLen += lineLen;
+			// quick hack to not break URLs into several parts
+			for (int32 pos = startOffset; pos < endOffset; pos++) {
+				size_t urlLength;
+				uint8 type = CheckForURL(text + pos, urlLength);
+				if (type != 0)
+					pos += urlLength;
+
+				if (pos > endOffset) {
+					// find first break character after the URL
+					for (; text[pos]; pos++) {
+						if (isalnum(text[pos]) || isspace(text[pos]))
+							break;
+					}
+					if (text[pos] && isspace(text[pos]) && text[pos] != '\n')
+						pos++;
+
+					endOffset += pos - endOffset;
+					lineLength = endOffset - startOffset;
+
+					// insert a newline (and the same number of quotes) after the
+					// URL to make sure the rest of the text is properly wrapped
+
+					char buffer[64];
+					if (text[pos] == '\n')
+						buffer[0] = '\0';
+					else
+						strcpy(buffer, "\n");
+
+					size_t quoteLength;
+					CopyQuotes(text + startOffset, lineLength, buffer + strlen(buffer), quoteLength);
+
+					Insert(pos, buffer, strlen(buffer));
+					numLines = CountLines();
+					text = Text();
+					i++;
+				}
+			}
+			if (text[endOffset - 1] != ' '
+				&& text[endOffset - 1] != '\n'
+				&& text[endOffset] == ' ') {
+				// make sure spaces will be part of this line
+				endOffset++;
+				lineLength++;
+				spaceMoved = true;
+			}
+
+			memcpy(content + contentLength, text + startOffset, lineLength);
+			contentLength += lineLength;
 
 			// add a newline to every line except for the ones
 			// that already end in newlines, and the last line
 			if ((text[endOffset - 1] != '\n') && (i < (numLines - 1))) {
-				content[contentLen++] = '\n';
+				content[contentLength++] = '\n';
 
-				// count qoute level (to be able to wrap quotes correctly)
-
-				char *quote = QUOTE;
-				int32 level = 0;
-				for (int32 i = startOffset; i < endOffset; i++) {
-					if (text[i] == *quote)
-						level++;
-					else if (text[i] != ' ' && text[i] != '\t')
-						break;
-				}
-
-				// if there are too much quotes, try to preserve the quote color level
-				if (level > 10)
-					level = kNumQuoteColors * 3 + (level % kNumQuoteColors);
-
-				int32 quoteLength = strlen(QUOTE);
-				while (level-- > 0) {
-					strcpy(content + contentLen,QUOTE);
-					contentLen += quoteLength;
-				}
+				// copy quote level of the first line
+				size_t quoteLength;
+				CopyQuotes(text + startOffset, lineLength, content + contentLength, quoteLength);
+				contentLength += quoteLength;
 			}
 		}
-		content[contentLen] = '\0';
+		content[contentLength] = '\0';
 
 		body->AppendText(content);
 		free(content);
 	}
 
-	// reset the text rect and font			
-	SetTextRect(saveTextRect);	
-	SetFontAndColor(0, textLen, &fFont);
+	// reset the text rect and font
+	SetTextRect(saveTextRect);
+	SetText(saveText);
+	free(saveText);
+	SetFontAndColor(0, textLength, &fFont);
 
 	// should be OK to hook these back up now
 	if (vScroller != NULL)
