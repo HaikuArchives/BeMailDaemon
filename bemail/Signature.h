@@ -56,12 +56,15 @@ All rights reserved.
 #include <TextControl.h>
 #include <Window.h>
 
+#include <MDRLanguage.h>
+
 const float kSigHeight = 200;
 const float kSigWidth = 457;
 
-/* it is assumed that StringLength(SIG_TEXT) > StringLength(NAME_TEXT) */
-const char kNameText[] = "Title:";
-const char kSigText[] = "Signature:";
+/* For display positioning use, it is assumed that StringLength(SIG_TEXT) >
+StringLength(NAME_TEXT) for English and the opposite for Japanese. */
+const char kNameText[] = MDR_DIALECT_CHOICE ("Title:", "サインの名称:");
+const char kSigText[] = MDR_DIALECT_CHOICE ("Signature:", "サイン:");
 
 #define INDEX_SIGNATURE		"_signature"
 

@@ -172,8 +172,8 @@ TEnclosuresView::MessageReceived(BMessage *msg)
 					(new BAlert("", MDR_DIALECT_CHOICE (
 						"Removing enclosures from a forwarded mail is not yet implemented!\n"
 						"It will not yet work correctly.",
-						"現在、転送メールから添付ファイルを削除することはできません。"),
-						MDR_DIALECT_CHOICE ("Ok","了解")))->Go();
+						"転送メールから添付ファイルを削除する機能はまだ実装されていません。"),
+						MDR_DIALECT_CHOICE ("OK","了解")))->Go();
 				}
 				else
 					watch_node(item->NodeRef(), B_STOP_WATCHING, this);
@@ -223,8 +223,8 @@ TEnclosuresView::MessageReceived(BMessage *msg)
 				if (badType)
 				{
 					beep();
-					(new BAlert("",
-						MDR_DIALECT_CHOICE ("Only files can be added as enclosures.",
+					(new BAlert("", MDR_DIALECT_CHOICE (
+						"Only files can be added as enclosures.",
 						"添付できるのは、ファイルのみです。"),
 						MDR_DIALECT_CHOICE ("Ok","了解")))->Go();
 				}
@@ -357,10 +357,10 @@ TListView::MouseDown(BPoint point)
 		menu.SetFont(&font);
 		menu.AddItem(new BMenuItem(
 			MDR_DIALECT_CHOICE ("Open Enclosure","添付ファイルを開く"),
-		new BMessage(LIST_INVOKED)));
+			new BMessage(LIST_INVOKED)));
 		menu.AddItem(new BMenuItem(
 			MDR_DIALECT_CHOICE ("Remove Enclosure","添付ファイルを削除"),
-		new BMessage(M_REMOVE)));
+			new BMessage(M_REMOVE)));
 
 		BPoint menuStart = ConvertToScreen(point);
 		

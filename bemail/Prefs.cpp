@@ -48,6 +48,7 @@ All rights reserved.
 
 #include <MailSettings.h>
 #include <mail_encoding.h>
+#include <MDRLanguage.h>
 
 #include "Mail.h"
 #include "Prefs.h"
@@ -59,33 +60,39 @@ using namespace Zoidberg;
 #define BUTTON_HEIGHT		20
 #define ITEM_SPACE			6
 
-#define FONT_TEXT			"Font:"
-#define SIZE_TEXT			"Size:"
-#define LEVEL_TEXT			"User Level:"
-#define WRAP_TEXT			"Text Wrapping:"
-#define ATTACH_ATTRIBUTES_TEXT	"Attach Attributes:"
-#define QUOTES_TEXT			"Colored Quotes:"
-#define ACCOUNT_TEXT		"Default Account:"
-#define REPLYTO_TEXT		"Reply Account:"
-#define REPLYTO_USE_DEFAULT_TEXT	"Use Default Account"
-#define REPLYTO_FROM_MAIL_TEXT		"Account From Mail"
-#define REPLY_PREAMBLE_TEXT		"Reply Preamble:"
-#define SIGNATURE_TEXT		"Auto Signature:"
-#define ENCODING_TEXT		"Encoding:"
-#define BUTTONBAR_TEXT		"Button Bar:"
+#define FONT_TEXT			MDR_DIALECT_CHOICE ("Font:", "フォント:")
+#define SIZE_TEXT			MDR_DIALECT_CHOICE ("Size:", "サイズ:")
+#define LEVEL_TEXT			MDR_DIALECT_CHOICE ("User Level:", "ユーザーレベル:")
+#define WRAP_TEXT			MDR_DIALECT_CHOICE ("Text Wrapping:", "テキスト・ラップ:")
+#define ATTACH_ATTRIBUTES_TEXT	MDR_DIALECT_CHOICE ("Attach Attributes:", "ファイル属性情報:")
+#define QUOTES_TEXT			MDR_DIALECT_CHOICE ("Colored Quotes:", "引用部分の着色:")
+#define ACCOUNT_TEXT		MDR_DIALECT_CHOICE ("Default Account:", "標準アカウント:")
+#define REPLYTO_TEXT		MDR_DIALECT_CHOICE ("Reply Account:", "返信用アカウント:")
+#define REPLYTO_USE_DEFAULT_TEXT	MDR_DIALECT_CHOICE ("Use Default Account", "標準アカウントを使う")
+#define REPLYTO_FROM_MAIL_TEXT		MDR_DIALECT_CHOICE ("Account From Mail", "メールのアカウントを使う")
+#define REPLY_PREAMBLE_TEXT		MDR_DIALECT_CHOICE ("Reply Preamble:", "返信の文頭に付ける語句:")
+#define SIGNATURE_TEXT		MDR_DIALECT_CHOICE ("Auto Signature:", "	自動サイン:")
+#define ENCODING_TEXT		MDR_DIALECT_CHOICE ("Encoding:", "エンコード形式:")
+#define BUTTONBAR_TEXT		MDR_DIALECT_CHOICE ("Button Bar:", "ボタンバー:")
 
 #define OK_BUTTON_X1		(PREF_WIDTH - BUTTON_WIDTH - 6)
 #define OK_BUTTON_X2		(OK_BUTTON_X1 + BUTTON_WIDTH)
-#define OK_BUTTON_TEXT		"Done"
+#define OK_BUTTON_TEXT		MDR_DIALECT_CHOICE ("Done", "設定")
+#define CANCEL_BUTTON_TEXT	MDR_DIALECT_CHOICE ("Cancel", "中止")
 
 #define REVERT_BUTTON_X1	8
 #define REVERT_BUTTON_X2	(REVERT_BUTTON_X1 + BUTTON_WIDTH)
-#define REVERT_BUTTON_TEXT	"Revert"
+#define REVERT_BUTTON_TEXT	MDR_DIALECT_CHOICE ("Revert", "元へ戻す")
 
 enum	P_MESSAGES			{P_OK = 128, P_CANCEL, P_REVERT, P_FONT,
 							 P_SIZE, P_LEVEL, P_WRAP, P_ATTACH_ATTRIBUTES,
 							 P_SIG, P_ENC, P_BUTTON_BAR, P_ACCOUNT, P_REPLYTO,
 							 P_REPLY_PREAMBLE, P_COLORED_QUOTES};
+
+#define ICON_LABEL_TEXT MDR_DIALECT_CHOICE ("Show Icons & Labels", "アイコンとラベル")
+#define ICON_TEXT MDR_DIALECT_CHOICE ("Show Icons Only", "アイコンのみ")
+#define HIDE_TEXT MDR_DIALECT_CHOICE ("Hide", "隠す")
+
 
 extern BPoint	prefs_window;
 
@@ -127,12 +134,8 @@ const EncodingItem kEncodings[] =
 	{"UTF-8 (BeOS Native)", MDR_UTF8_CONVERSION}
 };
 
-
-static const char *kAttachedAttributesOn =
-	"Include BeOS Attributes in Attachments";
-static const char *kAttachedAttributesOff =
-	"No BeOS Attributes, just Plain Data";
-
+#define  ATTRIBUTE_ON_TEXT MDR_DIALECT_CHOICE ("Include BeOS Attributes in Attachments", "BeOSの属性を付ける")
+#define  ATTRIBUTE_OFF_TEXT MDR_DIALECT_CHOICE ("No BeOS Attributes, just Plain Data", "BeOSの属性を付けない（データのみ）")
 
 //====================================================================
 
@@ -140,7 +143,7 @@ static const char *kAttachedAttributesOff =
 TPrefsWindow::TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *wrap,
 	bool *attachAttributes, bool *cquotes, uint32 *account, int32 *replyTo,
 	char **preamble, char **sig, uint32 *encoding, bool *buttonBar)
-	:	BWindow(rect, "BeMail Preferences", B_TITLED_WINDOW, B_NOT_RESIZABLE |B_NOT_ZOOMABLE)
+	:	BWindow(rect, MDR_DIALECT_CHOICE ("BeMail Preferences","BeMailの設定"), B_TITLED_WINDOW, B_NOT_RESIZABLE |B_NOT_ZOOMABLE)
 {
 	BMenuField *menu;
 
@@ -175,12 +178,12 @@ TPrefsWindow::TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *wrap,
 
 	r.Set(8,4,Bounds().right - 8,4 + 6 * (height + ITEM_SPACE));
 	BBox *interfaceBox = new BBox(r,NULL,B_FOLLOW_LEFT_RIGHT | B_FOLLOW_TOP);
-	interfaceBox->SetLabel("User Interface");
+	interfaceBox->SetLabel(MDR_DIALECT_CHOICE ("User Interface","ユーザーインターフェース"));
 	view->AddChild(interfaceBox);
 
 	r.top = r.bottom + 8;  r.bottom = r.top + 8 * (height + ITEM_SPACE);
 	BBox *mailBox = new BBox(r,NULL,B_FOLLOW_LEFT_RIGHT | B_FOLLOW_TOP);
-	mailBox->SetLabel("Mailing");
+	mailBox->SetLabel(MDR_DIALECT_CHOICE ("Mailing","メール関係"));
 	view->AddChild(mailBox);
 
 	// revert, ok & cancel
@@ -192,7 +195,7 @@ TPrefsWindow::TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *wrap,
 	view->AddChild(button);
 
 	r.OffsetBy(-(OK_BUTTON_X2 - OK_BUTTON_X1 + 10), 0);
-	button = new BButton(r, "cancel", "Cancel", new BMessage(P_CANCEL));
+	button = new BButton(r, "cancel", CANCEL_BUTTON_TEXT, new BMessage(P_CANCEL));
 	view->AddChild(button);
 
 	r.left = REVERT_BUTTON_X1;  r.right = REVERT_BUTTON_X2;
@@ -430,7 +433,7 @@ TPrefsWindow::MessageReceived(BMessage *msg)
 				if ((item = fWrapMenu->FindItem(label)) != NULL)
 					item->SetMarked(true);
 
-				strcpy(label, fAttachAttributes ? kAttachedAttributesOn : kAttachedAttributesOff);
+				strcpy(label, fAttachAttributes ? ATTRIBUTE_ON_TEXT : ATTRIBUTE_OFF_TEXT);
 				if ((item = fAttachAttributesMenu->FindItem(label)) != NULL)
 					item->SetMarked(true);
 
@@ -627,13 +630,13 @@ TPrefsWindow::BuildLevelMenu(int32 level)
 	menu = new BPopUpMenu("");
 	msg = new BMessage(P_LEVEL);
 	msg->AddInt32("level", L_BEGINNER);
-	menu->AddItem(item = new BMenuItem("Beginner", msg));
+	menu->AddItem(item = new BMenuItem(MDR_DIALECT_CHOICE ("Beginner","初心者"),msg));
 	if (level == L_BEGINNER)
 		item->SetMarked(true);
 
 	msg = new BMessage(P_LEVEL);
 	msg->AddInt32("level", L_EXPERT);
-	menu->AddItem(item = new BMenuItem("Expert", msg));
+	menu->AddItem(item = new BMenuItem(MDR_DIALECT_CHOICE ("Expert","上級者"),msg));
 	if (level == L_EXPERT)
 		item->SetMarked(true);
 
@@ -704,11 +707,11 @@ TPrefsWindow::BuildReplyPreambleMenu()
 		"%f - First name",
 		"%l - Last name",
 */
-		"%n - Full name",
-		"%e - E-mail address",
-		"%d - Date",
+		MDR_DIALECT_CHOICE ("%n - Full name", "%n - フルネーム"),
+		MDR_DIALECT_CHOICE ("%e - E-mail address", "%e - E-mailアドレス"),
+		MDR_DIALECT_CHOICE ("%d - Date", "%d - 日付"),
 		"",
-		"\\n - Newline",
+		MDR_DIALECT_CHOICE ("\\n - Newline", "\\n - 空行"),
 		NULL
 	};
 
@@ -840,13 +843,13 @@ TPrefsWindow::BuildAttachAttributesMenu(bool attachAttributes)
 	menu = new BPopUpMenu("");
 	msg = new BMessage(P_ATTACH_ATTRIBUTES);
 	msg->AddBool("attachAttributes", true);
-	menu->AddItem(item = new BMenuItem(kAttachedAttributesOn, msg));
+	menu->AddItem(item = new BMenuItem(ATTRIBUTE_ON_TEXT, msg));
 	if (attachAttributes)
 		item->SetMarked(true);
 
 	msg = new BMessage(P_ATTACH_ATTRIBUTES);
 	msg->AddInt32("attachAttributes", false);
-	menu->AddItem(item = new BMenuItem(kAttachedAttributesOff, msg));
+	menu->AddItem(item = new BMenuItem(ATTRIBUTE_OFF_TEXT, msg));
 	if (!attachAttributes)
 		item->SetMarked(true);
 
@@ -892,19 +895,19 @@ TPrefsWindow::BuildButtonBarMenu(bool show)
 	
 	msg = new BMessage(P_BUTTON_BAR);
 	msg->AddInt8("bar", 1);
-	menu->AddItem(item = new BMenuItem("Show Icons & Labels", msg));
+	menu->AddItem(item = new BMenuItem(ICON_LABEL_TEXT, msg));
 	if (show & 1)
 		item->SetMarked(true);
 	
 	msg = new BMessage(P_BUTTON_BAR);
 	msg->AddInt8("bar", 2);
-	menu->AddItem(item = new BMenuItem("Show Icons Only", msg));
+	menu->AddItem(item = new BMenuItem(ICON_TEXT, msg));
 	if (show & 2)
 		item->SetMarked(true);
 	
 	msg = new BMessage(P_BUTTON_BAR);
 	msg->AddInt8("bar", 0);
-	menu->AddItem(item = new BMenuItem("Hide", msg));
+	menu->AddItem(item = new BMenuItem(HIDE_TEXT, msg));
 	if (!show)
 		item->SetMarked(true);
 	return menu;

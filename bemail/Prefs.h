@@ -50,8 +50,8 @@ All rights reserved.
 #define	PREF_WIDTH			340
 #define PREF_HEIGHT			330
 
-#define SIG_NONE			"None"
-#define SIG_RANDOM			"Random"
+#define SIG_NONE			MDR_DIALECT_CHOICE ("None", "無し")
+#define SIG_RANDOM			MDR_DIALECT_CHOICE ("Random", "ランダム")
 
 class Button;
 
