@@ -980,6 +980,7 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 		FD_ZERO(&fds);
 		
 		/* Set the socket in the mask. */ 
+		FD_SET(net, &fds);
 #ifdef IMAPSSL
 		if (use_ssl)
 			result = 1;
@@ -991,13 +992,17 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 	if (result < 0)
 		return errno;
 		
+	PRINT(("S: "));
+
 	if(result > 0)
 	{
 		while(c != '\n' && c != xEOF)
 		{
+#ifdef IMAPSSL
 			if (use_ssl)
 				r = SSL_read(ssl,&c,1);
 			else
+#endif
 				r = recv(net,&c,1,0);
 			if(r <= 0) {
 				BString error;
