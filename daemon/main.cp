@@ -441,7 +441,6 @@ void MailDaemonApp::GetNewMessages(BMessage *msg) {
 }
 
 void MailDaemonApp::SendPendingMessages(BMessage *msg) {
-	snooze(5e6);
 	BQuery query;
 	BVolume boot;
 	
@@ -480,7 +479,7 @@ void MailDaemonApp::SendPendingMessages(BMessage *msg) {
 			off_t size;
 			
 			while (query.GetNextEntry(&entry) == B_OK) {
-				node.SetTo(&entry);
+				while (node.SetTo(&entry) == B_BUSY) snooze(100);
 				if (node.ReadAttr("MAIL:chain",B_INT32_TYPE,0,&chain,4) < B_OK)
 					chain = default_chain;
 				entry.GetPath(&path);

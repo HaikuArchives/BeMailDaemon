@@ -299,10 +299,11 @@ void RemoteStorageProtocol::SyncMailbox(const char *mailbox) {
 	while (folder.GetNextEntry(&entry) == B_OK) {
 		if (!entry.IsFile())
 			continue;
-		snoodle.SetTo(&entry,B_READ_WRITE);
+		while (snoodle.SetTo(&entry,B_READ_WRITE) == B_BUSY) snooze(100);
 		append = false;
 		
 		while (snoodle.Lock() != B_OK) snooze(100);
+		snoodle.Unlock();
 		
 		if (snoodle.ReadAttr("MAIL:chain",B_INT32_TYPE,0,&chain,sizeof(chain)) < B_OK)
 			append = true;
