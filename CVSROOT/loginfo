@@ -24,3 +24,6 @@
 #DEFAULT (echo ""; id; echo %s; date; cat) >> $CVSROOT/CVSROOT/commitlog
 # or
 #DEFAULT (echo ""; id; echo %{sVv}; date; cat) >> $CVSROOT/CVSROOT/commitlog
+#
+# Echo committed changes to our mailing list.
+DEFAULT $CVSROOT/CVSROOT/syncmail -u %{sVv} bemaildaemon-cvs@lists.sourceforge.net
