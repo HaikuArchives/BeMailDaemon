@@ -331,7 +331,7 @@ CheckForURL(const char *string, size_t &urlLength, BString *url = NULL)
 			bool readName = false;
 			for (; pos < at; pos++) {
 				// ToDo: are these all allowed characters?
-				if (!isalnum(pos[0]) && pos[0] != '_' && pos[0] != '.')
+				if (!isalnum(pos[0]) && pos[0] != '_' && pos[0] != '.' && pos[0] != '-')
 					break;
 
 				readName = true;
