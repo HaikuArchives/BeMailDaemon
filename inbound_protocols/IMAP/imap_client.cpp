@@ -62,7 +62,7 @@ class IMAP4Client : public Mail::RemoteStorageProtocol {
 		status_t Select(const char *mb, bool force_reselect = false, bool queue_new_messages = true, bool noop = true, bool no_command = false);
 		status_t Close();
 		
-		virtual status_t InitCheck(BString *) { return err; }
+		virtual status_t InitCheck(BString *) { if (net < 0 && err == B_OK) return net; return err; }
 		
 		int GetResponse(BString &tag, NestedString *parsed_response, bool report_literals = false, bool recursion_flag = false);
 		bool WasCommandOkay(BString &response);
@@ -126,6 +126,7 @@ IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Rem
 			error << ":" << port;
 		error << ": Host not found.";
 		runner->ShowError(error.String());
+		net = -1;
 		runner->Stop();
 		return;
 	}
@@ -161,6 +162,7 @@ IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Rem
 			error << ":" << port;
 		error << ". (" << strerror(errno) << ')';
 		runner->ShowError(error.String());
+		net = -1;
 		runner->Stop();
 		return;
 	}
@@ -327,7 +329,10 @@ status_t IMAP4Client::AddMessage(const char *mailbox, BPositionIO *data, BString
 	size = data->Position();
 	command << ((struct mailbox_info *)(box_info.ItemAt(box_index)))->server_mb_name << "\" (\\Seen) {" << size << '}';
 	SendCommand(command.String());
-	ReceiveLine(command);
+	status_t err = ReceiveLine(command);
+	if (err < B_OK)
+		return err;
+		
 	char *buffer = new char[size];
 	data->ReadAt(0,buffer,size);
 	send(net,buffer,size,0);
@@ -543,7 +548,8 @@ status_t IMAP4Client::Select(const char *mb, bool reselect, bool queue_new_messa
 	if ((selected_mb != real_mb) || (noop) || (no_command)) {
 		if ((selected_mb != "")  && (selected_mb != real_mb)){
 			BString trash;
-			SendCommand("CLOSE");
+			if (SendCommand("CLOSE") < B_OK)
+				return B_ERROR;
 			selected_mb = "";
 			WasCommandOkay(trash);
 		}
@@ -554,7 +560,8 @@ status_t IMAP4Client::Select(const char *mb, bool reselect, bool queue_new_messa
 			cmd << "SELECT \"" << real_mb << '\"';
 			
 		if (!no_command)
-			SendCommand(cmd.String());
+			if (SendCommand(cmd.String()) < B_OK)
+				return B_ERROR;
 		
 		char expected[255];
 		BString tag;
@@ -564,7 +571,8 @@ status_t IMAP4Client::Select(const char *mb, bool reselect, bool queue_new_messa
 		
 		while(1) {
 			NestedString response;
-			GetResponse(tag,&response);
+			if (GetResponse(tag,&response) < B_OK)
+				return B_ERROR;
 			
 			if (tag == expected)
 				break;
@@ -730,6 +738,9 @@ status_t IMAP4Client::GetMessage(const char *mailbox, const char *message, BPosi
 status_t
 IMAP4Client::SendCommand(const char* command)
 {
+	if (net < 0)
+		return B_ERROR;
+		
 	static char cmd[255];
 	::sprintf(cmd,"a%.7ld %s"CRLF,++commandCount,command);
 	send(net,cmd,strlen(cmd),0);
@@ -742,6 +753,9 @@ IMAP4Client::SendCommand(const char* command)
 int32
 IMAP4Client::ReceiveLine(BString &out)
 {
+	if (net < 0)
+		return net;
+		
 	uint8 c = 0;
 	int32 len = 0,r;
 	out = "";
@@ -769,7 +783,8 @@ IMAP4Client::ReceiveLine(BString &out)
 			r = recv(net,&c,1,0);
 			if(r <= 0) {
 				BString error;
-				error << "Connection to " << settings->FindString("server") << " lost.";
+					error << "Connection to " << settings->FindString("server") << " lost.";
+				net = -1;
 				runner->Stop();
 				runner->ShowError(error.String());
 				return -1;
@@ -788,6 +803,9 @@ IMAP4Client::ReceiveLine(BString &out)
 }
 
 int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool report_literals, bool internal_flag) {
+	if (net < 0)
+		return net;
+	
 	uint8 c = 0;
 	int32 r;
 	int8 delimiters_passed = internal_flag ? 2 : 0;
@@ -823,6 +841,7 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 			if(r <= 0) {
 				BString error;
 				error << "Connection to " << settings->FindString("server") << " lost.";
+				net = -1;
 				runner->Stop();
 				runner->ShowError(error.String());
 				return -1;
