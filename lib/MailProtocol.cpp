@@ -176,10 +176,8 @@ Protocol::~Protocol()
 
 	delete unique_ids;
 	delete manifest;
-	if (trash_monitor != NULL)
-		delete trash_monitor;
-	if (uids_on_disk != NULL)
-		delete uids_on_disk;
+	delete trash_monitor;
+	delete uids_on_disk;
 }
 
 

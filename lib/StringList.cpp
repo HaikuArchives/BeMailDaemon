@@ -17,11 +17,11 @@ namespace Zoidberg {
 #include "StringList.h"
 
 
-namespace Zoidberg {
+using namespace Zoidberg;
 
-uint8 string_hash(const char *string);
+static uint8 string_hash(const char *string);
 
-uint8 string_hash(const char *string) {
+static uint8 string_hash(const char *string) {
 	uint8 hash = 0;
 	for (int i = 0; string[i] != 0; i++)
 		hash ^= string[i];
@@ -31,6 +31,10 @@ uint8 string_hash(const char *string) {
 
 struct string_bucket {
 	const char *string;
+	~string_bucket() {
+		if (string != NULL)
+			free ((void *)(string));
+	}
 	
 	struct string_bucket *next;
 };
@@ -45,6 +49,9 @@ StringList::StringList()
 StringList::StringList(const StringList& from)
 	: BFlattenable(), _items(0), _indexed(new BList)
 {
+	for (int32 i = 0; i < 256; i++)
+		_buckets[i] = NULL;
+		
 	AddList(&from);
 }
 
@@ -175,7 +182,6 @@ bool	StringList::RemoveItem(const char *item) {
 	if (strcmp(bkt->string,item) == 0) {
 		_indexed->RemoveItem(IndexOf(item));
 		_buckets[string_hash(item)] = bkt->next;
-		free((void *)(bkt->string));
 		delete bkt;
 		_items--;
 		return true;
@@ -189,7 +195,6 @@ bool	StringList::RemoveItem(const char *item) {
 			
 			tmp_bkt = bkt->next;
 			bkt->next = bkt->next->next;
-			free((void *)(tmp_bkt->string));
 			delete tmp_bkt;
 			_items--;
 			
@@ -210,7 +215,6 @@ void	StringList::MakeEmpty() {
 		_buckets[i] = NULL;
 		
 		while (bkt != NULL) {
-			free ((void *)(bkt->string));
 			next_bkt = bkt->next;
 			delete bkt;
 			
@@ -353,4 +357,4 @@ StringList::~StringList() {
 	delete _indexed;
 }
 
-}	// namespace Zoidberg
+
