@@ -2352,7 +2352,7 @@ TTextView::Reader::Run(void *_this)
 	if (!reader->Lock())
 		return B_INTERRUPTED;
 
-	BFile *file = dynamic_cast<BFile *>(reader->fMail);
+	BFile *file = dynamic_cast<BFile *>(reader->fMail->Data());
 	if (file != NULL)
 	{
 		len = header_len(file);
