@@ -167,17 +167,31 @@ void FillInQouteTextRuns(BTextView *view,const char *line,int32 length,BFont &fo
 	text_run *runs = style->runs;
 	int32 index = style->count;
 	bool begin = view->TextLength() == 0 || view->ByteAt(view->TextLength() - 1) == '\n';
-	int32 start = view->OffsetAt(view->CurrentLine());
-	int32 end,pos = 0;
+	int32 start,end,pos = 0;
 	view->GetSelection(&end,&end);
+	const char *text = view->Text();
 	int32 level = 0;
 	char *quote = QUOTE;
+
+	// get index to the beginning of the current line
+
+	// the following line works only reliable when text wrapping is set to off;
+	// so the complicated version actually used here is necessary:
+	// start = view->OffsetAt(view->CurrentLine());
+
+	if (!begin)
+	{
+		for (start = end;start > 0;start--)
+		{
+			if (text[start - 1] == '\n')
+				break;
+		}
+	}
 
 	// get number of nested qoutes for current line
 
 	if (!begin && start < end)
 	{
-		const char *text = view->Text();
 		begin = true;	// if there was no text in this line, there may come more nested quotes
 
 		for (int32 i = start;i < end;i++)
@@ -190,7 +204,7 @@ void FillInQouteTextRuns(BTextView *view,const char *line,int32 length,BFont &fo
 				break;
 			}
 		}
-		if (begin)
+		if (begin)	// skip leading spaces (tabs & newlines aren't allowed here)
 			while (line[pos] == ' ')
 				pos++;
 	}
