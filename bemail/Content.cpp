@@ -3105,6 +3105,11 @@ TTextView::RemoveQuote(int32 start, int32 finish)
 			text += quoteLength;
 		}
 
+		if (lineLength == 0) {
+			target[index] = '\0';
+			break;
+		}
+
 		memcpy(&target[index], text, lineLength);
 
 		text += lineLength;
