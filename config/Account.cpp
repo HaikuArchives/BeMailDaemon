@@ -286,14 +286,14 @@ void Account::CreateInbound()
 	// New Mail Notification
 	path = addOnPath;
 	path.Append(kSystemFilterAddOnPath);
-	path.Append("New Mail Notification");
+	path.Append(MDR_DIALECT_CHOICE ("New Mail Notification", "郵便通告方法"));
 	BEntry(path.Path()).GetRef(&ref);
 	fInbound->AddFilter(msg,ref);
 
 	// Inbox
 	path = addOnPath;
 	path.Append(kSystemFilterAddOnPath);
-	path.Append("Inbox");
+	path.Append(MDR_DIALECT_CHOICE ("Inbox", "受信箱"));
 	BEntry(path.Path()).GetRef(&ref);
 	fInbound->AddFilter(msg,ref);
 
@@ -323,7 +323,7 @@ void Account::CreateOutbound()
 		
 	path = addOnPath;
 	path.Append(kSystemFilterAddOnPath);
-	path.Append("Outbox");
+	path.Append(MDR_DIALECT_CHOICE ("Outbox", "送信箱"));
 	BEntry(path.Path()).GetRef(&ref);
 	fOutbound->AddFilter(msg,ref);
 
