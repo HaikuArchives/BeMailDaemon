@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v2.0.0 Beta 9
+BEOS Mail Daemon Replacement v2.0.1 Beta 1
 
 ABOUT:
 
@@ -149,6 +149,9 @@ ADDON INSTALLATION.
    pretty pictures.  Also see the note about SampleSpamDatabase.
 
 HISTORY:
+
+February 9 2003 - v2.0.1b1
+- Yet more Japanese translations, courtesy of Jun Suzki this time.
 
 February 6 2003 - v2.0.0b9
 - Use quoted printable for the headers to avoid base64 extra CRLF insertion which makes a mess if the header (like Subject) is too long to fit on a line.
