@@ -115,6 +115,20 @@ int32 MIMEMultipartContainer::CountComponents() const {
 	return _components_in_code.CountItems();
 }
 
+status_t MIMEMultipartContainer::RemoveComponent(int32 index) {
+	void *data;
+	
+	if (index >= CountComponents())
+		return B_BAD_INDEX;
+	
+	if ((data = _components_in_code.RemoveItem(index)) != NULL)
+		delete data;
+	if ((data = _components_in_raw.RemoveItem(index)) != NULL)
+		delete data;
+		
+	return B_OK;
+}
+
 status_t MIMEMultipartContainer::ManualGetComponent(MailComponent *component, int32 index) {
 	if (_components_in_code.ItemAt(index) != NULL)
 		return B_NAME_IN_USE;
