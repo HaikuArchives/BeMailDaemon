@@ -510,7 +510,7 @@ void IMAP4Client::SyncAllBoxes() {
 		
 		SendCommand(command.String());
 		if (!WasCommandOkay(command)) {
-			command = "Error creating mailbox ";
+			command = "Error deleting mailbox ";
 			command << temp[i] << '.';
 			runner->ShowError(command.String());
 		}
