@@ -78,8 +78,6 @@ status_t FortuneFilter::ProcessMailMessage
 		mail_body += "\n";
 		
 		pclose(fd);
-	
-		printf("Mail Body : %s\n", mail_body.String());
 		
 		// Update the message body and render it back to the BPositionIO.
 		mail_message.SetBodyTextTo(mail_body.String());
