@@ -132,12 +132,7 @@ ifeq ($(CHECK_MEM), true)
 	COMPILER_FLAGS += -fcheck-memory-usage -DDEBUG=1 -D_NO_INLINE_ASM=1 -D_KERNEL_MODE=1
 endif
 
-
-#	this one is the default target and calls the one from the makefile-engine
-#	to be able to move the library after it has been created
-first:	default
-	mv $(TARGET) .
-
+TARGET_DIR=.
 INSTALL_DIR=/boot/home/config/lib/
 
 ## include the makefile-engine
