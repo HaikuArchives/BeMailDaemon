@@ -283,9 +283,16 @@ encode_qp(char *out, const char *in, off_t length, int encode_spaces)
 			out[g++] = hex_alphabet[(in[i] >> 4) & 0x0f];
 			out[g++] = hex_alphabet[in[i] & 0x0f];
 		}
-		else if (((in[i] == ' ')  || (in[i] == '\t')) && (encode_spaces))
+		else if (encode_spaces && (in[i] == ' ' || in[i] == '\t'))
 			out[g++] = '_';
-		else
+		else if (encode_spaces && (in[i] >= 0 && in[i] < 32)) {
+			// Control codes in headers need to be sanitized, otherwise certain
+			// Japanese ISPs mangle the headers badly.  But they don't mangle
+			// the body.
+			out[g++] = '=';
+			out[g++] = hex_alphabet[(in[i] >> 4) & 0x0f];
+			out[g++] = hex_alphabet[in[i] & 0x0f];
+		} else
 			out[g++] = in[i];
 	}
 
