@@ -82,11 +82,6 @@ lems.
 To configure the new mail_daemon, open the E-mail preferences app
 from your Deskbar menu after installing the package.
 
-Note: The x86 version in this package *DOES NOT* work under BONE;
-if you are using BONE you must use a different version compiled
-for BONE.  If you don't know where to find this, you should not
-be using BONE!
-
 USAGE:
 
 Open the E-mail preferences app (BeOS Menu/Preferences/E-mail) and 
