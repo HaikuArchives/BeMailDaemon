@@ -3315,6 +3315,41 @@ TMailWindow::Send(bool now)
 		fMail->SetCC(fHeaderView->fCc->Text(), characterSetToUse, encodingForHeaders);
 
 		fMail->SetBCC(fHeaderView->fBcc->Text());
+		
+		//--- Add X-Mailer field
+		{
+			int32 major = 0,middle = 0,minor = 0,variety = 0,internal = 1;
+			char version_string[255];
+			app_info appInfo;
+			if (be_app->GetAppInfo(&appInfo) == B_OK)
+			{
+				BFile file(&appInfo.ref,B_READ_ONLY);
+				if (file.InitCheck() == B_OK)
+				{
+					BAppFileInfo info(&file);
+					if (info.InitCheck() == B_OK)
+					{
+						version_info versionInfo;
+						if (info.GetVersionInfo(&versionInfo,B_APP_VERSION_KIND) == B_OK)
+						{
+							major = versionInfo.major;
+							middle = versionInfo.middle;
+							minor = versionInfo.minor;
+							variety = versionInfo.variety;
+							internal = versionInfo.internal;
+						}
+					}
+				}
+			}
+			// prepare version variety string
+			const char *varietyStrings[] = {"Development","Alpha","Beta","Gamma","Golden master","Final"};
+			char varietyString[32];
+			strcpy(varietyString,varietyStrings[variety % 6]);
+			if (variety < 5)
+				sprintf(varietyString + strlen(varietyString),"/%li",internal);
+			sprintf(version_string,"BeMail - Mail Daemon Replacement %ld.%ld.%ld %s",major,middle,minor,varietyString);
+			fMail->SetHeaderField("X-Mailer",version_string);
+		}
 
 		/****/
 
