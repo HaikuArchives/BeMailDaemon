@@ -199,7 +199,7 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length)
 	//
 	
 	int32 boundaryLength = strlen(_boundary);
-	int32 boundaryPos;
+	int32 boundaryPos = 0;
 	const char *expected = "\r\n--";
 	int8 state = 2;		// begin looking for '-'
 	char buffer[4096];	// buffer size must be at least as long as boundaryLength
