@@ -33,8 +33,9 @@ StatusWindow
 
 ------------------------------------------------*/
 
-namespace Zoidberg {
-namespace Mail {
+using namespace Zoidberg;
+using Mail::StatusWindow;
+using Mail::StatusView;
 
 // constructor
 StatusWindow::StatusWindow(BRect rect, const char *name, uint32 s)
@@ -438,7 +439,7 @@ void StatusView::SetMessage(const char *msg) {
 	}
 }
 
-void StatusView::Reset() {
+void StatusView::Reset(bool hide) {
 	if (LockLooper())
 	{
 		char old[255];
@@ -454,6 +455,8 @@ void StatusView::Reset() {
 		items_now = 0;
 		UnlockLooper();
 	}
+	if (hide)
+		if (Window()) window->RemoveView(this);
 }
 
 // SetMaximum
@@ -502,7 +505,7 @@ void StatusView::AddSelfToWindow() {
 //--------------------------------------------------------------------------
 //	#pragma mark -
 
-_EXPORT void ShowAlert(const char *title, const char *body, const char *button, alert_type type)
+_EXPORT void Mail::ShowAlert(const char *title, const char *body, const char *button, alert_type type)
 {
 printf("Alert (%s): %s [%s]\n",title,body,button);
 	BAlert *alert = new BAlert(title,body,button,NULL,NULL,B_WIDTH_AS_USUAL,type);
@@ -510,5 +513,3 @@ printf("Alert (%s): %s [%s]\n",title,body,button);
 	alert->Go(NULL);
 }
 
-}	// namespace Mail
-}	// namespace Zoidberg
