@@ -129,7 +129,13 @@ status_t Protocol::ProcessMailMessage
 		status_t error;
 		
 		if (!ran_yet) {
-			if (settings->FindBool("delete_remote_when_local")) {
+			{
+				//---Delete things from the manifest no longer on the server
+				StringList temp;
+				manifest->NotThere(*unique_ids,&temp);
+				(*manifest) -= temp;
+			}
+			if ((settings->FindBool("delete_remote_when_local")) || !(settings->FindBool("leave_mail_on_server"))) {
 				StringList query_contents;
 				BQuery fido;
 				BVolume boot;

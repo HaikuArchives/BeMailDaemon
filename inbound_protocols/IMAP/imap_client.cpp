@@ -116,8 +116,6 @@ class NoopWorker : public BHandler {
 				NestedString response;
 				us->GetResponse(tag,&response);
 				
-				response.PrintToStream();
-				
 				if (tag == expected)
 					break;
 				
@@ -148,6 +146,7 @@ class NoopWorker : public BHandler {
 				list.AddItem(uid.String());
 			}
 			
+			(*us->unique_ids) += list;
 			us->runner->GetMessages(&list,-1);
 		}
 		void MessageReceived(BMessage *msg) {
@@ -222,8 +221,9 @@ IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Pro
 	runner->ReportProgress(0,0,"Logged in");
 	
 	InitializeMailboxes();
+	SyncAllBoxes();
 	StringList fake;
-	fake += "//!newmsgcheck";
+	fake += "";
 	runner->GetMessages(&fake,-1);
 	
 	sync = new SyncHandler(this);
@@ -626,6 +626,9 @@ status_t IMAP4Client::GetMessage(
 				SyncAllBoxes();
 				return B_MAIL_END_FETCH;
 			}
+			
+			if (uid[0] == 0)
+				return B_MAIL_END_FETCH;
 			
 			BString command(uid), folder(uid), id;
 			folder.Truncate(command.FindLast('/'));
