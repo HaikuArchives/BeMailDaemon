@@ -24,10 +24,10 @@ class _EXPORT MailMessage;
 #define mime_warning "This is a multipart message in MIME format."
 
 MailMessage::MailMessage(BPositionIO *mail_file)
-            :_bcc(NULL)
+            :_chain_id(0)
+            ,_bcc(NULL)
             ,_num_components(0)
             ,_body(NULL)
-            ,_chain_id(0)
             , _text_body(NULL)
 {
 	MailSettings settings;
