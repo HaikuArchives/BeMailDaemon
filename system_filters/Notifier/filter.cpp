@@ -1,5 +1,3 @@
-#include "ConfigView.h"
-
 #include <Message.h>
 #include <String.h>
 #include <Alert.h>
@@ -91,10 +89,3 @@ MailFilter* instantiate_mailfilter(BMessage* settings, StatusView *view)
 	return new NotifyFilter(settings);
 }
 
-BView* instantiate_config_panel(BMessage *settings,BMessage *)
-{
-	ConfigView *view = new ConfigView();
-	view->SetTo(settings);
-
-	return view;
-}
