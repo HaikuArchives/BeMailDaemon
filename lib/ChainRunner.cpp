@@ -97,12 +97,20 @@ ChainRunner::ChainRunner(Mail::Chain *chain, Mail::StatusWindow *status,
 	destroy_self(selfDestruct),
 	destroy_chain(destructChain),
 	save_chain(saveChain),
-	_status(status)
+	_status(status),
+	suicide(false)
 {
 	static DeathFilter *filter = NULL;
 
 	if (filter == NULL)
 		be_app->AddFilter(filter = new DeathFilter);
+	
+	list_lock.Lock();
+	if (running_chains.HasItem((void *)(_chain->ID())))
+		suicide = true;
+	running_chains.AddItem((void *)(_chain->ID()));
+	running_chain_pointers.AddItem(this);
+	list_lock.Unlock();
 }
 
 
@@ -120,6 +128,9 @@ ChainRunner::~ChainRunner()
 	running_chains.RemoveItem((void *)(_chain->ID()));
 	running_chain_pointers.RemoveItem(this);
 	list_lock.Unlock();
+			
+	if (destroy_chain)
+		delete _chain;
 }
 
 
@@ -154,20 +165,12 @@ ChainRunner::Chain()
 status_t
 ChainRunner::RunChain(bool asynchronous)
 {
-	list_lock.Lock();
-	if (running_chains.HasItem((void *)(_chain->ID()))) {
-		if (destroy_chain)
-			delete _chain;
-		delete this;
-		list_lock.Unlock();
+	if (suicide) {
+		Quit();
 		return B_NAME_IN_USE;
 	}
-
+	
 	Run();
-
-	running_chains.AddItem((void *)(_chain->ID()));
-	running_chain_pointers.AddItem(this);
-	list_lock.Unlock();
 
 	PostMessage('INIT');
 
@@ -263,6 +266,7 @@ ChainRunner::MessageReceived(BMessage *msg)
 		}
 
 		case 'STOP': {
+			
 			CallCallbacksFor(chain_cb, B_OK);
 				// who knows what the code was?
 
@@ -295,21 +299,16 @@ ChainRunner::MessageReceived(BMessage *msg)
 				_status->Unlock();
 			}				
 			
-			list_lock.Lock();
+			/*list_lock.Lock();
 			running_chains.RemoveItem((void *)(_chain->ID()));
 			running_chain_pointers.RemoveItem(this);
-			list_lock.Unlock();
+			list_lock.Unlock();*/
 
 			if (save_chain)
 				_chain->Save();
 
-			if (destroy_chain)
-				delete _chain;
-
-			if (destroy_self) {
+			if (destroy_self)
 				Quit();
-				delete this;
-			}
 			break;
 		}
 		case 'GETM': {

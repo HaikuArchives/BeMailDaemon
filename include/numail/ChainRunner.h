@@ -87,7 +87,9 @@ class ChainRunner : public BLooper {
 		Mail::StatusView *_statview;
 		BList addons;
 		
-		uint32	_reserved[5];
+		bool suicide;
+		uint8	_other_reserved[3];
+		uint32	_reserved[4];
 };
 
 ChainRunner *GetRunner(int32 chain_id, Mail::StatusWindow *status, bool selfDestruct = true);
