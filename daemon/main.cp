@@ -13,6 +13,7 @@
 #include <Button.h>
 #include <StringView.h>
 #include <Mime.h>
+#include <Beep.h>
 #include <fs_index.h>
 #include <fs_info.h>
 #include <String.h>
@@ -402,6 +403,9 @@ int main (int argc, const char **argv)
 
 	Zoidberg::Mail::MailDaemonApp app;
 	
+	// install MimeTypes, attributes, indices, and the
+	// system beep add startup
+
 	// Add MAIL:account attribute if necessary
 	BMimeType email_mime_type("text/x-email");
 	BMessage info;
@@ -455,6 +459,7 @@ int main (int argc, const char **argv)
 	}
 	
 	makeIndices();
+	add_system_beep_event("New E-mail");
 
 	be_app->Run();
 	return 0;
