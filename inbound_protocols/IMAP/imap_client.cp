@@ -7,6 +7,7 @@
 
 #include <StringList.h>
 #include <status.h>
+#include <crypt.h>
 
 #include "imap_reader.h"
 
@@ -32,7 +33,14 @@ IMAP4Client::IMAP4Client(BMessage *settings,StatusView *status)
 //	BNetDebug::Enable(true);
 	SetTimeout(kIMAP4ClientTimeout);
 	error = Open(settings->FindString("server"),settings->FindInt32("port"),settings->FindInt32("flavor"));
-	error = Login(settings->FindString("username"),settings->FindString("password"),settings->FindInt32("auth_method"));
+
+	const char *password = settings->FindString("password");
+	char *passwd = get_passwd(settings,"cpasswd");
+	if (passwd)
+		password = passwd;
+
+	error = Login(settings->FindString("username"),password,settings->FindInt32("auth_method"));
+
 	num_messages = Select(settings->FindString("folder"));
 }
 
