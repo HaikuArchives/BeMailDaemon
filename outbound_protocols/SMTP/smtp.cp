@@ -76,12 +76,17 @@ MDStatus SMTPProtocol::ProcessMailMessage
 		BPositionIO** io_message, BEntry* /*io_entry*/,
 		BMessage* io_headers, BPath* /*io_folder*/, BString* /*io_uid*/
 	) {
-		if (Send(io_headers->FindString("MAIL:recipients"),io_headers->FindString("MAIL:from"),*io_message) == B_OK) {
+		const char *from = io_headers->FindString("MAIL:from");
+		const char *to = io_headers->FindString("MAIL:recipients");
+		if (!to)
+			to = io_headers->FindString("MAIL:to");
+
+		if (to && from && Send(to,from,*io_message) == B_OK) {
 			status_view->AddItem();
 			return MD_HANDLED;
 		} else {
 			BString error;
-			error << "An error occurred while sending the message " << io_headers->FindString("MAIL:subject") << " to " << io_headers->FindString("MAIL:recipients") << ":\n" << fLog;
+			error << "An error occurred while sending the message " << io_headers->FindString("MAIL:subject") << " to " << to << ":\n" << fLog;
 			smtp_errlert(error.String());
 			status_view->AddItem();
 			return MD_ERROR;
@@ -122,8 +127,7 @@ status_t SMTPProtocol::Open(const char *server, int port, bool esmtp) {
 	{
 		const char* res = fLog.String();
 		char* p;
-		printf("result: '%s'\n",res);
-		if((p=::strstr(res,"250-AUTH")))
+		if((p = ::strstr(res,"250-AUTH")))
 		{
 			if(::strstr(p,"LOGIN"))
 				fAuthType |= LOGIN;
@@ -174,7 +178,6 @@ status_t SMTPProtocol::Login(const char * _login, const char * password) {
 							// protocol matches, go execute it!
 		
 							image_id image = load_add_on(path.Path());
-							puts(path.Path());
 
 							fLog = "Cannot load POP3 add-on";
 							if (image >= B_OK)
