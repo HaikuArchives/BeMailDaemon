@@ -74,6 +74,11 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
+ * Revision 1.78  2003/04/04 22:43:53  agmsmith
+ * Fixed up atoll PPC processor hack so it would actually work, was just
+ * returning zero which meant that it wouldn't load in the database file
+ * (read the size as zero).
+ *
  * Revision 1.77  2003/01/22 03:19:48  agmsmith
  * Don't convert words to lower case, the case is important for spam.
  * Particularly sentences which start with exciting words, which you
@@ -349,8 +354,13 @@
 #include <errno.h>
 
 #if __POWERPC__ /* atoll is missing from the PowerPC standard library. */
-static long long atoll (const char *str) {
-  return atol (str); // Only good for a few billion, but good enough I guess.
+static int64 atoll (const char *str) {
+  int64 result = 0;
+  if (!str || !str[0])
+    return 0;
+  if (sscanf (str, "%Ld", &result) != 1)
+    result = 0;
+  return result;
 }
 #endif
 
