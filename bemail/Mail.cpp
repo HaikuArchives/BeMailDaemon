@@ -2548,46 +2548,41 @@ status_t TMailWindow::Send(bool now)
 	char			mime[256];
 	int32			index = 0;
 	int32			len;
-	MailMessage		*mail;
 	status_t		result;
 	TListItem		*item;
 
 	if (fResending)
-	{
-		puts("forwarding/resending not yet implemented!");
-//		result = forward_mail(fRef, fHeaderView->fTo->Text(), now);
-		result = B_ERROR;
-	}
+		result = forward_mail(fRef, fHeaderView->fTo->Text(), now);
 	else
 	{
-		mail = new MailMessage();
+		MailMessage mail;
 				
 		if ((len = strlen(fHeaderView->fTo->Text())) != 0)
-			mail->SetTo(fHeaderView->fTo->Text());
+			mail.SetTo(fHeaderView->fTo->Text());
 
 		if ((len = strlen(fHeaderView->fSubject->Text())) != 0)
-			mail->SetSubject(fHeaderView->fSubject->Text());
+			mail.SetSubject(fHeaderView->fSubject->Text());
 
 		if ((len = strlen(fHeaderView->fCc->Text())) != 0)
-			mail->SetCC(fHeaderView->fCc->Text());
+			mail.SetCC(fHeaderView->fCc->Text());
 
 		if ((len = strlen(fHeaderView->fBcc->Text())) != 0)
-			mail->SetBCC(fHeaderView->fBcc->Text());
+			mail.SetBCC(fHeaderView->fBcc->Text());
 
 		/****/
 
 		// the content text is always added to make sure there is a mail body
-		fContentView->fTextView->AddAsContent(mail, wrap_mode);
+		fContentView->fTextView->AddAsContent(&mail, wrap_mode);
 
 		if (fEnclosuresView != NULL)
 		{
 			while ((item = (TListItem *)fEnclosuresView->fList->ItemAt(index++)) != NULL)
-				mail->Attach(item->Ref());
+				mail.Attach(item->Ref());
 		}
 		if (fHeaderView->fChain != ~0UL)
-			mail->SendViaAccount(fHeaderView->fChain);
+			mail.SendViaAccount(fHeaderView->fChain);
 
-		result = mail->Send(now);
+		result = mail.Send(now);
 		
 		if (fReplying)
 		{
@@ -2595,7 +2590,6 @@ status_t TMailWindow::Send(bool now)
 			if (node.InitCheck() >= B_OK)
 				WriteAttrString(&node, B_MAIL_ATTR_STATUS,"Replied");
 		}
-		delete mail;
 	}
 
 	switch (result)
