@@ -26,7 +26,7 @@ enum { OK,BAD,NO,NOT_COMMAND_RESPONSE };
 class IMAP4Client : public Mail::Protocol {
 	public:
 		IMAP4Client(BMessage *settings, Mail::ChainRunner *run);
-		//virtual ~IMAP4Client();
+		virtual ~IMAP4Client();
 		
 		virtual status_t GetMessage(
 			const char* uid,
@@ -47,6 +47,8 @@ class IMAP4Client : public Mail::Protocol {
 		void SyncAllBoxes();
 	
 	private:
+		friend class SyncHandler;
+		
 		int32 commandCount;
 		BNetEndpoint *net;
 		BString selected_mb;
@@ -61,8 +63,10 @@ class SyncHandler : public BHandler {
 		void MessageReceived(BMessage *msg) {
 			if (msg->what != 'imps' /*IMaP Sync */)
 				return;
-				
-			client->SyncAllBoxes(); //--- Not the most lightweight solution, but simple.
+			
+			StringList list;
+			list += "//!newmsgcheck";
+			client->runner->GetMessages(&list,0);
 		}
 	
 		BMessageRunner *runner;
@@ -116,12 +120,20 @@ IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Pro
 		return;
 	}
 	
+	runner->ReportProgress(0,0,"Logged in");
+	
 	InitializeMailboxes();
 	SyncAllBoxes();
 	
 	SyncHandler *sync = new SyncHandler(this);
 	runner->AddHandler(sync);
 	sync->runner = new BMessageRunner(BMessenger(sync,runner),new BMessage('imps'),30e6);
+}
+
+IMAP4Client::~IMAP4Client() {
+	if (selected_mb != "")
+		SendCommand("CLOSE");
+	SendCommand("LOGOUT");
 }
 
 void IMAP4Client::InitializeMailboxes() {
@@ -161,6 +173,7 @@ void IMAP4Client::SyncAllBoxes() {
 	if (selected_mb != "") {
 		SendCommand("CLOSE");
 		WasCommandOkay(command);
+		selected_mb = "";
 	}
 	for (int32 i = 0; i < boxes.CountItems(); i++) {
 		int32 num_messages = -1;
@@ -241,6 +254,7 @@ status_t IMAP4Client::GetMessage(
 					BString trash;
 					SendCommand("CLOSE");
 					WasCommandOkay(trash);
+					selected_mb = "";
 				}
 				BString cmd = "SELECT ";
 				cmd << folder;
@@ -267,7 +281,41 @@ status_t IMAP4Client::GetMessage(
 		}
 
 status_t IMAP4Client::DeleteMessage(const char* uid) {
-	return B_ERROR;
+	printf("Deleting %s\n",uid);
+	
+	BString command(uid), folder(uid), id;
+	folder.Truncate(command.FindLast('/'));
+	command.CopyInto(id,command.FindLast('/') + 1,command.Length());
+				
+	command = "UID STORE ";
+	command << id << " +FLAGS.SILENT (\\Deleted)";
+	
+	if (selected_mb != folder) {
+		if (selected_mb != "") {
+			BString trash;
+			SendCommand("CLOSE");
+			WasCommandOkay(trash);
+			selected_mb = "";
+		}
+		BString cmd = "SELECT ";
+		cmd << folder;
+		SendCommand(cmd.String());
+		if (!WasCommandOkay(cmd)) {
+			runner->ShowError(cmd.String());
+			return B_ERROR;
+		}
+		
+		selected_mb = folder;
+	}
+	
+	SendCommand(command.String());
+	if (!WasCommandOkay(command)) {
+		command.Prepend("Error while deleting message: ");
+		runner->ShowError(command.String());
+		return B_ERROR;
+	}
+	
+	return B_OK;
 }
 	
 status_t

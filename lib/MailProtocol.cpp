@@ -141,6 +141,7 @@ status_t Protocol::ProcessMailMessage
 					DeleteMessage(to_delete[i]);
 				
 				*(unique_ids) -= to_delete;
+				*(manifest) -= to_delete;
 			}
 			
 			ran_yet = true;
@@ -149,10 +150,11 @@ status_t Protocol::ProcessMailMessage
 		
 		error = GetMessage(io_uid,io_message,io_headers,io_folder);
 		if (error < B_OK) {
+			if (error != B_MAIL_END_FETCH) {
 			MDR_DIALECT_CHOICE (
 				error_alert("getting a message",error);,
 				error_alert("新しいメッセージヲ取得中にエラーが発生しました",error);
-			)
+			)}
 			return B_MAIL_END_FETCH;
 		}
 		
