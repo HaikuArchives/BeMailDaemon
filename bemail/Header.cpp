@@ -60,7 +60,7 @@ All rights reserved.
 
 const char	*kDateLabel = "Date:";
 	
-ssize_t	FetchAttribute(const BString &attribute, const BNode &file,
+ssize_t	FetchAttribute(const char *attribute, const BNode &file,
 	BString &result);	
 
 class QPopupMenu : public QueryMenu
@@ -239,8 +239,8 @@ THeaderView::InitEmailCompletion()
 	
 	// The leash is a work-around for when the something in the query breaks
 	// and prevents GetNextRef() from ever returning B_ENTRY_NOT_FOUND
-	for (int32 leash=0; (query.GetNextRef(&ref) != B_ENTRY_NOT_FOUND)
-			&& (leash < 1024); leash++) {
+	for (int32 leash=0; query.GetNextRef(&ref) == B_OK && leash < 1024; leash++)
+	{
 		if (file.SetTo(&ref) == B_OK) {
 			FetchAttribute("META:email", file, email);
 			emailList.AddChoice(email.String());
@@ -563,14 +563,14 @@ void THeaderView::BuildMenus()
 
 //--------------------------------------------------------------------
 
-ssize_t FetchAttribute(const BString &attribute, const BNode &file, BString &result)
+ssize_t FetchAttribute(const char *attribute, const BNode &file, BString &result)
 {
 	attr_info info;
 	ssize_t status;
 	
-	status = file.GetAttrInfo(attribute.String(), &info);
+	status = file.GetAttrInfo(attribute, &info);
 	if (status == B_NO_ERROR) {
-		file.ReadAttr(attribute.String(), B_STRING_TYPE, 0,
+		file.ReadAttr(attribute, B_STRING_TYPE, 0,
 			result.LockBuffer(info.size+1), info.size);
 		result.UnlockBuffer();
 	} else {
@@ -735,9 +735,10 @@ status_t THeaderView::LoadMessage(BFile *file)
 
 	if ((fFile->GetAttrInfo(B_MAIL_ATTR_SUBJECT, &info) == B_NO_ERROR)
 			&& (info.size > 0)) {
-		string = (char*) malloc(info.size);
+		string = (char*) malloc(info.size+1);
 		fFile->ReadAttr(B_MAIL_ATTR_SUBJECT, B_STRING_TYPE, 0, string, 
 			info.size);
+		string[info.size] = '\0';
 		fSubject->SetText(string);
 		free(string);
 	}
@@ -751,8 +752,9 @@ status_t THeaderView::LoadMessage(BFile *file)
 	if ((fFile->GetAttrInfo(B_MAIL_ATTR_FROM, &info) == B_NO_ERROR) &&
 	  (info.size > 0)) 
 	{
-		string = (char*) malloc(info.size);
+		string = (char*) malloc(info.size+1);
 		fFile->ReadAttr(B_MAIL_ATTR_FROM, B_STRING_TYPE, 0, string, info.size);
+		string[info.size] = '\0';
 		fTo->SetText(string);
 		free(string);
 	}
@@ -823,7 +825,7 @@ void TTextControl::MessageReceived(BMessage *msg)
 							if (file.GetAttrInfo("META:email", &info) == B_NO_ERROR) {
 								BString email;
 								file.ReadAttr("META:email", B_STRING_TYPE, 0,
-									email.LockBuffer(info.size), info.size);
+									email.LockBuffer(info.size+1), info.size);
 								email.UnlockBuffer();
 							
 							/* we got something... */	
@@ -833,7 +835,7 @@ void TTextControl::MessageReceived(BMessage *msg)
 								if (file.GetAttrInfo("META:name", &info)
 										== B_NO_ERROR) {
 									file.ReadAttr("META:name", B_STRING_TYPE, 0,
-										name.LockBuffer(info.size), info.size);
+										name.LockBuffer(info.size+1), info.size);
 									name.UnlockBuffer();
 								}
 									

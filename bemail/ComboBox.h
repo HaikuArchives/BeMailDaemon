@@ -51,6 +51,7 @@ class BTextControl;
 class BWindow;
 class BComboBox;
 
+/*
 // Abstract class provides an interface for BComboBox to access possible choices.
 // Choices are used for auto-completion and for showing the pop-up list
 class BChoiceList {
@@ -69,12 +70,14 @@ public:
 	// Returns the number of choices
 	virtual int32 CountChoices() = 0;
 };
+*/
 
 class StringObjectList;
 
 // Implementation of BChoiceList.  Keeps copies of each choice added, and frees
 // the memory when the choices are removed. 
-class BDefaultChoiceList : public BChoiceList {
+class BDefaultChoiceList // : public BChoiceList
+{
 public:
 	BDefaultChoiceList(BComboBox *owner = NULL);
 	virtual ~BDefaultChoiceList();
@@ -96,6 +99,7 @@ private:
 	StringObjectList *fList;
 	BComboBox *fOwner;
 };
+typedef BDefaultChoiceList BChoiceList;
 
 
 class BComboBox : public BControl {
