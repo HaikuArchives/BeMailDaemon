@@ -150,7 +150,8 @@ status_t MIMEMultipartContainer::SetDecodedData(BPositionIO *) {
 	return B_BAD_TYPE; //------We don't play dat
 }
 
-status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length) {
+status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length)
+{
 	MailComponent *old;
 	while ((old = (MailComponent *)_components_in_code.RemoveItem(0L)) != NULL)
 		delete old;
@@ -182,14 +183,15 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length) {
 
 	end_delimiter << type << "--";
 	
-	int32 start = data->Position();
-	int32 offset = start;
+	off_t start = data->Position();
+	off_t offset = start;
 	ssize_t len;
 	BString line;
 	char *buf;
 	int32 last_boundary = -1;
 	
-	while (offset < (start + length)) {
+	while (offset < (start + length))
+	{
 		len = line.Length();
 		buf = line.LockBuffer(len + 255) + len;
 		len = data->ReadAt(offset,buf,90);

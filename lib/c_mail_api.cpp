@@ -62,3 +62,4 @@ _EXPORT status_t	get_pop_account(mail_pop_account* account, int32 index) {
 		
 	return err;
 }
+

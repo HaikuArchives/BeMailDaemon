@@ -13,5 +13,5 @@ default .DEFAULT :
 install:
 	mkdir -p /boot/home/config/add-ons/mail_daemon/inbound_filters
 	-@for f in $(SUBDIRS) ; do \
-		$(MAKE) -C $$f -f makefile install $@; \
+		$(MAKE) -C $$f -f makefile install $@ || exit -1; \
 	done

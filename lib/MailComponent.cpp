@@ -83,13 +83,22 @@ void MailComponent::SetHeaderField(const char *key, BMessage *structure, bool re
 	if (structure->HasString("unlabeled"))
 		value << structure->FindString("unlabeled") << "; ";
 	
-	char *name, *sub_val;
+	const char *name, *sub_val;
 	type_code type;
-	for (int32 i = 0; structure->GetInfo(B_STRING_TYPE,i,&name,&type) == B_OK; i++) {
+	for (int32 i = 0; structure->GetInfo(B_STRING_TYPE,i,
+		#ifndef B_BEOS_VERSION_DANO
+			(char**)
+		#endif
+		&name,&type) == B_OK; i++)
+	{
 		if (strcasecmp(name,"unlabeled") == 0)
 			continue;
 		
-		structure->FindString(name,&sub_val);
+		structure->FindString(name,
+			#ifndef B_BEOS_VERSION_DANO
+			(char**)
+			#endif
+			&sub_val);
 		value << name << '=';
 		if (BString(sub_val).FindFirst(' ') > 0)
 			value << '\"' << sub_val << "\"; ";

@@ -73,7 +73,7 @@ _EXPORT ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 	for (head = tail = string;
 		((charset = strstr(tail, "=?")) != NULL)
 		&& (((encoding = strchr(charset + 2, '?')) != NULL)
-			&& (encoding[1] != NULL) && (encoding[2] == '?') && (encoding[3] != NULL))
+			&& encoding[1] && (encoding[2] == '?') && encoding[3])
 		&& (end = strstr(encoding + 3, "?=")) != NULL;
 		// found "=?...charset...?e?...text...?=   (e == encoding)
 		//        ^charset       ^encoding    ^end
