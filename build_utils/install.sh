@@ -45,12 +45,7 @@ rm bin/ExtraMenuLinksForR5Tracker.zip
 # Set up the spam classifier server.
 copyattr -d -m bin/AGMSBayesianSpamServer ~/config/bin/AGMSBayesianSpamServer
 mkdir -p ~/config/settings/AGMSBayesianSpam
-if test -e "${HOME}/config/settings/AGMSBayesianSpam/AGMSBayesianSpam Database";
-  then
-    alert "The spam database file (${HOME}/config/settings/AGMSBayesianSpam/AGMSBayesianSpam Database) already exists.
-
-You can manually replace it with the SampleSpamDatabase if you wish to.  However, if you have customized your spam words (recommended so that it recognizes what YOUR genuine mail and spam look like) then you probably want to keep using your existing database.";
-  else
+if test ! -e "${HOME}/config/settings/AGMSBayesianSpam/AGMSBayesianSpam Database"; then
     cp bin/SampleSpamDatabase "${HOME}/config/settings/AGMSBayesianSpam/AGMSBayesianSpam Database";
 fi
 copyattr -d -m bin/SoundGenuine "${HOME}/config/settings/AGMSBayesianSpam/SoundGenuine"
