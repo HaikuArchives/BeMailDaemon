@@ -52,7 +52,7 @@ status_t ConfigView::Archive(BMessage *into,bool) const
 {
 	if (BMenuField *field = (BMenuField *)FindView("notification_method"))
 	{
-		int32 method = field->Menu()->IndexOf(field->Menu()->FindMarked());
+		int32 method = field->Menu()->IndexOf(field->Menu()->FindMarked()) + 1;
 		if (into->ReplaceInt32("notification_method",method) != B_OK)
 			into->AddInt32("notification_method",method);
 	}
