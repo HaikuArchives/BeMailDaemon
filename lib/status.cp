@@ -398,6 +398,7 @@ StatusView::StatusView(BRect rect, const char *description,bool upstream)
 
 	items_now = 0;
 	total_items = 0;
+	pre_text[0] = 0;
 	is_upstream = upstream;
 }
 
@@ -412,9 +413,16 @@ void StatusView::AddProgress(int32 how_much) {
 	
 	if (LockLooper())
 	{
+		if (status->CurrentValue() == 0)
+			strcpy(pre_text,status->TrailingText());
 		char final[80];
-		sprintf(final,"%.1f / %.1f kb (%d / %d messages)",float(float(status->CurrentValue() + how_much) / 1024),float(float(status->MaxValue()) / 1024),(int)items_now+1,(int)total_items);
-		status->Update(how_much,NULL,final);
+		if (by_bytes) {
+			sprintf(final,"%.1f / %.1f kb (%d / %d messages)",float(float(status->CurrentValue() + how_much) / 1024),float(float(status->MaxValue()) / 1024),(int)items_now+1,(int)total_items);
+			status->Update(how_much,NULL,final);
+		} else {
+			sprintf(final,"%d / %d messages",(int)items_now,(int)total_items);
+			status->Update(how_much,NULL,final);
+		}
 		UnlockLooper();
 	}
 }
@@ -430,13 +438,37 @@ void StatusView::SetMessage(const char *msg) {
 	}
 }
 
+void StatusView::Reset() {
+	if (LockLooper())
+	{
+		char old[255];
+		if (pre_text[0] == 0)
+			strcpy(pre_text,status->TrailingText());
+			
+		strcpy(old,status->Label());
+		status->Reset(old);
+		status->SetTrailingText(pre_text);
+		status->Draw(status->Bounds());
+		pre_text[0] = 0;
+		total_items = 0;
+		items_now = 0;
+		UnlockLooper();
+	}
+}
+
 // SetMaximum
 void StatusView::SetMaximum(int32 max_bytes) {
 	AddSelfToWindow();
 	
 	if (LockLooper())
 	{
-		status->SetMaxValue(max_bytes);
+		if (max_bytes < 0) {
+			status->SetMaxValue(total_items);
+			by_bytes = false;
+		} else {
+			status->SetMaxValue(max_bytes);
+			by_bytes = true;
+		}
 		UnlockLooper();
 	}
 }
@@ -444,7 +476,6 @@ void StatusView::SetMaximum(int32 max_bytes) {
 // SetTotalItems
 void StatusView::SetTotalItems(int32 items) {
 	AddSelfToWindow();
-	
 	total_items = items;
 }
 
@@ -455,8 +486,10 @@ int32 StatusView::CountTotalItems() {
 // AddItem
 void StatusView::AddItem(void) {
 	AddSelfToWindow();
-	
 	items_now++;
+	
+	if (!by_bytes)
+		AddProgress(1);
 }
 
 void StatusView::AddSelfToWindow() {

@@ -293,6 +293,25 @@ void ChainRunner::get_messages(StringList *list) {
 	
 	call_cbs(process_cb,err);
 	
+	if (save_chain) {
+		entry_ref addon;
+		BMessage settings;
+		for (int32 i = 0; i < addons.CountItems(); i++) {
+			filter_image *image = (filter_image *)(addons.ItemAt(i));
+			
+			BMessage *temp = new BMessage(*(image->settings));
+			temp->RemoveName("chain");
+			_chain->GetFilter(i,&settings,&addon);
+			_chain->SetFilter(i,*temp,addon);
+			
+			delete temp;
+		}
+		
+		_chain->Save();
+	}
+	
+	ResetProgress();
+	
 	if (err == B_MAIL_END_CHAIN)
 		Stop();
 }
@@ -313,6 +332,12 @@ void ChainRunner::ReportProgress(int bytes, int messages, const char *message) {
 		_statview->AddProgress(bytes);
 	for (int i = 0; i < messages; i++)
 		_statview->AddItem();	
+	if (message != NULL)
+		_statview->SetMessage(message);
+}
+
+void ChainRunner::ResetProgress(const char *message) {
+	_statview->Reset();
 	if (message != NULL)
 		_statview->SetMessage(message);
 }

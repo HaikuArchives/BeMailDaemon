@@ -41,7 +41,7 @@ class IMAP4Client : public Mail::Protocol {
 		
 		virtual status_t InitCheck(BString *) { return B_OK; }
 		
-		int GetResponse(BString &tag, NestedString *parsed_response, bool report_fetch_results = false, bool recursion_flag = false, bool b = false);
+		int GetResponse(BString &tag, NestedString *parsed_response, bool report_literals = false, bool recursion_flag = false);
 		bool WasCommandOkay(BString &response);
 		
 		void InitializeMailboxes();
@@ -251,7 +251,7 @@ void IMAP4Client::SyncAllBoxes() {
 	StringList to_dl;
 	unique_ids->NotThere(*manifest,&to_dl);
 	
-	runner->GetMessages(&to_dl,102400 /* I don't want to look up sizes just now */);
+	runner->GetMessages(&to_dl,-1);
 }
 
 status_t IMAP4Client::GetMessage(
@@ -294,16 +294,18 @@ status_t IMAP4Client::GetMessage(
 			static char cmd[255];
 			::sprintf(cmd,"a%.7ld"CRLF,++commandCount);
 			NestedString response;
-			if (GetResponse(command,&response,true,false,true) != NOT_COMMAND_RESPONSE && command == cmd)
+			if (GetResponse(command,&response) != NOT_COMMAND_RESPONSE && command == cmd)
 				return B_ERROR;
-				
-			for (int32 i = 0; i < response[1].CountItems(); i++) {
-				if (strcmp(response[1][i](),"\\Seen") == 0) {
-					out_headers->AddString("STATUS","READ");
+			
+			for (int32 i = 0; i < response[2][1].CountItems(); i++) {
+				//puts(response[2][1][i]());
+				if (strcmp(response[2][1][i](),"\\Seen") == 0) {
+					out_headers->AddString("STATUS","Read");
 				}
 			}
 			WasCommandOkay(command);
 			(*out_file)->Write(response[2][5](),strlen(response[2][5]()));
+			runner->ReportProgress(0,1);
 			return B_OK;
 		}
 
@@ -383,7 +385,7 @@ IMAP4Client::ReceiveLine(BString &out)
 	return len;
 }
 
-int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool report_fetch_results, bool internal_flag, bool always_report) {
+int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool report_literals, bool internal_flag) {
 	uint8 c = 0;
 	int32 r;
 	int8 delimiters_passed = internal_flag ? 2 : 0;
@@ -440,20 +442,13 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 						char *buffer = new char[octets_to_read+1];
 						buffer[octets_to_read] = 0;
 						printf("Reading a %d byte string literal...\n",octets_to_read);
-						if ((!report_fetch_results || strcmp(parsed_response[0](), "FETCH")) && !always_report) {
-							int read_octets = 0;
-							while (read_octets < octets_to_read)
-								read_octets += net->Receive(buffer + read_octets,octets_to_read - read_octets);
-						} else {
-							int read_bytes;
-							while (octets_to_read > 0) {
-								read_bytes = net->Receive(buffer + read_bytes,(octets_to_read > 255) ? 255 : octets_to_read);
-								/*if (read_bytes < 0)
-									return read_bytes;*/
-								
-								octets_to_read -= read_bytes;
-								runner->ReportProgress(read_bytes,0);
-							}
+						int read_octets = 0;
+						int nibble_size;
+						while (read_octets < octets_to_read) {
+							nibble_size = net->Receive(buffer + read_octets,octets_to_read - read_octets);
+							read_octets += nibble_size;
+							if (report_literals)
+								runner->ReportProgress(nibble_size,0);
 						}
 						
 						if (parsed_response != NULL)
@@ -490,7 +485,7 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 					(*parsed_response) += NULL;
 					
 				BString trash;
-				GetResponse(trash,&((*parsed_response)[parsed_response->CountItems() - 1]),report_fetch_results,true,report_fetch_results && !strcmp(parsed_response[0](), "FETCH"));
+				GetResponse(trash,&((*parsed_response)[parsed_response->CountItems() - 1]),report_literals,true);
 				continue;
 			}
 			
