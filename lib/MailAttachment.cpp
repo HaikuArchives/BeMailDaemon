@@ -183,6 +183,10 @@ status_t SimpleAttachment::SetToRFC822(BPositionIO *data, size_t length, bool pa
 	off_t position = data->Position();
 	Mail::Component::SetToRFC822(data,length,parse_now);
 	
+	// this actually happens...
+	if (data->Position() - position > length)
+		return B_ERROR;
+
 	length -= (data->Position() - position);
 	
 	_raw_data = data;
@@ -206,7 +210,7 @@ status_t SimpleAttachment::SetToRFC822(BPositionIO *data, size_t length, bool pa
 }
 
 void SimpleAttachment::ParseNow() {
-	if (_raw_data == NULL)
+	if (_raw_data == NULL || _raw_length == 0)
 		return;
 	
 	_raw_data->Seek(_raw_offset,SEEK_SET);

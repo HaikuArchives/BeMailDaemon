@@ -4,7 +4,9 @@
 #include <MailAddon.h>
 #include <MailSettings.h>
 
+
 namespace Mail {
+
 class StatusWindow;
 class Chain;
 
@@ -50,6 +52,6 @@ class ChainRunner {
 		BList message_cb, process_cb;
 };
 
-}
+}	// namespace Mail
 
 #endif //MAIL_CHAINRUNNER_H
