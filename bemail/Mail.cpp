@@ -1155,9 +1155,10 @@ skip:			if (!done) {
 				} else {
 					fAccountMenu->AddItem(item = new BMenuItem("<none>",NULL));
 					item->SetEnabled(false);
+					fChain = ~0UL;
 				}
-				// default chain is invalid
-				gDefaultChain = ~0L;
+				// default chain is invalid, set to marked
+				gDefaultChain = fChain;
 			}
 		}
 		menu_bar->AddItem(fAccountMenu);
@@ -2653,7 +2654,8 @@ status_t TMailWindow::Send(bool now)
 			while ((item = (TListItem *)fEnclosuresView->fList->ItemAt(index++)) != NULL)
 				mail->Attach(item->Ref());
 		}
-		mail->SendViaAccount(fChain);
+		if (fChain != ~0UL)
+			mail->SendViaAccount(fChain);
 
 		result = mail->Send(now);
 		
