@@ -164,7 +164,7 @@ IMAP4Client::Login(const char* login,const char* password,int)
 	
 	int32 cmdNumber = fCommandCount;
 	int32 state,r;
-	while( 1 && (B_OK == result) )
+	while( B_OK == result )
 	{
 		r = ReceiveLine(out);
 		if(r <= 0)
@@ -209,6 +209,11 @@ finish:
 status_t
 IMAP4Client::UniqueIDs()
 {
+	if( num_messages < 0 )
+	{
+		return B_ERROR;
+	}
+	
 	const char *folder_name = _settings->FindString("folder");
 	BString cmd("FETCH ");
 	
@@ -226,8 +231,13 @@ IMAP4Client::UniqueIDs()
 	
 	while(1)
 	{
-		ReceiveLine(out);
-		state = CheckSessionEnd(out.String(),cmdNumber);		
+		if( 0 > ReceiveLine(out))
+		{
+			// There was an error!
+			return B_ERROR;
+		}
+		
+		state = CheckSessionEnd(out.String(),cmdNumber);
 
 		switch(state)
 		{
@@ -262,7 +272,8 @@ void IMAP4Client::PrepareStatusWindow(StringList *manifest) {
 int32
 IMAP4Client::Select(const char* folder_name)
 {
-	int32 r = 0,mail_count = -1;
+	int32 r = 0;
+	int32 mail_count = -1;
 	
 	BString cmd("SELECT ");
 	cmd << "\"" << folder_name << "\"";
@@ -323,7 +334,12 @@ IMAP4Client::Store(int32 index,const char* flags,bool add)
 		
 		while(1)
 		{
-			ReceiveLine(out);
+			if( 0 > ReceiveLine(out))
+			{
+				// There was an error!
+				return B_ERROR;
+			}
+
 			state = CheckSessionEnd(out.String(),cmdNumber);		
 			switch(state)
 			{
@@ -486,7 +502,12 @@ IMAP4Client::Noop()
 	
 	while(1)
 	{
-		ReceiveLine(out);
+		if( 0 > ReceiveLine(out))
+		{
+			// There was an error!
+			return B_ERROR;
+		}
+
 		if(::strncmp(out.String(),end_line,strlen(end_line))==0)
 			break;
 	}
@@ -545,6 +566,7 @@ IMAP4Client::SendCommand(const char* command)
 		(new BAlert("","Memory was exhausted","OK",NULL,NULL,B_WIDTH_AS_USUAL,B_STOP_ALERT))->Go();
 		return B_ERROR;
 	}
+
 	// If command number field is over 7 field,
 	// reset command number.
 	if(fCommandCount > 9999999)
@@ -586,7 +608,10 @@ IMAP4Client::ReceiveLine(BString &out)
 			len += r;
 		}
 	}else{
-		(new BAlert("","IMAP4 socket timeout.","OK"))->Go();
+		// (new BAlert("","IMAP4 socket timeout.","OK"))->Go();
+		// Log an error somewhere instead
+		_status->SetMessage("IMAP Timeout.");
+		len = -1;		
 	}
 	PRINT(("S:%s\n",out.String()));
 	return len;
