@@ -155,6 +155,7 @@ January 21 2003 - v2.0.0b8
 - Made the character set choice affect the encoding of the Subject, To, CC and other header lines.  So now your subject can contain international characters.
 - Made it internationalize (using utf-8, no choice) the file attachment headers so file names with weird characters will now work.
 - Don't convert words to lower case for spam checking, the case can be an important clue!
+- Updated sample spam database: now has capitalized words and includes fresh spam.
 
 December 13 2002 - v2.0.0b7
 - Fixed vman's bug with TABs after the colon in the headers making it ignore the header.
