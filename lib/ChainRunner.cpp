@@ -155,14 +155,14 @@ ChainRunner::~ChainRunner()
 
 		delete image;
 	}
-	
+
 	//--- Remove ourselves from the window if we haven't been already
 	if ((_status != NULL) && (_statview != NULL)) {
 		_status->Lock();
 		if (_statview->Window())
 			_status->RemoveView(_statview);
-		else
-			delete _statview;
+
+		delete _statview;
 		_status->Unlock();
 	}
 	
