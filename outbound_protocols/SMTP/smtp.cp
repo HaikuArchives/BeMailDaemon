@@ -399,12 +399,16 @@ status_t SMTPProtocol::Send(const char *to, const char *from, BPositionIO *messa
 	return B_OK;
 } 
 
-int32 SMTPProtocol::ReceiveLine(BString &line) {
+int32 SMTPProtocol::ReceiveLine(BString &line,bool concat) {
 	int32 len = 0,rcv;
 	int8 c = 0;
 	bool flag = false;
 
-	line = "";
+	if (concat) {
+		if (line != "")
+			line += "\n";
+	} else
+		line = "";
 	
 	if (conn.IsDataPending(60000000)) {	
 		while (true) {
@@ -440,7 +444,7 @@ status_t SMTPProtocol::SendCommand(const char* cmd) {
 	fLog = "";
 
 	while(true) {
-		len = ReceiveLine(fLog);
+		len = ReceiveLine(fLog,true);
 		printf("< %s\n",fLog.String());
 		
 		if(len <= 0)
@@ -452,7 +456,7 @@ status_t SMTPProtocol::SendCommand(const char* cmd) {
 
 			if(num >= 500)
 				return B_ERROR;
-			else
+			else if (fLog[3] == ' ')
 				break;
 		}
 	}
