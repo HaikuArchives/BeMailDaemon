@@ -26,6 +26,9 @@ _EXPORT ssize_t encode(mail_encoding encoding, char *out, const char *in, off_t 
 		case no_encoding:
 			memcpy(out,in,length);
 			return length;
+		case uuencode:
+		default:
+			return -1;
 	}
 	
 	return -1;
@@ -62,6 +65,9 @@ _EXPORT ssize_t max_encoded_length(mail_encoding encoding, off_t cur_length) {
 			return cur_length*3;
 		case no_encoding:
 			return cur_length;
+		case uuencode:
+		default:
+			return -1;
 	}
 	
 	return -1;
