@@ -419,7 +419,7 @@ CopyQuotes(const char *text, size_t length, char *outText, size_t &outLength)
 	const int32 quoteLength = strlen(QUOTE);
 	outLength = 0;
 	while (level-- > 0) {
-		strcpy(outText, QUOTE);
+		strcpy(outText + outLength, QUOTE);
 		outLength += quoteLength;
 	}
 }
