@@ -74,14 +74,15 @@ const uint32 kMsgFrom = 'hFrm';
 const uint32 kMsgEncoding = 'encd';
 
 
-class QPopupMenu : public QueryMenu
-{
+class QPopupMenu : public QueryMenu {
 	public:
 		QPopupMenu(const char *title);
 
 	private:		
 		void AddPersonItem(const entry_ref *ref, ino_t node, BString &name, BString &email,
 							const char *attr, BMenu *groupMenu, BMenuItem *superItem);
+		static BMenu *AllPeopleMenu(BMenu *menu);
+		static bool HasAllPeopleMenu(BMenu *menu);
 
 	protected:
 		virtual void EntryCreated(const entry_ref &ref, ino_t node);
@@ -1066,32 +1067,41 @@ TTextControl::HasFocus()
 
 
 QPopupMenu::QPopupMenu(const char *title)
-	:	QueryMenu(title, true),
-		fGroups(0)
+	: QueryMenu(title, true),
+	fGroups(0)
 {
 }
 
 
-void
-QPopupMenu::AddPersonItem(
-	const entry_ref *ref,
-	ino_t node,
-	BString &name,
-	BString &email,
-	const char *attr,
-	BMenu *groupMenu,
-	BMenuItem *superItem)
+BMenu *
+QPopupMenu::AllPeopleMenu(BMenu *menu)
 {
-	BString		label;
-	int			itemIndex;
-	const char *nameStartPntr;
-	BMenu	   *parentMenu;
-	BString		sortKey; // For alphabetical order sorting, usually last name.
-	const char *stringPntr;
-	BMenuItem  *testItem;
-	BMessage   *testMessage;
-	BString		testKey;
-	const char *wordEndPntr;
+	BMenuItem *item = menu->ItemAt(menu->CountItems() - 1);
+	if (item == NULL || item->Submenu() == NULL)
+		return NULL;
+
+	BMenuItem *separatorItem = menu->ItemAt(menu->IndexOf(item) - 1);
+	if (separatorItem == NULL || dynamic_cast<BSeparatorItem *>(separatorItem) == NULL)
+		return NULL;
+
+	return item->Submenu();
+}
+
+
+bool
+QPopupMenu::HasAllPeopleMenu(BMenu *menu)
+{
+	return AllPeopleMenu(menu) != NULL;
+}
+
+
+void
+QPopupMenu::AddPersonItem(const entry_ref *ref, ino_t node, BString &name, BString &email,
+	const char *attr, BMenu *groupMenu, BMenuItem *superItem)
+{
+	BString	label;
+	BString	sortKey;
+		// For alphabetical order sorting, usually last name.
 
 	// if we have no Name, just use the email address 
 	if (name.Length() == 0) {
@@ -1100,25 +1110,29 @@ QPopupMenu::AddPersonItem(
 	} else {
 		// otherwise, pretty-format it 
 		label << name << " (" << email << ")";
+
 		// Extract the last name (last word in the name), removing trailing
 		// and leading spaces.
-		nameStartPntr = name.String();
-		stringPntr = nameStartPntr + strlen (nameStartPntr) - 1;
-		while (stringPntr >= nameStartPntr && isspace (*stringPntr))
-			stringPntr--;
-		wordEndPntr = stringPntr + 1; // Points to just after last word.
-		while (stringPntr >= nameStartPntr && !isspace (*stringPntr))
-			stringPntr--;
-		stringPntr++; // Point to first letter in the word.
-		if (wordEndPntr > stringPntr)
-			sortKey.SetTo (stringPntr, wordEndPntr - stringPntr);
+		const char *nameStart = name.String();
+		const char *string = nameStart + strlen(nameStart) - 1;
+		const char *wordEnd;
+
+		while (string >= nameStart && isspace(*string))
+			string--;
+		wordEnd = string + 1; // Points to just after last word.
+		while (string >= nameStart && !isspace(*string))
+			string--;
+		string++; // Point to first letter in the word.
+		if (wordEnd > string)
+			sortKey.SetTo(string, wordEnd - string);
 		else // Blank name, pretend that the last name is after it.
-			stringPntr = nameStartPntr + strlen (nameStartPntr);
+			string = nameStart + strlen(nameStart);
+
 		// Append the first names to the end, so that people with the same last
 		// name get sorted by first name.  Note no space between the end of the
 		// last name and the start of the first names, but that shouldn't
 		// matter for sorting.
-		sortKey.Append (nameStartPntr, stringPntr - nameStartPntr);
+		sortKey.Append(nameStart, string - nameStart);
 	}
 
 	BMessage *msg = new BMessage(B_SIMPLE_DATA);
@@ -1128,16 +1142,13 @@ QPopupMenu::AddPersonItem(
 		msg->AddString("attr", attr);
 	msg->AddString("sortkey", sortKey);
 
-	BMenuItem *item = new BMenuItem(label.String(), msg);
+	BMenuItem *newItem = new BMenuItem(label.String(), msg);
 	if (fTargetHandler)
-		item->SetTarget(fTargetHandler);
+		newItem->SetTarget(fTargetHandler);
 
 	// If no group, just add it to ourself; else add it to group menu
-	if (!groupMenu)
-		parentMenu = this;
-	else
-	{
-		parentMenu = groupMenu;
+	BMenu *parentMenu = groupMenu ? groupMenu : this;
+	if (groupMenu) {
 		// Add ref to group super item.
 		BMessage *superMsg = superItem->Message();
 		superMsg->AddRef("refs", ref);
@@ -1150,17 +1161,28 @@ QPopupMenu::AddPersonItem(
 	// Thus the search starts at the bottom and ends when we hit a separator
 	// line or the top of the menu.
 
-	for (itemIndex = parentMenu->CountItems() - 1; itemIndex >= 0; itemIndex--) {
-		testItem = parentMenu->ItemAt (itemIndex);
-		if (testItem == NULL ||	NULL != dynamic_cast <BSeparatorItem *> (testItem))
-			break; // Corrupt menu or hit the separator.
-		testMessage = testItem->Message();
-		if (testMessage != NULL &&
-			B_OK == testMessage->FindString ("sortkey", &testKey) &&
-			ICompare (testKey, sortKey) < 0)
-			break; // Stop when testKey < sortKey.
+	// check if the last menu item is the "All People" menu, and skip that
+	// if that's the case
+	int32 index = parentMenu->CountItems();
+	if (HasAllPeopleMenu(parentMenu))
+		index -= 2;
+
+	while (index-- > 0) {
+		BMenuItem *item = parentMenu->ItemAt(index);
+		if (item == NULL ||	dynamic_cast<BSeparatorItem *>(item) != NULL)
+			break;
+
+		BMessage *message = item->Message();
+		BString key;
+
+		// Stop when testKey < sortKey.
+		if (message != NULL
+			&& message->FindString("sortkey", &key) == B_OK
+			&& ICompare(key, sortKey) < 0)
+			break;
 	}
-	parentMenu->AddItem (item, itemIndex + 1);
+
+	parentMenu->AddItem(newItem, index + 1);
 }
 
 
@@ -1171,109 +1193,120 @@ QPopupMenu::EntryCreated(const entry_ref &ref, ino_t node)
 	if (file.SetTo(&ref) < B_OK)
 		return;
 
-	BMessage 	*msg;
-	BMenu		*groupMenu;
-	BMenuItem	*superItem = NULL;
-	int32 		items = CountItems();
-
+	int32 items = CountItems();
 	if (!items)
 		AddSeparatorItem();
-	
+
 	// Does the file have a group attribute?
 	BString groups;
-	ReadAttrString(&file,"META:group",&groups);
+	ReadAttrString(&file, "META:group", &groups);
 
 	// Add the e-mail address to all the group menus that it exists in,
 	// optionally making the group menu if it doesn't exist.  And finally, add
 	// it to the main menu too (last iteration runs with groupMenu == NULL).
 
-	do
-	{
+	bool allPeople = false;
+	int32 runs = 0;
+
+	do {
 		// split comma separated string
 		BString group;
 		int32 comma;
-		if ((comma = groups.FindFirst(',')) > 0)
-		{
-			groups.MoveInto(group,0,comma);
-			groups.Remove(0,1);
-		}
-		else
+		if ((comma = groups.FindFirst(',')) > 0) {
+			groups.MoveInto(group, 0, comma);
+			groups.Remove(0, 1);
+		} else
 			group.Adopt(groups);
-		
+
 		// trim white spaces
 		int32 i = 0;
-		for (i = 0;isspace(group.ByteAt(i));i++) {}
+		for (i = 0; isspace(group.ByteAt(i)); i++) {}
 		if (i)
-			group.Remove(0,i);
-		for (i = group.Length() - 1;isspace(group.ByteAt(i));i--) {}
+			group.Remove(0, i);
+		for (i = group.Length() - 1; isspace(group.ByteAt(i)); i--) {}
 		group.Truncate(i + 1);
 
-		groupMenu = NULL;
+		BMenu *groupMenu = NULL;
+		BMenuItem *superItem = NULL;
+		
+		runs++;
 
-		if (group.Length() > 0)
-		{
+		if (group.Length() > 0) {
 			BMenu *sub;
-	
+
 			// Look for submenu with label == group name
-			for (int32 i = 0; i < items; i++)
-			{
-				if ((sub = SubmenuAt(i)) != NULL)
-				{
+			for (int32 i = 0; i < items; i++) {
+				if ((sub = SubmenuAt(i)) != NULL) {
 					superItem = sub->Superitem();
-					if (!strcmp(superItem->Label(), group.String()))
-					{
+					if (!strcmp(superItem->Label(), group.String())) {
 						groupMenu = sub;
 						i++;
 						break;
 					}
 				}
 			}
-			
+
 			// If no submenu, create one
-			if (!groupMenu)
-			{
+			if (!groupMenu) {
 				// Find where it should go (alphabetical)
 				int32 mindex = 0;
-				for (; mindex < fGroups; mindex++)
-				{
+				for (; mindex < fGroups; mindex++) {
 					if (strcmp(ItemAt(mindex)->Label(), group.String()) > 0)
 						break;
 				}
-				
+
 				groupMenu = new BMenu(group.String());
 				groupMenu->SetFont(be_plain_font);
 				AddItem(groupMenu, mindex);
+
 				superItem = groupMenu->Superitem();
 				superItem->SetMessage(new BMessage(B_SIMPLE_DATA));
 				if (fTargetHandler)
 					superItem->SetTarget(fTargetHandler);
-	
+
 				fGroups++;
 			}
+		} else if (runs > 1) {
+			allPeople = true;
+			groupMenu = AllPeopleMenu(this);
+
+			if (groupMenu == NULL) {
+				// build "All People" menu
+				AddSeparatorItem();
+
+				groupMenu = new BMenu("All People");
+				groupMenu->SetFont(be_plain_font);
+				AddItem(groupMenu);
+				
+				superItem = groupMenu->Superitem();
+				superItem->SetMessage(new BMessage(B_SIMPLE_DATA));
+				if (fTargetHandler)
+					superItem->SetTarget(fTargetHandler);
+			} else
+				superItem = groupMenu->Superitem();
 		}
-		
-		msg = new BMessage(B_SIMPLE_DATA);
+
+		BMessage *msg = new BMessage(B_SIMPLE_DATA);
 		msg->AddRef("refs", &ref);
 		msg->AddInt64("node", node);
-		
+
 		BString	name;
-		ReadAttrString(&file,"META:name",&name);
+		ReadAttrString(&file, "META:name", &name);
 
 		BString email;
-		ReadAttrString(&file,"META:email",&email);
+		ReadAttrString(&file, "META:email", &email);
 
 		if (email.Length() != 0 || name.Length() != 0)
 			AddPersonItem(&ref, node, name, email, NULL, groupMenu, superItem);
 
 		// support for 3rd-party People apps
-		for (int16 i = 2;i < 6;i++)
-		{
+		for (int16 i = 2; i < 6; i++) {
 			char attr[16];
-			sprintf(attr,"META:email%d",i);
+			sprintf(attr, "META:email%d", i);
 			if (ReadAttrString(&file, attr, &email) >= B_OK && email.Length() > 0)
 				AddPersonItem(&ref, node, name, email, attr, groupMenu, superItem);
 		}
-	} while (groupMenu != NULL);
+	} while (groups.Length() > 0 || !allPeople);
 }
 
 
