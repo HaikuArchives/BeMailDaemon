@@ -503,7 +503,7 @@ void IMAP4Client::SyncAllBoxes() {
 	folders.NotHere(boxes,&temp);
 	for (int32 i = 0; i < temp.CountItems(); i++) {
 		command = "";
-		command << "DELETE \"" << temp[i] << '\"';
+		command << "DELETE \"" << ((struct mailbox_info *)(box_info.ItemAt(i)))->server_mb_name << '\"';
 		
 		box_info.RemoveItem(boxes.IndexOf(temp[i]));
 		boxes -= temp[i];
