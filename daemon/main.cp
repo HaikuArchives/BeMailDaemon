@@ -24,11 +24,14 @@
 #include "deskbarview.h"
 
 #ifdef BONE
-#	include <bone_serial_ppp.h>
-#	include <unistd.h>
-#   include <sys/socket.h>
+	#ifdef _KERNEL_MODE
+		#undef _KERNEL_MODE
+		#include <sys/socket.h>
+		#define _KERNEL_MODE 1
+	#endif
+	#include <bone_serial_ppp.h>
+	#include <unistd.h>
 #endif
-
 
 StatusWindow *status;
 
