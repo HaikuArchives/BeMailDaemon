@@ -25,7 +25,8 @@ StatusWindow::StatusWindow(BRect rect, const char *name, uint32 s)
 			: BWindow(rect, name, B_MODAL_WINDOW_LOOK, B_NORMAL_WINDOW_FEEL,
 			          B_NOT_CLOSABLE | B_NO_WORKSPACE_ACTIVATION | B_NOT_V_RESIZABLE | B_NOT_ZOOMABLE | B_NOT_MINIMIZABLE),
 			  show(s),
-			  default_is_hidden(false)
+			  default_is_hidden(false),
+			  window_moved(0L)
 {
 	BRect frame(Bounds());
 	frame.InsetBy(90.0 + 5.0, 5.0);
@@ -69,29 +70,34 @@ StatusWindow::StatusWindow(BRect rect, const char *name, uint32 s)
 	MailSettings general;
 	if (general.InitCheck() == B_OK)
 	{
+		// set on-screen location
+
 		frame = general.StatusWindowFrame();
 		BScreen screen(this);
 		if (screen.Frame().Contains(frame))
 		{
 			MoveTo(frame.LeftTop());
-			if (frame.Width() >= min_width
-				&& frame.Height() >= min_height)
+			if (frame.Width() >= min_width && frame.Height() >= min_height)
 			{
 				float x_off_set = frame.Width() - min_width;
 				float y_off_set = frame.Height() - min_height;
+
 				ResizeBy(x_off_set, y_off_set);
 				default_view->ResizeBy(x_off_set, y_off_set);
 				button->ResizeBy(x_off_set, y_off_set);
 				message_view->ResizeBy(x_off_set, y_off_set);
 			}
 		}
+		// set workspace for window
+		
 		int32 workspace = general.StatusWindowWorkspaces();
-		int32 workspace_count = count_workspaces();
-		uint32 max_workspace = 0;
-		while (workspace_count > 0)
-			max_workspace += 1 << workspace_count--;
-		if (max_workspace & workspace)
+		int32 workspacesCount = count_workspaces();
+		uint32 workspacesMask = (workspacesCount > 31 ? 0 : 1L << workspacesCount) - 1;
+		if (workspacesMask & workspace)
 			SetWorkspaces(workspace);
+
+		// set look
+
 		SetBorderStyle(general.StatusWindowLook());
 	}
 
@@ -176,7 +182,9 @@ StatusView *StatusWindow::NewStatusView(const char *description,bool upstream) {
 
 // ActuallyAddStatusView
 void StatusWindow::ActuallyAddStatusView(StatusView *status) {
-	Lock();
+	if (!Lock())
+		return;
+
 	BRect rect = Bounds();
 	rect.top = stat_views.CountItems() * (min_height + 1);
 	rect.bottom = rect.top + min_height;
@@ -188,14 +196,21 @@ void StatusWindow::ActuallyAddStatusView(StatusView *status) {
 	
 	status->Hide();
 	AddChild(status);
-	if (stat_views.CountItems() == 1)
-		if (!default_is_hidden)
-		{
-			default_view->Hide();
-			default_is_hidden = true;
-		}
+	if (stat_views.CountItems() == 1 && !default_is_hidden)
+	{
+		default_view->Hide();
+		default_is_hidden = true;
+	}
 	status->Show();
 	SetSizeLimits(10.0, 2000.0, 10.0, 2000.0);
+	
+	// if the window doesn't fit on screen anymore, move it
+	BScreen screen;
+	if (screen.Frame().bottom < Frame().top + rect.bottom)
+	{
+		MoveBy(0, Bounds().Height() - rect.bottom);
+		window_moved++;
+	}
 	ResizeTo(rect.Width(), rect.bottom);
 	
 	if (show == MD_SHOW_STATUS_WINDOW_WHEN_FETCHING && stat_views.CountItems() == 1)
@@ -222,6 +237,12 @@ void StatusWindow::RemoveView(StatusView *view) {
 			v->MoveBy(0, -(min_height+1));
 	}
 	
+	if (window_moved)
+	{
+		window_moved--;
+		MoveBy(0, min_height + 1);
+	}
+
 	if (stat_views.CountItems() == 0)
 	{
 		if (show == MD_SHOW_STATUS_WINDOW_WHEN_FETCHING)
@@ -237,12 +258,12 @@ void StatusWindow::RemoveView(StatusView *view) {
 		}
 		SetSizeLimits(min_width, 2.0 * min_width, min_height, min_height);
 		ResizeTo(default_view->Frame().Width(), default_view->Frame().Height());
-	be_app->PostMessage('stwg');
+
+		be_app->PostMessage('stwg');
 	}
 	else
-	{
 		ResizeTo(Bounds().Width(), stat_views.CountItems() * min_height - 1);
-	}
+
 	Unlock();
 }
 

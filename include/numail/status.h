@@ -39,6 +39,7 @@ class StatusWindow : public BWindow {
 		float			min_width;
 		float			min_height;
 		bool			default_is_hidden;
+		int32			window_moved;
 };
 
 class StatusView : public BBox {
