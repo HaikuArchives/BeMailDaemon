@@ -13,6 +13,10 @@
  * Public Domain 2002, by Alexander G. M. Smith, no warranty.
  *
  * $Log$
+ * Revision 1.3  2002/11/28 20:20:57  agmsmith
+ * Now checks if the spam database is running in headers only mode, and
+ * then only downloads headers if that is the case.
+ *
  * Revision 1.2  2002/11/10 19:36:27  agmsmith
  * Retry launching server a few times, but not too many.
  *
@@ -57,6 +61,7 @@ class AGMSBayesianSpamFilter : public Zoidberg::Mail::Filter {
 
 	private:
 		bool fAddSpamToSubject;
+		bool fAutoTraining;
 		bool fBeepGenuine;
 		bool fBeepSpam;
 		bool fHeaderOnly;
