@@ -52,8 +52,8 @@ ParseFilter::ProcessMailMessage(BPositionIO **data, BEntry */*entry*/, BMessage 
 	BPath */*folder*/, const char */*uid*/)
 {
 	char byte;
+	(*data)->ReadAt(0,&byte, 1);
 	(*data)->Seek(SEEK_SET, 0);
-	(*data)->Read(&byte, 1);
 
 	status_t status = Mail::parse_header(*headers, **data);
 	if (status < B_OK)
