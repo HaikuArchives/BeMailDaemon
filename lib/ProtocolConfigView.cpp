@@ -263,7 +263,9 @@ status_t ProtocolConfigView::Archive(BMessage *into, bool) const {
 	if (into->ReplaceString("server",host_name.String()) != B_OK)
 		into->AddString("server",host_name.String());
 
-	if (port != -1 && into->ReplaceInt32("port",port) != B_OK)
+	// since there is no need for the port option, remove it here
+	into->RemoveName("port");
+	if (port != -1)
 		into->AddInt32("port",port);
 
 	if (into->ReplaceString("username",TextControl((BView *)this,"user")) != B_OK)
