@@ -17,8 +17,6 @@
 using namespace Zoidberg;
 
 
-void subject2thread(BString&);
-
 class ParseFilter : public Mail::Filter
 {
 	BString name_field;
@@ -96,7 +94,7 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 	// This will generally be the "thread subject".
 	//
 	string.SetTo(headers->FindString("Subject"));
-	subject2thread(string);
+	Mail::SubjectToThread(string);
 	headers->AddString("THREAD",string.String());
 	
 	// name

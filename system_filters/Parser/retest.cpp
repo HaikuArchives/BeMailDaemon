@@ -1,6 +1,12 @@
+/* To compile this test program, use this command line:
+g++ -I../../include/numail -I../../include/public/ -I../../include/support/ -lbe -lmail -o Test -Wall retest.cpp
+Then run Test with the subjects data file as input, or manually type in entries.
+*/
 #include <stdio.h>
 #include <String.h>
-void subject2thread(BString&);
+#include <InterfaceDefs.h>
+
+#include <mail_util.h>
 
 int main(int argc, char** argv)
 {
@@ -9,8 +15,8 @@ int main(int argc, char** argv)
 	while (gets(buf))
 	{
 		string = buf;
-		subject2thread(string);
-		puts(string.String());
+		Zoidberg::Mail::SubjectToThread(string);
+		printf ("Input:  \"%s\"\nOutput: \"%s\"\n\n", buf, string.String());
 	}
 	return 0;
 }

@@ -34,6 +34,9 @@ void StripGook(BString* header);
 // Given a header field with gobbledygook in it, find the
 // longest human-readable phrase.
 
+void SubjectToThread (BString &string);
+// Convert a subject to the core words (remove the extraneous RE: re: etc).
+
 ssize_t rfc2047_to_utf8(char **buffer, size_t *bufLen, size_t strLen = 0);
 ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, char encoding);
 // convert (in place) RFC 2047-style escape sequences ("=?...?.?...?=")
