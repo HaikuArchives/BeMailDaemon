@@ -63,8 +63,9 @@ bool MailComponent::IsAttachment() {
 	if ((disposition != NULL) && (strncasecmp(disposition,"Attachment",strlen("Attachment")) == 0))
 		return true;
 	
-	BString header = HeaderField("Content-Type");
-	if (header.FindFirst("name=") && (header.FindFirst(";") > 0) && (header.FindFirst("name=") > header.FindFirst(";")))
+	BMessage header;
+	HeaderField("Content-Type",&header);
+	if (header.HasString("name"))
 		return true;
 		
 	BMimeType type;
@@ -348,9 +349,7 @@ status_t PlainTextBodyComponent::Instantiate(BPositionIO *data, size_t length) {
 	MailComponent::Instantiate(data,length);
 	
 	length -= (data->Position() - position);
-
-	//printf("Position %d, new position %d, length %d\n",(int32)position,(int32)data->Position(),length);
-	
+		
 	//--------Note: the following code blows up on MIME components. Not sure how to fix.
 	/*if (HeaderField("MIME-Version") == NULL) {
 		text = "";
@@ -363,23 +362,25 @@ status_t PlainTextBodyComponent::Instantiate(BPositionIO *data, size_t length) {
 		return;
 	}*/
 	
-	BString content_type = HeaderField("Content-Type");
-	content_type.Truncate(content_type.FindFirst("; ") + 2);
+	BMessage content_type;
+	HeaderField("Content-Type",&content_type);
 	
 	charset = B_ISO1_CONVERSION;
-	for (int32 i = 0; i < 21; i++) {
-		if (content_type == charsets[i].charset) {
-			charset = charsets[i].flavor;
-			break;
+	if (content_type.HasString("charset")) {
+		for (int32 i = 0; i < 21; i++) {
+			if (strcasecmp(content_type.FindString("charset"),charsets[i].charset) == 0) {
+				charset = charsets[i].flavor;
+				break;
+			}
 		}
 	}
 	
-	content_type = HeaderField("Content-Transfer-Encoding");
+	BString encoding_string = HeaderField("Content-Transfer-Encoding");
 	encoding = no_encoding;
 	
-	if (content_type.IFindFirst("base64") >= 0)
+	if (encoding_string.IFindFirst("base64") >= 0)
 		encoding = base64;
-	if (content_type.IFindFirst("quoted-printable") >= 0)
+	if (encoding_string.IFindFirst("quoted-printable") >= 0)
 		encoding = quoted_printable;
 	
 	char buffer[255];
@@ -402,17 +403,24 @@ status_t PlainTextBodyComponent::Instantiate(BPositionIO *data, size_t length) {
 			break;
 		default:
 			len = alternate.Length();
-			strcpy(text,alternate.String());
+			memcpy(text,alternate.String(),alternate.Length());
 	}
 	alt2.UnlockBuffer(len);
+	
 	
 	alt2.ReplaceAll("\r\n","\n");
 	
 	text = this->text.LockBuffer(len * 2);
 	int32 dest_len = len * 2;
 	int32 state;
+	puts(alt2.String());
 	convert_to_utf8(charset,alt2.String(),&len,text,&dest_len,&state);
-	this->text.UnlockBuffer(dest_len);
+	if (dest_len > 0)
+		this->text.UnlockBuffer(dest_len);
+	else {
+		this->text.UnlockBuffer(0);
+		this->text.SetTo(alt2);
+	}
 	
 	return B_OK;
 }
@@ -462,15 +470,17 @@ status_t PlainTextBodyComponent::Render(BPositionIO *render_to) {
 		switch (encoding) {
 			case 'b':
 				len = encode_base64(raw,alt.String(),alt.Length());
+				raw[len] = 0;
 				break;
 			case 'q':
 				len = encode_qp(raw,alt.String(),alt.Length(), false);
+				raw[len] = 0;
 				break;
 			default:
 				len = alt.Length();
 				strcpy(raw,alt.String());
 		}
-		modified.UnlockBuffer(len);
+		modified.UnlockBuffer(len+1);
 		
 		//------Desperate bid to wrap lines
 		modified.ReplaceAll("\n","\r\n");
