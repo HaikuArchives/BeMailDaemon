@@ -254,7 +254,7 @@ void MailMessage::RenderTo(BFile *file) {
 		type_code type;
 		char *name, *data;
 		for (int32 i = 0; _header_kludge_yikes->GetInfo(B_STRING_TYPE,i,&name,&type); i++) {
-			_header_kludge_yikes->FindString(name,&data);
+			_header_kludge_yikes->FindString(name,(const char **)&data);
 			_body->AddHeaderField(name,data);
 		}
 		
