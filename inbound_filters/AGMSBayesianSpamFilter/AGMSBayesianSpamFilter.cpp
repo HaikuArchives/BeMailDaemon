@@ -11,6 +11,9 @@
  * Public Domain 2002, by Alexander G. M. Smith, no warranty.
  *
  * $Log$
+ * Revision 1.10  2002/12/13 22:04:42  agmsmith
+ * Changed default to turn on the Spam marker in the subject.
+ *
  * Revision 1.9  2002/12/13 20:27:44  agmsmith
  * Added auto-training mode to the filter.  It evaluates a message for
  * spaminess then recursively adds it to the database.  This can lead
@@ -88,7 +91,7 @@ AGMSBayesianSpamFilter::AGMSBayesianSpamFilter (BMessage *settings)
 		fLaunchAttemptCount (0),
 		fNoWordsMeansSpam (false),
 		fQuitServerWhenFinished (true),
-		fSpamCutoffRatio (0.56f)
+		fSpamCutoffRatio (0.95f)
 {
 	bool		tempBool;
 	float		tempFloat;
@@ -391,7 +394,7 @@ descriptive_name (
 	bool		autoTraining = false;
 	bool		beepGenuine = false;
 	bool		beepSpam = false;
-	float		cutoffRatio = 0.56f;
+	float		cutoffRatio = 0.95f;
 	bool		tempBool;
 	float		tempFloat;
 

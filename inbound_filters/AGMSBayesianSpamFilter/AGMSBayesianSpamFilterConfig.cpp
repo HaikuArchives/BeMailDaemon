@@ -3,6 +3,9 @@
  * settings related to the add-on, but not the server.
  *
  * $Log$
+ * Revision 1.3  2002/12/13 22:04:43  agmsmith
+ * Changed default to turn on the Spam marker in the subject.
+ *
  * Revision 1.2  2002/12/12 00:56:28  agmsmith
  * Added some new spam filter options - self training (not implemented yet)
  * and a button to edit the server settings.
@@ -106,7 +109,7 @@ AGMSBayesianSpamFilterConfig::AGMSBayesianSpamFilterConfig (BMessage *settings)
 		fQuitServerWhenFinished (true),
 		fQuitServerWhenFinishedCheckBoxPntr (NULL),
 		fServerSettingsButtonPntr (NULL),
-		fSpamCutoffRatio (0.56f),
+		fSpamCutoffRatio (0.95f),
 		fSpamCutoffRatioTextBoxPntr (NULL)
 {
 	bool	tempBool;
