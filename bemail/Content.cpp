@@ -148,8 +148,7 @@ static bool
 FilterHTMLTag(int32 *first, char **t, char *end)
 {
 	const char *newlineTags[] = {
-		"br",
-		"/p","/div","/table","/tr",
+		"br", "/p", "/div", "/table", "/tr",
 		NULL};
 
 	char *a = *t;
@@ -360,23 +359,9 @@ CheckForURL(const char *string, size_t &urlLength, BString *url = NULL)
 			if (parenthesis == NULL || parenthesis > string + index)
 				index--;
 		}
-
-		/*if (!isspace(data[loop + index + 1]) && !isspace(data[loop + index + 2]))
-			index = strcspn(data + loop + index + 1," <>)\"\r\n");*/
 	}
 	else
 		index = strcspn(string, " \t>)\"\\,\r\n");
-
-	/*while ((data[loop + index] != ' ') &&
-		   (data[loop + index] != '\t') &&
-		   (data[loop + index] != '>') &&
-		   (data[loop + index] != ')') &&
-		   (data[loop + index] != '"') &&
-		   (data[loop + index] != '\'') &&
-		   (data[loop + index] != ',') &&
-		   (data[loop + index] != '\r')) {
-		index++;
-	}*/
 
 	if (url != NULL) {
 		// copy the address to the specified string
@@ -575,12 +560,12 @@ TContentView::TContentView(BRect rect, bool incoming, Mail::Message *mail, BFont
 	fOffset = 12;
 
 	BRect r(rect);
-	r.OffsetTo(0,0);
+	r.OffsetTo(0, 0);
 	r.right -= B_V_SCROLL_BAR_WIDTH;
 	r.bottom -= B_H_SCROLL_BAR_HEIGHT;
 	r.top += 4;
 	BRect text(r);
-	text.OffsetTo(0,0);
+	text.OffsetTo(0, 0);
 	text.InsetBy(5, 5);
 
 	fTextView = new TTextView(r, text, fIncoming, mail, this, font);
@@ -661,8 +646,10 @@ TContentView::MessageReceived(BMessage *msg)
 				free (signature);
 			} else {
 				beep();
-				(new BAlert("", MDR_DIALECT_CHOICE ("An error occurred trying to open this signature.","この署名を開くときにエラーが発生しました"),
-					MDR_DIALECT_CHOICE ("Sorry","了解")))->Go();
+				(new BAlert("",
+					MDR_DIALECT_CHOICE ("An error occurred trying to open this signature.",
+						"この署名を開くときにエラーが発生しました"),
+					MDR_DIALECT_CHOICE ("Sorry", "了解")))->Go();
 			}
 			break;
 		}
@@ -805,19 +792,19 @@ TTextView::TTextView(BRect frame, BRect text, bool incoming, Mail::Message *mail
 	//
 	fEnclosureMenu = new BPopUpMenu("Enclosure", false, false);
 	fEnclosureMenu->SetFont(&menuFont);
-	fEnclosureMenu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Save Enclosure","添付ファイルを保存") B_UTF8_ELLIPSIS,new BMessage(M_SAVE)));
-	fEnclosureMenu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Open Enclosure","添付ファイルを開く"), new BMessage(M_OPEN)));
+	fEnclosureMenu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Save Enclosure", "添付ファイルを保存") B_UTF8_ELLIPSIS,new BMessage(M_SAVE)));
+	fEnclosureMenu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Open Enclosure", "添付ファイルを開く"), new BMessage(M_OPEN)));
 
 	//
 	//	Hyperlink pop up menu
 	//
-	fLinkMenu = new BPopUpMenu("Link",false, false);
+	fLinkMenu = new BPopUpMenu("Link", false, false);
 	fLinkMenu->SetFont(&menuFont);
 	fLinkMenu->AddItem(new BMenuItem(
-		MDR_DIALECT_CHOICE ("Open This Link","リンク先を開く"),
+		MDR_DIALECT_CHOICE ("Open This Link", "リンク先を開く"),
 		new BMessage(M_OPEN)));
 	fLinkMenu->AddItem(new BMenuItem(
-		MDR_DIALECT_CHOICE ("Copy Link Location","リンク先をコピー"),
+		MDR_DIALECT_CHOICE ("Copy Link Location", "リンク先をコピー"),
 		new BMessage(M_COPY)));
 
 	SetDoesUndo(true);
@@ -1269,7 +1256,7 @@ TTextView::MessageReceived(BMessage *msg)
 							BDirectory dir(&directory);	
 							BFile file(&dir, name, B_READ_WRITE);
 							if (file.InitCheck() == B_OK) {
-								if (strcmp(replyType,"application/x-vnd.Be-bookmark") == 0) {
+								if (strcmp(replyType, "application/x-vnd.Be-bookmark") == 0) {
 									// we got a request to create a bookmark, stuff
 									// it with the url attribute
 									file.WriteAttr("META:url", B_STRING_TYPE, 0, 
@@ -1446,7 +1433,7 @@ TTextView::MouseDown(BPoint where)
 				if (matches.CountItems()) {
 					sort_word_list(&matches, srcWord.String());
 					for (int32 i = 0; (string = (BString *)matches.ItemAt(i)) != NULL; i++) {
-						menu.AddItem((menuItem = new BMenuItem(string->String(),NULL)));
+						menu.AddItem((menuItem = new BMenuItem(string->String(), NULL)));
 						if (!strcasecmp(string->String(), srcWord.String())) {
 							menuItem->SetEnabled(false);
 							foundWord = true;
@@ -1454,14 +1441,14 @@ TTextView::MouseDown(BPoint where)
 						delete string;
 					}
 				} else {
-					(menuItem = new BMenuItem("No Matches",NULL))->SetEnabled(false);
+					(menuItem = new BMenuItem("No Matches", NULL))->SetEnabled(false);
 					menu.AddItem(menuItem);
 				}
 
 				BMenuItem *addItem = NULL;
 				if (!foundWord && gUserDict >= 0) {
 					menu.AddSeparatorItem();
-					addItem = new BMenuItem(MDR_DIALECT_CHOICE ("Add","追加"), NULL);
+					addItem = new BMenuItem(MDR_DIALECT_CHOICE ("Add", "追加"), NULL);
 					menu.AddItem(addItem);
 				}
 
@@ -1802,7 +1789,9 @@ TTextView::Open(hyper_text *enclosure)
 			status_t result = be_roster->Launch(handlerToLaunch, 1, &enclosure->name);
 			if (result != B_NO_ERROR && result != B_ALREADY_RUNNING) {
 				beep();
-				(new BAlert("", MDR_DIALECT_CHOICE ("There is no installed handler for URL links.","このURLリンクを扱えるアプリケーションが存在しません"),
+				(new BAlert("",
+					MDR_DIALECT_CHOICE("There is no installed handler for URL links.",
+						"このURLリンクを扱えるアプリケーションが存在しません"),
 					"Sorry"))->Go();
 			}
 			break;
@@ -1908,12 +1897,12 @@ TTextView::Save(BMessage *msg, bool makeNewFile)
 				if (result == B_NO_ERROR && enclosure->content_type) {
 					char type[B_MIME_TYPE_LENGTH];
 
-					if (!strcasecmp(enclosure->content_type,"message/rfc822"))
-						strcpy(type,"text/x-email");
-					else if (!strcasecmp(enclosure->content_type,"message/delivery-status"))
-						strcpy(type,"text/plain");
+					if (!strcasecmp(enclosure->content_type, "message/rfc822"))
+						strcpy(type, "text/x-email");
+					else if (!strcasecmp(enclosure->content_type, "message/delivery-status"))
+						strcpy(type, "text/plain");
 					else
-						strcpy(type,enclosure->content_type);
+						strcpy(type, enclosure->content_type);
 
 					BNodeInfo info(&file);
 					info.SetType(type);
@@ -1951,9 +1940,9 @@ TTextView::Save(BMessage *msg, bool makeNewFile)
 
 	if (result != B_NO_ERROR) {
 		beep();
-		MDR_DIALECT_CHOICE (
-			(new BAlert("", "An error occurred trying to save the enclosure.","Sorry"))->Go();,
-			(new BAlert("", "添付ファイルを保存するときにエラーが発生しました","了解"))->Go();
+		MDR_DIALECT_CHOICE(
+			(new BAlert("", "An error occurred trying to save the enclosure.", "Sorry"))->Go();,
+			(new BAlert("", "添付ファイルを保存するときにエラーが発生しました", "了解"))->Go();
 		)
 	}
 
@@ -2216,7 +2205,7 @@ TTextView::Reader::ParseMail(Mail::Container *container, Mail::TextComponent *ig
 			Mail::MIMEMultipartContainer *c = dynamic_cast<Mail::MIMEMultipartContainer *>(container->GetComponent(i));
 			ASSERT(c != NULL);
 
-			if (!ParseMail(c,ignore))
+			if (!ParseMail(c, ignore))
 				count--;
 		} else if (fIncoming) {
 			hyper_text *enclosure = (hyper_text *)malloc(sizeof(hyper_text));
@@ -2227,7 +2216,7 @@ TTextView::Reader::ParseMail(Mail::Container *container, Mail::TextComponent *ig
 
 			BString name;
 			char fileName[B_FILE_NAME_LENGTH];
-			strcpy(fileName,"untitled");
+			strcpy(fileName, "untitled");
 			if (Mail::Attachment *attachment = dynamic_cast <Mail::Attachment *> (component))
 				attachment->FileName(fileName);
 
@@ -2389,7 +2378,7 @@ TTextView::Reader::Run(void *_this)
 		 	const char *header = msg;
 		 	char *buffer = NULL;
 
-			while (strncmp(header,"\r\n",2)) {
+			while (strncmp(header, "\r\n", 2)) {
 				const char *eol = header;
 				while ((eol = strstr(eol, "\r\n")) != NULL && isspace(eol[2]))
 					eol += 2;
@@ -2407,11 +2396,11 @@ TTextView::Reader::Run(void *_this)
 
 				length = Mail::rfc2047_to_utf8(&buffer, &length, length);
 
-		 		if (!strncasecmp(header,"Reply-To: ",10)
-		 			|| !strncasecmp(header,"To: ",4)
-		 			|| !strncasecmp(header,"From: ",6)
-		 			|| !strncasecmp(header,"Subject: ",8)
-		 			|| !strncasecmp(header,"Date: ",6))
+		 		if (!strncasecmp(header, "Reply-To: ", 10)
+		 			|| !strncasecmp(header, "To: ", 4)
+		 			|| !strncasecmp(header, "From: ", 6)
+		 			|| !strncasecmp(header, "Subject: ", 8)
+		 			|| !strncasecmp(header, "Date: ", 6))
 		 			reader->Process(buffer, length, true);
 
 		 		header = eol;
@@ -2675,14 +2664,14 @@ TTextView::DeleteText(int32 start, int32 finish)
 void
 TTextView::ContentChanged(void)
 {
-	BLooper *looper;
-	if ((looper = Looper()) != NULL)
-	{
-		BMessage msg(FIELD_CHANGED);
-		msg.AddInt32("bitmask", FIELD_BODY);
-		msg.AddPointer("source", this);
-		looper->PostMessage(&msg);
-	}
+	BLooper *looper = Looper();
+	if (looper == NULL)
+		return;
+
+	BMessage msg(FIELD_CHANGED);
+	msg.AddInt32("bitmask", FIELD_BODY);
+	msg.AddPointer("source", this);
+	looper->PostMessage(&msg);
 }
 
 
@@ -2846,10 +2835,8 @@ TTextView::AddSpellMark(int32 start, int32 end)
 
 	// check if there is already a mark for this passage
 	spell_mark *spellMark = FindSpellMark(start, end);
-	if (spellMark)
-	{
-		if (spellMark->start == start && spellMark->end == end)
-		{
+	if (spellMark) {
+		if (spellMark->start == start && spellMark->end == end) {
 			DSPELL(printf("\tfound one\n"));
 			return B_OK;
 		}
@@ -2920,8 +2907,7 @@ TTextView::RemoveSpellMarks()
 {
 	spell_mark *spellMark, *nextMark;
 
-	for (spellMark = fFirstSpellMark; spellMark; spellMark = nextMark)
-	{
+	for (spellMark = fFirstSpellMark; spellMark; spellMark = nextMark) {
 		nextMark = spellMark->next;
 
 		// reset old text run array
@@ -2943,11 +2929,10 @@ TTextView::EnableSpellCheck(bool enable)
 
 	fSpellCheck = enable;
 	int32 textLength = TextLength();
-	if (fSpellCheck)
-	{
+	if (fSpellCheck) {
 		// work-around for a bug in the BTextView class
 		// which causes lots of flicker
-		int32 start,end;
+		int32 start, end;
 		GetSelection(&start, &end);
 		if (start != end)
 			Select(start, start);
@@ -3181,7 +3166,7 @@ TTextView::Undo(BClipboard */*clipboard*/)
 					::beep();
 					(new BAlert("",
 						MDR_DIALECT_CHOICE("Inconsistency occurred in the Undo/Redo buffer.",
-						"Undo/Redoバッファに矛盾が発生しました！"),"OK"))->Go();
+						"Undo/Redoバッファに矛盾が発生しました！"), "OK"))->Go();
 				}
 				break;
 		}
@@ -3227,7 +3212,7 @@ TTextView::Redo()
 				::beep();
 				(new BAlert("",
 					MDR_DIALECT_CHOICE("Inconsistency occurred in the Undo/Redo buffer.",
-					"Undo/Redoバッファに矛盾が発生しました！"),"OK"))->Go();
+					"Undo/Redoバッファに矛盾が発生しました！"), "OK"))->Go();
 				break;
 		}
 		ScrollToSelection();
