@@ -31,7 +31,6 @@
 #include <MailSettings.h>
 #include <MailDaemon.h>
 
-#include "QueryMenu.h"
 #include "deskbarview.h"
 
 const char *kTrackerSignature = "application/x-vnd.Be-TRAK";
