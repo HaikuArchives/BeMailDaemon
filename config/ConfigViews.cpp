@@ -727,12 +727,15 @@ void FiltersConfigView::MessageReceived(BMessage *msg)
 				}
 				else if (fFilterView)
 				{
-					if (fFilterView->fIndex == -1)
+					int32 index = fFilterView->fIndex;
+					if (index == -1)
 						// the view belongs to the moved filter
 						fFilterView->fIndex = to;
-					else if (fFilterView->fIndex >= to)
-						// the view belongs to another filter (below the 'to' position)
-						fFilterView->fIndex++;
+					else if (index > from && index < to)
+						// the view belongs to another filter (between the
+						// 'from' & 'to' positions) - all others can keep
+						// their index value
+						fFilterView->fIndex--;
 				}
 			}
 			break;
