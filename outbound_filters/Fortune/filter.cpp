@@ -68,6 +68,8 @@ MDStatus FortuneFilter::ProcessMailMessage
 			
 		result.ReplaceAll("\n","\r\n");
 		(*io)->Write(result.String(), result.Length());
+		
+		pclose(fd);
 	} else {
 		printf("Could not open pipe to fortune!\n");
 	}
