@@ -644,56 +644,69 @@ _EXPORT void StripGook(BString* header)
 	//
 	BString name;
 	const char *start = header->String();
-	const char *stop = start+header->Length()-1;
-	
-	// Find a string S in the header that matches:
-	//   (S)
-	//   S <foo>
-	//   S <foo> (S)  XXX
-	//   "S"
-	// or the longest [-\w\.\@]+ string (XXX todo, maybe)
+	const char *stop = start + strlen (start);
+
+	// Find a string S in the header (email foo) that matches:
+	//   Old style name in brackets: foo@bar.com (S)
+	//   New style quotes: "S" <foo@bar.com>
+	//   New style no quotes if nothing else found: S <foo@bar.com>
+	//   If nothing else found then use the whole thing: S
 	
 	for (int i=0; i<=3; ++i)
 	{
+		// Set p1 to the first letter in the name and p2 to just past the last
+		// letter in the name.  p2 stays NULL if a name wasn't found in this
+		// pass.
 		const char *p1 = NULL, *p2 = NULL;
 		
-		switch (i){
-		case 0: if ((p1 = strchr(start,'(')) != NULL)
-				{
-					size_t nest = 1;
-					for (p2=p1+1; p2<stop && nest; ++p2)
+		switch (i) {
+			case 0: // foo@bar.com (S)
+				if ((p1 = strchr(start,'(')) != NULL) {
+					p1++; // Advance to first letter in the name.
+					size_t nest = 1; // Handle nested brackets.
+					for (p2=p1; p2<stop; ++p2)
 					{
-						if (*p2 == ')') --nest;
-						else if (*p2 == '(') ++nest;
+						if (*p2 == ')')
+							--nest;
+						else if (*p2 == '(')
+							++nest;
+						if (nest <= 0)
+							break;
 					}
-					++p1; p2 -= 2; // XXX corrects for what?
+					if (nest != 0)
+						p2 = NULL; // False alarm, no terminating bracket.
 				}
 				break;
-		case 1: p1 = start;
-				p2 = strchr(start,'<');
-				if (p2) --p2;
+			case 1: // "S" <foo@bar.com>
+				if ((p1 = strchr(start,'\"')) != NULL)
+					p2 = strchr (p1+1,'\"');
 				break;
-		case 2: p1 = strchr(start,'"');
-				if ((p1 != NULL) && ((p2 = strchr(p1+1,'"')) != NULL)) { ++p1; --p2; }
+			case 2: // S <foo@bar.com>
+				p1 = start;
+				if (name.Length() == 0)
+					p2 = strchr (start,'<');
 				break;
-		case 3: p1 = start;
-				if (name.Length()==0) p2=stop;
+			case 3: // S
+				p1 = start;
+				if (name.Length() == 0)
+					p2 = stop;
 				break;
 		}
-		
-		if (p2)
-		{
-			while (*p1 && p1<p2 &&
-					(isspace(*p1) || *p1 == '"' || *p1 == '\''
-					|| *p1 == '(' || *p1 == '<'))
+
+		// Remove leading and trailing spaces and quotes and angle brackets and
+		// save the result if it is longer than any other likely names found.
+		if (p2 != NULL) {
+			while (p1 < p2 && (isspace (*p1) ||
+				*p1 == '"' || *p1 == '\'' || *p1 == '<'))
 				++p1;
 			
-			while (p1<p2 &&
-					(isspace(*p2) || *p2 == '"' || *p2 == '\''
-					|| *p2 == ')' || *p2 == '>'))
+			while (p1 < p2 && (isspace (p2[-1]) ||
+				p2[-1] == '"' || p2[-1] == '\'' || p2[-1] == '>'))
 				--p2;
-			
-			if (name.Length() < p2-p1+1) name.SetTo(p1,p2-p1+1);
+
+			int newLength = p2 - p1;
+			if (name.Length() < newLength)
+				name.SetTo (p1, newLength);
 		}
 	} // rof
 	
