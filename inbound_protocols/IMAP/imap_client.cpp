@@ -144,13 +144,8 @@ class NoopWorker : public BHandler {
 			if (msg->what != 'impn' /* IMaP Noop */)
 				return;
 				
-			if (strcasecmp(us->selected_mb.String(),"INBOX") && (us->selected_mb != "")) {
-				us->SendCommand("CLOSE");
-				BString blork;
-				if (!us->WasCommandOkay(blork))
-					return;
-				us->selected_mb = "";
-			}
+			if (strcasecmp(us->selected_mb.String(),"INBOX"))
+				us->Close();
 			
 			if (us->selected_mb == "") {
 				us->SendCommand("SELECT INBOX");
@@ -345,12 +340,11 @@ status_t IMAP4Client::AddMessage(const char *mailbox, BPositionIO *data, BString
 			if (tag == expected)
 				break;
 			
-			*id = mailbox;
-			*id << '/' << response[2][1]();
+			*id = response[2][1]();
 		}
 	} else {
-		*id = mailbox;
-		*id << '/' << ((struct mailbox_info *)(box_info.ItemAt(box_index)))->next_uid;
+		*id = "";
+		*id << ((struct mailbox_info *)(box_info.ItemAt(box_index)))->next_uid;
 	}
 	
 	return B_OK;
@@ -360,7 +354,8 @@ status_t IMAP4Client::DeleteMessage(const char *mailbox, const char *message) {
 	BString command = "UID STORE ";
 	command << message << " +FLAGS.SILENT (\\Deleted)";
 	
-	Select(mailbox);
+	if (Select(mailbox) < B_OK)
+		return B_ERROR;
 	
 	SendCommand(command.String());
 	if (!WasCommandOkay(command)) {
@@ -401,18 +396,19 @@ status_t IMAP4Client::CopyMessage(const char *mailbox, const char *to_mailbox, B
 			if (tag == expected)
 				break;
 			
-			*message = mailbox;
-			*message << '/' << response[2][1]();
+			*message = response[2][1]();
 		}
 	} else {
-		*message = mailbox;
-		*message << '/' << to_mb->next_uid - 1;
+		*message = "";
+		*message << (to_mb->next_uid - 1);
 	}
 	
 	return B_OK;
 }
 
 status_t IMAP4Client::CreateMailbox(const char *mailbox) {
+	Close();
+	
 	struct mailbox_info *info = new struct mailbox_info;
 	info->exists = -1;
 	info->next_uid = -1;
@@ -437,6 +433,8 @@ status_t IMAP4Client::CreateMailbox(const char *mailbox) {
 }
 
 status_t IMAP4Client::DeleteMailbox(const char *mailbox) {
+	Close();
+	
 	if (!mailboxes.HasItem(mailbox))
 		return B_ERROR;
 	
@@ -496,6 +494,8 @@ status_t IMAP4Client::Close() {
 		SendCommand("CLOSE");
 		if (!WasCommandOkay(worthless))
 			return B_ERROR;
+			
+		selected_mb = "";
 	}
 	
 	return B_OK;
@@ -506,6 +506,9 @@ status_t IMAP4Client::Select(const char *mb, bool reselect) {
 		Close();
 	
 	struct mailbox_info *info = (struct mailbox_info *)(box_info.ItemAt(mailboxes.IndexOf(mb)));
+	if (info == NULL)
+		return B_NAME_NOT_FOUND;
+		
 	const char *real_mb = info->server_mb_name.String();
 	
 	if (selected_mb != real_mb) {
@@ -554,7 +557,6 @@ class IMAP4PartialReader : public BPositionIO {
 		}
 		off_t Seek(off_t position, uint32 seek_mode) {			
 			if (seek_mode == SEEK_END) {
-				puts("-----------SEEK_END");
 				if (!done) {
 					slave->Seek(0,SEEK_END);
 					FetchMessage("RFC822.TEXT");
@@ -607,7 +609,7 @@ class IMAP4PartialReader : public BPositionIO {
 		bool done;
 };
 
-status_t IMAP4Client::GetMessage(const char *mailbox, const char *message, BPositionIO **data, BMessage *headers) {
+status_t IMAP4Client::GetMessage(const char *mailbox, const char *message, BPositionIO **data, BMessage *headers) {	
 	Select(mailbox);
 	
 	if (headers->FindBool("ENTIRE_MESSAGE")) {				

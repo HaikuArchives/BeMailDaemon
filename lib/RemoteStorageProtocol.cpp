@@ -57,10 +57,10 @@ class UpdateHandler : public BHandler {
 					
 					_prot->CheckForDeletedMessages(); //--- Refresh the manifest list, delete messages in locally deleted folders
 					
-					for (int32 i = 0; i < to_delete.CountItems(); i++)
-						_prot->DeleteMailbox(to_delete[i]);
-					
-					_prot->mailboxes -= to_delete; // --- Remove them from synchronization irregardless of success to prevent thousands of error messages
+					for (int32 i = 0; i < to_delete.CountItems(); i++) {
+						if (_prot->DeleteMailbox(to_delete[i]) == B_OK)
+							_prot->mailboxes -= to_delete[i];
+					}
 					
 					entry_ref ref;
 					BEntry entry;
@@ -312,7 +312,7 @@ void RemoteStorageProtocol::SyncMailbox(const char *mailbox) {
 		} else {
 			append = true;
 		}
-			
+		
 		if (append)
 			AddMessage(mailbox,&snoodle,&id); //---We should check for partial messages here
 		else
