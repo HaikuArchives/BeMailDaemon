@@ -101,7 +101,7 @@ void MailDaemonApp::RefsReceived(BMessage *a_message) {
 			continue;
 		if (node.ReadAttr("MAIL:chain",B_INT32_TYPE,0,&id,sizeof(id)) < 0)
 			continue;
-		if (node.ReadAttr("MAIL:fullsize",B_INT32_TYPE,0,&size,sizeof(size)) < 0)
+		if (node.ReadAttr("MAIL:fullsize",B_SIZE_T_TYPE,0,&size,sizeof(size)) < 0)
 			size = -1;
 		
 		path.SetTo(&ref);
@@ -462,7 +462,7 @@ void makeIndices()
 		fs_create_index(device,"MAIL:draft", B_INT32_TYPE, 0);
 		fs_create_index(device,B_MAIL_ATTR_WHEN,B_INT32_TYPE,0);
 		fs_create_index(device,"MAIL:chain",B_INT32_TYPE,0);
-		fs_create_index(device,"MAIL:fullsize",B_INT32_TYPE,0);
+		fs_create_index(device,"MAIL:fullsize",B_SIZE_T_TYPE,0);
 	}
 }
 
