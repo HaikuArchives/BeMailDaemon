@@ -321,6 +321,7 @@ _EXPORT ssize_t readfoldedline(FILE *file, char **buffer, size_t *buflen)
 	ssize_t len = buflen && *buflen? *buflen-1:0; // space for \0
 	char * buf = buffer && *buffer? *buffer:NULL;
 	ssize_t cnt = 0;
+	bool hasFolded = false;
 	int c;
 	
 	while ((c=fgetc(file)) != EOF)
@@ -339,8 +340,9 @@ _EXPORT ssize_t readfoldedline(FILE *file, char **buffer, size_t *buflen)
 			buf[cnt++]=c;
 			c = fgetc(file);
 			// if next is linear whitespace, fold lines
-			if (c == ' ' || c == '\t')
+			if ((c == ' ' || c == '\t') && (hasFolded || !hasFolded && cnt > 2))
 			{
+				hasFolded = true;
 				if (cnt>=2 && buf[cnt-2]=='\r')
 					cnt -= 2;
 				else --cnt;
@@ -379,6 +381,7 @@ _EXPORT ssize_t readfoldedline(BPositionIO &in, char **buffer, size_t *buflen)
 	ssize_t len = buflen && *buflen? *buflen-1:0; // space for \0
 	char * buf = buffer && *buffer? *buffer:NULL;
 	ssize_t cnt = 0;
+	bool hasFolded = false;
 	int8 c;
 	
 	while (in.Read(&c,1) == 1)
@@ -391,14 +394,16 @@ _EXPORT ssize_t readfoldedline(BPositionIO &in, char **buffer, size_t *buflen)
 			len = 2*(len+1) - 1;
 			buf = temp;
 		}
-		
+
 		switch (c){
 		case '\n':
 			buf[cnt++]=c;
 			in.Read(&c,1);
+
 			// if next is linear whitespace, fold lines
-			if (c == ' ' || c == '\t')
+			if ((c == ' ' || c == '\t') && (hasFolded || !hasFolded && cnt > 2))
 			{
+				hasFolded = true;
 				if (cnt>=2 && buf[cnt-2]=='\r')
 					cnt -= 2;
 				else --cnt;
@@ -408,6 +413,7 @@ _EXPORT ssize_t readfoldedline(BPositionIO &in, char **buffer, size_t *buflen)
 			{
 				// we read a line; break out of the loop
 				//ATT-ungetc(c,file); translates to this, right?
+				puts("seek back");
 				in.Seek(-1,SEEK_CUR);
 				c = '\n';
 				break;
@@ -427,7 +433,7 @@ _EXPORT ssize_t readfoldedline(BPositionIO &in, char **buffer, size_t *buflen)
 	else if (buf) free(buf);
 	
 	if (buflen) *buflen = len+1;
-	
+
 	return cnt;
 }
 
