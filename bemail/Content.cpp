@@ -801,7 +801,7 @@ TTextView::KeyDown(const char *key, int32 count)
 			if (IsSelectable())
 			{
 				if (IsEditable())
-					GoToLine(CurrentLine());
+					BTextView::KeyDown(key, count);
 				else
 				{
 					Select(0, 0);
@@ -813,13 +813,13 @@ TTextView::KeyDown(const char *key, int32 count)
 		case B_END:
 			if (IsSelectable())
 			{
-				if (CurrentLine() == CountLines() - 1)
-					Select(TextLength(), TextLength());
+				if (IsEditable())
+					BTextView::KeyDown(key, count);
 				else
 				{
-					GoToLine(CurrentLine() + 1);
-					GetSelection(&start, &end);
-					Select(start - 1, start - 1);
+					int32 length = TextLength();
+					Select(length, length);
+					ScrollToSelection();
 				}
 			}
 			break;
