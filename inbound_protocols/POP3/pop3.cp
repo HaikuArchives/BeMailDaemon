@@ -378,7 +378,7 @@ Mail::Filter *instantiate_mailfilter(BMessage *settings, Mail::StatusView *view)
 }
 
 BView* instantiate_config_panel(BMessage *settings,BMessage *) {
-	Mail::ProtocolConfigView *view = new Mail::ProtocolConfigView(Mail::Z_HAS_USERNAME | Mail::Z_HAS_AUTH_METHODS | Mail::Z_HAS_PASSWORD | Mail::Z_HAS_HOSTNAME | Mail::Z_CAN_LEAVE_MAIL_ON_SERVER);
+	Mail::ProtocolConfigView *view = new Mail::ProtocolConfigView(Mail::MP_HAS_USERNAME | Mail::MP_HAS_AUTH_METHODS | Mail::MP_HAS_PASSWORD | Mail::MP_HAS_HOSTNAME | Mail::MP_CAN_LEAVE_MAIL_ON_SERVER);
 	view->AddAuthMethod("Plain Text");
 	view->AddAuthMethod("APOP");
 	

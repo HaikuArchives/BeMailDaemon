@@ -65,7 +65,15 @@ class Component {
 		virtual status_t MIMEType(BMimeType *mime);
 	
 	private:
+		virtual void _ReservedComponent1();
+		virtual void _ReservedComponent2();
+		virtual void _ReservedComponent3();
+		virtual void _ReservedComponent4();
+		virtual void _ReservedComponent5();
+		
 		BMessage headers;
+		
+		uint32 _reserved[5];
 };
 
 class TextComponent : public Mail::Component {
@@ -91,7 +99,11 @@ class TextComponent : public Mail::Component {
 		
 		virtual status_t SetToRFC822(BPositionIO *data, size_t length, bool parse_now = false);
 		virtual status_t RenderToRFC822(BPositionIO *render_to);
+
 	private:
+		virtual void _ReservedText1();
+		virtual void _ReservedText2();
+
 		BString text;
 		BString decoded;
 		
@@ -102,6 +114,8 @@ class TextComponent : public Mail::Component {
 		BPositionIO *raw_data;
 		size_t raw_length;
 		off_t raw_offset;
+		
+		uint32 _reserved[5];
 };
 
 }	// namespace Mail

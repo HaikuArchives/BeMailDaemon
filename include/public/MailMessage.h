@@ -72,6 +72,10 @@ class Message : public Container {
 	private:
 		Mail::TextComponent *RetrieveTextBody(Component *);
 
+		virtual void _ReservedMessage1();
+		virtual void _ReservedMessage2();
+		virtual void _ReservedMessage3();
+
 		status_t _status;
 		int32 _chain_id;
 		char *_bcc;
@@ -79,12 +83,9 @@ class Message : public Container {
 		int32 _num_components;
 		Mail::Component *_body;
 		Mail::TextComponent *_text_body;
+		
+		uint32 _reserved[5];
 };
-
-inline status_t Message::InitCheck() const
-{
-	return _status;
-}
 
 }	// namespace Mail
 }	// namespace Zoidberg

@@ -505,7 +505,7 @@ Mail::Filter* instantiate_mailfilter(BMessage *settings,Mail::StatusView *status
 
 // Configuration interface
 BView* instantiate_config_panel(BMessage *settings,BMessage *) {
-	Mail::ProtocolConfigView *view = new Mail::ProtocolConfigView(Mail::Z_HAS_AUTH_METHODS | Mail::Z_HAS_USERNAME | Mail::Z_HAS_PASSWORD | Mail::Z_HAS_HOSTNAME);
+	Mail::ProtocolConfigView *view = new Mail::ProtocolConfigView(Mail::MP_HAS_AUTH_METHODS | Mail::MP_HAS_USERNAME | Mail::MP_HAS_PASSWORD | Mail::MP_HAS_HOSTNAME);
 	
 	view->AddAuthMethod("None",false);
 	view->AddAuthMethod("ESMTP");

@@ -99,22 +99,22 @@ ProtocolConfigView::ProtocolConfigView(uint32 options_mask) : BView (BRect(0,0,1
 	gItemHeight = (int32)(fontHeight.ascent + fontHeight.descent + fontHeight.leading) + 13;
 	rect.bottom = rect.top - 2 + gItemHeight;
 
-	if (options_mask & Z_HAS_HOSTNAME)
+	if (options_mask & MP_HAS_HOSTNAME)
 		AddChild(AddTextField(rect,"host","Mail Host:"));
 	
-	if (options_mask & Z_HAS_USERNAME)
+	if (options_mask & MP_HAS_USERNAME)
 		AddChild(AddTextField(rect,"user","User Name:"));
 	
-	if (options_mask & Z_HAS_PASSWORD) {
+	if (options_mask & MP_HAS_PASSWORD) {
 		BTextControl *control = AddTextField(rect,"pass","Password:");
 		control->TextView()->HideTyping(true);
 		AddChild(control);
 	}
 	
-	if (options_mask & Z_HAS_FLAVORS)
+	if (options_mask & MP_HAS_FLAVORS)
 		AddChild(AddMenuField(rect,"flavor","Connection Type:"));
 	
-	if (options_mask & Z_HAS_AUTH_METHODS)
+	if (options_mask & MP_HAS_AUTH_METHODS)
 		AddChild(AddMenuField(rect,"auth_method","Authentication Method:"));
 
 	// set divider
@@ -124,7 +124,7 @@ ProtocolConfigView::ProtocolConfigView(uint32 options_mask) : BView (BRect(0,0,1
 			text->SetDivider(width + 6);
 	}
 
-	if (options_mask & Z_CAN_LEAVE_MAIL_ON_SERVER) {
+	if (options_mask & MP_CAN_LEAVE_MAIL_ON_SERVER) {
 		AddChild(AddCheckBox(rect,"leave_mail_remote","Leave Mail On Server",new BMessage('lmos')));
 		BCheckBox *box = AddCheckBox(rect,"delete_remote_when_local","Delete Mail From Server When Deleted Locally");
 		box->SetEnabled(false);

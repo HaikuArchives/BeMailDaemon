@@ -56,6 +56,8 @@ class ChainRunner {
 	
 		Mail::Chain *_chain;
 		BList message_cb, process_cb;
+		
+		uint32	_reserved[5];
 };
 
 }	// namespace Mail

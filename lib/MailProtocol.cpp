@@ -53,6 +53,7 @@ inline void error_alert(const char *process, status_t error) {
 	ShowAlert("error_alert",string.String(),"Ok",B_WARNING_ALERT);
 }
 
+
 Protocol::Protocol(BMessage* settings) : Filter(settings) {
 	unique_ids = NULL;
 	Protocol::settings = settings;
@@ -122,6 +123,16 @@ MDStatus Protocol::ProcessMailMessage
 		return MD_OK;
 }
 
+void Protocol::_ReservedProtocol1() {}
+void Protocol::_ReservedProtocol2() {}
+void Protocol::_ReservedProtocol3() {}
+void Protocol::_ReservedProtocol4() {}
+void Protocol::_ReservedProtocol5() {}
+
+
+//	#pragma mark -
+
+
 DeletePass::DeletePass(Protocol *home) : us(home) {
 	//--do nothing, and do it well
 }
@@ -160,6 +171,10 @@ void DeletePass::Callback(MDStatus /*status*/) {
 		meta_data->AddFlat("manifest",us->unique_ids);
 	}
 }
+
+
+//	#pragma mark -
+
 
 MessageDeletion::MessageDeletion(Protocol *home, BString *uid) :
 	us(home),

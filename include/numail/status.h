@@ -48,6 +48,8 @@ class StatusWindow : public BWindow {
 		float			min_height;
 		bool			default_is_hidden;
 		int32			window_moved;
+		
+		uint32			_reserved[5];
 };
 
 class StatusView : public BBox {
@@ -71,6 +73,8 @@ class StatusView : public BBox {
 		Mail::StatusWindow	*window;
 		int32			items_now;
 		int32			total_items;
+
+		uint32			_reserved[5];
 };
 
 extern void ShowAlert(const char *title, const char *body, const char *button = "Ok",

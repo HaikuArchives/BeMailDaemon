@@ -61,6 +61,11 @@ Message::~Message() {
 	delete _body;
 }
 
+status_t Message::InitCheck() const
+{
+	return _status;
+}
+
 const char *Message::To() {
 	return HeaderField("To");
 }
@@ -491,6 +496,10 @@ status_t Message::Send(bool send_now) {
 	
 	return status;
 }
+
+void Message::_ReservedMessage1() {}
+void Message::_ReservedMessage2() {}
+void Message::_ReservedMessage3() {}
 
 }	// namespace Mail
 }	// namespace Zoidberg

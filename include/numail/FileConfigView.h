@@ -36,6 +36,8 @@ class FileControl : public BView
 		BButton			*fButton;
 
 		BFilePanel		*fPanel;
+		
+		uint32			_reserved[5];
 };
 
 namespace Mail { //-----Only this one is part of the Mail Kit, per se
@@ -52,6 +54,8 @@ class FileConfigView : public FileControl
 		BMessage	*fMeta;
 		bool		fUseMeta;
 		const char	*fName;
+
+		uint32			_reserved[5];
 };
 
 }	// namespace Mail

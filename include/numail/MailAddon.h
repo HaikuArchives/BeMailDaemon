@@ -1,5 +1,5 @@
-#ifndef ZOIDBERG_NUMAIL_ADDON_H
-#define ZOIDBERG_NUMAIL_ADDON_H
+#ifndef ZOIDBERG_MAIL_ADDON_H
+#define ZOIDBERG_MAIL_ADDON_H
 /* Filter - the base class for all mail filters
 **
 ** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
@@ -100,6 +100,12 @@ class Filter
 	//
 	// At most one Filter::ProcessMailMessage() for a given
 	// chain (and thus ChainID) will be called at a time.
+
+  private:
+	virtual void _ReservedFilter1();
+	virtual void _ReservedFilter2();
+	virtual void _ReservedFilter3();
+	virtual void _ReservedFilter4();
 };
 
 }	// namespace Mail
@@ -173,4 +179,4 @@ extern "C" _EXPORT status_t descriptive_name(BMessage *msg, char *buffer);
 // Their config views should be shown, one after the other,
 // in the config panel.
 
-#endif	/* ZOIDBERG_NUMAIL_ADDON_H */
+#endif	/* ZOIDBERG_MAIL_ADDON_H */

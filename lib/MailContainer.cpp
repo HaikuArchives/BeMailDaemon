@@ -319,5 +319,14 @@ status_t MIMEMultipartContainer::RenderToRFC822(BPositionIO *render_to) {
 	return B_OK;
 }
 
+void MIMEMultipartContainer::_ReservedMultipart1() {}
+void MIMEMultipartContainer::_ReservedMultipart2() {}
+void MIMEMultipartContainer::_ReservedMultipart3() {}
+
+void Container::_ReservedContainer1() {}
+void Container::_ReservedContainer2() {}
+void Container::_ReservedContainer3() {}
+void Container::_ReservedContainer4() {}
+
 }	// namespace Mail
 }	// namespace Zoidberg

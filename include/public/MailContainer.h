@@ -16,16 +16,22 @@ class BPositionIO;
 namespace Zoidberg {
 namespace Mail {
 
-class Container : public Mail::Component {
+class Container : public Component {
 	public:
-		virtual status_t AddComponent(Mail::Component *component) = 0;
+		virtual status_t AddComponent(Component *component) = 0;
 		virtual status_t RemoveComponent(int32 index) = 0;
 
-		virtual Mail::Component *GetComponent(int32 index) = 0;
+		virtual Component *GetComponent(int32 index) = 0;
 		virtual int32 CountComponents() const = 0;
+	
+	private:
+		virtual void _ReservedContainer1();
+		virtual void _ReservedContainer2();
+		virtual void _ReservedContainer3();
+		virtual void _ReservedContainer4();
 };
 
-class MIMEMultipartContainer : public Mail::Container {
+class MIMEMultipartContainer : public Container {
 	public:
 		MIMEMultipartContainer(const char *boundary = NULL, const char *this_is_an_MIME_message_text = NULL);
 		MIMEMultipartContainer(MIMEMultipartContainer &copy);
@@ -35,7 +41,7 @@ class MIMEMultipartContainer : public Mail::Container {
 		void SetThisIsAnMIMEMessageText(const char *text);
 
 		// MailContainer
-		virtual status_t AddComponent(Mail::Component *component);
+		virtual status_t AddComponent(Component *component);
 		virtual status_t RemoveComponent(int32 index);
 
 		virtual Mail::Component *GetComponent(int32 index);
@@ -47,7 +53,12 @@ class MIMEMultipartContainer : public Mail::Container {
 		
 		virtual status_t SetToRFC822(BPositionIO *data, size_t length, bool parse_now = false);
 		virtual status_t RenderToRFC822(BPositionIO *render_to);
+
 	private:
+		virtual void _ReservedMultipart1();
+		virtual void _ReservedMultipart2();
+		virtual void _ReservedMultipart3();
+
 		const char *_boundary;
 		const char *_MIME_message_warning;
 		
@@ -55,6 +66,8 @@ class MIMEMultipartContainer : public Mail::Container {
 		
 		BList _components_in_raw;
 		BList _components_in_code;
+		
+		uint32 _reserved[5];
 };
 
 }	// namespace Mail

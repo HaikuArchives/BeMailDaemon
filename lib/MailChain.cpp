@@ -31,14 +31,14 @@ namespace Zoidberg {
 namespace Mail {
 
 Chain::Chain(uint32 i)
-: id(i), meta_data(NULL), _err(B_OK), direction(inbound), settings_ct(0), addons_ct(0) 
+	: id(i), meta_data(NULL), _err(B_OK), direction(inbound), settings_ct(0), addons_ct(0) 
 {
 	name[0] = 0;
 	Reload();
 }
 
 Chain::Chain(BMessage* settings)
-: id(settings->FindInt32("id")), meta_data(NULL), _err(B_OK), direction(inbound), settings_ct(0), addons_ct(0) 
+	: id(settings->FindInt32("id")), meta_data(NULL), _err(B_OK), direction(inbound), settings_ct(0), addons_ct(0) 
 {
 	name[0] = 0;
 	Load(settings);

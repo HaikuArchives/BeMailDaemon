@@ -16,6 +16,7 @@ namespace Mail {
 
 using Zoidberg::Mail::Filter;
 
+
 Filter::Filter(BMessage *)
 {
 	//----do nothing-----
@@ -24,4 +25,10 @@ Filter::Filter(BMessage *)
 Filter::~Filter()
 {
 }
+
+
+void Filter::_ReservedFilter1() {}
+void Filter::_ReservedFilter2() {}
+void Filter::_ReservedFilter3() {}
+void Filter::_ReservedFilter4() {}
 

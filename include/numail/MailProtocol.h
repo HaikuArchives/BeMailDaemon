@@ -128,10 +128,18 @@ class Protocol : public Filter
   	BMessage *settings;
 	
   private:
-  	friend class DeletePass;
-  
-  	StringList *manifest;
-  	Mail::ChainRunner *parent;
+	virtual void _ReservedProtocol1();
+	virtual void _ReservedProtocol2();
+	virtual void _ReservedProtocol3();
+	virtual void _ReservedProtocol4();
+	virtual void _ReservedProtocol5();
+
+	friend class DeletePass;
+
+	StringList *manifest;
+	Mail::ChainRunner *parent;
+
+	uint32 _reserved[5];
 };
 
 // standard MailProtocols:
@@ -198,14 +206,16 @@ class SimpleProtocol : public Protocol {
 		virtual status_t InitCheck(BString* out_message = NULL);
 		virtual void PrepareStatusWindow(StringList *manifest);
 		virtual ~SimpleProtocol();
-	
+
 	protected:
 		Mail::StatusView *status_view;
 		status_t Init();
-	
+
 	private:
 		status_t error;
 		int32 last_message;
+
+		uint32 _reserved[5];
 };
 
 }	// namespace Mail

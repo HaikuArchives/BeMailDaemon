@@ -21,7 +21,7 @@ class IMAPConfig : public Mail::ProtocolConfigView {
 };
 
 IMAPConfig::IMAPConfig(BMessage *archive)
-	: Mail::ProtocolConfigView(Mail::Z_HAS_USERNAME | Mail::Z_HAS_PASSWORD | Mail::Z_HAS_HOSTNAME | Mail::Z_CAN_LEAVE_MAIL_ON_SERVER)
+	: Mail::ProtocolConfigView(Mail::MP_HAS_USERNAME | Mail::MP_HAS_PASSWORD | Mail::MP_HAS_HOSTNAME | Mail::MP_CAN_LEAVE_MAIL_ON_SERVER)
 {
 	SetTo(archive);
 		

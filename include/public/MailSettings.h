@@ -88,7 +88,7 @@ class Chain : public BArchivable
   private:
 	status_t Path(BPath *path) const;
 	status_t Load(BMessage*);
-
+	
 	int32 id;
 	char name[B_FILE_NAME_LENGTH];
 	BMessage *meta_data;
@@ -100,6 +100,8 @@ class Chain : public BArchivable
 	int32 settings_ct, addons_ct;  
 	BList filter_settings;
 	BList filter_addons;
+	
+	uint32 _reserved[5];
 };
 
 class Settings
@@ -142,11 +144,13 @@ class Settings
 	
 	uint32 DefaultOutboundChainID();
 	void SetDefaultOutboundChainID(uint32 to);
+
   private:
 	BMessage data;
+	uint32 _reserved[4];
 };
 
 }	// namespace Mail
 }	// namespace Zoidberg
 
-#endif
+#endif	/* ZOIDBERG_MAIL_SETTINGS_H */

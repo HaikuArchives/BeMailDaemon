@@ -69,6 +69,8 @@ class StringList : public BFlattenable {
 		void *_buckets[256];
 		int32 _items;
 		BList *_indexed;
+		
+		uint32 _reserved[5];
 };
 
 }	// namespace Zoidberg

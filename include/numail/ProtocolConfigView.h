@@ -13,17 +13,17 @@ namespace Zoidberg {
 namespace Mail {
 
 typedef enum {
-	Z_HAS_AUTH_METHODS 			= 1,
-	Z_HAS_FLAVORS 				= 2,
-	Z_HAS_USERNAME 				= 4,
-	Z_HAS_PASSWORD 				= 8,
-	Z_HAS_HOSTNAME 				= 16,
-	Z_CAN_LEAVE_MAIL_ON_SERVER 	= 32
+	MP_HAS_AUTH_METHODS 		= 1,
+	MP_HAS_FLAVORS 				= 2,
+	MP_HAS_USERNAME 			= 4,
+	MP_HAS_PASSWORD 			= 8,
+	MP_HAS_HOSTNAME 			= 16,
+	MP_CAN_LEAVE_MAIL_ON_SERVER = 32
 } config_options;
 
 class ProtocolConfigView : public BView {
 	public:
-		ProtocolConfigView(uint32 options_mask = Z_HAS_FLAVORS | Z_HAS_USERNAME | Z_HAS_PASSWORD | Z_HAS_HOSTNAME);
+		ProtocolConfigView(uint32 options_mask = MP_HAS_FLAVORS | MP_HAS_USERNAME | MP_HAS_PASSWORD | MP_HAS_HOSTNAME);
 		virtual ~ProtocolConfigView();
 		
 		void SetTo(BMessage *archive);
@@ -35,6 +35,9 @@ class ProtocolConfigView : public BView {
 		virtual	void GetPreferredSize(float *width, float *height);
 		virtual	void AttachedToWindow();
 		virtual void MessageReceived(BMessage *msg);
+	
+	private:
+		uint32 _reserved[5];
 };
 
 }	// namespace Mail

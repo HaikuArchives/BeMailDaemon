@@ -139,7 +139,7 @@ void Component::SetHeaderField(const char *key, BMessage *structure, bool replac
 }
 	
 const char *Component::HeaderField(const char *key, int32 index) {
-	const char *string;
+	const char *string = NULL;
 	
 	headers.FindString(key,index,&string);
 	return string;
@@ -300,6 +300,13 @@ status_t Component::MIMEType(BMimeType *mime) {
 	
 	return B_OK;
 }
+
+
+void Component::_ReservedComponent1() {}
+void Component::_ReservedComponent2() {}
+void Component::_ReservedComponent3() {}
+void Component::_ReservedComponent4() {}
+void Component::_ReservedComponent5() {}
 
 
 //-------------------------------------------------------------------------
@@ -543,6 +550,10 @@ status_t TextComponent::RenderToRFC822(BPositionIO *render_to) {
 	
 	return B_OK;
 }
+
+
+void TextComponent::_ReservedText1() {}
+void TextComponent::_ReservedText2() {}
 
 }	// namespace Mail
 }	// namespace Zoidberg
