@@ -153,7 +153,7 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		name << "\"" << attributes.FindString("MAIL:subject") << "\": <" << attributes.FindString("MAIL:from") << ">";
 		
 		BString worker;
-		int32 uniquer = 0;
+		int32 uniquer = time(NULL);
 		worker = name;
 		
 		while (destination.Contains(worker.String())) {
