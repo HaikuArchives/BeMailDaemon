@@ -2812,6 +2812,21 @@ void TMailWindow::Forward(entry_ref *ref, TMailWindow *window, bool includeAttac
 
 	fHeaderView->fSubject->SetText(fMail->Subject());
 
+	// set mail account
+
+	if (gUseAccountFrom == ACCOUNT_FROM_MAIL) {
+		fHeaderView->fChain = fMail->Account();
+
+		BMenu *menu = fHeaderView->fAccountMenu;
+		for (int32 i = menu->CountItems(); i-- > 0;) {
+			BMenuItem *item = menu->ItemAt(i);
+			BMessage *msg;
+			if (item && (msg = item->Message()) != NULL
+				&& msg->FindInt32("id") == fHeaderView->fChain)
+				item->SetMarked(true);
+		}
+	}
+
 	if (fMail->CountComponents() > 1)
 	{
 		// if there are any enclosures to be added, first add the enclosures
