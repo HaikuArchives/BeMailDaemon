@@ -116,6 +116,13 @@ APP_VERSION =
 #	/dev/video/usb when loaded. Default is "misc".
 DRIVER_PATH = 
 
+MACHINE=$(shell uname -m)
+ifneq ($(MACHINE),BePC)
+	COMPILER_FLAGS += -w iserr
+else
+	COMPILER_FLAGS += -Werror
+endif
+
 #   Custom overrides that can be set from the command line.
 ifeq ($(DEBUG_BUILD), true)
 	SYMBOLS := TRUE
