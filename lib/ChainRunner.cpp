@@ -144,6 +144,8 @@ status_t
 ChainRunner::RunChain(bool asynchronous)
 {
 	if (running_chains.HasItem((void *)(_chain->ID()))) {
+		if (destroy_chain)
+			delete _chain;
 		delete this;
 		return B_NAME_IN_USE;
 	}
