@@ -1131,6 +1131,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 		menu->AddSeparatorItem();
 
 		menu->AddItem(new BMenuItem("Forward", new BMessage(M_FORWARD), 'J'));
+		menu->AddItem(new BMenuItem("Forward with Attachments", new BMessage(M_FORWARD_WITH_ATTACHMENTS)));
 		menu->AddItem(menuItem = new BMenuItem("Resend", new BMessage(M_RESEND)));
 		menu->AddItem(menuItem = new BMenuItem("Copy to New", new BMessage(M_COPY_TO_NEW), 'D'));
 		
@@ -1749,6 +1750,7 @@ void TMailWindow::MessageReceived(BMessage *msg)
 				&& buttons == B_SECONDARY_MOUSE_BUTTON)
 			{
 				BPopUpMenu menu("Forward", false, false);
+				menu.AddItem(new BMenuItem("Forward",new BMessage(M_FORWARD)));
 				menu.AddItem(new BMenuItem("Forward with Attachments",new BMessage(M_FORWARD_WITH_ATTACHMENTS)));
 
 				BPoint where;
