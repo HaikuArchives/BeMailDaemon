@@ -157,9 +157,11 @@ Note that if you have a large number of archived e-mail messages on your system,
 
 HISTORY:
 
-December 22 2003 - v2.2.6
+December 29 2003 - v2.2.6
 - Don't use "!" in file names of e-mail messages, the bash shell doesn't like it.
 - Got the e-mail MAIL:priority attribute working.  It stores it as a text string, perferably the standard 1 to 5 (high to low) levels.  The words High, Normal, Low, Urgent and Non-Urgent may also show up in the attribute depending on which mailer sent the message.
+- Added MS Exchange support to IMAP, fixed tons of other IMAP bugs (not that there were any in the first place.... :P)
+- Added a status log notification method
 
 December 4 2003 - v2.2.5
 - Queries changed to be multivolume, so you can have mail directories (inbox, outbox, draft) on volumes other than /boot.
