@@ -561,7 +561,6 @@ SMTPProtocol::ReceiveResponse(BString &out)
 		fLog = "SMTP socket timeout.";
 
 	D(bug("S:%s\n", out.String()));
-	printf ("SMTP received \"%s\"\n", out.String());
 	return len;
 }
 
@@ -572,7 +571,6 @@ status_t
 SMTPProtocol::SendCommand(const char *cmd)
 {
 	D(bug("C:%s\n", cmd));
-	printf ("SMTP sending \"%s\"\n", cmd);
 
 	if (fConnection.Send(cmd, ::strlen(cmd)) == B_ERROR)
 		return B_ERROR;
