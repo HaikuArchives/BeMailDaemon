@@ -1770,12 +1770,12 @@ void TTextView::StopLoad()
 
 void TTextView::AddAsContent(MailMessage *mail, bool wrap)
 {
-	if ((mail == NULL) || (TextLength() < 1))
+	if (mail == NULL)
 		return;
-	
+
 	const char	*text = Text();
 	int32		textLen = TextLength();
-	
+
 	PlainTextBodyComponent *body = mail->Body();
 	if (body == NULL)
 	{

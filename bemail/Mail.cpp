@@ -115,6 +115,7 @@ int32 		gUserDict;
 BFile 		*gUserDictFile;
 int32 		gDictCount = 0;
 uint32		gDefaultChain;
+int32		gUseAccountFrom;
 
 static const char *kDraftPath = "mail/draft";
 static const char *kDraftType = "text/x-vnd.Be-MailDraft";
@@ -200,8 +201,13 @@ TMailApp::TMailApp()
 			}
 			if (fPrefs->Read(&show_buttonbar, sizeof(bool)) <= 0)
 				show_buttonbar = true;
-			if (fPrefs->Read(&gDefaultChain, sizeof(uint32)) <= 0)
-				gDefaultChain = ~0L;
+			if (fPrefs->Read(&gUseAccountFrom, sizeof(int32)) <= 0
+				|| gUseAccountFrom < ACCOUNT_USE_DEFAULT
+				|| gUseAccountFrom > ACCOUNT_FROM_MAIL)
+				gUseAccountFrom = ACCOUNT_USE_DEFAULT;
+			
+			MailSettings settings;
+			gDefaultChain = settings.DefaultOutboundChainID();
 		}
 		else {
 			delete fPrefs;
@@ -233,8 +239,8 @@ TMailApp::~TMailApp()
 void TMailApp::AboutRequested()
 {
 	(new BAlert("", "BeMail\nBy Robert Polic\n\n"
-					"Extensively modified by Axel Dörfler"
-					" and the Dr. Zoidberg crew", "Close"))->Go();
+					"Enhanced by Axel Dörfler and the Dr. Zoidberg crew",
+					"Close"))->Go();
 }
 
 //--------------------------------------------------------------------
@@ -390,9 +396,10 @@ void TMailApp::MessageReceived(BMessage* msg)
 				fPrefsWindow->Activate(true);
 			} else {
 				fPrefsWindow = new TPrefsWindow(BRect(prefs_window.x, 
-				  prefs_window.y, prefs_window.x + PREF_WIDTH, 
-				  prefs_window.y + PREF_HEIGHT), &fFont, &level, &wrap_mode, 
-				  &signature, &gMailEncoding, &show_buttonbar);
+						prefs_window.y, prefs_window.x + PREF_WIDTH,
+						prefs_window.y + PREF_HEIGHT),
+						&fFont,&level,&wrap_mode,&gDefaultChain,&gUseAccountFrom,
+						&signature, &gMailEncoding, &show_buttonbar);
 				fPrefsWindow->Show();
 				fPrevBBPref = show_buttonbar;
 			}
@@ -512,7 +519,13 @@ bool TMailApp::QuitRequested()
 			fPrefs->Write(&len, sizeof(int32));
 			fPrefs->Write(findString, len);
 			fPrefs->Write(&show_buttonbar, sizeof(bool));
-			fPrefs->Write(&gDefaultChain, sizeof(uint32));
+			fPrefs->Write(&gUseAccountFrom, sizeof(int32));
+			
+			if (gDefaultChain != ~0UL) {
+				MailSettings settings;
+				settings.SetDefaultOutboundChainID(gDefaultChain);
+				settings.Save();
+			}
 		}
 		return true;
 	}
@@ -827,7 +840,7 @@ BList	TMailWindow::sWindowList;
 
 TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, const char *to,
 						 const BFont *font, bool resending, BMessenger *msng)
-			:BWindow(rect, title, B_DOCUMENT_WINDOW, 0),
+			:	BWindow(rect, title, B_DOCUMENT_WINDOW, 0),
 			fFieldState(0),
 			fPanel(NULL),
 			fSendButton(NULL),
@@ -842,7 +855,8 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 			fResending(resending),
 			fSent(false),
 			fDraft(false),
-			fChanged(false)
+			fChanged(false),
+			fChain(gDefaultChain)
 {
 	bool		done = false;
 	char		str[256];
@@ -1113,12 +1127,11 @@ skip:			if (!done) {
 	//	Accounts Menu
 	//
 	if (!fIncoming) {
-		menu = new BMenu("Accounts");
-		menu->SetRadioMode(true);
+		fAccountMenu = new BMenu("Account");
+		fAccountMenu->SetRadioMode(true);
 		MailSettings settings;
 		BList chains;
 		if (settings.OutboundChains(&chains) >= B_OK) {
-			fChain = gDefaultChain;
 			BMessage *msg;
 			bool marked = false;
 			for (int32 i = 0;i < chains.CountItems();i++) {
@@ -1131,22 +1144,23 @@ skip:			if (!done) {
 					item->SetMarked(true);
 					marked = true;
 				}
-				menu->AddItem(item);
+				fAccountMenu->AddItem(item);
 				delete chain;
 			}
 			if (!marked) {
-				BMenuItem *item = menu->ItemAt(0);
+				BMenuItem *item = fAccountMenu->ItemAt(0);
 				if (item != NULL) {
 					item->SetMarked(true);
 					fChain = item->Message()->FindInt32("id");
 				} else {
-					menu->AddItem(item = new BMenuItem("<none>",NULL));
+					fAccountMenu->AddItem(item = new BMenuItem("<none>",NULL));
 					item->SetEnabled(false);
 				}
+				// default chain is invalid
+				gDefaultChain = ~0L;
 			}
-			gDefaultChain = fChain;
 		}
-		menu_bar->AddItem(menu);
+		menu_bar->AddItem(fAccountMenu);
 	}
 
 	Lock();
@@ -1621,13 +1635,12 @@ void TMailWindow::MessageReceived(BMessage* msg)
 		case M_ACCOUNT:
 		{
 			BMenuItem *item;
-			msg->FindPointer("source", (void **)&item);
-			item->SetMarked(true);
+			if (msg->FindPointer("source", (void **)&item) >= B_OK)
+				item->SetMarked(true);
+
 			uint32 chain;
-			if (msg->FindInt32("id",(int32 *)&chain) >= B_OK) {
+			if (msg->FindInt32("id",(int32 *)&chain) >= B_OK)
 				fChain = chain;
-				gDefaultChain = chain;
-			}
 			break;
 		}
 
@@ -2471,8 +2484,11 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *wind, bool all)
 	BFile		*file = NULL;
 	attr_info	info;
 
+	fRepliedMail = *ref;
+
 	file = new BFile(ref, O_RDONLY);
 	if (file->InitCheck() == B_NO_ERROR) {
+		// set reply-to address and subject
 		if (file->GetAttrInfo(B_MAIL_ATTR_REPLY, &info) == B_NO_ERROR) {
 			to = (char *)malloc(info.size);
 			file->ReadAttr(B_MAIL_ATTR_REPLY, B_STRING_TYPE, 0, to, info.size);
@@ -2498,6 +2514,26 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *wind, bool all)
 			free(str);
 		}
 
+		// set mail account
+		if (gUseAccountFrom == ACCOUNT_FROM_MAIL && file->GetAttrInfo("MAIL:account",&info) == B_NO_ERROR) {
+			str = (char *)malloc(info.size);
+			file->ReadAttr("MAIL:account", B_STRING_TYPE, 0, str, info.size);
+
+			MailSettings settings;
+			BList chains;
+			settings.OutboundChains(&chains);
+			for (int32 i = 0;i < chains.CountItems();i++) {
+				MailChain *chain = (MailChain *)chains.ItemAt(i);
+				if (!strcmp(chain->Name(),str))
+					fChain = chain->ID();
+
+				delete chain;
+			}
+			if (BMenuItem *item = fAccountMenu->FindItem(str))
+				item->SetMarked(true);
+			free(str);
+		}
+		
 		wind->fContentView->fTextView->GetSelection(&start, &finish);
 		if (start != finish) {
 			str = (char *)malloc(finish - start + 1);
@@ -2607,32 +2643,10 @@ status_t TMailWindow::Send(bool now)
 		if ((len = strlen(fHeaderView->fBcc->Text())) != 0)
 			mail->SetBCC(fHeaderView->fBcc->Text());
 
-		/* add a message-id */
-//		BString message_id;
-//		/* empirical evidence indicates message id must be enclosed in
-//		** angle brackets and there must be an "at" symbol in it
-//		*/
-//		message_id << "<";
-//		message_id << system_time();
-//		message_id << "-BeMail@";
-//		
-//		#if BONE
-//			utsname uinfo;
-//			uname(&uinfo);
-//			message_id << uinfo.nodename;
-//		#else
-//			char host[255];
-//			gethostname(host,255);
-//			message_id << host;
-//		#endif
-//
-//		message_id << ">";
-//		mail->SetHeaderField("Message-ID", message_id.String());
-
 		/****/
-		
-		if ((len = fContentView->fTextView->TextLength()) != 0)
-			fContentView->fTextView->AddAsContent(mail, wrap_mode);
+
+		// the content text is always added to make sure there is a mail body
+		fContentView->fTextView->AddAsContent(mail, wrap_mode);
 
 		if (fEnclosuresView != NULL)
 		{
@@ -2642,6 +2656,12 @@ status_t TMailWindow::Send(bool now)
 		mail->SendViaAccount(fChain);
 
 		result = mail->Send(now);
+		
+		if (fReplying) {
+			BNode node(&fRepliedMail);
+			if (node.InitCheck() >= B_OK)
+				node.WriteAttr(B_MAIL_ATTR_STATUS,B_STRING_TYPE,0,"Replied",7);
+		}
 		delete mail;
 	}
 

@@ -130,7 +130,20 @@ APP_VERSION =
 #	/dev/video/usb when loaded. Default is "misc".
 DRIVER_PATH = 
 
-INSTALL_DIR=/boot/beos/apps
+#   Custom overrides that can be set from the command line.
+ifeq ($(DEBUG_BUILD), true)
+	SYMBOLS := TRUE
+	DEBUGGER := TRUE
+	OPTIMIZE := NONE
+	COMPILER_FLAGS += -DDEBUG=1
+endif
+
+ifeq ($(CHECK_MEM), true)
+	SYMBOLS := TRUE
+	DEBUGGER := TRUE
+	OPTIMIZE := NONE
+	COMPILER_FLAGS += -fcheck-memory-usage -DDEBUG=1 -D_NO_INLINE_ASM=1 -D_KERNEL_MODE=1
+endif
 
 ifeq ($(shell ls 2>/dev/null -1 /boot/develop/headers/be/bone/bone_api.h), /boot/develop/headers/be/bone/bone_api.h)
 	SYSTEM_INCLUDE_PATHS += /boot/develop/headers/be/bone
@@ -139,6 +152,10 @@ else
 # hack to fix lack of uname on my system
 	LIBS += net
 endif
+
+
+INSTALL_DIR=/boot/beos/apps
+
 
 ## include the makefile-engine
 include $(BUILDHOME)/etc/makefile-engine.MailD

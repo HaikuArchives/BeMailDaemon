@@ -259,6 +259,7 @@ private:
 	BMenuItem *deleteNext;
 	BMenuItem *fSpelling;
 	BMenu *saveAddrMenu;
+	BMenu *fAccountMenu;
 	ButtonBar *fButtonBar;
 	BmapButton *fSendButton;
 	BmapButton *fSaveButton;
@@ -280,7 +281,8 @@ private:
 	bool fDraft;
 	bool fChanged;
 	
-	uint32 fChain;
+	uint32		fChain;
+	entry_ref	fRepliedMail;
 };
 
 //====================================================================
