@@ -1234,8 +1234,6 @@ void TTextView::ClearList()
 			entry.SetTo(&enclosure->ref);
 			entry.Remove();
 		}
-//		if (enclosure->delete_component)
-//			delete enclosure->component;
 
 		watch_node(&enclosure->node, B_STOP_WATCHING, this);
 		free(enclosure);
@@ -1329,7 +1327,11 @@ void TTextView::Open(hyper_text *enclosure)
 		}
 
 		case TYPE_MAILTO:
-			be_roster->Launch(B_MAIL_TYPE, 1, &enclosure->name);
+			if (be_roster->Launch(B_MAIL_TYPE, 1, &enclosure->name) < B_OK)
+			{
+				char *argv[] = {"BeMail", enclosure->name};
+				be_app->ArgvReceived(2, argv);
+			}
 			break;
 
 		case TYPE_ENCLOSURE:
@@ -1715,13 +1717,12 @@ bool TTextView::Reader::Process(const char *data, int32 data_len, bool isHeader)
 		"gopher://",
 		"news://",
 		"nntp://",
-		0
+		NULL
 	};
 	bool	bracket = false;
 	char	line[522];
 	int32	count = 0;
 	int32	index;
-	int32	type;
 
 	for (int32 loop = 0; loop < data_len; loop++)
 	{
@@ -1735,7 +1736,7 @@ bool TTextView::Reader::Process(const char *data, int32 data_len, bool isHeader)
 
 		if (!fRaw && fIncoming && (loop < data_len - 7))
 		{
-			type = 0;
+			int32 type = 0;
 
 			//
 			//	Search for URL prefix

@@ -306,7 +306,15 @@ void TMailApp::ArgvReceived(int32 argc, char **argv)
 		} else if (strncmp(argv[loop], "mailto:", 7) == 0) {
 			if (names.Length())
 				names += ", ";
-			names += argv[loop] + 7;
+			char *options;
+			if ((options = strchr(argv[loop],'?')) != NULL)
+			{
+				names.Append(argv[loop] + 7, options - argv[loop] - 7);
+				if (!strncmp(++options,"subject=",8))
+					subject = options + 8;
+			}
+			else
+				names += argv[loop] + 7;
 			gotmailto = true;
 		} else if (strncmp(argv[loop], "ccto:", 5) == 0) {
 			if (ccNames.Length())
