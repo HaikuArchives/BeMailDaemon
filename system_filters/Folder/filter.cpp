@@ -171,7 +171,7 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 			)
 			Mail::ShowAlert(MDR_DIALECT_CHOICE ("Folder Error","フォルダエラー"),
 				error.String(),MDR_DIALECT_CHOICE ("OK","了解"),B_WARNING_ALERT);
-			return err;
+			return B_MAIL_END_FETCH; // Stop reading further mail messages.
 		}
 		haveReadWholeMessage = true;
 	}

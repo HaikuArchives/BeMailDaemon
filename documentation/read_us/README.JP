@@ -188,6 +188,7 @@ July 14 2003 - v2.1.0rc3
 - Turn on auto-training by default in the spam filter, at "BiPolar"'s suggestion.  Also modified the other default options - spam in subject off (status now shown in window title), leave server running (slow startup with hundreds of thousands of words), cutoffs made more strict (more uncertain messages, fewer errors).
 - Added a couple of Japanese translations.
 - IMAP bugs fixed, now handles network disconnection better.
+- Also stops when it encounters an error while reading message contents from the server, rather than putting up error alerts for each and every remaining message.
 - Changed BeMail to use a flattened BMessage for its settings, rather than the unreliable binary dump.
 - Added an option to start with spell checking on.
 

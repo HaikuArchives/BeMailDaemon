@@ -415,7 +415,7 @@ ChainRunner::get_messages(StringList *list)
 		delete headers;
 		delete folder;
 
-		if (err == B_MAIL_END_FETCH)
+		if (err == B_MAIL_END_FETCH || err ==  B_MAIL_END_CHAIN)
 			break;
 	}
 
