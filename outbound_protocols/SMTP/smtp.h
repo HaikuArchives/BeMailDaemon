@@ -6,7 +6,6 @@
 */
 
 
-#include <NetEndpoint.h>
 #include <String.h>
 
 #include <MailAddon.h>
@@ -33,7 +32,7 @@ class SMTPProtocol : public Zoidberg::Mail::Filter {
 	private:
 		status_t POP3Authentification();
 
-		BNetEndpoint fConnection;
+		int _fd;
 		BString fLog;
 		BMessage *fSettings;
 		Zoidberg::Mail::ChainRunner *runner;

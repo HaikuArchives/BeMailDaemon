@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <netdb.h>
+#include <socket.h>
 
 #include <status.h>
 #include <ProtocolConfigView.h>
@@ -164,12 +165,32 @@ SMTPProtocol::Open(const char *address, int port, bool esmtp)
 
 	if (port <= 0)
 		port = 25;
-
-	status_t status;
-	status = fConnection.Connect(address, port);
-
-	if (status != B_OK)
-		return status;
+	
+	uint32 hostIP = inet_addr(address);  // first see if we can parse it as a numeric address
+	if ((hostIP == 0)||(hostIP == (uint32)-1)) {
+		struct hostent * he = gethostbyname(address);
+		hostIP = he ? *((uint32*)he->h_addr) : 0;
+	}
+   
+	if (hostIP == 0)
+		return EHOSTUNREACH;
+		
+	_fd = socket(AF_INET, SOCK_STREAM, 0);
+	if (_fd >= 0) {
+		struct sockaddr_in saAddr;
+		memset(&saAddr, 0, sizeof(saAddr));
+		saAddr.sin_family      = AF_INET;
+		saAddr.sin_port        = htons(port);
+		saAddr.sin_addr.s_addr = hostIP;
+		int result = connect(_fd, (struct sockaddr *) &saAddr, sizeof(saAddr));
+		if (result < 0) {
+			closesocket(_fd);
+			_fd = -1;
+			return errno;
+		}
+	} else {
+		return errno;
+	}
 
 	BString line;
 	ReceiveResponse(line);
@@ -403,7 +424,7 @@ SMTPProtocol::Close()
 		// Error
 	}
 
-	fConnection.Close();
+	closesocket(_fd);
 }
 
 
@@ -485,7 +506,7 @@ SMTPProtocol::Send(const char *to, const char *from, BPositionIO *message)
 			if (data[i] == '\r' && data[i+1] == '\n' && data[i+2] == '.') {
 				foundCRLFPeriod = true;
 				// Send data up to the CRLF, and include the period too.
-				if (fConnection.Send (data, i + 3) < 0) {
+				if (send (_fd,data, i + 3,0) < 0) {
 					amountUnread = 0; // Stop when an error happens.
 					bufferLen = 0;
 					break;
@@ -502,7 +523,7 @@ SMTPProtocol::Send(const char *to, const char *from, BPositionIO *message)
 		if (!foundCRLFPeriod) {
 			if (amountUnread <= 0) { // No more data, all we have is in the buffer.
 				if (bufferLen > 0) {
-					fConnection.Send (data, bufferLen);
+					send (_fd,data, bufferLen,0);
 					runner->ReportProgress (bufferLen,0);
 					if (bufferLen >= 2)
 						messageEndedWithCRLF = (data[bufferLen-2] == '\r' &&
@@ -514,7 +535,7 @@ SMTPProtocol::Send(const char *to, const char *from, BPositionIO *message)
 			// Send most of the buffer, except a few characters to overlap with
 			// the next read, in case the CRLFPeriod is split between reads.
 			if (bufferLen > 3) {
-				if (fConnection.Send (data, bufferLen - 3) < 0)
+				if (send (_fd,data, bufferLen - 3,0) < 0)
 					break; // Stop when an error happens.
 				runner->ReportProgress (bufferLen - 3,0);
 				memmove (data, data + bufferLen - 3, 3);
@@ -545,10 +566,25 @@ SMTPProtocol::ReceiveResponse(BString &out)
 	int32 len = 0,r;
 	char buf[SMTP_RESPONSE_SIZE];
 	bigtime_t timeout = 1000000*180; // timeout 180 secs
+	
+	struct timeval tv;
+	struct fd_set fds; 
 
-	if (fConnection.IsDataPending(timeout)) {
+	tv.tv_sec = long(timeout / 1e6); 
+	tv.tv_usec = long(timeout-(tv.tv_sec * 1e6)); 
+	
+	/* Initialize (clear) the socket mask. */ 
+	FD_ZERO(&fds);
+	
+	/* Set the socket in the mask. */ 
+	FD_SET(_fd, &fds); 
+	int result = select(32, &fds, NULL, NULL, &tv);
+	if (result < 0)
+		return errno;
+	
+	if (result > 0) {
 		while (1) {
-			r = fConnection.Receive(buf, SMTP_RESPONSE_SIZE - 1);
+			r = recv(_fd,buf, SMTP_RESPONSE_SIZE - 1,0);
 			if (r <= 0)
 				break;
 
@@ -572,7 +608,7 @@ SMTPProtocol::SendCommand(const char *cmd)
 {
 	D(bug("C:%s\n", cmd));
 
-	if (fConnection.Send(cmd, ::strlen(cmd)) == B_ERROR)
+	if (send(_fd,cmd, ::strlen(cmd),0) == B_ERROR)
 		return B_ERROR;
 
 	fLog = "";
