@@ -1621,7 +1621,7 @@ void TMailWindow::MessageReceived(BMessage* msg)
 		case M_ACCOUNT:
 		{
 			BMenuItem *item;
-			msg->FindPointer("source",&item);
+			msg->FindPointer("source", (void **)&item);
 			item->SetMarked(true);
 			uint32 chain;
 			if (msg->FindInt32("id",(int32 *)&chain) >= B_OK) {
