@@ -539,5 +539,5 @@ ChainRunner::ResetProgress(const char *message)
 void
 ChainRunner::ShowError(const char *error)
 {
-	(new BAlert("error", error, "OK"))->Go();
+	(new BAlert("error", error, "OK"))->Go(NULL);
 }
