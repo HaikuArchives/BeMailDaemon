@@ -7,7 +7,7 @@
 ## Application Specific Settings ---------------------------------------------
 
 # specify the name of the binary
-NAME= "Match Header"
+NAME= RuleFilter
 
 # specify the type of binary
 #	APP:	Application
