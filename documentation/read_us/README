@@ -161,6 +161,7 @@ September 20 2003 - v2.2.3
 - More IMAP bug fixes.
 - Some memory leak bugs fixed.
 - Added a command line script which will go through all your People files and make sure that the e-mail addresses contain valid characters.  Useful for bulk e-mailing (the SMTP server will reject the whole batch if one is bad), so look for ValidatePeopleEmails.sh in the Mass Mailing folder.
+- Temporary file for incoming mail created in /tmp or now in a local directory, so that the in-box can be on a different drive than /boot.  Well, maybe not, all the query stuff still looks on /boot only.
 
 August 20 2003 - v2.2.2
 - Automatic index creation changed, use an int for the MAIL:flags, not a string!
