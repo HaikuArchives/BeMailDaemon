@@ -11,6 +11,13 @@
  * Public Domain 2002, by Alexander G. M. Smith, no warranty.
  *
  * $Log$
+ * Revision 1.14  2003/05/27 17:12:59  nwhitehorn
+ * Massive refactoring of the Protocol/ChainRunner/Filter system. You can probably
+ * examine its scope by examining the number of files changed. Regardless, this is
+ * preparation for lots of new features, and REAL WORKING IMAP. Yes, you heard me.
+ * Enjoy, and prepare for bugs (although I've fixed all the ones I've found, I susp
+ * ect there are some memory leaks in ChainRunner).
+ *
  * Revision 1.13  2003/02/08 21:54:17  agmsmith
  * Updated the AGMSBayesianSpamServer documentation to match the current
  * version.  Also removed the Beep options from the spam filter, now they
@@ -71,6 +78,7 @@
  */
 
 #include <Beep.h>
+#include <fs_attr.h>
 #include <Messenger.h>
 #include <Node.h>
 #include <Path.h>
@@ -153,6 +161,7 @@ AGMSBayesianSpamFilter::ProcessMailMessage (
 	const char* io_uid)
 {
 	ssize_t		 amountRead;
+	attr_info	 attributeInfo;
 	const char	*classificationString;
 	off_t		 dataSize;
 	BPositionIO	*dataStreamPntr = *io_message;
@@ -225,6 +234,17 @@ AGMSBayesianSpamFilter::ProcessMailMessage (
 			goto ErrorExit;
 		fHeaderOnly = (tokenizeModeStringPntr != NULL
 			&& strcmp (tokenizeModeStringPntr, "JustHeader") == 0);
+	}
+
+	// See if the message has already been classified.  Happens for messages
+	// which are partially downloaded when you have auto-training on.  Could
+	// untrain the partial part before training on the complete message, but we
+	// don't know how big it was, so instead just ignore the message.
+
+	if (nodeForOutputFileInitialised) {
+		if (nodeForOutputFile.GetAttrInfo ("MAIL:classification",
+			&attributeInfo) == B_OK)
+			return B_OK;
 	}
 
 	// Copy the message to a string so that we can pass it to the spam database
