@@ -35,7 +35,17 @@ else
 	CPU=ppc
 fi
 
-BUILD_PATH=$1/mail_daemon_$2_$CPU
+if [ $(uname -m) = "BePC" ]; then
+	if [ $(ls 2>/dev/null -1 /boot/develop/headers/be/bone/bone_api.h) = "/boot/develop/headers/be/bone/bone_api.h" ]; then
+		PKGCPU=bone
+	else
+		PKGCPU=x86
+	fi
+else
+	PKGCPU=ppc
+fi
+
+BUILD_PATH=$1/mail_daemon_$2_$PKGCPU
 
 # if [ #(echo $BUILD_PATH | grep -v '//*') -neq 0 ]; then 
 #      BUILD_PATH=$(pwd)/$1/mail_daemon_$2_$CPU; 

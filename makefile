@@ -1,5 +1,7 @@
 # makefile for all sample code
 
+VERSION=2.3.1
+
 SUBDIRS = \
 	lib \
 	daemon \
@@ -11,6 +13,16 @@ SUBDIRS = \
 	system_filters \
 	bemail \
 	AGMSBayesianSpamServer
+
+ifeq ($(shell uname -m), BePC)
+	CPU = x86
+else
+	CPU = ppc
+endif
+
+ifeq ($(shell ls 2>/dev/null -1 /boot/develop/headers/be/bone/bone_api.h), /boot/develop/headers/be/bone/bone_api.h)
+	CPU = bone
+endif
 
 default .DEFAULT :
 	-cp makefile-engine.MailD $(BUILDHOME)/etc/makefile-engine.MailD
@@ -34,6 +46,9 @@ else
 endif
 	@echo "Build_package now set to use `cat build_utils/LanguageSpecificInstallFileName` for the language dependent installer script."
 
+package :: default
+	./build_utils/build_package.sh $(shell pwd) v$(VERSION)
+	zip -rym mail_daemon_v$(VERSION)_$(CPU).zip mail_daemon_v$(VERSION)_$(CPU)
 
 clean:
 	-@for f in $(SUBDIRS) ; do \
