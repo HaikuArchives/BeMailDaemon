@@ -152,7 +152,10 @@ THeaderView::THeaderView (
 	// the user quickly select a character set different from the application
 	// wide default one, and also shows them which character set is active.  If
 	// you are reading a message, you also see an item that says "Automatic"
-	// for automatic decoding character set choice.
+	// for automatic decoding character set choice.  It can slide around as the
+	// window is resized when viewing a message, but not when composing
+	// (because the adjacent pop-up menu can't resize dynamically due to a BeOS
+	// bug).
 
 	bool marked;
 	float widestCharacterSet;
@@ -191,7 +194,7 @@ THeaderView::THeaderView (
 			y - 2, windowRect.Width() - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT + 2);
 		field = new BMenuField (r, "encoding", ENCODING_TEXT, fEncodingMenu,
 			true /* fixedSize */,
-			B_FOLLOW_TOP | B_FOLLOW_LEFT,
+			B_FOLLOW_TOP | B_FOLLOW_RIGHT,
 			B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
 		field->SetFont (&font);
 		field->SetDivider (font.StringWidth(ENCODING_TEXT) + 5);

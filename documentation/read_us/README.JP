@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v2.0.1 Beta 1
+BEOS Mail Daemon Replacement v2.0.1 Beta 2
 
 概要：
 
@@ -180,6 +180,9 @@ BEOS Mail Daemon Replacement v2.0.1 Beta 1
 　　さらに、SampleSpamDatabaseに関する注釈を参照してください。
 
 履歴：
+
+March 2 2003 - v2.0.1b2
+- Make the encoding menu slide around when resizing the window.  Can only do it for reading a mail message, not when composing, since pop-up menus don't resize (a BeOS bug).
 
 February 20 2003 - v2.0.1b1
 - Yet more Japanese translations, courtesy of Jun Suzki this time.
