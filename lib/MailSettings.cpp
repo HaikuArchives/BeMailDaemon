@@ -54,6 +54,8 @@ status_t MailSettings::Save(bigtime_t /*timeout*/)
 		return result;
 		
 	BMessenger("application/x-vnd.Be-POST").SendMessage('mrrs');
+	
+	return B_OK;
 }
 
 status_t MailSettings::Reload()
