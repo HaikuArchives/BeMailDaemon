@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v1.0.0 beta 5
+BEOS Mail Daemon Replacement v2.0.0 alpha 1
 
 ABOUT:
 
@@ -13,19 +13,28 @@ files:
   LICENSE
    Conditions for using/distributing this package.
 
-  libmail2.so
-   This library provides the backend for the new mail_daemon. This is an
-   exception in the package, as it *DOES NOT* replace the original 
-   libmail.so, but complements it. It will be installed in 
-   /boot/home/config/lib
+  libmail.so
+   This library provides the backend for the new mail_daemon.
+   It will be installed in /boot/beos/system/lib
 
   mail_daemon
    This is the new replacement Mail Daemon. It will be installed in 
    /boot/beos/system/servers, overwriting the original mail_daemon file.
 
+  BeMail
+   This is a new version of BeMail, based on the original, which Be has,
+   in their infinite wisdom, open sourced. This provides full multi-account
+   support, among other things. Great stuff. It will be installed in
+   /boot/beos/apps/BeMail
+
   E-mail
    This is the new e-mail preferences panel. It will be installed to 
    /boot/beos/preferences, overwriting the original preferences app.
+
+  Addons
+   There are a *lot* of addons. These contain much of the functionality
+   of the mail daemon, and will be installed in
+   /boot/home/config/add-ons/mail_daemon
 
 
 ***********
@@ -37,7 +46,7 @@ files:
   to find it, having more than one version will cause things to
   randomly fail, when it fins the old version instead of the new.
 
-  This software is beta quality! See the LICENSE file for more 	
+  This software is alpha quality! See the LICENSE file for more 	
   information.
 
 ***********
@@ -69,18 +78,58 @@ configure your accounts. To save all the changes, close the window
 by clicking "Save".  To delete an account, select it and press the
 DEL key or use the Remove button.
 
-Right click the Deskbar mail icon to access a menu with various options 
-(and to select your default account for sending emails).  Single-click
-the icon to open your mail inbox.
+Right click the Deskbar mail icon to access a menu with various options.
+Single-click the icon to open your mail inbox. The field about new messages
+will be available for selection if you have new messages, and will open a
+Tracker query displaying those messages. The Quit option quits the
+mail_daemon. You don't want to do this.
 
-PROTOCOLS INSTALLATION:
+ADDON INSTALLATION:
 
-Protocol add-ons should be installed in /boot/home/config/add-ons/
-mail_daemon/protocols. This directory will be automatically created by
-the installation process. The distribution contains POP3 (with APOP 
-support) and SMTP protocols.
+Add-ons should be installed in /boot/home/config/add-ons/
+mail_daemon/ in the subdirectory specified in the add on documentation.
+This directory will be automatically created by the installation process.
+The distribution contains POP3 (with APOP support), IMAP and SMTP protocols,
+as well as Fortune, Compatibility, and RuleFilter filters.
+
+FILTERS:
+
+This release contains three filter addons. To enable them, use E-mail Filters
+in preferences, and choose the appropriate direction to apply them in
+(specified below), then add that filter. You can add several instances of
+the same filter type, although this is only reccomended for RuleFilter. Addons
+will be executed in the order they appear in the list, and can be reorderd with
+a simple drag and drop. To install new filters, follow the directions in 
+ADDON INSTALLATION.
+
+ Fortune
+   This filter adds a random fortune to the bottom of all outgoing e-mail. For
+   an example, open your Terminal and type fortune. The database can be
+   specified in config, although it is highly reccomended that you use the
+   default. For more information on Fortune and its database format, go look
+   somewhere on the web.
+
+ Compatibility
+   This filter executes old style mail daemon filters on inbound messages.
+   For more information, see http://www.betips.net/chunga.php?ID=511
+
+ RuleFilter
+   Allows you to filter messages based on an arbitrary header, of a value
+   you define. The value can be a regex. So to trash messages containing
+   "get rich quick" in the subject, do this: If |subject| is |*get rich quick*|
+   Then |Delete Message| The ||, of course, are just the edges of the
+   text boxes. Or, to put it messages from BeUserTalk in ~/mail/beusertalk:
+   If |subject| is |*[BeUserTalk]*| Then |Move To| |/boot/home/mail/beusertalk|
 
 HISTORY:
+
+November 06 2001 - v2.0.0 a1
+  - Complete rewrite from the ground up
+  - Filters
+  - BeMail
+  - IMAP
+  - New Mail Kit
+  - All sorts of other cool stuff
 
 July 05 2001 - v1.0.0 b5
   - Outgoing (SMTP) mail servers are now configured per account.
