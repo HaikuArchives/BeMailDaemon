@@ -8,6 +8,8 @@ class _EXPORT MailComponent;
 class _EXPORT PlainTextBodyComponent;
 
 #include <MailComponent.h>
+#include <MailAttachment.h>
+#include <MailContainer.h>
 #include <mail_util.h>
 
 #include <base64.h>
@@ -43,6 +45,31 @@ static const CharsetConversionEntry charsets[] =
 	{"euc-kr",      B_EUC_KR_CONVERSION},
 	{"x-mac-roman", B_MAC_ROMAN_CONVERSION}
 };
+
+_EXPORT MailComponent *WhatIsThis(MailComponent *headers) {
+	BMimeType type, super;
+	headers->MIMEType(&type);
+	type.GetSupertype(&super);
+	
+	puts(type.Type());
+	
+	MailComponent *piece;
+	//---------ATT-This code *desperately* needs to be improved
+	if (super == "multipart") {
+		if (type == "multipart/x-bfile")
+			piece = new AttributedMailAttachment;
+		else
+			piece = new MIMEMultipartContainer;
+	} else {
+		const char *disposition = headers->HeaderField("Content-Disposition");
+		if ((disposition == NULL) || (strncasecmp(disposition,"Attachment",strlen("Attachment")) != 0))
+			piece = new PlainTextBodyComponent;
+		else
+			piece = new SimpleMailAttachment;
+	}
+	
+	return piece;
+}
 
 MailComponent::MailComponent() {}
 		

@@ -57,26 +57,8 @@ MailComponent *MIMEMultipartContainer::GetComponent(int32 index) {
 	MailComponent component;
 	component.Instantiate(_io_data,part->end - part->start);
 	
-	BMimeType type, super;
-	component.MIMEType(&type);
-	type.GetSupertype(&super);
+	MailComponent *piece = WhatIsThis(&component);
 	
-	puts(type.Type());
-	
-	MailComponent *piece;
-	//---------ATT-This code *desperately* needs to be improved
-	if (super == "multipart") {
-		/*if (type == "multipart/x-bfile")
-			piece = new AttributedMailAttachment;
-		else*/
-			piece = new MIMEMultipartContainer;
-	} else {
-		const char *disposition = component.HeaderField("Content-Disposition");
-		if ((disposition == NULL) || (strncasecmp(disposition,"Attachment",strlen("Attachment")) != 0))
-			piece = new PlainTextBodyComponent;
-		else
-			piece = new SimpleMailAttachment;
-	}
 	/* Debug code 
 	_io_data->Seek(part->start,SEEK_SET);
 	char *data = new char[part->end - part->start + 1];

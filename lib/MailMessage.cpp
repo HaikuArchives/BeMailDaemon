@@ -19,7 +19,28 @@ class _EXPORT MailMessage;
 #define mime_boundary "----------Zoidberg-BeMail-temp--------"
 #define mime_warning "This is a multipart message in MIME format."
 
-MailMessage::MailMessage(BPositionIO * /*mail_file*/) : _num_components(0), _body(NULL) {}
+MailMessage::MailMessage(BPositionIO *mail_file) : _num_components(0), _body(NULL), _bcc(NULL) {
+	MailSettings settings;
+	_chain_id = settings.DefaultOutboundChainID();
+	
+	if (mail_file == NULL)
+		return;
+		
+	MailComponent headers;
+	mail_file->Seek(0,SEEK_END);
+	size_t length = mail_file->Position();
+	mail_file->Seek(0,SEEK_SET);
+	
+	headers.Instantiate(mail_file,length);
+	_body = WhatIsThis(&headers);
+	
+	mail_file->Seek(0,SEEK_SET);
+	_body->Instantiate(mail_file,length);
+	
+	MIMEMultipartContainer *cont = dynamic_cast<MIMEMultipartContainer *> (_body);
+	
+	_num_components = (cont == NULL) ? 1 : cont->CountComponents();
+}
 
 const char *MailMessage::To() {
 	return _body->HeaderField("To");
@@ -74,7 +95,7 @@ void MailMessage::SendViaAccount(const char *account_name) {
 	
 	for (int32 i = 0; i < chains.CountItems(); i++) {
 		if (strcmp(((MailChain *)(chains.ItemAt(i)))->Name(),account_name) == 0) {
-			_chain_id = ((MailChain *)(chains.ItemAt(i)))->ID();
+			SendViaAccount(((MailChain *)(chains.ItemAt(i)))->ID());
 			break;
 		}
 	}
@@ -85,6 +106,11 @@ void MailMessage::SendViaAccount(const char *account_name) {
 	
 void MailMessage::SendViaAccount(int32 chain_id) {
 	_chain_id = chain_id;
+	
+	MailChain chain(_chain_id);
+	BString from;
+	from << '\"' << chain.MetaData()->FindString("real_name") << "\" <" << chain.MetaData()->FindString("reply_to") << '>';
+	SetFrom(from.String());
 }
 
 void MailMessage::AddComponent(MailComponent *component) {
@@ -113,6 +139,9 @@ MailComponent *MailMessage::GetComponent(int32 i) {
 }
 
 void MailMessage::RenderTo(BFile *file) {
+	if (From() == NULL)
+		SendViaAccount(_chain_id); //-----Set the from string
+	
 	BString recipients;
 	recipients << To();
 	if ((CC() != NULL) && (strlen(CC()) > 0))
@@ -132,10 +161,14 @@ void MailMessage::RenderTo(BFile *file) {
 	file->WriteAttrString(B_MAIL_ATTR_SUBJECT,&attr);
 	attr = ReplyTo();
 	file->WriteAttrString(B_MAIL_ATTR_REPLY,&attr);
+	attr = From();
+	file->WriteAttrString(B_MAIL_ATTR_FROM,&attr);
 	attr = "Pending";
 	file->WriteAttrString(B_MAIL_ATTR_STATUS,&attr);
 	attr = "1.0";
 	file->WriteAttrString(B_MAIL_ATTR_MIME,&attr);
+	attr = MailChain(_chain_id).Name();
+	file->WriteAttrString("MAIL:account",&attr);
 	
 	int32 int_attr;
 	
@@ -143,6 +176,8 @@ void MailMessage::RenderTo(BFile *file) {
 	file->WriteAttr(B_MAIL_ATTR_WHEN,B_TIME_TYPE,0,&int_attr,sizeof(int32));
 	int_attr = B_MAIL_PENDING | B_MAIL_SAVE;
 	file->WriteAttr(B_MAIL_ATTR_FLAGS,B_INT32_TYPE,0,&int_attr,sizeof(int32));
+	
+	file->WriteAttr("MAIL:chain",B_INT32_TYPE,0,&_chain_id,sizeof(int32));
 	
 	/* add a message-id */
 	BString message_id;

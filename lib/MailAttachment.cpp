@@ -202,6 +202,10 @@ status_t SimpleMailAttachment::Render(BPositionIO *render_to) {
 }
 
 //-------AttributedMailAttachment--Awareness of bfs, sends attributes--
+AttributedMailAttachment::AttributedMailAttachment() : MIMEMultipartContainer("++++++BFile++++++"),
+		_data(NULL),
+		_attributes_attach(NULL) {}
+
 AttributedMailAttachment::AttributedMailAttachment(BFile *file, bool delete_when_done) : MIMEMultipartContainer("++++++BFile++++++") {
 	_data = new SimpleMailAttachment;
 	AddComponent(_data);
