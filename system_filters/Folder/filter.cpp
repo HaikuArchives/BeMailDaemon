@@ -1,4 +1,4 @@
-#include "ConfigView.h"
+#include <FileConfigView.h>
 
 #include <Directory.h>
 #include <String.h>
@@ -169,7 +169,18 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	}
 }
 
+
 MailFilter* instantiate_mailfilter(BMessage* settings, StatusView *status)
 {
 	return new FolderFilter(settings);
 }
+
+
+BView* instantiate_config_panel(BMessage *settings, BMessage *meta_data)
+{
+	FileConfigView *view = new FileConfigView("Destination Folder:","path",true,"/boot/home/mail/in");
+	view->SetTo(settings,meta_data);
+
+	return view;
+}
+

@@ -10,7 +10,8 @@
 #include <ChainRunner.h>
 #include <status.h>
 
-#include "ConfigView.h"
+#include <FileConfigView.h>
+
 
 _EXPORT const char *pretty_name = "Outgoing Mail Folder";
 
@@ -131,12 +132,16 @@ void StatusChanger::Callback(MDStatus result) {
 		
 
 MailFilter* instantiate_mailfilter(BMessage* settings, StatusView *status)
-{ return new DiskProducer(settings,status); }
+{
+	return new DiskProducer(settings,status);
+}
+
 
 BView* instantiate_config_panel(BMessage *settings,BMessage *metadata)
 {
-	ConfigView *view = new ConfigView();
+	FileConfigView *view = new FileConfigView("Source Folder:","path",true,"/boot/home/mail/out");
 	view->SetTo(settings,metadata);
 
 	return view;
 }
+
