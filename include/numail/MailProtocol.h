@@ -122,7 +122,7 @@ class Protocol : public Filter
   	friend class DeletePass;
   
   	StringList *manifest;
-  	ChainRunner *parent;
+  	Mail::ChainRunner *parent;
 };
 
 // standard MailProtocols:
@@ -133,10 +133,10 @@ class Protocol : public Filter
 
 class SimpleProtocol : public Protocol {
 	public:
-		SimpleProtocol(BMessage *settings, StatusView *view);
+		SimpleProtocol(BMessage *settings, Mail::StatusView *view);
 			//---Constructor. Simply call this in yours, and most everything will be handled for you.
 		
-		virtual void SetStatusReporter(StatusView *view) = 0;
+		virtual void SetStatusReporter(Mail::StatusView *view) = 0;
 			//---Stash view somewhere, and use the functions in status.h to report all your progress
 			//---Notify it every 100 bytes or so
 			
@@ -191,7 +191,7 @@ class SimpleProtocol : public Protocol {
 		virtual ~SimpleProtocol();
 	
 	protected:
-		StatusView *status_view;
+		Mail::StatusView *status_view;
 		status_t Init();
 	
 	private:

@@ -14,7 +14,7 @@ class Attachment {
 		virtual status_t FileName(char *name) = 0;
 };
 
-class SimpleAttachment : public Component, public Attachment {
+class SimpleAttachment : public Mail::Component, public Mail::Attachment {
 	public:
 		SimpleAttachment();
 		
@@ -49,7 +49,7 @@ class SimpleAttachment : public Component, public Attachment {
 		mail_encoding _encoding;
 };
 
-class AttributedAttachment : public MIMEMultipartContainer, public Attachment {
+class AttributedAttachment : public Mail::MIMEMultipartContainer, public Mail::Attachment {
 	public:
 		AttributedAttachment(BFile *file, bool delete_when_done);
 		AttributedAttachment(entry_ref *ref);
@@ -77,7 +77,7 @@ class AttributedAttachment : public MIMEMultipartContainer, public Attachment {
 		
 		virtual status_t MIMEType(BMimeType *mime);
 	private:
-		SimpleAttachment *_data, *_attributes_attach;
+		Mail::SimpleAttachment *_data, *_attributes_attach;
 		BMessage _attributes;
 };
 

@@ -32,8 +32,8 @@ namespace Mail {
 class StatusWindow;
 class Chain;
 
-Chain* NewChain();
-Chain* GetChain(uint32 id);
+Mail::Chain* NewChain();
+Mail::Chain* GetChain(uint32 id);
 
 status_t OutboundChains(BList *list);
 status_t InboundChains(BList *list);

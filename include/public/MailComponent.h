@@ -61,7 +61,7 @@ class Component {
 		BMessage headers;
 };
 
-class TextComponent : public Component {
+class TextComponent : public Mail::Component {
 	public:
 		TextComponent(const char *text = NULL);
 		virtual ~TextComponent();		

@@ -6,7 +6,7 @@
 
 namespace Mail {
 
-class Message : public Container {
+class Message : public Mail::Container {
 	public:
 		Message(BPositionIO *mail_file = NULL);
 		virtual ~Message();
@@ -41,10 +41,10 @@ class Message : public Container {
 		void SendViaAccount(const char *account_name);
 		void SendViaAccount(int32 chain_id);
 
-		virtual status_t AddComponent(Component *component);
+		virtual status_t AddComponent(Mail::Component *component);
 		virtual status_t RemoveComponent(int32 index);
 
-		virtual Component *GetComponent(int32 index);
+		virtual Mail::Component *GetComponent(int32 index);
 		virtual int32 CountComponents() const;
 
 		void Attach(entry_ref *ref, bool include_attributes = true);
@@ -53,8 +53,8 @@ class Message : public Container {
 		void SetBodyTextTo(const char *text);
 		const char *BodyText();
 
-		status_t SetBody(TextComponent *body);
-		TextComponent *Body();
+		status_t SetBody(Mail::TextComponent *body);
+		Mail::TextComponent *Body();
 
 		virtual status_t SetToRFC822(BPositionIO *data, size_t length, bool parse_now = false);
 		virtual status_t RenderToRFC822(BPositionIO *render_to);
@@ -64,15 +64,15 @@ class Message : public Container {
 		status_t Send(bool send_now);
 
 	private:
-		TextComponent *RetrieveTextBody(Component *);
+		Mail::TextComponent *RetrieveTextBody(Component *);
 
 		status_t _status;
 		int32 _chain_id;
 		char *_bcc;
 
 		int32 _num_components;
-		Component *_body;
-		TextComponent *_text_body;
+		Mail::Component *_body;
+		Mail::TextComponent *_text_body;
 };
 
 inline status_t Message::InitCheck() const

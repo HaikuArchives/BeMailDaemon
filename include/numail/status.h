@@ -21,7 +21,7 @@ class StatusWindow : public BWindow {
 
 				void	MessageReceived(BMessage *msg);
 
-			StatusView	*NewStatusView(const char *description, bool upstream);
+	Mail::StatusView	*NewStatusView(const char *description, bool upstream);
 				void	RemoveView(StatusView *view);
 		
 				bool	HasItems(void);
@@ -29,7 +29,7 @@ class StatusWindow : public BWindow {
 				void	SetDefaultMessage(const BString& m);
 
 	private:
-		friend	class	StatusView;
+		friend	class	Mail::StatusView;
 
 				void	SetBorderStyle(int32 look);
 				void	ActuallyAddStatusView(StatusView *status);
@@ -56,13 +56,13 @@ class StatusView : public BBox {
 		virtual			~StatusView();
 
 	private:
-		friend class	StatusWindow;
+		friend class	Mail::StatusWindow;
 		
 						StatusView(BRect rect,const char *description);
 				void	AddSelfToWindow();
 		
 		BStatusBar		*status;
-		StatusWindow	*window;
+		Mail::StatusWindow	*window;
 		int32			items_now;
 		int32			total_items;
 };

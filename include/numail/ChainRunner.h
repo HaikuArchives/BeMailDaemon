@@ -20,7 +20,7 @@ class ChainCallback {
 
 class ChainRunner {
 	public:
-		ChainRunner(Chain *chain);
+		ChainRunner(Mail::Chain *chain);
 		~ChainRunner();
 
 		//----Callback functions. Callback objects will be deleted for you.
@@ -34,7 +34,7 @@ class ChainRunner {
 		// a filter returns MD_NO_MORE_MESSAGES and before everything
 		// is unloaded and sent home.
 		
-		Chain *Chain();
+		Mail::Chain *Chain();
 		
 		//----The big, bad asynchronous RunChain() function. Pretty harmless looking, huh?
 		status_t RunChain(StatusWindow *status,

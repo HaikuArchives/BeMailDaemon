@@ -24,7 +24,7 @@ using Mail::ChainRunner;
 struct async_args {
 	Mail::Chain *home;
 	Mail::ChainRunner *runner;
-	Mail::Mail::StatusWindow *status;
+	Mail::StatusWindow *status;
 	
 	bool self_destruct;
 	bool destruct_chain;

@@ -9,17 +9,17 @@ class BPositionIO;
 
 namespace Mail {
 
-class Container : public Component {
+class Container : public Mail::Component {
 	public:
-		virtual status_t AddComponent(Component *component) = 0;
+		virtual status_t AddComponent(Mail::Component *component) = 0;
 		virtual status_t RemoveComponent(int32 index) = 0;
 
-		virtual Component *GetComponent(int32 index) = 0;
+		virtual Mail::Component *GetComponent(int32 index) = 0;
 		virtual int32 CountComponents() const = 0;
 };
 
 
-class MIMEMultipartContainer : public Container {
+class MIMEMultipartContainer : public Mail::Container {
 	public:
 		MIMEMultipartContainer(const char *boundary = NULL, const char *this_is_an_MIME_message_text = NULL);
 		MIMEMultipartContainer(MIMEMultipartContainer &copy);
@@ -29,10 +29,10 @@ class MIMEMultipartContainer : public Container {
 		void SetThisIsAnMIMEMessageText(const char *text);
 
 		// MailContainer
-		virtual status_t AddComponent(Component *component);
+		virtual status_t AddComponent(Mail::Component *component);
 		virtual status_t RemoveComponent(int32 index);
 
-		virtual Component *GetComponent(int32 index);
+		virtual Mail::Component *GetComponent(int32 index);
 		virtual int32 CountComponents() const;
 
 		// MailComponent
