@@ -74,6 +74,11 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
+ * Revision 1.77  2003/01/22 03:19:48  agmsmith
+ * Don't convert words to lower case, the case is important for spam.
+ * Particularly sentences which start with exciting words, which you
+ * normally won't use at the start of a sentence (and thus capitalize).
+ *
  * Revision 1.76  2002/12/18 02:29:22  agmsmith
  * Add space for the Uncertain display in Tracker.
  *
@@ -340,13 +345,12 @@
 /* Standard C Library. */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 
 #if __POWERPC__ /* atoll is missing from the PowerPC standard library. */
 static long long atoll (const char *str) {
-  long long val = 0; // Set to zero in case it half works.  -agmsmith
-  sscanf(str,"%d",&val); //--- Trust me, this works. -nwhitehorn
-  return val;
+  return atol (str); // Only good for a few billion, but good enough I guess.
 }
 #endif
 
