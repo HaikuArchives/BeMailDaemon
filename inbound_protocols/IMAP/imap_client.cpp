@@ -277,8 +277,7 @@ void IMAP4Client::InitializeMailboxes() {
 	char expected[255];
 	::sprintf(expected,"a%.7ld",commandCount);
 	create_directory(runner->Chain()->MetaData()->FindString("path"),0777);
-	BDirectory dir(runner->Chain()->MetaData()->FindString("path"));
-	BDirectory trash;
+	const char *path = runner->Chain()->MetaData()->FindString("path");
 	int val;
 	do {
 		NestedString response;
@@ -313,7 +312,9 @@ void IMAP4Client::InitializeMailboxes() {
 				inbox_index = box_info.CountItems() - 1;
 			}
 				
-			dir.CreateDirectory(parsed_name.String(),&trash);
+			BPath blorp(path);
+			blorp.Append(parsed_name.String());
+			create_directory(blorp.Path(),0777);
 		}
 	} while (1);
 	
@@ -665,29 +666,20 @@ status_t IMAP4Client::Select(const char *mb) {
 
 class IMAP4PartialReader : public BPositionIO {
 	public:
-		IMAP4PartialReader(IMAP4Client *client,BPositionIO *_slave,const char *id) : us(client), slave(_slave), parts_read(0) {
+		IMAP4PartialReader(IMAP4Client *client,BPositionIO *_slave,const char *id) : us(client), slave(_slave), done(false) {
 			strcpy(unique,id);
 		}
 		~IMAP4PartialReader() {
 			delete slave;
 			us->runner->ReportProgress(0,1);
 		}
-		off_t Seek(off_t position, uint32 seek_mode) {
-			ssize_t errorCode;
-			char    tempBuffer [1];
-			
+		off_t Seek(off_t position, uint32 seek_mode) {			
 			if (seek_mode == SEEK_END) {
-				switch (parts_read) {
-					case 0:
-						slave->Seek(0,SEEK_SET);
-						FetchMessage("RFC822");
-						break;
-					case 1:
-						slave->Seek(0,SEEK_END);
-						FetchMessage("RFC822.TEXT");
-						break;
+				if (!done) {
+					slave->Seek(0,SEEK_END);
+					FetchMessage("RFC822.TEXT");
 				}
-				parts_read = 2;
+				done = true;
 			}
 			return slave->Seek(position,seek_mode);
 		}
@@ -699,18 +691,10 @@ class IMAP4PartialReader : public BPositionIO {
 		}
 		ssize_t	ReadAt(off_t pos, void *buffer, size_t amountToWrite) {
 			ssize_t bytes;
-			while ((bytes = slave->ReadAt(pos,buffer,amountToWrite)) < amountToWrite && parts_read < 2) {
-				 switch (parts_read++) {
-					case 0:
-						slave->Seek(0,SEEK_SET);
-						FetchMessage("RFC822.HEADER");
-						//Write("\r\n",2);
-						break;
-					case 1:
-						slave->Seek(0,SEEK_END);
-						FetchMessage("RFC822.TEXT");
-						break;
-				}
+			while ((bytes = slave->ReadAt(pos,buffer,amountToWrite)) < amountToWrite && !done) {
+					slave->Seek(0,SEEK_END);
+					FetchMessage("RFC822.TEXT");
+					done = true;
 			}
 			return bytes;
 		}
@@ -740,7 +724,7 @@ class IMAP4PartialReader : public BPositionIO {
 		IMAP4Client *us;
 		char unique[25];
 		BPositionIO *slave;
-		int parts_read;
+		bool done;
 };
 		
 
@@ -786,7 +770,7 @@ status_t IMAP4Client::GetMessage(
 				return B_OK;
 			} else {
 				command = "UID FETCH ";
-				command << id << " (RFC822.SIZE FLAGS)";
+				command << id << " (RFC822.SIZE FLAGS RFC822.HEADER)";
 				SendCommand(command.String());
 				static char cmd[255];
 				::sprintf(cmd,"a%.7ld"CRLF,commandCount);
@@ -794,16 +778,16 @@ status_t IMAP4Client::GetMessage(
 				if (GetResponse(command,&response) != NOT_COMMAND_RESPONSE && command == cmd)
 					return B_ERROR;
 				
-				//response.PrintToStream();
-				
 				WasCommandOkay(command);
 				out_headers->AddInt32("SIZE",atoi(response[2][3]()));
 
-				for (int32 i = 0; i < response[2][3].CountItems(); i++) {
-					if (strcmp(response[2][3][i](),"\\Seen") == 0) {
+				for (int32 i = 0; i < response[2][5].CountItems(); i++) {
+					if (strcmp(response[2][5][i](),"\\Seen") == 0)
 						out_headers->AddString("STATUS","Read");
-					}
 				}
+				
+				(*out_file)->Write(response[2][7](),strlen(response[2][7]()));
+				
 				*out_file = new IMAP4PartialReader(this,*out_file,id.String());
 				return B_OK;
 			}
