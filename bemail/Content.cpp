@@ -1339,7 +1339,8 @@ void TTextView::LoadMessage(BFile *file, bool quote_it, bool close, const char *
 	fFile = file;
 
 	ClearList();
-	MakeSelectable(false);
+	MakeSelectable(true);
+	MakeEditable(false);
 	if (text)
 		Insert(text, strlen(text));
 
