@@ -52,6 +52,8 @@ All rights reserved.
 #include <View.h>
 #include <Volume.h>
 
+#include <MailComponent.h>
+
 #define ENCLOSURES_HEIGHT	 65
 
 #define ENCLOSE_TEXT		"Enclosures:"
@@ -75,6 +77,7 @@ class TEnclosuresView : public BView
 		virtual	void Draw(BRect);
 		virtual void MessageReceived(BMessage*);
 		void Focus(bool);
+		void AddEnclosuresFromMail(Mail::Message *mail);
 
 		TListView *fList;
 
@@ -108,14 +111,17 @@ class TListItem : public BListItem
 {
 	public:
 		TListItem(entry_ref *);
+		TListItem(Mail::Component *);
 
-		virtual void DrawItem(BView*, BRect, bool);
-		virtual	void Update(BView*, const BFont*);
+		virtual void DrawItem(BView *, BRect, bool);
+		virtual	void Update(BView *, const BFont *);
 
+		Mail::Component *Component() { return fComponent; };
 		entry_ref	*Ref() { return &fRef; }
 		node_ref	*NodeRef() { return &fNodeRef; }
 
 	private:
+		Mail::Component	*fComponent;
 		entry_ref	fRef;
 		node_ref	fNodeRef;
 };

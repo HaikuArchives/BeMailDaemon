@@ -101,20 +101,20 @@ class THeaderView : public BBox
 		void			BuildMenus();
 		void			SetAddress(BMessage*);
 		status_t		LoadMessage(Mail::Message *);
-	
+
 		BPopUpMenu		*fAccountMenu;
-		uint32			fChain;
+		int32			fChain;
 		TTextControl	*fAccountTo;
 		TTextControl	*fAccount;
 		TTextControl	*fBcc;
 		TTextControl	*fCc;
 		TTextControl	*fSubject;
 		TTextControl	*fTo;
-	
+
 	private:		
 		void InitEmailCompletion();
 		void InitGroupCompletion();
-		
+
 		bool fIncoming;
 		bool fResending;
 		QPopupMenu *fBccMenu;

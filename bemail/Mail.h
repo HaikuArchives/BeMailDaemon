@@ -99,6 +99,7 @@ enum MENUS
 	M_REPLY_TO_SENDER,
 	M_REPLY_ALL,
 	M_FORWARD,
+	M_FORWARD_WITH_ATTACHMENTS,
 	M_RESEND,
 	M_COPY_TO_NEW,
 	M_HEADER,
@@ -235,7 +236,7 @@ class TMailWindow : public BWindow
 		void SetTo(const char *mailTo, const char *subject, const char *ccTo = NULL,
 			const char *bccTo = NULL, const BString *body = NULL, BMessage *enclosures = NULL);
 		void AddSignature(BMailMessage *);
-		void Forward(entry_ref *);
+		void Forward(entry_ref *, TMailWindow *, bool includeAttachments);
 		void Print();
 		void PrintSetup();
 		void Reply(entry_ref *, TMailWindow *, uint32);

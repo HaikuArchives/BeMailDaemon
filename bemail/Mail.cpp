@@ -377,7 +377,7 @@ void TMailApp::ArgvReceived(int32 argc, char **argv)
 }
 
 
-void TMailApp::MessageReceived(BMessage* msg)
+void TMailApp::MessageReceived(BMessage *msg)
 {
 	TMailWindow	*window = NULL;
 	entry_ref	ref;
@@ -407,12 +407,23 @@ void TMailApp::MessageReceived(BMessage* msg)
 					break;
 				}
 				case M_FORWARD:
+				case M_FORWARD_WITH_ATTACHMENTS:
+				{
+					TMailWindow	*sourceWindow;
+					if (msg->FindPointer("window", (void **)&sourceWindow) < B_OK
+						|| !sourceWindow->Lock())
+						break;
+
 					msg->FindRef("ref", &ref);
 					window = NewWindow();
-					window->Lock();
-					window->Forward(&ref);
-					window->Unlock();
+					if (window->Lock())
+					{
+						window->Forward(&ref, sourceWindow, type == M_FORWARD_WITH_ATTACHMENTS);
+						window->Unlock();
+					}
+					sourceWindow->Unlock();
 					break;
+				}
 
 				case M_REPLY:
 				case M_REPLY_TO_SENDER:
@@ -1297,14 +1308,15 @@ skip:			if (!done)
 }
 
 
-void TMailWindow::BuildButtonBar()
+void
+TMailWindow::BuildButtonBar()
 {
 	ButtonBar *bbar;
-	
+
 	bbar = new ButtonBar(BRect(0, 0, 100, 100), "ButtonBar", 2, 3, 0, 1, 10, 2);
 	bbar->AddButton("New", 28, new BMessage(M_NEW));
 	bbar->AddDivider(5);
-	
+
 	if (fResending)
 	{
 		fSendButton = bbar->AddButton("Send", 8, new BMessage(M_SEND_NOW));
@@ -1316,8 +1328,8 @@ void TMailWindow::BuildButtonBar()
 		fSendButton->SetEnabled(false);
 		fSaveButton = bbar->AddButton("Save", 44, new BMessage(M_SAVE_AS_DRAFT));
 		fSaveButton->SetEnabled(false);
-		(fSigButton = bbar->AddButton("Signature", 4,
-			new BMessage(M_SIG_MENU)))->InvokeOnButton(B_SECONDARY_MOUSE_BUTTON);
+		fSigButton = bbar->AddButton("Signature", 4, new BMessage(M_SIG_MENU));
+		fSigButton->InvokeOnButton(B_SECONDARY_MOUSE_BUTTON);
 		bbar->AddDivider(5);
 		fPrintButton = bbar->AddButton("Print", 16, new BMessage(M_PRINT));
 		fPrintButton->SetEnabled(false);
@@ -1325,8 +1337,10 @@ void TMailWindow::BuildButtonBar()
 	}
 	else
 	{
-		(bbar->AddButton("Reply", 12, new BMessage(M_REPLY)))->InvokeOnButton(B_SECONDARY_MOUSE_BUTTON);
-		bbar->AddButton("Forward", 40, new BMessage(M_FORWARD));
+		BmapButton *button = bbar->AddButton("Reply", 12, new BMessage(M_REPLY));
+		button->InvokeOnButton(B_SECONDARY_MOUSE_BUTTON);
+		button = bbar->AddButton("Forward", 40, new BMessage(M_FORWARD));
+		button->InvokeOnButton(B_SECONDARY_MOUSE_BUTTON);
 		fPrintButton = bbar->AddButton("Print", 16, new BMessage(M_PRINT));
 		bbar->AddButton("Trash", 0, new BMessage(M_DELETE_NEXT));
 		bbar->AddDivider(5);
@@ -1686,7 +1700,28 @@ void TMailWindow::MessageReceived(BMessage *msg)
 				BPopUpMenu menu("Reply To", false, false);
 				menu.AddItem(new BMenuItem("Reply to Sender",new BMessage(M_REPLY_TO_SENDER)));
 				menu.AddItem(new BMenuItem("Reply to All",new BMessage(M_REPLY_ALL)));
-				
+
+				BPoint where;
+				msg->FindPoint("where", &where);
+
+				BMenuItem *item;
+				if ((item = menu.Go(where, false, false)) != NULL)
+				{
+					item->SetTarget(this);
+					PostMessage(item->Message());
+				}
+				break;
+			}
+		}
+		case M_FORWARD:
+		{
+			uint32 buttons;
+			if (msg->FindInt32("buttons", (int32 *)&buttons) == B_OK
+				&& buttons == B_SECONDARY_MOUSE_BUTTON)
+			{
+				BPopUpMenu menu("Forward", false, false);
+				menu.AddItem(new BMenuItem("Forward with Attachments",new BMessage(M_FORWARD_WITH_ATTACHMENTS)));
+
 				BPoint where;
 				msg->FindPoint("where", &where);
 
@@ -1702,7 +1737,7 @@ void TMailWindow::MessageReceived(BMessage *msg)
 		// Fall Through
 		case M_REPLY_ALL:
 		case M_REPLY_TO_SENDER:
-		case M_FORWARD:
+		case M_FORWARD_WITH_ATTACHMENTS:
 		case M_RESEND:
 		case M_COPY_TO_NEW:
 		{
@@ -2154,8 +2189,12 @@ void TMailWindow::AddEnclosure(BMessage *msg)
 		fContentView->MoveBy(0, ENCLOSURES_HEIGHT);
 	}
 
-	if (fEnclosuresView && msg->HasRef("refs"))
+	if (fEnclosuresView == NULL)
+		return;
+
+	if (msg && msg->HasRef("refs"))
 	{
+		// Add enclosure to view
 		PostMessage(msg, fEnclosuresView);
 		
 		fChanged = true;
@@ -2269,6 +2308,8 @@ void TMailWindow::Show()
 	}
 	BWindow::Show();
 }
+
+
 void TMailWindow::Zoom(BPoint /*pos*/, float /*x*/, float /*y*/)
 {
 	float		height;
@@ -2342,26 +2383,33 @@ void TMailWindow::WindowActivated(bool status)
 }
 
 
-void TMailWindow::Forward(entry_ref *ref)
+void TMailWindow::Forward(entry_ref *ref, TMailWindow *window, bool includeAttachments)
 {
 	// ToDo: this is broken, fix me!
-	return;
+	//return;
+
+	Zoidberg::Mail::Message *mail = window->Mail();
+	if (mail == NULL)
+		return;
+
+	fMail = mail->ForwardMessage(gUseAccountFrom == ACCOUNT_FROM_MAIL, includeAttachments);
 
 	BFile file(ref, O_RDONLY);
 	if (file.InitCheck() < B_NO_ERROR)
 		return;
 
-	BString subject;
-	if (ReadAttrString(&file, B_MAIL_ATTR_SUBJECT, &subject) == B_NO_ERROR)
+	fHeaderView->fSubject->SetText(fMail->Subject());
+
+	if (fMail->CountComponents() > 1)
 	{
-		if (subject.IFindFirst("fwd") == B_ERROR
-			&& subject.IFindFirst("forward") == B_ERROR
-			&& subject.FindFirst("FW") == B_ERROR)
-			subject << " (fwd)";
-		fHeaderView->fSubject->SetText(subject.String());
+		// if there are any enclosures to be added, first add the enclosures
+		// view to the window
+		AddEnclosure(NULL);
+		if (fEnclosuresView)
+			fEnclosuresView->AddEnclosuresFromMail(fMail);
 	}
-	fContentView->fTextView->fHeader = true;
-	//fContentView->fTextView->LoadMessage(fMail, false, "------ Forwarded message: ------\n");
+
+	fContentView->fTextView->LoadMessage(fMail, false, NULL);
 	fChanged = false;
 	fFieldState = 0;
 }
@@ -2491,51 +2539,40 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 	SetOriginatingWindow(window);
 
 	Zoidberg::Mail::Message *mail = window->Mail();
+	if (mail == NULL)
+		return;
+
+	if (type == M_REPLY_ALL)
+		type = Mail::MD_REPLY_TO_ALL;
+	else if (type == M_REPLY_TO_SENDER)
+		type = Mail::MD_REPLY_TO_SENDER;
+	else
+		type = Mail::MD_REPLY_TO;
+
+	fMail = mail->ReplyMessage((Mail::reply_to_mode)type, gUseAccountFrom == ACCOUNT_FROM_MAIL, QUOTE);
 
 	BFile file(ref, O_RDONLY);
 	if (file.InitCheck() != B_OK)
 		return;
 
-	// set reply-to address and subject
-	const char *to = NULL;
-	if (type == M_REPLY_TO_SENDER || (to = mail->ReplyTo()) == NULL)
-		to = mail->From();
-	fHeaderView->fTo->SetText(to);
-
-	BString string = mail->Subject();
-	if (string.ICompare("re:", 3) != 0)
-		string.Prepend("Re: ");
-	fHeaderView->fSubject->SetText(string.String());
+	// set header fields
+	fHeaderView->fTo->SetText(fMail->To());
+	fHeaderView->fCc->SetText(fMail->CC());
+	fHeaderView->fSubject->SetText(fMail->Subject());
 
 	// set mail account
 	if (gUseAccountFrom == ACCOUNT_FROM_MAIL)
 	{
-		char *account = string.LockBuffer(256);
-		status_t status = mail->GetAccountName(account,256);
-		string.UnlockBuffer();
-		if (status == B_OK)
+		fHeaderView->fChain = fMail->Account();
+
+		BMenu *menu = fHeaderView->fAccountMenu;
+		for (int32 i = menu->CountItems();i-- > 0;)
 		{
-			BList chains;
-			Mail::OutboundChains(&chains);
-			for (int32 i = 0;i < chains.CountItems();i++)
-			{
-				Zoidberg::Mail::Chain *chain = (Zoidberg::Mail::Chain *)chains.ItemAt(i);
-				if (!string.Compare(chain->Name()))
-					fHeaderView->fChain = chain->ID();
-	
-				delete chain;
-			}
-	
-			BMenu *menu = fHeaderView->fAccountMenu;
-			for (int32 i = menu->CountItems();i-- > 0;)
-			{
-				BMenuItem *item = menu->ItemAt(i);
-				BMessage *msg;
-				if (item
-					&& (msg = item->Message()) != NULL
-					&& msg->FindInt32("id") == *(int32 *)&fHeaderView->fChain)
-					item->SetMarked(true);
-			}
+			BMenuItem *item = menu->ItemAt(i);
+			BMessage *msg;
+			if (item && (msg = item->Message()) != NULL
+				&& msg->FindInt32("id") == fHeaderView->fChain)
+				item->SetMarked(true);
 		}
 	}
 
@@ -2564,7 +2601,7 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 	else
 		fContentView->fTextView->LoadMessage(mail, true, NULL);
 
-	if (type == M_REPLY_ALL)
+/*	if (type == M_REPLY_ALL)
 	{
 		char *cc = (char *)calloc(1,1);
 		get_recipients(&cc, mail, false);
@@ -2600,9 +2637,7 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 		}
 		free(cc);
 	}
-//	if (to)
-//		free(to);
-
+*/
 	fReplying = true;
 }
 
@@ -2631,33 +2666,36 @@ status_t TMailWindow::Send(bool now)
 		{
 			Zoidberg::Mail::Message mail(&file);
 			mail.SetTo(fHeaderView->fTo->Text());
-	
-			if (fHeaderView->fChain != ~0UL)
+
+			if (fHeaderView->fChain != ~0L)
 				mail.SendViaAccount(fHeaderView->fChain);
-			
+
 			result = mail.Send(now);
 		}
 	}
 	else
 	{
-		Zoidberg::Mail::Message mail;
-				
+		if (fMail == NULL)
+			// the mail will be deleted when the window is closed
+			fMail = new Zoidberg::Mail::Message;
+
 		if (strlen(fHeaderView->fTo->Text()) != 0)
-			mail.SetTo(fHeaderView->fTo->Text());
+			fMail->SetTo(fHeaderView->fTo->Text());
 
 		if (strlen(fHeaderView->fSubject->Text()) != 0)
-			mail.SetSubject(fHeaderView->fSubject->Text());
+			fMail->SetSubject(fHeaderView->fSubject->Text());
 
 		if (strlen(fHeaderView->fCc->Text()) != 0)
-			mail.SetCC(fHeaderView->fCc->Text());
+			fMail->SetCC(fHeaderView->fCc->Text());
 
 		if (strlen(fHeaderView->fBcc->Text()) != 0)
-			mail.SetBCC(fHeaderView->fBcc->Text());
+			fMail->SetBCC(fHeaderView->fBcc->Text());
 
 		/****/
 
 		// the content text is always added to make sure there is a mail body
-		fContentView->fTextView->AddAsContent(&mail, wrap_mode);
+		fMail->SetBodyTextTo("");
+		fContentView->fTextView->AddAsContent(fMail, wrap_mode);
 
 		if (fEnclosuresView != NULL)
 		{
@@ -2665,21 +2703,26 @@ status_t TMailWindow::Send(bool now)
 			int32 index = 0;
 			while ((item = (TListItem *)fEnclosuresView->fList->ItemAt(index++)) != NULL)
 			{
+				if (item->Component())
+					continue;
+
 				// leave out missing enclosures
 				BEntry entry(item->Ref());
 				if (!entry.Exists())
 					continue;
 
-				mail.Attach(item->Ref());
+				fMail->Attach(item->Ref());
 			}
 		}
-		if (fHeaderView->fChain != ~0UL)
-			mail.SendViaAccount(fHeaderView->fChain);
+		if (fHeaderView->fChain != ~0L)
+			fMail->SendViaAccount(fHeaderView->fChain);
 
-		result = mail.Send(now);
-		
+		result = fMail->Send(now);
+
 		if (fReplying)
 		{
+			// Set status of the replied mail
+
 			BNode node(&fRepliedMail);
 			if (node.InitCheck() >= B_OK)
 			{
@@ -2688,7 +2731,7 @@ status_t TMailWindow::Send(bool now)
 					BMessage msg(M_SAVE_POSITION), reply;
 					fOriginatingWindow->SendMessage(&msg, &reply);
 				}
-				WriteAttrString(&node, B_MAIL_ATTR_STATUS,"Replied");
+				WriteAttrString(&node, B_MAIL_ATTR_STATUS, "Replied");
 			}
 		}
 	}
@@ -2965,7 +3008,7 @@ status_t TMailWindow::OpenMessage(entry_ref *ref)
 		BMenuItem *item;
 		while ((item = fSaveAddrMenu->RemoveItem(0L)) != NULL)
 			delete item;
-	
+
 		char *recipients = (char *)calloc(1,1);
 		get_recipients(&recipients, fMail, true);
 
@@ -2994,8 +3037,8 @@ status_t TMailWindow::OpenMessage(entry_ref *ref)
 				msg = new BMessage(M_SAVE);
 				msg->AddString("address", list);
 				fSaveAddrMenu->AddItem(new BMenuItem(list, msg), index1);
-	
-	skip:		if (!done)
+
+skip:			if (!done)
 				{
 					list += index + 1;
 					index = 0;
@@ -3014,7 +3057,7 @@ status_t TMailWindow::OpenMessage(entry_ref *ref)
 				index++;
 		}
 		free(recipients);
-	
+
 		//
 		// Clear out existing contents of text view. 
 		//
@@ -3066,9 +3109,9 @@ status_t TMailWindow::OpenMessage(entry_ref *ref)
 TMailWindow *TMailWindow::FrontmostWindow()
 {
 	if (sWindowList.CountItems() > 0)
-		return (TMailWindow*)sWindowList.ItemAt(0);
-	else
-		return NULL;
+		return (TMailWindow *)sWindowList.ItemAt(0);
+
+	return NULL;
 }
 
 
@@ -3097,53 +3140,56 @@ TMenu::~TMenu()
 }
 
 
-void TMenu::AttachedToWindow()
+void
+TMenu::AttachedToWindow()
 {
 	BuildMenu();
 	BPopUpMenu::AttachedToWindow();
 }
 
 
-BPoint TMenu::ScreenLocation(void)
+BPoint
+TMenu::ScreenLocation(void)
 {
 	if (fPopup)
 		return BPopUpMenu::ScreenLocation();
-	else
-		return BMenu::ScreenLocation();
+
+	return BMenu::ScreenLocation();
 }
 
 
-void TMenu::BuildMenu()
+void
+TMenu::BuildMenu()
 {
-	char			name[B_FILE_NAME_LENGTH];
-	int32			index = 0;
-	BEntry			entry;
-	BFile			file;
-	BMenuItem		*item;
-	BMessage		*msg;
-	BQuery			query;
-	BVolume			vol;
-	BVolumeRoster	volume;
-	entry_ref		ref;
-
+	BMenuItem *item;
 	while ((item = RemoveItem((int32)0)) != NULL)
 		delete item;
 
-	volume.GetBootVolume(&vol);
-	query.SetVolume(&vol);
+	BVolume	volume;
+	BVolumeRoster().GetBootVolume(&volume);
+
+	BQuery query;
+	query.SetVolume(&volume);
 	query.SetPredicate(fPredicate);
 	query.Fetch();
 	
+	int32 index = 0;
+	BEntry entry;
 	while (query.GetNextEntry(&entry) == B_NO_ERROR)
 	{
-		file.SetTo(&entry, O_RDONLY);
+		BFile file(&entry, O_RDONLY);
 		if (file.InitCheck() == B_NO_ERROR)
 		{
-			msg = new BMessage(fMessage);
+			BMessage *msg = new BMessage(fMessage);
+
+			entry_ref ref;
 			entry.GetRef(&ref);
 			msg->AddRef("ref", &ref);
+
+			char name[B_FILE_NAME_LENGTH];
 			file.ReadAttr(fAttribute, B_STRING_TYPE, 0, name, sizeof(name));
-			if ((index < 9)&&(!fPopup))
+
+			if (index < 9 && !fPopup)
 				AddItem(new BMenuItem(name, msg, '1' + index));
 			else
 				AddItem(new BMenuItem(name, msg));
@@ -3154,7 +3200,7 @@ void TMenu::BuildMenu()
 	{
 		AddItem(new BSeparatorItem(), 0);
 		//AddSeparatorItem();
-		msg = new BMessage(M_RANDOM_SIG);
+		BMessage *msg = new BMessage(M_RANDOM_SIG);
 		if (!fPopup)
 			AddItem(new BMenuItem("Random", msg, '0'), 0);
 		else

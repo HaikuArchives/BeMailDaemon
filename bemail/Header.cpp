@@ -1103,15 +1103,15 @@ QPopupMenu::EntryCreated(const entry_ref &ref, ino_t node)
 		ReadAttrString(&file,"META:email",&email);
 
 		if (email.Length() != 0 || name.Length() != 0)
-			AddPersonItem(&ref,node,name,email,NULL,groupMenu,superItem);
+			AddPersonItem(&ref, node, name, email, NULL, groupMenu, superItem);
 
 		// support for 3rd-party People apps
 		for (int16 i = 2;i < 6;i++)
 		{
 			char attr[16];
 			sprintf(attr,"META:email%d",i);
-			if (ReadAttrString(&file,attr,&email) >= B_OK && email.Length() > 0)
-				AddPersonItem(&ref,node,name,email,attr,groupMenu,superItem);
+			if (ReadAttrString(&file, attr, &email) >= B_OK && email.Length() > 0)
+				AddPersonItem(&ref, node, name, email, attr, groupMenu, superItem);
 		}
 	} while (groups.Length() > 0);
 }

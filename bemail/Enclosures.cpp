@@ -49,6 +49,9 @@ All rights reserved.
 #include <Alert.h>
 #include <NodeMonitor.h>
 
+#include <MailAttachment.h>
+#include <MailMessage.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -92,13 +95,15 @@ TEnclosuresView::~TEnclosuresView()
 		TListItem *item = static_cast<TListItem *>(fList->ItemAt(index));
 		fList->RemoveItem(index);
 
-		watch_node(item->NodeRef(), B_STOP_WATCHING, this);
+		if (item->Component() == NULL)
+			watch_node(item->NodeRef(), B_STOP_WATCHING, this);
 		delete item;
 	}
 }
 
 
-void TEnclosuresView::Draw(BRect where)
+void
+TEnclosuresView::Draw(BRect where)
 {
 	float	offset;
 	BFont	font = *be_plain_font;
@@ -119,7 +124,8 @@ void TEnclosuresView::Draw(BRect where)
 }
 
 
-void TEnclosuresView::MessageReceived(BMessage *msg)
+void
+TEnclosuresView::MessageReceived(BMessage *msg)
 {
 	switch (msg->what)
 	{
@@ -153,7 +159,17 @@ void TEnclosuresView::MessageReceived(BMessage *msg)
 				TListItem *item = (TListItem *) fList->ItemAt(index);
 				fList->RemoveItem(index);
 
-				watch_node(item->NodeRef(), B_STOP_WATCHING, this);
+				if (item->Component())
+				{
+					// remove the component from the mail
+					TMailWindow *window = dynamic_cast<TMailWindow *>(Window());
+					if (window && window->Mail())
+						window->Mail()->RemoveComponent(item->Component());
+
+					(new BAlert("", "Removing enclosures from a forwarded mail is not yet implemented!\nIt will not yet work correctly.", "Ok"))->Go();
+				}
+				else
+					watch_node(item->NodeRef(), B_STOP_WATCHING, this);
 				delete item;
 			}
 			break;
@@ -200,7 +216,7 @@ void TEnclosuresView::MessageReceived(BMessage *msg)
 				if (badType)
 				{
 					beep();
-					(new BAlert("", "Only files can be added as enclosures.", "OK"))->Go();
+					(new BAlert("", "Only files can be added as enclosures.", "Ok"))->Go();
 				}
 			}
 			break;
@@ -257,7 +273,8 @@ void TEnclosuresView::MessageReceived(BMessage *msg)
 }
 
 
-void TEnclosuresView::Focus(bool focus)
+void
+TEnclosuresView::Focus(bool focus)
 {
 	if (fFocus != focus)
 	{
@@ -267,18 +284,37 @@ void TEnclosuresView::Focus(bool focus)
 }
 
 
+void 
+TEnclosuresView::AddEnclosuresFromMail(Mail::Message *mail)
+{
+	for (int32 i = 0; i < mail->CountComponents(); i++)
+	{
+		Mail::Component *component = mail->GetComponent(i);
+		if (component == mail->Body())
+			continue;
+
+		Mail::Attachment *attachment = dynamic_cast<Mail::Attachment *>(component);
+		if (attachment == NULL)
+			continue;
+
+		fList->AddItem(new TListItem(component));
+	}
+}
+
+
 //====================================================================
 //	#pragma mark -
 
 
 TListView::TListView(BRect rect, TEnclosuresView *view)
-	:	BListView(rect, "", B_MULTIPLE_SELECTION_LIST, B_FOLLOW_TOP | B_FOLLOW_LEFT_RIGHT )
+	:	BListView(rect, "", B_MULTIPLE_SELECTION_LIST, B_FOLLOW_TOP | B_FOLLOW_LEFT_RIGHT),
+	fParent(view)
 {
-	fParent = view;
 }
 
 
-void TListView::AttachedToWindow()
+void
+TListView::AttachedToWindow()
 {
 	BListView::AttachedToWindow();
 
@@ -288,14 +324,16 @@ void TListView::AttachedToWindow()
 }
 
 
-void TListView::MakeFocus(bool focus)
+void
+TListView::MakeFocus(bool focus)
 {
 	BListView::MakeFocus(focus);
 	fParent->Focus(focus);
 }
 
 
-void TListView::MouseDown(BPoint point)
+void
+TListView::MouseDown(BPoint point)
 {
 	int32 buttons;	
 	Looper()->CurrentMessage()->FindInt32("buttons",&buttons);
@@ -334,7 +372,8 @@ void TListView::MouseDown(BPoint point)
 }
 
 
-void TListView::KeyDown(const char *bytes, int32 numBytes)
+void
+TListView::KeyDown(const char *bytes, int32 numBytes)
 {
 	BListView::KeyDown(bytes,numBytes);
 
@@ -349,6 +388,7 @@ void TListView::KeyDown(const char *bytes, int32 numBytes)
 
 TListItem::TListItem(entry_ref *ref)
 {
+	fComponent = NULL;
 	fRef = *ref;
 
 	BEntry entry(ref);	
@@ -356,7 +396,15 @@ TListItem::TListItem(entry_ref *ref)
 }
 
 
-void TListItem::Update(BView *owner, const BFont *font)
+TListItem::TListItem(Mail::Component *component)
+	:
+	fComponent(component)
+{
+}
+
+
+void
+TListItem::Update(BView *owner, const BFont *font)
 {
 	BListItem::Update(owner, font);
 
@@ -365,7 +413,8 @@ void TListItem::Update(BView *owner, const BFont *font)
 }
 
 
-void TListItem::DrawItem(BView *owner, BRect r, bool /* complete */)
+void
+TListItem::DrawItem(BView *owner, BRect r, bool /* complete */)
 {
 	if (IsSelected())
 	{
@@ -384,6 +433,29 @@ void TListItem::DrawItem(BView *owner, BRect r, bool /* complete */)
 	font.SetSize(FONT_SIZE);
 	owner->SetFont(&font);
 	owner->MovePenTo(r.left + 24, r.bottom - 4);
+
+	if (fComponent)
+	{
+		// if it's already a mail component, we don't have an icon to
+		// draw, and the entry_ref is invalid
+		Mail::Attachment *attachment = static_cast<Mail::Attachment *>(fComponent);
+
+		char name[B_FILE_NAME_LENGTH * 2];
+		if (attachment->FileName(name) < B_OK)
+			strcpy(name, "unnamed");
+
+		BMimeType type;
+		if (attachment->MIMEType(&type) == B_OK)
+			sprintf(name + strlen(name), ", Type: %s", type.Type());
+
+		owner->DrawString(name);
+
+		// ToDo: find some nicer image for this :-)
+		owner->SetHighColor(150, 150, 150);
+		owner->FillEllipse(BRect(r.left + 8, r.top + 4, r.left + 16, r.top + 13));
+
+		return;
+	}
 
 	BFile file(&fRef, O_RDONLY);
 	BEntry entry(&fRef);
