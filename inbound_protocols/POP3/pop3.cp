@@ -111,8 +111,11 @@ status_t POP3Protocol::Open(const char *server, int port, int)
 	}
 	
 	BString line;
-	if( ReceiveLine(line) <= 0) {
-		error_msg << ": " << strerror(errno);
+	status_t err;
+	while( (err = ReceiveLine(line)) == 0) {}
+	
+	if (err < 0) {
+		error_msg << ": " << strerror(err);
 		pop3_error(error_msg.String());
 
 		return B_ERROR;
@@ -475,7 +478,7 @@ int32 POP3Protocol::ReceiveLine(BString &line) {
 	int result = select(32, &fds, NULL, NULL, &tv);
 	
 	if (result < 0)
-		return result;
+		return B_TIMEOUT;
 	
 	if (result > 0) {
 		while (true) { // Hope there's an end of line out there else this gets stuck.
