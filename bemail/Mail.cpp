@@ -124,6 +124,7 @@ Words 		*gWords[MAX_DICTIONARIES], *gExactWords[MAX_DICTIONARIES];
 int32 		gUserDict;
 BFile 		*gUserDictFile;
 int32 		gDictCount = 0;
+bool		gStartWithSpellCheckOn = false;
 uint32		gDefaultChain;
 int32		gUseAccountFrom;
 
@@ -417,7 +418,8 @@ void TMailApp::MessageReceived(BMessage *msg)
 						&fFont, &level, &wrap_mode, &attachAttributes_mode,
 						&gColoredQuotes, &gDefaultChain, &gUseAccountFrom,
 						&gReplyPreamble, &signature, &gMailCharacterSet,
-						&gWarnAboutUnencodableCharacters, &show_buttonbar);
+						&gWarnAboutUnencodableCharacters,
+						&gStartWithSpellCheckOn, &show_buttonbar);
 				fPrefsWindow->Show();
 				fPrevBBPref = show_buttonbar;
 			}
@@ -520,14 +522,6 @@ bool TMailApp::QuitRequested()
 void
 TMailApp::ReadyToRun()
 {
-	TMailWindow	*window;
-
-	if (!gHelpOnly && !fWindowCount)
-	{
-		window = NewWindow();
-		window->Show();
-	}
-
 	// Create needed indices for META:group, META:email, MAIL:draft,
 	// INDEX_SIGNATURE, INDEX_STATUS on the boot volume
 
@@ -619,6 +613,15 @@ TMailApp::ReadyToRun()
 			gExactWords[gDictCount] = new Words(dataPath.Path(), indexPath.Path(), false);
 			gDictCount++;
 		}
+	}
+
+	// Create a new window if starting up without any extra arguments.
+
+	if (!gHelpOnly && !fWindowCount)
+	{
+		TMailWindow	*window;
+		window = NewWindow();
+		window->Show();
 	}
 }
 
@@ -1102,6 +1105,13 @@ void TMailApp::LoadSavePrefs (bool loadThem)
 	} else if (errorCode == B_OK)
 		errorCode = settingsMsg.AddBool(fieldName, gWarnAboutUnencodableCharacters);
 
+	fieldName = "StartWithSpellCheck";
+	if (loadThem) {
+		if (settingsMsg.FindBool(fieldName, &tempBool) == B_OK)
+			gStartWithSpellCheckOn = tempBool;
+	} else if (errorCode == B_OK)
+		errorCode = settingsMsg.AddBool(fieldName, gStartWithSpellCheckOn);
+
 	// Save the settings BMessage to the settings file.
 
 	if (!loadThem && errorCode == B_OK) {
@@ -1374,6 +1384,8 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 			MDR_DIALECT_CHOICE ("Check Spelling","H) スペルチェック"),
 			new BMessage( M_CHECK_SPELLING ), ';' );
 		menu->AddItem(fSpelling);
+		if (gStartWithSpellCheckOn)
+			PostMessage (M_CHECK_SPELLING);
 	}
 	menu->AddSeparatorItem();
 	menu->AddItem(item = new BMenuItem(

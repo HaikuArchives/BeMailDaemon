@@ -74,6 +74,7 @@ using namespace Zoidberg;
 #define SIGNATURE_TEXT		MDR_DIALECT_CHOICE ("Auto Signature:", "自動署名:")
 #define ENCODING_TEXT		MDR_DIALECT_CHOICE ("Encoding:", "エンコード形式:")
 #define WARN_UNENCODABLE_TEXT	MDR_DIALECT_CHOICE ("Warn Unencodable:", "Warn Unencodable:")
+#define SPELL_CHECK_START_ON_TEXT	MDR_DIALECT_CHOICE ("Initial Spell Check Mode:", "Initial Spell Check Mode:")
 
 #define BUTTONBAR_TEXT		MDR_DIALECT_CHOICE ("Button Bar:", "ボタンバー:")
 
@@ -88,7 +89,8 @@ using namespace Zoidberg;
 
 enum	P_MESSAGES			{P_OK = 128, P_CANCEL, P_REVERT, P_FONT,
 							 P_SIZE, P_LEVEL, P_WRAP, P_ATTACH_ATTRIBUTES,
-							 P_SIG, P_ENC, P_WARN_UNENCODABLE, P_BUTTON_BAR,
+							 P_SIG, P_ENC, P_WARN_UNENCODABLE,
+							 P_SPELL_CHECK_START_ON, P_BUTTON_BAR,
 							 P_ACCOUNT, P_REPLYTO, P_REPLY_PREAMBLE,
 							 P_COLORED_QUOTES};
 
@@ -143,7 +145,7 @@ const EncodingItem kEncodings[] =
 TPrefsWindow::TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *wrap,
 	bool *attachAttributes, bool *cquotes, uint32 *account, int32 *replyTo,
 	char **preamble, char **sig, uint32 *encoding, bool *warnUnencodable,
-	bool *buttonBar)
+	bool *spellCheckStartOn, bool *buttonBar)
 	:	BWindow(rect, MDR_DIALECT_CHOICE ("BeMail Preferences","BeMailの設定"), B_TITLED_WINDOW, B_NOT_RESIZABLE | B_NOT_ZOOMABLE)
 {
 	BMenuField *menu;
@@ -157,6 +159,7 @@ TPrefsWindow::TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *wrap,
 	fNewReplyTo = replyTo;		fReplyTo = *fNewReplyTo;
 	fNewEncoding = encoding;	fEncoding = *fNewEncoding;
 	fNewWarnUnencodable = warnUnencodable;	fWarnUnencodable = *fNewWarnUnencodable;
+	fNewSpellCheckStartOn = spellCheckStartOn;	fSpellCheckStartOn = *fNewSpellCheckStartOn;
 	fNewButtonBar = buttonBar;	fButtonBar = *fNewButtonBar;
 
 	fNewPreamble = preamble;
@@ -174,11 +177,11 @@ TPrefsWindow::TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *wrap,
 	font_height fontHeight;
 	view->GetFontHeight(&fontHeight);
 	int32 height = (int32)(fontHeight.ascent + fontHeight.descent + fontHeight.leading) + 6;
-	int32 labelWidth = (int32)view->StringWidth(WARN_UNENCODABLE_TEXT) + SEPARATOR_MARGIN;
+	int32 labelWidth = (int32)view->StringWidth(SPELL_CHECK_START_ON_TEXT) + SEPARATOR_MARGIN;
 
 	// group boxes
 
-	r.Set(8,4,Bounds().right - 8,4 + 6 * (height + ITEM_SPACE));
+	r.Set(8,4,Bounds().right - 8,4 + 7 * (height + ITEM_SPACE));
 	BBox *interfaceBox = new BBox(r,NULL,B_FOLLOW_LEFT_RIGHT | B_FOLLOW_TOP);
 	interfaceBox->SetLabel(MDR_DIALECT_CHOICE ("User Interface","ユーザーインターフェース"));
 	view->AddChild(interfaceBox);
@@ -236,6 +239,15 @@ TPrefsWindow::TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *wrap,
 	fColoredQuotesMenu = BuildColoredQuotesMenu(fColoredQuotes);
 	menu = new BMenuField(r, "cquotes", QUOTES_TEXT, fColoredQuotesMenu,B_FOLLOW_ALL,
 				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
+	menu->SetDivider(labelWidth);
+	menu->SetAlignment(B_ALIGN_RIGHT);
+	interfaceBox->AddChild(menu);
+
+	r.OffsetBy(0,height + ITEM_SPACE);
+	fSpellCheckStartOnMenu = BuildSpellCheckStartOnMenu(fSpellCheckStartOn);
+	menu = new BMenuField(r, "spellCheckStartOn", SPELL_CHECK_START_ON_TEXT,
+		fSpellCheckStartOnMenu, B_FOLLOW_ALL,
+		B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
 	menu->SetDivider(labelWidth);
 	menu->SetAlignment(B_ALIGN_RIGHT);
 	interfaceBox->AddChild(menu);
@@ -414,6 +426,7 @@ TPrefsWindow::MessageReceived(BMessage *msg)
 
 			*fNewEncoding = fEncoding;
 			*fNewWarnUnencodable = fWarnUnencodable;
+			*fNewSpellCheckStartOn = fSpellCheckStartOn;
 			*fNewButtonBar = fButtonBar;
 
 			be_app->PostMessage(PREFS_CHANGED);
@@ -473,6 +486,10 @@ TPrefsWindow::MessageReceived(BMessage *msg)
 
 				strcpy(label, fWarnUnencodable ? "On" : "Off");
 				if ((item = fWarnUnencodableMenu->FindItem(label)) != NULL)
+					item->SetMarked(true);
+
+				strcpy(label, fSpellCheckStartOn ? "On" : "Off");
+				if ((item = fSpellCheckStartOnMenu->FindItem(label)) != NULL)
 					item->SetMarked(true);
 			}
 			else
@@ -559,6 +576,9 @@ TPrefsWindow::MessageReceived(BMessage *msg)
 		case P_WARN_UNENCODABLE:
 			msg->FindBool("warnUnencodable", fNewWarnUnencodable);
 			break;
+		case P_SPELL_CHECK_START_ON:
+			msg->FindBool("spellCheckStartOn", fNewSpellCheckStartOn);
+			break;
 		case P_BUTTON_BAR:
 			msg->FindInt8("bar", (int8 *)fNewButtonBar);
 			be_app->PostMessage( PREFS_CHANGED );
@@ -585,6 +605,7 @@ TPrefsWindow::MessageReceived(BMessage *msg)
 		|| strcmp(fSignature, *fNewSignature)
 		|| fEncoding != *fNewEncoding
 		|| fWarnUnencodable != *fNewWarnUnencodable
+		|| fSpellCheckStartOn != *fNewSpellCheckStartOn
 		|| fButtonBar != *fNewButtonBar;
 	fRevert->SetEnabled(changed);
 }
@@ -908,6 +929,13 @@ BPopUpMenu *
 TPrefsWindow::BuildWarnUnencodableMenu(bool warnUnencodable)
 {
 	return BuildBoolMenu(P_WARN_UNENCODABLE,"warnUnencodable",warnUnencodable);
+}
+
+
+BPopUpMenu *
+TPrefsWindow::BuildSpellCheckStartOnMenu(bool spellCheckStartOn)
+{
+	return BuildBoolMenu(P_SPELL_CHECK_START_ON,"spellCheckStartOn",spellCheckStartOn);
 }
 
 

@@ -189,6 +189,7 @@ July 14 2003 - v2.1.0rc3
 - Added a couple of Japanese translations.
 - IMAP bugs fixed, now handles network disconnection better.
 - Changed BeMail to use a flattened BMessage for its settings, rather than the unreliable binary dump.
+- Added an option to start with spell checking on.
 
 July 6 2003 - v2.1.0rc2
 - Fixed some IMAP bugs.  Not all IMAP servers are the same, or even standard.
