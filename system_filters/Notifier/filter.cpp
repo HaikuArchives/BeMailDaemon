@@ -72,7 +72,7 @@ void NotifyCallback::Callback(MDStatus result) {
 		ShowAlert("New Messages", text.String());
 	}
 	
-	if (strategy & big_doozy_alert)
+	if (strategy & blink_leds)
 		be_app->PostMessage('mblk');
 	
 	if (strategy & big_doozy_alert) {
