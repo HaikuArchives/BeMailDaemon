@@ -453,31 +453,34 @@ void MailDaemonApp::Pulse() {
 //	#pragma mark -
 
 
-void makeIndices()
+void
+makeIndices()
 {
-	const char *stringIndices[] = {	B_MAIL_ATTR_ACCOUNT,B_MAIL_ATTR_CC,
-									B_MAIL_ATTR_FLAGS,B_MAIL_ATTR_FROM,B_MAIL_ATTR_NAME,
-									B_MAIL_ATTR_PRIORITY,B_MAIL_ATTR_REPLY,B_MAIL_ATTR_STATUS,
-									B_MAIL_ATTR_SUBJECT,B_MAIL_ATTR_TO,B_MAIL_ATTR_THREAD, NULL};
+	const char *stringIndices[] = {
+		B_MAIL_ATTR_ACCOUNT, B_MAIL_ATTR_CC,
+		B_MAIL_ATTR_FROM, B_MAIL_ATTR_NAME,
+		B_MAIL_ATTR_PRIORITY, B_MAIL_ATTR_REPLY,
+		B_MAIL_ATTR_STATUS, B_MAIL_ATTR_SUBJECT,
+		B_MAIL_ATTR_TO, B_MAIL_ATTR_THREAD,
+		NULL};
 
 	// add mail indices for all devices capable of querying
 
 	int32 cookie = 0;
 	dev_t device;
-	while ((device = next_dev(&cookie)) >= B_OK)
-	{
+	while ((device = next_dev(&cookie)) >= B_OK) {
 		fs_info info;
-		if (fs_stat_dev(device,&info) < 0 || (info.flags & B_FS_HAS_QUERY) == 0)
+		if (fs_stat_dev(device, &info) < 0 || (info.flags & B_FS_HAS_QUERY) == 0)
 			continue;
 
-		int32 i = 0;
-		for (;stringIndices[i];i++)
-			fs_create_index(device,stringIndices[i],B_STRING_TYPE,0);
+		for (int32 i = 0;stringIndices[i]; i++)
+			fs_create_index(device, stringIndices[i], B_STRING_TYPE, 0);
 
-		fs_create_index(device,"MAIL:draft", B_INT32_TYPE, 0);
-		fs_create_index(device,B_MAIL_ATTR_WHEN,B_INT32_TYPE,0);
-		fs_create_index(device,"MAIL:chain",B_INT32_TYPE,0);
-		fs_create_index(device,"MAIL:fullsize",B_SIZE_T_TYPE,0);
+		fs_create_index(device, "MAIL:draft", B_INT32_TYPE, 0);
+		fs_create_index(device, B_MAIL_ATTR_WHEN, B_INT32_TYPE,0);
+		fs_create_index(device, B_MAIL_ATTR_FLAGS, B_INT32_TYPE, 0);
+		fs_create_index(device, "MAIL:chain", B_INT32_TYPE,0);
+		//fs_create_index(device, "MAIL:fullsize", B_INT64_TYPE,0);
 	}
 }
 
