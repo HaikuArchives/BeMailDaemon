@@ -458,23 +458,21 @@ ChainRunner::Stop()
 void
 ChainRunner::GetMessages(StringList *list, int32 bytes)
 {
-	BMessage *msg = new BMessage('GETM');
-	msg->AddFlat("messages",list);
-	msg->AddInt32("bytes",bytes);
-	PostMessage(msg);
-	delete msg;
+	BMessage msg('GETM');
+	msg.AddFlat("messages",list);
+	msg.AddInt32("bytes",bytes);
+	PostMessage(&msg);
 }
 
 
 void
 ChainRunner::GetSingleMessage(const char *uid, int32 length, BPath *into)
 {
-	BMessage *msg = new BMessage('GTSM');
-	msg->AddString("uid",uid);
-	msg->AddInt32("bytes",length);
-	msg->AddString("into",into->Path());
-	PostMessage(msg);
-	delete msg;
+	BMessage msg('GTSM');
+	msg.AddString("uid",uid);
+	msg.AddInt32("bytes",length);
+	msg.AddString("into",into->Path());
+	PostMessage(&msg);
 }
 
 
