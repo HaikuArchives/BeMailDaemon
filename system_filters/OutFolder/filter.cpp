@@ -18,6 +18,7 @@
 #include <ChainRunner.h>
 #include <status.h>
 #include <FileConfigView.h>
+#include <StringList.h>
 
 #include <MDRLanguage.h>
 
@@ -26,11 +27,20 @@ using namespace Zoidberg;
 
 class StatusChanger : public Mail::ChainCallback {
 	public:
-		StatusChanger(entry_ref entry);
-		void Callback(MDStatus result);
+		StatusChanger(const char * entry);
+		void Callback(status_t result);
 		
 	private:
-		entry_ref to_change;
+		const char * to_change;
+};
+
+class SMTPTermination : public Mail::ChainCallback {
+	public:
+		SMTPTermination(Mail::ChainRunner *run) : runner(run) {}
+		void Callback(status_t) { runner->Stop(); }
+		
+	private:
+		Mail::ChainRunner *runner;
 };
 
 class DiskProducer : public Mail::Filter
@@ -38,33 +48,34 @@ class DiskProducer : public Mail::Filter
 	BString src_string;
 	BDirectory source;
 	
-	BList entries_to_send;
+	StringList paths_to_send;
 	Mail::ChainRunner *runner;
 	bool _we_are_default_chain;
+	status_t init;
 	
   public:
-	DiskProducer(BMessage*,Mail::StatusView*);
+	DiskProducer(BMessage*,Mail::ChainRunner*);
 	virtual status_t InitCheck(BString *err);
-	virtual MDStatus ProcessMailMessage
+	virtual status_t ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* io_entry,
-		BMessage* io_headers, BPath* io_folder, BString* io_uid
+		BMessage* io_headers, BPath* io_folder, const char* io_uid
 	);
 };
 
-DiskProducer::DiskProducer(BMessage* msg,Mail::StatusView*status)
-	: Mail::Filter(msg)
+DiskProducer::DiskProducer(BMessage* msg,Mail::ChainRunner*status)
+	: Mail::Filter(msg), runner(status), init(B_OK)
 {
 	entry_ref entry;
 	mail_flags flags;
 	status_t result;
 	int32 chain;
 	BNode node;
-
+	BPath path;
+	
 	size_t total_size = 0;
 	off_t worker;
 	
-	msg->FindPointer("chain_runner",(void **)&runner);
 	_we_are_default_chain = (Mail::Settings().DefaultOutboundChainID() == runner->Chain()->ID());
 	src_string = runner->Chain()->MetaData()->FindString("path");
  	source = src_string.String();
@@ -76,7 +87,8 @@ DiskProducer::DiskProducer(BMessage* msg,Mail::StatusView*status)
 			result = node.ReadAttr("MAIL:chain",B_INT32_TYPE,0,&chain,4);
 			if (((result >= B_OK) && (chain == runner->Chain()->ID())) ||
 				((result < B_OK) && (_we_are_default_chain))) {
-				entries_to_send.AddItem(new entry_ref(entry));
+				path.SetTo(&entry);
+				paths_to_send += path.Path();
 				
 				node.GetSize(&worker);
 				total_size += worker;
@@ -84,18 +96,24 @@ DiskProducer::DiskProducer(BMessage* msg,Mail::StatusView*status)
 		}
 	}
 	
-	if (total_size == 0)
+	if (total_size == 0) {
+		//runner->Stop();
+		init = B_ERROR;
 		return;
+	}
 	
-	status->SetMaximum(total_size);
-	status->SetTotalItems(entries_to_send.CountItems());
+	runner->RegisterProcessCallback(new SMTPTermination(runner));
+	runner->GetMessages(&paths_to_send,total_size);
 }
 
 status_t DiskProducer::InitCheck(BString* err)
 {
+	if (init != B_OK)
+		return init;
+		
 	status_t ret = source.InitCheck();
 	
-	if (ret == B_OK)
+	if (ret == B_OK) 
 		return B_OK;
 	else
 	{
@@ -106,38 +124,31 @@ status_t DiskProducer::InitCheck(BString* err)
 	}
 }
 
-::MDStatus DiskProducer::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* out_headers, BPath*, BString* io_uid)
+status_t DiskProducer::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* out_headers, BPath*, const char* io_uid)
 {
-	if (entries_to_send.CountItems() == 0)
-		return MD_NO_MORE_MESSAGES;
-		
 	e->Remove();
-	
-	entry_ref *ref = (entry_ref *)(entries_to_send.RemoveItem(0L));
-		
+			
 	delete *io;
-	BFile *file = new BFile(ref,B_READ_WRITE);
+	BFile *file = new BFile(io_uid,B_READ_WRITE);
 	
-	e->SetTo(ref);
+	e->SetTo(io_uid);
 	*file >> *out_headers;
 	*io = file;
 	
-	runner->RegisterMessageCallback(new StatusChanger(*ref));
-	
-	delete ref;
-	
-	return MD_OK;
+	runner->RegisterMessageCallback(new StatusChanger(io_uid));
+		
+	return B_OK;
 }
 
-StatusChanger::StatusChanger(entry_ref entry)
+StatusChanger::StatusChanger(const char * entry)
 	: to_change(entry)
 {
 }
 
-void StatusChanger::Callback(MDStatus result) {
-	BNode node(&to_change);
+void StatusChanger::Callback(status_t result) {
+	BNode node(to_change);
 	
-	if (result == MD_HANDLED) {
+	if (result == B_OK) {
 		mail_flags flags = B_MAIL_SENT;
 		
 		node.WriteAttr(B_MAIL_ATTR_FLAGS,B_INT32_TYPE,0,&flags,4);
@@ -148,9 +159,9 @@ void StatusChanger::Callback(MDStatus result) {
 }
 		
 
-Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::StatusView *status)
+Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::ChainRunner *runner)
 {
-	return new DiskProducer(settings,status);
+	return new DiskProducer(settings,runner);
 }
 
 

@@ -11,6 +11,11 @@
  * Public Domain 2002, by Alexander G. M. Smith, no warranty.
  *
  * $Log$
+ * Revision 1.13  2003/02/08 21:54:17  agmsmith
+ * Updated the AGMSBayesianSpamServer documentation to match the current
+ * version.  Also removed the Beep options from the spam filter, now they
+ * are turned on or off in the system sound preferences.
+ *
  * Revision 1.12  2002/12/18 02:27:45  agmsmith
  * Added uncertain classification as suggested by BiPolar.
  *
@@ -139,13 +144,13 @@ AGMSBayesianSpamFilter::InitCheck (BString* out_message)
 }
 
 
-MDStatus
+status_t
 AGMSBayesianSpamFilter::ProcessMailMessage (
 	BPositionIO** io_message,
 	BEntry* io_entry,
 	BMessage* io_headers,
 	BPath* io_folder,
-	BString* io_uid)
+	const char* io_uid)
 {
 	ssize_t		 amountRead;
 	const char	*classificationString;
@@ -385,14 +390,14 @@ AGMSBayesianSpamFilter::ProcessMailMessage (
 		system_beep (kAGMSBayesBeepUncertainName);
 	}
 
-	return MD_OK;
+	return B_OK;
 
 ErrorExit:
 	fprintf (stderr, "Error exit from "
 		"AGMSBayesianSpamFilter::ProcessMailMessage, code maybe %ld (%s).\n",
 		errorCode, strerror (errorCode));
 	delete stringBuffer;
-	return MD_OK; // Not MD_ERROR so the message doesn't get left on server.
+	return B_OK; // Not MD_ERROR so the message doesn't get left on server.
 }
 
 
@@ -430,7 +435,7 @@ descriptive_name (
 Mail::Filter *
 instantiate_mailfilter (
 	BMessage *settings,
-	Mail::StatusView *statusView)
+	Mail::ChainRunner *)
 {
 	return new AGMSBayesianSpamFilter (settings);
 }

@@ -8,9 +8,13 @@
 
 #include <MailAddon.h>
 #include <MailSettings.h>
-
+#include <Looper.h>
+#include <status.h>
 
 namespace Zoidberg {
+
+class StringList;
+
 namespace Mail {
 
 class StatusWindow;
@@ -18,7 +22,7 @@ class Chain;
 
 class ChainCallback {
 	public:
-		virtual void Callback(MDStatus result) = 0;
+		virtual void Callback(status_t result) = 0;
 		// Called by the callback routines in ChainRunner
 		// result is the message that ended the chain
 		// (MD_HANDLED, MD_DISCARD, MD_NO_MORE_MESSAGES)
@@ -26,9 +30,11 @@ class ChainCallback {
 		// gauranteed to be MD_NO_MORE_MESSAGES.
 };
 
-class ChainRunner {
+class ChainRunner : public BLooper {
 	public:
-		ChainRunner(Mail::Chain *chain);
+		ChainRunner(Mail::Chain *chain, Mail::StatusWindow *status,
+			bool self_destruct_when_done = true, bool save_chain_when_done = true,
+			bool destruct_chain_when_done = false);
 		~ChainRunner();
 
 		//----Callback functions. Callback objects will be deleted for you.
@@ -39,23 +45,37 @@ class ChainRunner {
 		
 		void RegisterProcessCallback(ChainCallback *callback);
 		// Your callback->Callback() function will be called when
-		// a filter returns MD_NO_MORE_MESSAGES and before everything
+		// a filter returns MD_PASS_COMPLETE and before we go back
+		// to waiting for new messages.
+		
+		void RegisterChainCallback(ChainCallback *callback);
+		// Your callback->Callback() function will be called when
+		// a filter returns MD_ALL_PASSES_DONE and before everything
 		// is unloaded and sent home.
 		
+		void Stop();
+		void ReportProgress(int bytes, int messages, const char *message = NULL);
+		void GetMessages(StringList *list, size_t bytes);
+		
+		void ShowError(const char *error);
+
 		Mail::Chain *Chain();
 		
 		//----The big, bad asynchronous RunChain() function. Pretty harmless looking, huh?
-		status_t RunChain(StatusWindow *status,
-			bool self_destruct_when_done,
-			bool asynchronous = true,
-			bool save_chain_when_done = true,
-			bool destruct_chain_when_done = false);
+		status_t RunChain(bool asynchronous = true);
 		
+		void MessageReceived (BMessage *msg);
 	private:
-		static int32 async_chain_runner(void *arg);
+		void get_messages(StringList *list);
 	
 		Mail::Chain *_chain;
-		BList message_cb, process_cb;
+		BList message_cb, process_cb, chain_cb;
+		
+		bool destroy_self, destroy_chain, save_chain;
+		
+		Mail::StatusWindow *_status;
+		Mail::StatusView *_statview;
+		BList addons;
 		
 		uint32	_reserved[5];
 };

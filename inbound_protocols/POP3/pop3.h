@@ -14,10 +14,9 @@
 
 class POP3Protocol : public Zoidberg::Mail::SimpleProtocol {
   public:
-  	POP3Protocol(BMessage *settings, Zoidberg::Mail::StatusView *status);
+  	POP3Protocol(BMessage *settings, Zoidberg::Mail::ChainRunner *status);
   	~POP3Protocol();
   
-	void SetStatusReporter(Zoidberg::Mail::StatusView *view);
 	status_t Open(const char *server, int port, int protocol);
 	status_t Login(const char *uid, const char *password, int method);
 	status_t UniqueIDs();
@@ -41,7 +40,6 @@ private:
 	BString			fLog;
 	int32			fNumMessages;
 	size_t			fMailDropSize;
-	Zoidberg::Mail::StatusView *status_view;
 };
 
 #endif	/* ZOIDBERG_POP3_H */

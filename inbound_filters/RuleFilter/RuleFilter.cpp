@@ -44,27 +44,27 @@ status_t RuleFilter::InitCheck(BString* out_message) {
 	return B_OK;
 }
 
-MDStatus RuleFilter::ProcessMailMessage
+status_t RuleFilter::ProcessMailMessage
 (
 	BPositionIO** , BEntry* entry,
-	BMessage* io_headers, BPath* io_folder, BString* 
+	BMessage* io_headers, BPath* io_folder, const char* 
 ) {
 	const char *data;
 	if (!attribute)
-		return MD_OK; //----That field doesn't exist? NO match
+		return B_OK; //----That field doesn't exist? NO match
 	
 	if (io_headers->FindString(attribute,&data) < B_OK) { //--Maybe the capitalization was wrong?
 		BString capped(attribute);
 		capped.CapitalizeEachWord(); //----Enfore capitalization
 		if (io_headers->FindString(capped.String(),&data) < B_OK) //----This time it's *really* not there
-			return MD_OK; //---No match
+			return B_OK; //---No match
 	}
 	
 	if (data == NULL) //--- How would this happen? No idea
-		return MD_OK;
+		return B_OK;
 
 	if (!matcher.Match(data))
-		return MD_OK; //-----There wasn't an error. We're just not supposed to do anything
+		return B_OK; //-----There wasn't an error. We're just not supposed to do anything
 		
 	switch (do_what) {
 		case Z_MOVE_TO:
@@ -72,7 +72,7 @@ MDStatus RuleFilter::ProcessMailMessage
 				io_headers->AddString("DESTINATION",arg);
 			break;
 		case Z_TRASH:
-			return MD_DISCARD;
+			return B_MAIL_DISCARD;
 		case Z_FLAG:
 			{
 			BString string = arg;
@@ -90,7 +90,7 @@ MDStatus RuleFilter::ProcessMailMessage
 			fprintf(stderr,"Unknown do_what: 0x%04x!\n",do_what);
 	}
 	
-	return MD_OK;
+	return B_OK;
 }
 
 status_t descriptive_name(BMessage *settings, char *buffer) {
@@ -116,7 +116,7 @@ status_t descriptive_name(BMessage *settings, char *buffer) {
 	return B_OK;
 }
 
-Mail::Filter* instantiate_mailfilter(BMessage* settings,Mail::StatusView *)
+Mail::Filter* instantiate_mailfilter(BMessage* settings,Mail::ChainRunner *)
 {
 	return new RuleFilter(settings);
 }

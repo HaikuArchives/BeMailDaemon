@@ -21,6 +21,7 @@ namespace Mail {
 
 #include <MailProtocol.h>
 #include <StringList.h>
+#include <ChainRunner.h>
 #include <status.h>
 
 #include "MessageIO.h"
@@ -29,15 +30,23 @@ namespace Mail {
 namespace Zoidberg {
 namespace Mail {
 
-SimpleProtocol::SimpleProtocol(BMessage *settings, Mail::StatusView *view) :
-	Mail::Protocol(settings),
-	status_view(view),
+class SinglePassTermination : public Mail::ChainCallback {
+	public:
+		SinglePassTermination(Mail::ChainRunner *run) : runner(run) {}
+		void Callback(status_t) { runner->Stop(); }
+		
+	private:
+		Mail::ChainRunner *runner;
+};
+
+SimpleProtocol::SimpleProtocol(BMessage *settings, Mail::ChainRunner *run) :
+	Mail::Protocol(settings,run),
 	error(B_OK),
 	last_message(-1) {
+		runner->RegisterProcessCallback(new SinglePassTermination(runner));
 	}
 
 status_t SimpleProtocol::Init() {
-	SetStatusReporter(status_view);
 		
 	error = Open(settings->FindString("server"),settings->FindInt32("port"),settings->FindInt32("flavor"));
 	if (error < B_OK)
@@ -49,59 +58,47 @@ status_t SimpleProtocol::Init() {
 		password = passwd;
 
 	error = Login(settings->FindString("username"),password,settings->FindInt32("auth_method"));
-
 	delete passwd;
+	
+	if (error < B_OK)
+		return error;
+		
+	error = UniqueIDs();
+	if (error < B_OK)
+		return error;
+		
+	if (settings->FindBool("leave_mail_on_server")) {
+		size_t	maildrop_size = 0;
+		int32	num_messages;
+		
+		StringList to_dl;
+		manifest->NotHere(*unique_ids,&to_dl);
+		
+		num_messages = to_dl.CountItems();
+		if (num_messages == 0) {
+			runner->Stop();
+			return error;
+		}
+		
+		for (int32 i = 0; i < to_dl.CountItems(); i++)
+			maildrop_size += MessageSize(unique_ids->IndexOf(to_dl[i]));
+		
+		runner->GetMessages(&to_dl,maildrop_size);
+	} else {
+		if (unique_ids->CountItems() == 0) {
+			runner->Stop();
+			return error;
+		}
+			
+		runner->GetMessages(unique_ids,MailDropSize());
+	}
 	
 	return error;
 }
 
 SimpleProtocol::~SimpleProtocol() {
 }
-
-void SimpleProtocol::PrepareStatusWindow(StringList *manifest) {
-	size_t	maildrop_size = 0;
-	int32	num_messages;
 	
-	if (settings->FindBool("leave_mail_on_server")) {
-		StringList to_dl;
-		manifest->NotHere(*unique_ids,&to_dl);
-		
-		num_messages = to_dl.CountItems();
-		
-		for (int32 i = 0; i < to_dl.CountItems(); i++)
-			maildrop_size += MessageSize(unique_ids->IndexOf(to_dl[i]));
-	} else {
-		num_messages = Messages();
-		maildrop_size = MailDropSize();
-	}
-	
-	status_view->SetMaximum(maildrop_size);
-	status_view->SetTotalItems(num_messages);
-}
-	
-
-status_t SimpleProtocol::GetNextNewUid
-(
-	BString* out_uid,
-	StringList *manifest,
-	time_t /*timeout*/
-) {
-	
-	do {
-		last_message++;
-		
-		if (last_message >= unique_ids->CountItems())
-			return B_NAME_NOT_FOUND;
-	} while (manifest->HasItem(unique_ids->ItemAt(last_message)));
-	
-	#if DEBUG
-	 puts(unique_ids->ItemAt(last_message));
-	#endif
-		
-	out_uid->SetTo(unique_ids->ItemAt(last_message));
-	
-	return B_OK;
-}
 
 status_t SimpleProtocol::GetMessage(
 	const char* uid,

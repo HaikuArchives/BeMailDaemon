@@ -24,10 +24,10 @@ class ParseFilter : public Mail::Filter
   public:
 	ParseFilter(BMessage*);
 	virtual status_t InitCheck(BString *err);
-	virtual MDStatus ProcessMailMessage
+	virtual status_t ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* io_entry,
-		BMessage* io_headers, BPath* io_folder, BString* io_uid
+		BMessage* io_headers, BPath* io_folder, const char* io_uid
 	);
 };
 
@@ -44,7 +44,7 @@ status_t ParseFilter::InitCheck(BString* err)
 	return B_OK;
 }
 
-MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* headers, BPath*, BString*)
+status_t ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* headers, BPath*, const char*)
 {
 	char *		buf = NULL;
 	size_t		buflen = 0;
@@ -111,10 +111,10 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 	//--NathanW says let the disk consumer do that
 	
 	(*data)->Seek(0,SEEK_SET);
-	return MD_OK;
+	return B_OK;
 }
 
-Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::StatusView *view)
+Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::ChainRunner *)
 {
 	return new ParseFilter(settings);
 }

@@ -13,6 +13,7 @@
 #include <status.h>
 #include <StringList.h>
 #include <ProtocolConfigView.h>
+#include <ChainRunner.h>
 
 #include <MDRLanguage.h>
 
@@ -24,9 +25,9 @@ using namespace Zoidberg;
 #define POP3_RETRIEVAL_TIMEOUT 60000000
 #define CRLF	"\r\n"
 
-#define pop3_error(string) (new BAlert(MDR_DIALECT_CHOICE ("POP3 Error","POP3エラー"),string,MDR_DIALECT_CHOICE ("OK","了解"),NULL,NULL,B_WIDTH_AS_USUAL,B_WARNING_ALERT))->Go()
+#define pop3_error(string) runner->ShowError(string)
 
-POP3Protocol::POP3Protocol(BMessage *settings, Mail::StatusView *status)
+POP3Protocol::POP3Protocol(BMessage *settings, Mail::ChainRunner *status)
 	: Mail::SimpleProtocol(settings,status),
 	fNumMessages(-1),
 	fMailDropSize(0)
@@ -43,15 +44,9 @@ POP3Protocol::~POP3Protocol()
 }
 
 
-void POP3Protocol::SetStatusReporter(Mail::StatusView *view)
-{
-	status_view = view;
-}
-
-
 status_t POP3Protocol::Open(const char *server, int port, int)
 {
-	status_view->SetMessage(MDR_DIALECT_CHOICE ("Connecting to POP3 Server...","POP3サーバに接続しています..."));
+	runner->ReportProgress(0,0,MDR_DIALECT_CHOICE ("Connecting to POP3 Server...","POP3サーバに接続しています..."));
 
 	if (port <= 0)
 		port = 110;
@@ -105,7 +100,7 @@ status_t POP3Protocol::Login(const char *uid, const char *password, int method)
 	if (method == 1) {	//APOP
 		int32 index = fLog.FindFirst("<");
 		if(index != B_ERROR) {
-			status_view->SetMessage(MDR_DIALECT_CHOICE ("Sending APOP authentication...","APOP認証情報を送信中..."));
+			runner->ReportProgress(0,0,MDR_DIALECT_CHOICE ("Sending APOP authentication...","APOP認証情報を送信中..."));
 			int32 end = fLog.FindFirst(">",index);
 			BString timestamp("");
 			fLog.CopyInto(timestamp,index,end-index+1);
@@ -133,7 +128,7 @@ status_t POP3Protocol::Login(const char *uid, const char *password, int method)
 			return B_NOT_ALLOWED;
 		}
 	}
-	status_view->SetMessage(MDR_DIALECT_CHOICE ("Sending username...","ユーザーID送信中..."));
+	runner->ReportProgress(0,0,MDR_DIALECT_CHOICE ("Sending username...","ユーザーID送信中..."));
 
 	BString cmd = "USER ";
 	cmd += uid;
@@ -147,7 +142,7 @@ status_t POP3Protocol::Login(const char *uid, const char *password, int method)
 		return err;
 	}
 
-	status_view->SetMessage(MDR_DIALECT_CHOICE ("Sending password...","パスワード送信中..."));
+	runner->ReportProgress(0,0,MDR_DIALECT_CHOICE ("Sending password...","パスワード送信中..."));
 	cmd = "PASS ";
 	cmd += password;
 	cmd += CRLF;
@@ -166,7 +161,7 @@ status_t POP3Protocol::Login(const char *uid, const char *password, int method)
 
 status_t POP3Protocol::Stat()
 {
-	status_view->SetMessage(MDR_DIALECT_CHOICE ("Getting mailbox size...","メールボックスのサイズを取得しています..."));	
+	runner->ReportProgress(0,0,MDR_DIALECT_CHOICE ("Getting mailbox size...","メールボックスのサイズを取得しています..."));	
 
 	if (SendCommand("STAT" CRLF) < B_OK)
 		return B_ERROR;
@@ -244,7 +239,7 @@ status_t POP3Protocol::RetrieveInternal(const char *command, int32,
 				return B_ERROR;
 				
 			if (post_progress)
-				status_view->AddProgress(r);
+				runner->ReportProgress(r,0);
 				
 			content_len += r;			
 			buf[r] = '\0';
@@ -285,7 +280,7 @@ status_t POP3Protocol::RetrieveInternal(const char *command, int32,
 
 status_t POP3Protocol::UniqueIDs() {
 	status_t ret = B_OK;
-	status_view->SetMessage(MDR_DIALECT_CHOICE ("Getting UniqueIDs...","固有のIDを取得中..."));
+	runner->ReportProgress(0,0,MDR_DIALECT_CHOICE ("Getting UniqueIDs...","固有のIDを取得中..."));
 	
 	ret = SendCommand("UIDL" CRLF);
 	if (ret != B_OK) return ret;
@@ -404,9 +399,9 @@ void POP3Protocol::MD5Digest (unsigned char *in,char *ascii_digest)
 }
 
 
-Mail::Filter *instantiate_mailfilter(BMessage *settings, Mail::StatusView *view)
+Mail::Filter *instantiate_mailfilter(BMessage *settings, Mail::ChainRunner *runner)
 {
-	return new POP3Protocol(settings,view);
+	return new POP3Protocol(settings,runner);
 }
 
 

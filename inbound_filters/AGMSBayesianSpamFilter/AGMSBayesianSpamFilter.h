@@ -13,6 +13,11 @@
  * Public Domain 2002, by Alexander G. M. Smith, no warranty.
  *
  * $Log$
+ * Revision 1.6  2003/02/08 21:54:17  agmsmith
+ * Updated the AGMSBayesianSpamServer documentation to match the current
+ * version.  Also removed the Beep options from the spam filter, now they
+ * are turned on or off in the system sound preferences.
+ *
  * Revision 1.5  2002/12/18 02:27:45  agmsmith
  * Added uncertain classification as suggested by BiPolar.
  *
@@ -60,11 +65,11 @@ class AGMSBayesianSpamFilter : public Zoidberg::Mail::Filter {
 
 		virtual status_t InitCheck (BString* out_message = NULL);
 
-		virtual MDStatus ProcessMailMessage (BPositionIO** io_message,
+		virtual status_t ProcessMailMessage (BPositionIO** io_message,
 			BEntry* io_entry,
 			BMessage* io_headers,
 			BPath* io_folder,
-			BString* io_uid);
+			const char* io_uid);
 
 	private:
 		bool fAddSpamToSubject;

@@ -8,6 +8,7 @@
 #include <Alert.h>
 #include <Query.h>
 #include <VolumeRoster.h>
+#include <StringList.h>
 
 #include <stdio.h>
 #include <assert.h>
@@ -21,64 +22,84 @@ namespace Mail {
 }
 
 #include <MailProtocol.h>
-#include <StringList.h>
 #include <ChainRunner.h>
 #include <status.h>
 
 using namespace Zoidberg;
-using namespace Zoidberg::Mail;
+using Zoidberg::Mail::Protocol;
 
 namespace Zoidberg {
 namespace Mail {
 class DeletePass : public Mail::ChainCallback {
 	public:
 		DeletePass(Protocol *home);
-		virtual void Callback(MDStatus result);
+		virtual void Callback(status_t result);
 		
 	private:
 		Protocol *us;
+};
+
+class ManifestAdder : public Mail::ChainCallback {
+	public:
+		ManifestAdder(StringList *list, const char *id) : manifest(list), uid(id) {}
+		virtual void Callback(status_t result) {
+			if (result == B_OK)
+				(*manifest) += uid;
+		}
+		
+	private:
+		StringList *manifest;
+		const char *uid;
+};
+
+class RanYetReset : public Mail::ChainCallback {
+	public:
+		RanYetReset(bool *ranyet) : _ranyet(ranyet) {}
+		virtual void Callback(status_t) {
+			*_ranyet = false;
+		}
+	private:
+		bool *_ranyet;
 };
 
 class MessageDeletion : public Mail::ChainCallback {
 	public:
-		MessageDeletion(Protocol *home, BString *uid);
-		virtual void Callback(MDStatus result);
+		MessageDeletion(Protocol *home, const char *uid, bool delete_anyway);
+		virtual void Callback(status_t result);
 		
 	private:
 		Protocol *us;
-		BString *message_id;
+		bool always;
+		const char *message_id;
 };
 
 }
 }
 
 
-inline void error_alert(const char *process, status_t error) {
+inline void Protocol::error_alert(const char *process, status_t error) {
 	BString string;
 	MDR_DIALECT_CHOICE (
 		string << "Error while " << process << ": " << strerror(error);
-		Mail::ShowAlert("error_alert",string.String(),"Ok",B_WARNING_ALERT);
+		runner->ShowError(string.String());
 	,
 		string << process << "中にエラーが発生しました: " << strerror(error);
-		Mail::ShowAlert("エラー",string.String(),"了解",B_WARNING_ALERT);
+		runner->ShowError(string.String());
 	)
 }
 
 
-Protocol::Protocol(BMessage* settings) : Filter(settings) {
-	unique_ids = NULL;
+Protocol::Protocol(BMessage* settings, ChainRunner *run) : Filter(settings), runner(run), ran_yet(false) {
+	unique_ids = new StringList;
 	Protocol::settings = settings;
 	
 	manifest = new StringList;
-	
-	settings->FindPointer("chain_runner",(void **)&parent);
-	parent->Chain()->MetaData()->FindFlat("manifest",manifest); //---no error checking, because if it doesn't exist, it will stay empty anyway
-};
+	runner->Chain()->MetaData()->FindFlat("manifest",manifest); //---no error checking, because if it doesn't exist, it will stay empty anyway
+	runner->RegisterProcessCallback(new DeletePass(this));
+}
 
 Protocol::~Protocol() {
-	if (unique_ids != NULL)
-		delete unique_ids;
-		
+	delete unique_ids;
 	delete manifest;
 };
 
@@ -88,29 +109,14 @@ Protocol::~Protocol() {
 								puts(a->ItemAt(i)); \
 							puts("Done\n");
 							
-MDStatus Protocol::ProcessMailMessage
+status_t Protocol::ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* /*io_entry*/,
-		BMessage* io_headers, BPath* io_folder, BString* io_uid
+		BMessage* io_headers, BPath* io_folder, const char* io_uid
 	) {
 		status_t error;
-				
-		if (InitCheck(NULL) < B_OK)
-			return MD_NO_MORE_MESSAGES;
-				
-		if (unique_ids == NULL) {
-			unique_ids = new StringList;
-			error = UniqueIDs();
-			if (error < B_OK) {
-				MDR_DIALECT_CHOICE (
-					error_alert("fetching unique ids",error);,
-					error_alert("固有のIDを受信中にエラーが発生しました",error);
-				)
-				return MD_NO_MORE_MESSAGES;
-			}
-			parent->RegisterProcessCallback(new DeletePass(this));
-			PrepareStatusWindow(manifest);
-			
+		
+		if (!ran_yet) {
 			if (settings->FindBool("delete_remote_when_local")) {
 				StringList query_contents;
 				BQuery fido;
@@ -131,46 +137,31 @@ MDStatus Protocol::ProcessMailMessage
 				}
 				
 				StringList to_delete;
-				query_contents.NotHere(*(manifest),&to_delete);
+				query_contents.NotHere(*manifest,&to_delete);
 				
 				for (int32 i = 0; i < to_delete.CountItems(); i++)
 					DeleteMessage(to_delete[i]);
 				
-				*manifest -= to_delete;
+				*(unique_ids) -= to_delete;
 			}
-		}
-				
-		error = GetNextNewUid(io_uid,manifest,0); // Added 0 for timeout. Is it correct?
-
-		if (error < B_OK) {
-			if ((error != B_TIMED_OUT) && (error != B_NAME_NOT_FOUND))
-				MDR_DIALECT_CHOICE (
-					error_alert("getting next new message",error);,
-					error_alert("次の新しいメッセージを取得中にエラーが発生しました",error);
-				)			
-			return MD_NO_MORE_MESSAGES;
+			
+			ran_yet = true;
+			runner->RegisterProcessCallback(new RanYetReset(&ran_yet));
 		}
 		
-		error = GetMessage(io_uid->String(),io_message,io_headers,io_folder);
+		error = GetMessage(io_uid,io_message,io_headers,io_folder);
 		if (error < B_OK) {
-			for (int32 i = unique_ids->IndexOf(io_uid->String()); unique_ids->ItemAt(i) != NULL;) {
-				unique_ids->RemoveItem(unique_ids->ItemAt(i));
-			} //-----Remove the rest of our list: these have not yet been downloaded
-			
-			if (error == B_NAME_NOT_FOUND)
-				return MD_NO_MORE_MESSAGES;
-				
 			MDR_DIALECT_CHOICE (
 				error_alert("getting a message",error);,
 				error_alert("新しいメッセージヲ取得中にエラーが発生しました",error);
 			)
-			return MD_DISCARD; //--Would MD_NO_MORE_MESSAGES be more appropriate?
+			return B_MAIL_END_FETCH;
 		}
-				
-		if (!settings->FindBool("leave_mail_on_server"))
-			parent->RegisterMessageCallback(new MessageDeletion(this,io_uid));
 		
-		return MD_OK;
+		runner->RegisterMessageCallback(new ManifestAdder(manifest,io_uid));
+		runner->RegisterMessageCallback(new MessageDeletion(this,io_uid,!settings->FindBool("leave_mail_on_server")));
+		
+		return B_OK;
 }
 
 void Protocol::_ReservedProtocol1() {}
@@ -183,13 +174,13 @@ void Protocol::_ReservedProtocol5() {}
 //	#pragma mark -
 
 
-DeletePass::DeletePass(Protocol *home) : us(home) {
+Mail::DeletePass::DeletePass(Protocol *home) : us(home) {
 	//--do nothing, and do it well
 }
 
-void DeletePass::Callback(MDStatus /*status*/) {
+void Mail::DeletePass::Callback(status_t /*status*/) {
 	if ((us->unique_ids != NULL) && (us->InitCheck() == B_OK)) {
-		BMessage *meta_data = us->parent->Chain()->MetaData();
+		BMessage *meta_data = us->runner->Chain()->MetaData();
 		meta_data->RemoveName("manifest");
 		if (us->settings->FindBool("leave_mail_on_server"))
 			meta_data->AddFlat("manifest",us->unique_ids);
@@ -200,14 +191,15 @@ void DeletePass::Callback(MDStatus /*status*/) {
 //	#pragma mark -
 
 
-MessageDeletion::MessageDeletion(Protocol *home, BString *uid) :
+Mail::MessageDeletion::MessageDeletion(Protocol *home, const char *uid, bool delete_anyway) :
 	us(home),
-	message_id(uid) {}
+	message_id(uid), always(delete_anyway) {}
 
-void MessageDeletion::Callback(MDStatus /*result*/) {
+void Mail::MessageDeletion::Callback(status_t result) {
 	#if DEBUG
 	 printf("Deleting %s\n",message_id->String());
 	#endif
-	us->DeleteMessage(message_id->String());
+	if (always || result == B_MAIL_DISCARD)
+		us->DeleteMessage(message_id);
 }
 

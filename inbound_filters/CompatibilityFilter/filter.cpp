@@ -31,10 +31,10 @@ class CompatibilityFilter : public Mail::Filter
   public:
 	CompatibilityFilter(BMessage*);
 	virtual status_t InitCheck(BString *err);
-	virtual MDStatus ProcessMailMessage
+	virtual status_t ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* io_entry,
-		BMessage* io_headers, BPath* io_folder, BString* io_uid
+		BMessage* io_headers, BPath* io_folder, const char* io_uid
 	);
 };
 
@@ -54,8 +54,8 @@ status_t CompatibilityFilter::InitCheck(BString* err)
 	return status;
 }
 
-MDStatus CompatibilityFilter::ProcessMailMessage
-	(BPositionIO** , BEntry* io_entry, BMessage* headers, BPath* , BString*)
+status_t CompatibilityFilter::ProcessMailMessage
+	(BPositionIO** , BEntry* io_entry, BMessage* headers, BPath* , const char*)
 {
 	int32 ret;
 	
@@ -81,10 +81,10 @@ MDStatus CompatibilityFilter::ProcessMailMessage
 		}
 		else fprintf(stderr,"%s\n", strerror(fil));
 	} 
-	return MD_OK;
+	return B_OK;
 }
 
-Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::StatusView*)
+Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::ChainRunner*)
 {
 	return new CompatibilityFilter(settings);
 }

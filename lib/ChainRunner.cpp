@@ -26,22 +26,13 @@ namespace Mail {
 }
 }
 
-#include "ChainRunner.h"
-#include "status.h"
+#include <ChainRunner.h>
+#include <status.h>
+#include <StringList.h>
 
 
 namespace Zoidberg {
 namespace Mail {
-
-struct async_args {
-	Mail::Chain *home;
-	Mail::ChainRunner *runner;
-	Mail::StatusWindow *status;
-	
-	bool self_destruct;
-	bool destruct_chain;
-	bool save_chain;
-};
 
 struct filter_image {
 	BMessage *settings;
@@ -51,18 +42,22 @@ struct filter_image {
 
 void unload(void *id);
 
-ChainRunner::ChainRunner(Mail::Chain *chain) :
-  _chain(chain) {
+ChainRunner::ChainRunner(Mail::Chain *chain, Mail::StatusWindow *status,
+			bool self_destruct_when_done, bool save_chain_when_done,
+			bool destruct_chain_when_done) : 
+  BLooper(chain->Name()), _chain(chain), _status(status), destroy_self(self_destruct_when_done), save_chain(save_chain_when_done), destroy_chain(destruct_chain_when_done) {
 	//------do absolutely nothing--------
 }
 
 ChainRunner::~ChainRunner()
 {
 	// clean up if the chain have not been run at all
-	for (int32 i = message_cb.CountItems();i-- > 0;)
+	/*for (int32 i = message_cb.CountItems();i-- > 0;)
 		delete (Mail::ChainCallback *)message_cb.ItemAt(i);
 	for (int32 i = process_cb.CountItems();i-- > 0;)
 		delete (Mail::ChainCallback *)process_cb.ItemAt(i);
+	for (int32 i = chain_cb.CountItems();i-- > 0;)
+		delete (Mail::ChainCallback *)chain_cb.ItemAt(i);*/
 }
 
 void ChainRunner::RegisterMessageCallback(Mail::ChainCallback *callback) {
@@ -73,163 +68,182 @@ void ChainRunner::RegisterProcessCallback(Mail::ChainCallback *callback) {
 	process_cb.AddItem(callback);
 }
 
+void ChainRunner::RegisterChainCallback(Mail::ChainCallback *callback) {
+	chain_cb.AddItem(callback);
+}
+
 Mail::Chain *ChainRunner::Chain() {
 	return _chain;
 }
 
-status_t ChainRunner::RunChain(Mail::StatusWindow *status,bool self_destruct_when_done, bool asynchronous, bool save_chain_when_done, bool destruct_chain_when_done) {
-	BString thread_name(_chain->Name());
-	thread_name += (_chain->ChainDirection() == inbound) ? "_inbound" : "_outbound";
+status_t ChainRunner::RunChain(bool asynchronous) {
 	
-	if (find_thread(thread_name.String()) >= 0)
+	static BList running_chains;
+	
+	if (running_chains.HasItem((void *)(_chain->ID())))
 		return B_NAME_IN_USE;
+
+	Run();
 	
-	struct async_args *args = new struct async_args;
-	args->home = _chain;
-	args->runner = this;
-	args->self_destruct = self_destruct_when_done;
-	args->status = status;
-	args->destruct_chain = destruct_chain_when_done;
-	args->save_chain = save_chain_when_done;
+	PostMessage('INIT');
 	
-	if (asynchronous) {
-		thread_id thread = spawn_thread(&async_chain_runner,thread_name.String(),10,args);
-		
-		if (thread < 0)
-			return async_chain_runner(args);
-			
-		return resume_thread(thread);
+	if (!asynchronous) {
+		status_t result;
+		wait_for_thread(Thread(),&result);
+		return result;
 	}
 	
-	return async_chain_runner(args);
+	return B_OK;
 }
 
-int32 ChainRunner::async_chain_runner(void *arg) {
-	Mail::Chain *chain;
-	ChainRunner *runner;
-	Mail::StatusView *status;
-	Mail::StatusWindow *stat_win;
-	bool self_destruct;
-	bool destroy_chain;
-	bool save_chain;
-	status_t err = 0;
-		
-	{
-		BString desc;
-		
-		struct async_args *args = (struct async_args *)(arg);
-		chain = args->home;
-		runner = args->runner;
-		
-		MDR_DIALECT_CHOICE (
-		desc << ((chain->ChainDirection() == inbound) ? "Fetching" : "Sending") << " mail for " << chain->Name(),
-		desc << chain->Name() << ((chain->ChainDirection() == inbound) ? "より受信中..." : "へ送信中...")
-		);
-
-		stat_win = args->status;
-		status = stat_win->NewStatusView(desc.String(),chain->ChainDirection() == outbound);
-		self_destruct = args->self_destruct;
-		destroy_chain = args->destruct_chain;
-		save_chain = args->save_chain;
-		delete args;
-	}
+#define call_cbs(which_cbs,code) {for (int kk = 0; kk < which_cbs.CountItems(); kk++) { ((ChainCallback *)(which_cbs.ItemAt(kk)))->Callback(code); delete ((ChainCallback *)(which_cbs.ItemAt(kk))); } \
+								    which_cbs.MakeEmpty();}
+								    
+void ChainRunner::MessageReceived(BMessage *msg) {
 	
-	BList addons;
-	
-	BMessage settings;
-	entry_ref addon;
-	struct filter_image *current;
-	MDStatus last_result = MD_OK;
-	
-	BDirectory tmp("/tmp");
-	
-	while (last_result != MD_NO_MORE_MESSAGES)
-	{
-		// set last_result to match the break condition, to prevent
-		// infinite loops (yes, they do happen...)
-		last_result = MD_NO_MORE_MESSAGES;
-
-		char *path = tempnam("/tmp","mail_temp_");
-		BEntry *entry = new BEntry(path);
-		free(path);
-		BPositionIO *file = new BFile(entry, B_READ_WRITE | B_CREATE_FILE);
-		BPath *folder = new BPath;
-		BMessage *headers = new BMessage;
-		BString uid = B_EMPTY_STRING;
-
-		if (((BFile *)file)->InitCheck() < B_OK)
-			goto err;
-
-		for (int32 i = 0; chain->GetFilter(i,&settings,&addon) >= B_OK; i++) {			
-			if (addons.CountItems() <= i) { //------eek! not enough filters? load the addon
+	switch (msg->what) {
+		case 'INIT': {
+			status_t big_err = B_OK;
+			BString desc;
+			entry_ref addon;
+			
+			MDR_DIALECT_CHOICE (
+			desc << ((_chain->ChainDirection() == inbound) ? "Fetching" : "Sending") << " mail for " << _chain->Name(),
+			desc << _chain->Name() << ((_chain->ChainDirection() == inbound) ? "より受信中..." : "へ送信中...")
+			);
+			
+			_status->Lock();
+			_statview = _status->NewStatusView(desc.String(),_chain->ChainDirection() == outbound);
+			_status->Unlock();
+			
+			BMessage settings;
+			for (int32 i = 0; _chain->GetFilter(i,&settings,&addon) >= B_OK; i++) {			
 				struct filter_image *image = new struct filter_image;
 				BPath path(&addon);
-				Mail::Filter *(* instantiate)(BMessage *,Mail::StatusView *);
+				Mail::Filter *(* instantiate)(BMessage *,Mail::ChainRunner *);
 				
 				image->id = load_add_on(path.Path());
 				
 				if (image->id < B_OK) {
 					BString error;
 					MDR_DIALECT_CHOICE (
-						error << "Error loading the mail addon " << path.Path() << " from chain " << chain->Name() << ": " << strerror(image->id);
-						ShowAlert("add-on error",error.String(),"Ok",B_WARNING_ALERT);,
-						error << "メールアドオン " << path.Path() << " を " << chain->Name() << "から読み込む際にエラーが発生しました: " << strerror(image->id);
-						ShowAlert("アドオンエラー",error.String(),"了解",B_WARNING_ALERT);
+						error << "Error loading the mail addon " << path.Path() << " from chain " << _chain->Name() << ": " << strerror(image->id);
+						ShowError(error.String());,
+						error << "メールアドオン " << path.Path() << " を " << _chain->Name() << "から読み込む際にエラーが発生しました: " << strerror(image->id);
+						ShowError(error.String());
 					)
-					err = -1;
-					goto err;
+					return;
 				}
 				
 				status_t err = get_image_symbol(image->id,"instantiate_mailfilter",B_SYMBOL_TYPE_TEXT,(void **)&instantiate);
-				on_exit_thread(&unload,(void *)(image->id));
 				if (err < B_OK) {
 					BString error;
 					MDR_DIALECT_CHOICE (
-						error << "Error loading the mail addon " << path.Path() << " from chain " << chain->Name()
+						error << "Error loading the mail addon " << path.Path() << " from chain " << _chain->Name()
 							<< ": the addon does not seem to be a mail addon (missing symbol instantiate_mailfilter).";
-						ShowAlert("add-on error",error.String(),"Ok",B_WARNING_ALERT);,
-						error << "メールアドオン " << path.Path() << " を " << chain->Name() << "から読み込む際にエラーが発生しました"
+						ShowError(error.String());,
+						error << "メールアドオン " << path.Path() << " を " << _chain->Name() << "から読み込む際にエラーが発生しました"
  							<< ": そのアドオンはメールアドオンではないようです（instantiate_mailfilterシンボルがありません）";
-						ShowAlert("アドオンエラー",error.String(),"了解",B_WARNING_ALERT);
+						ShowError(error.String());
 					)
 
 					err = -1;
-					goto err;
+					return;
 				}
 				
 				image->settings = new BMessage(settings);
 				
-				image->settings->AddPointer("chain_runner",runner);
-				image->settings->AddInt32("chain",chain->ID());
-				image->filter = (*instantiate)(image->settings,status);
-				
+				image->settings->AddInt32("chain",_chain->ID());
+				image->filter = (*instantiate)(image->settings,this);
 				addons.AddItem(image);
 				
+				if ((big_err = image->filter->InitCheck()) != B_OK)
+					break;
 			}
-			current = (struct filter_image *)(addons.ItemAt(i));
-			
-			last_result = current->filter->ProcessMailMessage(&file,entry,headers,folder,&uid);
-
-			if (last_result != MD_OK) {
-				if (last_result == MD_DISCARD)
-					entry->Remove();
-				
+			if (big_err == B_OK)
 				break;
+		}
+		case 'STOP': {
+			call_cbs(chain_cb,B_OK /* who knows what the code was? */);
+			
+			BMessage settings;
+			entry_ref addon;
+			
+			for (int32 i = 0; i < addons.CountItems(); i++) {
+				filter_image *image = (filter_image *)(addons.ItemAt(i));
+				delete image->filter;
+				
+				if (save_chain) {
+					image->settings->RemoveName("chain");
+					_chain->GetFilter(i,&settings,&addon);
+					_chain->SetFilter(i,*(image->settings),addon);
+				}
+				
+				delete image->settings;
+				
+				//unload_add_on(image->id);
+				
+				delete image;
 			}
+			
+			if (_status != NULL) {
+				_status->Lock();
+				if (_statview->Window())
+					_status->RemoveView(_statview);
+				else
+					delete _statview;
+				_status->Unlock();
+			}				
+				
+			if (save_chain)
+				_chain->Save();
+				
+			if (destroy_chain)
+				delete _chain;
+				
+			if (destroy_self) {
+				Quit();
+				delete this;
+			}
+			break;
+		}
+		case 'GETM': {
+			StringList list;
+			msg->FindFlat("messages",&list);
+			_statview->SetTotalItems(list.CountItems());
+			_statview->SetMaximum(msg->FindInt32("bytes"));
+			get_messages(&list); }
+			break;
+	}
+}
+
+
+void ChainRunner::get_messages(StringList *list) {
+	const char *uid;
+	
+	int i = 0;
+	status_t err = B_OK;
+	BDirectory tmp("/tmp");
+	
+	for (int i = 0; i < list->CountItems(); i++) {
+		uid = (*list)[i];
+		
+		char *path = tempnam("/tmp","mail_temp_");
+		BEntry *entry = new BEntry(path);
+		free(path);
+		BPositionIO *file = new BFile(entry, B_READ_WRITE | B_CREATE_FILE);
+		BPath *folder = new BPath;
+		BMessage *headers = new BMessage;
+		
+		for (int32 j = 0; j < addons.CountItems(); j++) {
+			struct filter_image *current = (struct filter_image *)(addons.ItemAt(j));
+			
+			err = current->filter->ProcessMailMessage(&file,entry,headers,folder,uid);
+			if (err != B_OK)
+				break;
 		}
 		
-		err:
-		Mail::ChainCallback *cb;
-		for (int32 i = 0; i < runner->message_cb.CountItems(); i++) {
-			cb = (Mail::ChainCallback *)(runner->message_cb.ItemAt(i));
-			cb->Callback(last_result);
-			delete cb;
-		}
-		
-		runner->message_cb.MakeEmpty();
-		
-		if (status->CountTotalItems() > 0)
-			status->AddItem();
+		call_cbs(message_cb,err);
 		
 		if (tmp.Contains(entry))
 			entry->Remove();
@@ -238,52 +252,39 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 		delete entry;
 		delete headers;
 		delete folder;
-
-		if (err)
+	
+		if (err == B_MAIL_END_FETCH)
 			break;
 	}
 	
-	Mail::ChainCallback *cb;
-	for (int32 i = 0; i < runner->process_cb.CountItems(); i++) {
-		cb = (Mail::ChainCallback *)(runner->process_cb.ItemAt(i));
-		cb->Callback(last_result);
-		delete cb;
-	}
+	call_cbs(process_cb,err);
 	
-	runner->process_cb.MakeEmpty();
-	
-	for (int32 i = 0; i < addons.CountItems(); i++) {
-		filter_image *image = (filter_image *)(addons.ItemAt(i));
-		delete image->filter;
-		
-		image->settings->RemoveName("chain_runner");
-		image->settings->RemoveName("chain");
-		chain->GetFilter(i,&settings,&addon);
-		chain->SetFilter(i,*(image->settings),addon);
-
-		delete image->settings;
-		delete image;
-	}
-	
-	if (status->Window() != NULL)
-		stat_win->RemoveView(status);
-	else
-		delete status;
-		
-	if (self_destruct)
-		delete runner;
-		
-	if (save_chain)
-		chain->Save();
-		
-	if (destroy_chain)
-		delete chain;
-
-	return 0;
+	if (err == B_MAIL_END_CHAIN)
+		Stop();
 }
 
-void unload(void *id) {
-	unload_add_on((image_id)(id));
+void ChainRunner::Stop() {
+	PostMessage('STOP');
+}
+
+void ChainRunner::GetMessages(StringList *list,size_t bytes) {
+	BMessage *msg = new BMessage('GETM');
+	msg->AddFlat("messages",list);
+	msg->AddInt32("bytes",bytes);
+	PostMessage(msg);
+}
+
+void ChainRunner::ReportProgress(int bytes, int messages, const char *message) {
+	if (bytes != 0)
+		_statview->AddProgress(bytes);
+	for (int i = 0; i < messages; i++)
+		_statview->AddItem();	
+	if (message != NULL)
+		_statview->SetMessage(message);
+}
+
+void ChainRunner::ShowError(const char *error) {
+	(new BAlert("error",error,"OK"))->Go();
 }
 
 }	// namespace Mail

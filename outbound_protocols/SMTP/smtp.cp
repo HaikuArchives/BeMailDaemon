@@ -42,7 +42,7 @@ using namespace Zoidberg;
 #endif
 
 //#define smtp_errlert(string) (new BAlert("SMTP Error", string, "OK", NULL, NULL, B_WIDTH_AS_USUAL,B_WARNING_ALERT))->Go();
-#define smtp_errlert(string) Mail::ShowAlert(MDR_DIALECT_CHOICE ("SMTP Error","SMTPエラー"), string);
+#define smtp_errlert(string) runner->ShowError(string);
 
 
 // Authentication types recognized. Not all methods are implemented.
@@ -54,10 +54,10 @@ enum AuthType {
 };
 
 
-SMTPProtocol::SMTPProtocol(BMessage *message, Mail::StatusView *view)
+SMTPProtocol::SMTPProtocol(BMessage *message, Mail::ChainRunner *run)
 	: Mail::Filter(message),
 	fSettings(message),
-	fStatusView(view),
+	runner(run),
 	fAuthType(0)
 {
 	BString error_msg;
@@ -128,9 +128,9 @@ SMTPProtocol::InitCheck(BString *verbose)
 
 
 // Process EMail to be sent
-MDStatus
+status_t
 SMTPProtocol::ProcessMailMessage(BPositionIO **io_message, BEntry */*io_entry*/,
-	BMessage *io_headers, BPath */*io_folder*/, BString */*io_uid*/)
+	BMessage *io_headers, BPath */*io_folder*/, const char */*io_uid*/)
 {
 	const char *from = io_headers->FindString("MAIL:from");
 	const char *to = io_headers->FindString("MAIL:recipients");
@@ -138,8 +138,8 @@ SMTPProtocol::ProcessMailMessage(BPositionIO **io_message, BEntry */*io_entry*/,
 		to = io_headers->FindString("MAIL:to");
 
 	if (to && from && Send(to,from,*io_message) == B_OK) {
-		fStatusView->AddItem();
-		return MD_HANDLED;
+		runner->ReportProgress(0,1);
+		return B_OK;
 	}
 
 	BString error;
@@ -149,8 +149,8 @@ SMTPProtocol::ProcessMailMessage(BPositionIO **io_message, BEntry */*io_entry*/,
 	)
 
 	smtp_errlert(error.String());
-	fStatusView->AddItem();
-	return MD_ERROR;
+	runner->ReportProgress(0,1);
+	return B_ERROR;
 }
 
 
@@ -159,7 +159,7 @@ SMTPProtocol::ProcessMailMessage(BPositionIO **io_message, BEntry */*io_entry*/,
 status_t
 SMTPProtocol::Open(const char *address, int port, bool esmtp)
 {
-	fStatusView->SetMessage(MDR_DIALECT_CHOICE ("Connecting to server...","接続中..."));
+	runner->ReportProgress(0,0,MDR_DIALECT_CHOICE ("Connecting to server...","接続中..."));
 
 	if (port <= 0)
 		port = 25;
@@ -215,8 +215,7 @@ SMTPProtocol::POP3Authentification()
 		return B_ERROR;
 	}
 
-	Mail::ChainRunner *parent;
-	fSettings->FindPointer("chain_runner", (void **)&parent);
+	Mail::ChainRunner *parent = runner;
 	Mail::Chain *chain = NULL;
 	for (int i = chains.CountItems(); i-- > 0;)
 	{
@@ -242,17 +241,15 @@ SMTPProtocol::POP3Authentification()
 				fLog = "Cannot load POP3 add-on";
 				if (image >= B_OK)
 				{
-					Mail::Filter *(* instantiate)(BMessage *, Mail::StatusView *);
+					Mail::Filter *(* instantiate)(BMessage *, Mail::ChainRunner *);
 					status_t status = get_image_symbol(image, "instantiate_mailfilter",
 						B_SYMBOL_TYPE_TEXT, (void **)&instantiate);
 					if (status >= B_OK)
 					{
-						Mail::ChainRunner runner(chain);
-						msg.AddPointer("chain_runner", &runner);
 						msg.AddInt32("chain", chain->ID());
 
 						// instantiating and deleting should be enough
-						Mail::Filter *filter = (*instantiate)(&msg, fStatusView);
+						Mail::Filter *filter = (*instantiate)(&msg, runner);
 						delete filter;
 					}
 					else
@@ -400,7 +397,7 @@ SMTPProtocol::Login(const char *_login, const char *password)
 void
 SMTPProtocol::Close()
 {
-	fStatusView->SetMessage(MDR_DIALECT_CHOICE ("Closing connection...","切断中..."));
+	runner->ReportProgress(0,0,MDR_DIALECT_CHOICE ("Closing connection...","切断中..."));
 
 	BString cmd = "QUIT";
 	cmd += CRLF;
@@ -496,7 +493,7 @@ SMTPProtocol::Send(const char *to, const char *from, BPositionIO *message)
 					bufferLen = 0;
 					break;
 				}
-				fStatusView->AddProgress (i + 2 /* Don't include the double period here */);
+				runner->ReportProgress (i + 2 /* Don't include the double period here */,0);
 				// Move the data over in the buffer, but leave the period there
 				// so it gets sent a second time.
 				memmove (data, data + (i + 2), bufferLen - (i + 2));
@@ -509,7 +506,7 @@ SMTPProtocol::Send(const char *to, const char *from, BPositionIO *message)
 			if (amountUnread <= 0) { // No more data, all we have is in the buffer.
 				if (bufferLen > 0) {
 					fConnection.Send (data, bufferLen);
-					fStatusView->AddProgress (bufferLen);
+					runner->ReportProgress (bufferLen,0);
 					if (bufferLen >= 2)
 						messageEndedWithCRLF = (data[bufferLen-2] == '\r' &&
 							data[bufferLen-1] == '\n');
@@ -521,7 +518,7 @@ SMTPProtocol::Send(const char *to, const char *from, BPositionIO *message)
 			if (bufferLen > 3) {
 				if (fConnection.Send (data, bufferLen - 3) < 0)
 					break; // Stop when an error happens.
-				fStatusView->AddProgress (bufferLen - 3);
+				runner->ReportProgress (bufferLen - 3,0);
 				memmove (data, data + bufferLen - 3, 3);
 				bufferLen = 3;
 			}
@@ -603,7 +600,7 @@ SMTPProtocol::SendCommand(const char* cmd)
 
 // Instantiate hook
 Mail::Filter *
-instantiate_mailfilter(BMessage *settings, Mail::StatusView *status)
+instantiate_mailfilter(BMessage *settings, Mail::ChainRunner *status)
 {
 	return new SMTPProtocol(settings, status);
 }

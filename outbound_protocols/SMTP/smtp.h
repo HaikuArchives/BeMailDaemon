@@ -14,12 +14,12 @@
 
 class SMTPProtocol : public Zoidberg::Mail::Filter {
 	public:
-		SMTPProtocol(BMessage *message, Zoidberg::Mail::StatusView *view);
+		SMTPProtocol(BMessage *message, Zoidberg::Mail::ChainRunner *runner);
 		~SMTPProtocol();
 
 		virtual status_t InitCheck(BString *verbose);
-		virtual MDStatus ProcessMailMessage(BPositionIO **io_message, BEntry *io_entry,
-			BMessage *io_headers, BPath *io_folder, BString *io_uid);
+		virtual status_t ProcessMailMessage(BPositionIO **io_message, BEntry *io_entry,
+			BMessage *io_headers, BPath *io_folder, const char *io_uid);
 
 		//----Perfectly good holdovers from the old days
 		status_t Open(const char *server, int port, bool esmtp);
@@ -36,7 +36,7 @@ class SMTPProtocol : public Zoidberg::Mail::Filter {
 		BNetEndpoint fConnection;
 		BString fLog;
 		BMessage *fSettings;
-		Zoidberg::Mail::StatusView *fStatusView;
+		Zoidberg::Mail::ChainRunner *runner;
 		int32 fAuthType;
 
 		status_t fStatus;

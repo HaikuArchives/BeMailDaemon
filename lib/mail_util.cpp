@@ -74,7 +74,7 @@ extern const CharsetConversionEntry charsets [] =
 // specifying the MDR_UTF8_CONVERSION constant as the conversion operation.  It
 // also lets us add new conversions, like MDR_US_ASCII_CONVERSION.
 
-status_t MDR_convert_to_utf8 (
+_EXPORT status_t MDR_convert_to_utf8 (
 	uint32 srcEncoding,
 	const char *src,
 	int32 *srcLen,
@@ -137,7 +137,7 @@ status_t MDR_convert_to_utf8 (
 }
 
 
-status_t MDR_convert_from_utf8 (
+_EXPORT status_t MDR_convert_from_utf8 (
 	uint32 dstEncoding,
 	const char *src,
 	int32 *srcLen,

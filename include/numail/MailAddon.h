@@ -16,42 +16,21 @@ class BString;
 class BPositionIO;
 class BEntry;
 
-
-typedef enum
-{
-	MD_OK,
-	// The message was seen and processed or ignored,
-	// continue to send it down the chain of Filters.
-	
-	MD_HANDLED,
-	// The message was handled; delete it from its Pro-
-	// ducer if it doesn't have 'leave on server' set,
-	// and end the Filter chain here.
-	
-	MD_DISCARD,
-	// The message should be discarded.  Remove the entry
-	// and delete the PositionIO (in that order, or rever-
-	// sed?), and end the Filter chain here.  Filters
-	// should return MD_DISCARD if a read error occurs.
-	
-	MD_ERROR,
-	// There was a processing error. Try again later.
-	
-	MD_NO_MORE_MESSAGES
-	// Pretty self-explanatory. On receipt of this status,
-	// the chain ends here. All future iterations don't
-	// happen, all filters are deleted, and all add-ons
-	// unloaded. The chain process thread ends and goes
-	// home. There are exactly two cases where this could
-	// occur: (1) there are no messages left on the server,
-	// or (2) we run out of disk space. That's it.
-} MDStatus;
-
+enum {
+	B_MAIL_DISCARD = B_MAIL_ERROR_BASE + 8,
+	//--- This terminates the chain and removes the message being processed
+	// both from disk and from the server.
+	B_MAIL_END_FETCH,
+	//--- Terminates the current operation
+	B_MAIL_END_CHAIN
+	//--- This is for yikes errors, like an unreachable server.
+};
 
 namespace Zoidberg {
 namespace Mail {
 
 class StatusView;
+class ChainRunner;
 
 class Filter
 {
@@ -75,10 +54,10 @@ class Filter
 	// If it returns an error code then the MailFilter will
 	// probably be deleted and the error shown to the user.
 	
-	virtual MDStatus ProcessMailMessage
+	virtual status_t ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* io_entry,
-		BMessage* io_headers, BPath* io_folder, BString* io_uid
+		BMessage* io_headers, BPath* io_folder, const char *io_uid
 	) = 0;
 	// Filters a message.  On input and output, the arguments
 	// are expected to be as below; however it is allowed for
@@ -131,10 +110,10 @@ extern "C" _EXPORT BView* instantiate_config_panel(BMessage *settings,BMessage *
 // Also note that it is possible for it to be NULL. 
 
 extern "C" _EXPORT Zoidberg::Mail::Filter* instantiate_mailfilter(BMessage *settings,
-	Zoidberg::Mail::StatusView *status);
+	Zoidberg::Mail::ChainRunner *runner);
 // Return a MailProtocol or MailFilter ready to do its thing,
 // based on settings produced by archiving your config panel.
-// Note that a MailProtocol is a MailFilter, so use
+// Note that a Mail::Protocol is a Mail::Filter, so use
 // instantiate_mailfilter to start things up.
 
 extern "C" _EXPORT status_t descriptive_name(BMessage *msg, char *buffer);

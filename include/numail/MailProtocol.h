@@ -22,60 +22,20 @@ class ChainRunner;
 class Protocol : public Filter
 {
   public:
-	Protocol(BMessage* settings);
+	Protocol(BMessage* settings, ChainRunner *runner);
 	// Open a connection based on 'settings'.  'settings' will
 	// contain a persistent uint32 ChainID field.  At most one
 	// Protocol per ChainID will exist at a given time.
+	// The constructor of Mail::Protocol initializes manifest.
+	// It is your responsibility to fill in unique_ids, *and
+	// to keep it updated* in the course of whatever nefarious
+	// things your protocol does.
 	
 	virtual ~Protocol();
 	// Close the connection and clean up.   This will be cal-
 	// led after FetchMessage() or FetchNewMessage() returns
 	// B_TIMED_OUT or B_ERROR, or when the settings for this
 	// Protocol are changed.
-	
-	virtual status_t UniqueIDs() = 0;
-	// Fill the protected member unique_ids with strings containing
-	// unique ids for all messages present on the server. This al-
-	// lows comparison of remote and local message manifests, so
-	// the local and remote contents can be kept in sync.
-	//
-	// The ID should be unique to this Chain; if that means
-	// this Protocol must add account/server info to differ-
-	// entiate it from other messages, then that info should
-	// be added before returning the IDs and stripped from the
-	// ID for use in GetMessage() et al, below.
-	//
-	// Returns B_OK if this was performed successfully, or another
-	// error if the connection has failed.
-	
-	virtual void PrepareStatusWindow(StringList *manifest)=0;
-	// Prepare your status window by informing it of the number and
-	// size of messages to be fetched. manifest contains the messages
-	// already fetched, if any. unique_ids is gauranteed to be valid
-	// when this routine is called. Note that you cannot simply do
-	// *manifest ^ *unique_ids to get new messages, as manifest may
-	// contain messages not on the server which were deleted by
-	// another agent.
-	
-	virtual status_t GetNextNewUid
-	(
-		BString* out_uid,
-		StringList *manifest,
-		time_t timeout = B_INFINITE_TIMEOUT
-	)=0;
-	// Waits up to timeout microseconds until new mail is present
-	// in the account.  It then stores the new message's unique id
-	// (as above) in out_uid.
-	//
-	// Manifest contains a list of all messages currently on disk.
-	// Skip them.
-	//
-	// Returns B_OK if the message ID is now available in out_uid,
-	// B_TIMED_OUT if the timeout expired with no new messages, or
-	// another error if the connection failed. Note that if, as in
-	// POP3, the mailbox cannot gain new messages, and there is no
-	// point in waiting for them, you should return B_TIMED_OUT
-	// immediately.
 	
 	virtual status_t GetMessage(
 		const char* uid,
@@ -117,17 +77,20 @@ class Protocol : public Filter
 	// et al will fail with B_NAME_NOT_FOUND.
 	
 	//------MailFilter calls
-	virtual MDStatus ProcessMailMessage
+	virtual status_t ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* io_entry,
-		BMessage* io_headers, BPath* io_folder, BString* io_uid
+		BMessage* io_headers, BPath* io_folder, const char* io_uid
 	);
 	
   protected:
-	StringList *unique_ids;
+	StringList *manifest, *unique_ids;
   	BMessage *settings;
-	
+  	
+	Mail::ChainRunner *runner;	
   private:
+  	inline void error_alert(const char *process, status_t error);
+  	bool ran_yet;
 	virtual void _ReservedProtocol1();
 	virtual void _ReservedProtocol2();
 	virtual void _ReservedProtocol3();
@@ -135,10 +98,7 @@ class Protocol : public Filter
 	virtual void _ReservedProtocol5();
 
 	friend class DeletePass;
-
-	StringList *manifest;
-	Mail::ChainRunner *parent;
-
+	
 	uint32 _reserved[5];
 };
 
@@ -146,16 +106,11 @@ class Protocol : public Filter
 //
 //   IMAP, POP3 - internet mail protocols
 //   Internal - Messages sent by this system
-//   Trash - Messages sent to the trash
 
 class SimpleProtocol : public Protocol {
 	public:
-		SimpleProtocol(BMessage *settings, Mail::StatusView *view);
+		SimpleProtocol(BMessage *settings, Mail::ChainRunner *runner);
 			//---Constructor. Simply call this in yours, and most everything will be handled for you.
-		
-		virtual void SetStatusReporter(Mail::StatusView *view) = 0;
-			//---Stash view somewhere, and use the functions in status.h to report all your progress
-			//---Notify it every 100 bytes or so
 			
 		virtual status_t Open(const char *server, int port, int protocol) = 0;
 			//---server is an ASCII representation of the server that you are logging in to
@@ -186,17 +141,23 @@ class SimpleProtocol : public Protocol {
 		virtual size_t MailDropSize(void) = 0;
 			//---return the size of the entire maildrop in bytes
 		
-		//---Note that UniqueIDs is *not* covered for you, and is
-		//   inherited unimplemented by SimpleMailProtocol
+		virtual status_t UniqueIDs() = 0;
+			// Fill the protected member unique_ids with strings containing
+			// unique ids for all messages present on the server. This al-
+			// lows comparison of remote and local message manifests, so
+			// the local and remote contents can be kept in sync.
+			//
+			// The ID should be unique to this Chain; if that means
+			// this Protocol must add account/server info to differ-
+			// entiate it from other messages, then that info should
+			// be added before returning the IDs and stripped from the
+			// ID for use in GetMessage() et al, below.
+			//
+			// Returns B_OK if this was performed successfully, or another
+			// error if the connection has failed.
 		
 		//---------These implement hooks from up above---------
 		//---------not user-servicable-------------------------
-		virtual status_t GetNextNewUid
-		(
-			BString* out_uid,
-			StringList *manifest,
-			time_t timeout = B_INFINITE_TIMEOUT
-		);
 		virtual status_t GetMessage(
 			const char* uid,
 			BPositionIO** out_file, BMessage* out_headers,
@@ -204,11 +165,9 @@ class SimpleProtocol : public Protocol {
 		);
 		virtual status_t DeleteMessage(const char* uid);
 		virtual status_t InitCheck(BString* out_message = NULL);
-		virtual void PrepareStatusWindow(StringList *manifest);
 		virtual ~SimpleProtocol();
 
 	protected:
-		Mail::StatusView *status_view;
 		status_t Init();
 
 	private:

@@ -28,11 +28,11 @@ class RuleFilter : public Zoidberg::Mail::Filter {
 					
 		virtual status_t	InitCheck(BString* out_message = NULL);
 		
-		virtual MDStatus ProcessMailMessage(BPositionIO** io_message,
+		virtual status_t ProcessMailMessage(BPositionIO** io_message,
 											   BEntry* io_entry,
 											   BMessage* io_headers,
 											   BPath* io_folder,
-											   BString* io_uid);
+											   const char* io_uid);
 	private:
 		StringMatcher		matcher;
 		const char*			attribute;

@@ -433,7 +433,7 @@ status_t Chain::RemoveFilter(int32 index)
 }
 
 void Chain::RunChain(StatusWindow *window, bool async, bool save_when_done, bool delete_when_done) {
-	(new ChainRunner(this))->RunChain(window,true,async,save_when_done,delete_when_done);
+	(new ChainRunner(this,window,true,save_when_done,delete_when_done))->RunChain(async);
 }
 
 }	// namespace Mail

@@ -24,7 +24,7 @@ using namespace Zoidberg;
 class NotifyCallback : public Mail::ChainCallback {
 	public:
 		NotifyCallback (int32 notification_method, Mail::Chain *us);
-		virtual void Callback(MDStatus result);
+		virtual void Callback(status_t result);
 		
 		uint32 num_messages;
 	private:
@@ -35,12 +35,12 @@ class NotifyCallback : public Mail::ChainCallback {
 class NotifyFilter : public Mail::Filter
 {
   public:
-	NotifyFilter(BMessage*);
+	NotifyFilter(BMessage*,Mail::ChainRunner*);
 	virtual status_t InitCheck(BString *err);
-	virtual MDStatus ProcessMailMessage
+	virtual status_t ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* io_entry,
-		BMessage* io_headers, BPath* io_folder, BString* io_uid
+		BMessage* io_headers, BPath* io_folder, const char* io_uid
 	);
 	
   private:
@@ -48,12 +48,9 @@ class NotifyFilter : public Mail::Filter
 };
 
 
-NotifyFilter::NotifyFilter(BMessage* msg)
+NotifyFilter::NotifyFilter(BMessage* msg,Mail::ChainRunner *runner)
 	: Mail::Filter(msg)
 {
-	Mail::ChainRunner *runner;
-	msg->FindPointer("chain_runner",(void **)&runner);
-
 	callback = new NotifyCallback(msg->FindInt32("notification_method"),runner->Chain());
 	
 	runner->RegisterProcessCallback(callback);
@@ -64,11 +61,11 @@ status_t NotifyFilter::InitCheck(BString* err)
 	return B_OK;
 }
 
-MDStatus NotifyFilter::ProcessMailMessage(BPositionIO**, BEntry*, BMessage*, BPath*, BString*)
+status_t NotifyFilter::ProcessMailMessage(BPositionIO**, BEntry*, BMessage*, BPath*, const char*)
 {
 	callback->num_messages ++;
 	
-	return MD_OK;
+	return B_OK;
 }
 
 NotifyCallback::NotifyCallback (int32 notification_method, Mail::Chain *us) : 
@@ -78,7 +75,10 @@ NotifyCallback::NotifyCallback (int32 notification_method, Mail::Chain *us) :
 {
 }
 
-void NotifyCallback::Callback(MDStatus result) {
+void NotifyCallback::Callback(status_t result) {
+	if (num_messages == 0)
+		return;
+	
 	if (strategy & do_beep)
 		system_beep("New E-mail");
 		
@@ -108,8 +108,8 @@ void NotifyCallback::Callback(MDStatus result) {
 	}
 }
 
-Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::StatusView *view)
+Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::ChainRunner *runner)
 {
-	return new NotifyFilter(settings);
+	return new NotifyFilter(settings,runner);
 }
 

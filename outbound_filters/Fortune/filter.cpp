@@ -23,10 +23,10 @@ class FortuneFilter : public Mail::Filter
   public:
 	FortuneFilter(BMessage*);
 	virtual status_t InitCheck(BString *err);
-	virtual MDStatus ProcessMailMessage
+	virtual status_t ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* io_entry,
-		BMessage* io_headers, BPath* io_folder, BString* io_uid
+		BMessage* io_headers, BPath* io_folder, const char* io_uid
 	);
 };
 
@@ -40,8 +40,8 @@ status_t FortuneFilter::InitCheck(BString* err)
 	return B_OK;
 }
 
-MDStatus FortuneFilter::ProcessMailMessage
-(BPositionIO** io, BEntry* io_entry, BMessage* headers, BPath* , BString*)
+status_t FortuneFilter::ProcessMailMessage
+(BPositionIO** io, BEntry* io_entry, BMessage* headers, BPath* , const char*)
 {
 	BString fortune_file;
 	settings->FindString("fortune_file", &fortune_file);	
@@ -73,10 +73,10 @@ MDStatus FortuneFilter::ProcessMailMessage
 	} else {
 		printf("Could not open pipe to fortune!\n");
 	}
-	return MD_OK;
+	return B_OK;
 }
 
-Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::StatusView*)
+Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::ChainRunner*)
 {
 	return new FortuneFilter(settings);
 }

@@ -63,24 +63,22 @@ class FolderFilter : public Mail::Filter
 	int fNumberOfFilesSaved;
 
   public:
-	FolderFilter(BMessage*);
+	FolderFilter(BMessage*,Mail::ChainRunner *);
 	virtual ~FolderFilter();
 	virtual status_t InitCheck(BString *err);
-	virtual MDStatus ProcessMailMessage
+	virtual status_t ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* io_entry,
-		BMessage* io_headers, BPath* io_folder, BString* io_uid
+		BMessage* io_headers, BPath* io_folder, const char* io_uid
 	);
 };
 
 
-FolderFilter::FolderFilter(BMessage* msg)
+FolderFilter::FolderFilter(BMessage* msg,Mail::ChainRunner *runner)
 	: Mail::Filter(msg),
 	chain_id(msg->FindInt32("chain"))
 {
 	fNumberOfFilesSaved = 0;
-	Mail::ChainRunner *runner = NULL;
-	msg->FindPointer("chain_runner", (void**)&runner);
 	dest_string = runner->Chain()->MetaData()->FindString("path");
 	destination = dest_string.String();
 }
@@ -112,7 +110,7 @@ status_t FolderFilter::InitCheck(BString* err)
 	}
 }
 
-MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* out_headers, BPath*, BString* io_uid)
+status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* out_headers, BPath*, const char* io_uid)
 {
 	time_t			dateAsTime;
 	const time_t   *datePntr;
@@ -122,7 +120,7 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	BString			worker;
 
 	BDirectory		dir;
-
+	
 	BPath path = dest_string.String();
 	if (out_headers->HasString("DESTINATION")) {
 		const char *string;
@@ -148,7 +146,7 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		)
 		Mail::ShowAlert(MDR_DIALECT_CHOICE ("Folder Error","フォルダエラー"),error.String(),MDR_DIALECT_CHOICE ("OK","了解"),B_WARNING_ALERT);
 
-		return MD_ERROR;
+		return err;
 	}
 
 	BNodeInfo info(&node);
@@ -156,7 +154,7 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 
 	BMessage attributes;
 
-	attributes.AddString("MAIL:unique_id",io_uid->String());
+	attributes.AddString("MAIL:unique_id",io_uid);
 	attributes.AddString("MAIL:account",Mail::Chain(chain_id).Name());
 	attributes.AddInt32("MAIL:chain",chain_id);
 
@@ -165,7 +163,7 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	if (attributes.ReplaceInt32(B_MAIL_ATTR_CONTENT,length) != B_OK)
 		attributes.AddInt32(B_MAIL_ATTR_CONTENT,length);
 
-	const char *buf;		
+	const char *buf;
 	time_t when;
 	for (int i = 0; gDefaultFields[i].rfc_name; ++i)
 	{
@@ -203,7 +201,7 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		)
 		Mail::ShowAlert(MDR_DIALECT_CHOICE ("Folder Error","フォルダエラー"),error.String(),MDR_DIALECT_CHOICE ("OK","了解"),B_WARNING_ALERT);
 
-		return MD_ERROR;
+		return err;
 	}
 
 	// Generate a file name for the incoming message.  See also
@@ -258,13 +256,13 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		printf("could not rename mail (%s)! (should be: %s)\n",strerror(err),worker.String());
 
 	fNumberOfFilesSaved++;
-	return MD_HANDLED;
+	return B_OK;
 }
 
 
-Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::StatusView *status)
+Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::ChainRunner *run)
 {
-	return new FolderFilter(settings);
+	return new FolderFilter(settings,run);
 }
 
 
