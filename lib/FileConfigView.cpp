@@ -12,12 +12,13 @@
 
 #include <stdio.h>
 
-class _EXPORT FileControl;
-
 namespace Zoidberg {
-namespace Mail {
-	class _EXPORT FileConfigView;
-}
+	class _EXPORT FileControl;
+
+	namespace Mail {
+		class _EXPORT FileConfigView;
+	
+	}
 }
 
 #include "FileConfigView.h"
