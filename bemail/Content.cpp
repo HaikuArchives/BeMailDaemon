@@ -79,97 +79,6 @@ inline bool
 IsInitialUTF8Byte(uchar b)	
 	{ return ((b & 0xC0) != 0x80); }
 	
-static char* unqp(const char *data, int32 *dataLen)
-{
-	// decode Quoted Printable
-	int32	origDataLen = *dataLen;
-	int32	resultLen = origDataLen;
-
-	for (int32 i = 0; i < origDataLen; i++) {
-		if (data[i] == '=') {
-			resultLen -= 2;
-			if (i < (origDataLen - 2)) {
-				if ((data[i + 1] == 0x0D) && (data[i + 2] == 0x0A))
-					// want to completely get rid of =<CR><LF>
-					resultLen--;
-			}
-		}
-	}
-
-	char *result = (char *)malloc(resultLen + 1);
-
-	int32 j = 0;
-	for (int32 i = 0; i < resultLen; i++) {
-		if ((data[j] == '=') && (j < (origDataLen - 2))) {
-			if ((data[j + 1] == 0x0D) && (data[j + 2] == 0x0A))
-				// get rid of =<CR><LF>
-				i--;
-			else {
-				char hex[3];
-				hex[0] = toupper(data[j + 1]);
-				hex[1] = toupper(data[j + 2]);
-				hex[2] = '\0';
-				result[i] = strtol(hex, NULL, 16);
-			}
-			j += 3;
-		} else {
-			result[i] = data[j];
-			j++;
-		}
-	}
-
-	result[resultLen] = '\0';
-	*dataLen = resultLen;
-	return (result);	
-}
-
-#define	DEC(Char) (((Char) - ' ') & 077)
-
-static int32 decode(char *encoding, void *data, int32 size, bool /*isText*/)
-{
-	if (!encoding) return size;
-	if (cistrstr(encoding,"base64")) {
-		return decode_base64((char*)data,(char*)data,size /*,isText*/);
-	} else if (cistrstr(encoding,"quoted-printable")) {
-		char *newStuff = unqp((char*)data,&size);
-		memcpy(data,newStuff,size);
-		free(newStuff);
-		return size;
-	} else if (cistrstr(encoding,"uuencode")) {
-		int32 n;
-		uint8 *p,*inBuffer = (uchar*)data;
-		uint8 *outBuffer = inBuffer;
-		
-		inBuffer = (uint8*)strstr((char*)inBuffer,"begin");
-		goto enterLoop;
-		while (inBuffer[0] && strncmp((char*)inBuffer,"end",3)) {
-			p = inBuffer;
-			n = DEC(inBuffer[0]);
-			for (++inBuffer; n>0; inBuffer+=4, n-=3) {
-				if (n >= 3) {
-					*outBuffer++ = DEC(inBuffer[0]) << 2 | DEC (inBuffer[1]) >> 4;
-					*outBuffer++ = DEC(inBuffer[1]) << 4 | DEC (inBuffer[2]) >> 2;
-					*outBuffer++ = DEC(inBuffer[2]) << 6 | DEC (inBuffer[3]);
-				} else {
-					if (n >= 1) *outBuffer++ = DEC(inBuffer[0]) << 2
-						| DEC (inBuffer[1]) >> 4;
-					if (n >= 2) *outBuffer++ = DEC(inBuffer[1]) << 4
-						| DEC (inBuffer[2]) >> 2;
-				}
-			};
-			inBuffer = p;
-			enterLoop:
-			while ((inBuffer[0] != '\n') && (inBuffer[0] != '\r')
-				&& (inBuffer[0] != 0)) inBuffer++;
-			while ((inBuffer[0] == '\n') || (inBuffer[0] == '\r')) inBuffer++;
-		};
-		
-		return (outBuffer - ((uint8*)data));
-	};
-	
-	return size;
-};
-
 
 //====================================================================
 //	#pragma mark -
@@ -1330,12 +1239,13 @@ void TTextView::ClearList()
 }
 
 
-void TTextView::LoadMessage(BFile *file, bool quote_it, bool close, const char *text)
+void TTextView::LoadMessage(BFile *file, bool quoteIt, bool close, const char *text)
 {
 	Window()->Unlock();
 	StopLoad();		
 	Window()->Lock();
 
+	delete fMail;  fMail = NULL;
 	fFile = file;
 
 	ClearList();
@@ -1345,78 +1255,54 @@ void TTextView::LoadMessage(BFile *file, bool quote_it, bool close, const char *
 		Insert(text, strlen(text));
 
 	attr_info attrInfo;
-	TTextView::Reader *reader = new TTextView::Reader(fHeader, fRaw, quote_it, fIncoming,
+	TTextView::Reader *reader = new TTextView::Reader(fHeader, fRaw, quoteIt, fIncoming,
 				close, file->GetAttrInfo(B_MAIL_ATTR_MIME, &attrInfo) == B_OK,
 				this, file, fEnclosures, fStopSem);
-//	reader_info *info;
-//	info = (reader_info *)malloc(sizeof(reader_info));
-//	info->header = fHeader;
-//	info->raw = fRaw;
-//	info->quote = quote_it;
-//	info->incoming = fIncoming;
-//	info->close = close;
-//
-//	if (file->GetAttrInfo(B_MAIL_ATTR_MIME, &attrInfo) == B_NO_ERROR)
-//		info->mime = true;
-//	else
-//		info->mime = false;
-//
-//	info->view = this;
-//	info->enclosures = fEnclosures;
-//	info->file = file;
-//	info->stop_sem = &fStopSem;
+
 	resume_thread(fThread = spawn_thread(Reader::Run, "reader", B_NORMAL_PRIORITY, reader));
 }
 
 
 void TTextView::Open(hyper_text *enclosure)
 {
-	char		name[B_FILE_NAME_LENGTH];
-	char		name1[B_FILE_NAME_LENGTH];
-	int32		index = 0;
-	BDirectory	dir;
-	BEntry		entry;
-	BMessage	save(M_SAVE);
-	BMessage	openMsg(B_REFS_RECEIVED);
-	BMessenger	*tracker;
-	BPath		path;
-	entry_ref	ref;
-	status_t	result;
-
-	switch (enclosure->type) {
-		case TYPE_URL: {
+	switch (enclosure->type)
+	{
+		case TYPE_URL:
+		{
+			const struct {const char *urlType, *handler; } handlerTable[] =
+			{
+				{"http",	B_URL_HTTP},
+				{"https",	B_URL_HTTPS},
+				{"ftp",		B_URL_FTP},
+				{"gopher",	B_URL_GOPHER},
+				{"mailto",	B_URL_MAILTO},
+				{"news",	B_URL_NEWS},
+				{"nntp",	B_URL_NNTP},
+				{"telnet",	B_URL_TELNET},
+				{"rlogin",	B_URL_RLOGIN},
+				{"tn3270",	B_URL_TN3270},
+				{"wais",	B_URL_WAIS},
+				{"file",	B_URL_FILE},
+				{NULL,		NULL}
+			};
 			const char *handlerToLaunch = NULL;
 
 			const char *colonPos = strchr(enclosure->name, ':');
-			if (colonPos) {
+			if (colonPos)
+			{
 				int urlTypeLength = colonPos - enclosure->name;
 				
-				if (strncasecmp(enclosure->name, "http", urlTypeLength) == 0)
-					handlerToLaunch = B_URL_HTTP;
-				else if (strncasecmp(enclosure->name, "https", urlTypeLength) == 0)
-					handlerToLaunch = B_URL_HTTPS;
-				else if (strncasecmp(enclosure->name, "ftp", urlTypeLength) == 0)
-					handlerToLaunch = B_URL_FTP;
-				else if (strncasecmp(enclosure->name, "gopher", urlTypeLength) == 0)
-					handlerToLaunch = B_URL_GOPHER;
-				else if (strncasecmp(enclosure->name, "mailto", urlTypeLength) == 0)
-					handlerToLaunch = B_URL_MAILTO;
-				else if (strncasecmp(enclosure->name, "news", urlTypeLength) == 0)
-					handlerToLaunch = B_URL_NEWS;
-				else if (strncasecmp(enclosure->name, "nntp", urlTypeLength) == 0)
-					handlerToLaunch = B_URL_NNTP;
-				else if (strncasecmp(enclosure->name, "telnet", urlTypeLength) == 0)
-					handlerToLaunch = B_URL_TELNET;
-				else if (strncasecmp(enclosure->name, "rlogin", urlTypeLength) == 0)
-					handlerToLaunch = B_URL_RLOGIN;
-				else if (strncasecmp(enclosure->name, "tn3270", urlTypeLength) == 0)
-					handlerToLaunch = B_URL_TN3270;
-				else if (strncasecmp(enclosure->name, "wais", urlTypeLength) == 0)
-					handlerToLaunch = B_URL_WAIS;
-				else if (strncasecmp(enclosure->name, "file", urlTypeLength) == 0)
-					handlerToLaunch = B_URL_FILE;
+				for (int32 index = 0; handlerTable[index].urlType; index++)
+				{
+					if (strncasecmp(enclosure->name, handlerTable[index].urlType, urlTypeLength) == 0)
+					{
+						handlerToLaunch = handlerTable[index].handler;
+						break;
+					}
+				}
 			}
-			if (handlerToLaunch) {
+			if (handlerToLaunch)
+			{
 				entry_ref appRef;
 				if (be_roster->FindApp(handlerToLaunch, &appRef) != B_OK)
 					handlerToLaunch = NULL;
@@ -1424,9 +1310,9 @@ void TTextView::Open(hyper_text *enclosure)
 			if (!handlerToLaunch)
 				handlerToLaunch = "application/x-vnd.Be-Bookmark";
 
-			result = be_roster->Launch(handlerToLaunch, 1, 
-				&enclosure->name);
-			if ((result != B_NO_ERROR) && (result != B_ALREADY_RUNNING)) {
+			status_t result = be_roster->Launch(handlerToLaunch, 1, &enclosure->name);
+			if ((result != B_NO_ERROR) && (result != B_ALREADY_RUNNING))
+			{
 				beep();
 				(new BAlert("", "There is no installed handler for URL links.",
 					"Sorry"))->Go();
@@ -1440,20 +1326,26 @@ void TTextView::Open(hyper_text *enclosure)
 
 		case TYPE_ENCLOSURE:
 		case TYPE_BE_ENCLOSURE:
-			if (!enclosure->have_ref) {
-				if (find_directory(B_COMMON_TEMP_DIRECTORY, &path) == B_NO_ERROR) {
-					dir.SetTo(path.Path());
-					if (dir.InitCheck() == B_NO_ERROR) {
-						if (enclosure->name)
-							sprintf(name1, "%s", enclosure->name);
-						else
-							sprintf(name1, "enclosure");
-						strcpy(name, name1);
-						while (dir.Contains(name)) {
-							sprintf(name, "%s_%ld", name1, index++);
-						}
-						entry.SetTo(path.Path());
+			if (!enclosure->have_ref)
+			{
+				BPath path;
+				if (find_directory(B_COMMON_TEMP_DIRECTORY, &path) == B_NO_ERROR)
+				{
+					BDirectory dir(path.Path());
+					if (dir.InitCheck() == B_NO_ERROR)
+					{
+						char name[B_FILE_NAME_LENGTH];
+						char baseName[B_FILE_NAME_LENGTH];
+						strcpy(baseName, enclosure->name ? enclosure->name : "enclosure");
+						strcpy(name, baseName);
+						for (int32 index = 0; dir.Contains(name); index++)
+							sprintf(name, "%s_%ld", baseName, index);
+
+						BEntry entry(path.Path());
+						entry_ref ref;
 						entry.GetRef(&ref);
+
+						BMessage save(M_SAVE);
 						save.AddRef("directory", &ref);
 						save.AddString("name", name);
 						save.AddPointer("enclosure", enclosure);
@@ -1463,119 +1355,25 @@ void TTextView::Open(hyper_text *enclosure)
 					}
 				}
 			}
-			tracker = new BMessenger("application/x-vnd.Be-TRAK", -1, NULL);
-			if (tracker->IsValid()) {
+			BMessenger tracker("application/x-vnd.Be-TRAK");
+			if (tracker.IsValid())
+			{
+				BMessage openMsg(B_REFS_RECEIVED);
 				openMsg.AddRef("refs", &enclosure->ref);
-				tracker->SendMessage(&openMsg);
+				tracker.SendMessage(&openMsg);
 			}
-			delete tracker;
 			break;
 	}
 }
 
 
-//status_t TTextView::Reader(reader_info *info)
-//{
-//	char		*msg;
-//	int32		len;
-//	off_t		size;
-//
-//	info->file->GetSize(&size);
-//	if ((msg = (char *)malloc(size)) == NULL)
-//		goto done;
-//	info->file->Seek(0, 0);
-//	size = info->file->Read(msg, size);
-//	len = header_len(info->file);
-//	
-//	// show the header?
-//	if ((info->header) && (len))
-//	{
-//		if (!strip_it(msg, len, info))
-//			goto done;
-//	}
-//
-//	if (info->raw)
-//	{
-//		if (!strip_it((const char *)msg + len, size - len, info))
-//			goto done;
-//	}
-//	else if (!info->mime)
-//	{
-//		// convert to user's preferred encoding if charset not specified in MIME
-//		int32	convState = 0;
-//		int32	src_len = size - len;
-//		int32	dst_len = 4 * src_len;
-//		char	*utf8 = (char *)malloc(dst_len);
-//
-//		convert_to_utf8(gMailEncoding, msg + len, &src_len, utf8, &dst_len,
-//			&convState);
-//
-//		bool result = strip_it((const char *)utf8, dst_len, info);
-//		free(utf8);
-//
-//		if (!result)
-//			goto done;
-//	}
-//	else
-//	{
-//		info->file->Seek(0, 0);
-//		MailMessage mail(info->file);
-//		MailComponent *component;
-//
-//		if (mail.BodyText())
-//			puts(mail.BodyText());
-//		else
-//			puts("no mail body");
-//		printf("Message components: %ld\n",mail.CountComponents());
-//
-//		for (int32 index = 0; (component = mail.GetComponent(index)) != NULL; index++)
-//		{
-//			if (component->IsAttachment())
-//			{
-//				printf("Attachment: type = '%s', disposition = '%s'\n",component->HeaderField("Content-Type"),component->HeaderField("Content-Disposition"));
-//			}
-//			if (PlainTextBodyComponent *body = dynamic_cast<PlainTextBodyComponent *>(component))
-//			{
-//				puts(body->Text());
-//				strip_it(body->Text(),strlen(body->Text()),info);
-//			}
-//		}
-//puts("still alive");
-//	}
-////	else if (!parse_header(msg, msg, size, NULL, info, NULL))
-////		goto done;
-//
-//	if (acquire_window_sem(info->view->Window(), *info->stop_sem))
-//	{
-//		info->view->Select(0, 0);
-//		info->view->MakeSelectable(true);
-//		if (!info->incoming)
-//			info->view->MakeEditable(true);
-//
-//		release_window_sem(info->view->Window(), *info->stop_sem);
-//	}
-//
-//done:
-//	if (info->close)
-//		delete info->file;
-//	free(info);
-//	if (msg)
-//		free(msg);
-//	return B_NO_ERROR;
-//}
-
-
 status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 {
-//	bool			is_text = false;
 	const char		*name;
-//	char			*data;
 	entry_ref		ref;
 	BFile			file;
-	BNodeInfo		*info;
 	BPath			path;
 	hyper_text		*enclosure;
-//	ssize_t			size;
 	status_t		result = B_NO_ERROR;
 	char 			entry_name[B_FILE_NAME_LENGTH];
 
@@ -1622,12 +1420,10 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 			if (result == B_NO_ERROR)
 			{
 				result = dir.CreateFile(name, &file);
-				if (result == B_NO_ERROR) {
-					if (enclosure->content_type) {
-						info = new BNodeInfo(&file);
-						info->SetType(enclosure->content_type);
-						delete info;
-					}
+				if (result == B_NO_ERROR && enclosure->content_type)
+				{
+					BNodeInfo info(&file);
+					info.SetType(enclosure->content_type);
 				}
 			}
 		}
@@ -1646,24 +1442,8 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 		//
 		// Write the data
 		//
-		puts("write the data!");
 		enclosure->component->GetDecodedData(&file);
 		
-//		data = (char*) malloc(enclosure->file_length);
-//		fFile->Seek(enclosure->file_offset, 0);
-//		size = fFile->Read(data, enclosure->file_length);
-//		if (enclosure->type == TYPE_BE_ENCLOSURE) {
-//			SaveBeFile(&file, data, size);
-//		} else {
-//			is_text = ((cistrstr(enclosure->content_type, "text")) &&
-//					  (!cistrstr(enclosure->content_type, 
-//						B_MAIL_TYPE)));
-//			size = decode(enclosure->encoding, data, size, is_text);
-//			file.Write(data, size);
-//		}
-//		
-//		free(data);
-//		
 		BEntry entry;
 		dir.FindEntry(name, &entry);
 		entry.GetRef(&enclosure->ref);
@@ -1676,7 +1456,8 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 		watch_node(&enclosure->node, B_WATCH_NAME, this);
 	}	
 
-	if (result != B_NO_ERROR) {
+	if (result != B_NO_ERROR)
+	{
 		beep();
 		(new BAlert("", "An error occurred trying to save the enclosure.",
 			"Sorry"))->Go();
@@ -1686,106 +1467,14 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 }
 
 
-void TTextView::SaveBeFile(BFile *file, char *data, ssize_t size)
-{
-	char		*boundary;
-	char		*encoding;
-	char		*name;
-	char		*offset;
-	char		*start;
-	char		*type = NULL;
-	int32		len;
-	int32		index;
-	BNodeInfo	*info;
-	type_code	code;
-	off_t		length;
-	ssize_t		total;
-
-	offset = data;
-	total = size;
-	while ((len = linelen(offset, (data + total) - offset, true)) <= 2) {
-		offset += len;
-		if (offset >= data + size)
-			return;
-		total -= len;
-		data += len;
-	}
-	boundary = offset;
-	boundary[len - 2] = 0;
-	
-	while (1) {
-		if ((!(offset = find_boundary(offset, boundary, (data + total) - offset)))
-				|| (offset[strlen(boundary) + 1] == '-'))
-			return;
-
-		encoding = NULL;
-
-		while ((len = linelen(offset, (data + total) - offset, true)) > 2) {
-			if (!cistrncmp(offset, CONTENT_TYPE, strlen(CONTENT_TYPE))) {
-				offset[len - 2] = 0;
-				type = offset;
-			}
-			else if (!cistrncmp(offset, CONTENT_ENCODING,
-					strlen(CONTENT_ENCODING))) {
-				offset[len - 2] = 0;
-				encoding = offset + strlen(CONTENT_ENCODING);
-			}
-			offset += len;
-			if (*offset == '\r')
-				offset++;
-			if (offset > data + total)
-				return;
-		}
-		offset += len;
-
-		start = offset;
-		while ((offset < (data + total)) && strncmp(boundary, offset,
-				strlen(boundary))) {
-			offset += linelen(offset, (data + total) - offset, false);
-			if (*offset == '\r')
-				offset++;
-		}
-		len = offset - start;
-
-		len = decode(encoding, start, len, false);
-		if (type && cistrstr(type, "x-be_attribute")) {
-			index = 0;
-			while (index < len) {
-				name = &start[index];
-				index += strlen(name) + 1;
-				memcpy(&code, &start[index], sizeof(type_code));
-				code = B_BENDIAN_TO_HOST_INT32(code);
-				index += sizeof(type_code);
-				memcpy(&length, &start[index], sizeof(length));
-				length = B_BENDIAN_TO_HOST_INT64(length);
-				index += sizeof(length);
-				swap_data(code, &start[index], length, B_SWAP_BENDIAN_TO_HOST);
-				file->WriteAttr(name, code, 0, &start[index], length);
-				index += length;
-			}
-		} else if (type) {
-			file->Write(start, len);
-			info = new BNodeInfo(file);
-			type += strlen(CONTENT_TYPE);
-			start = type;
-			while ((*start) && (*start != ';')) {
-				start++;
-			}
-			*start = 0;
-			info->SetType(type);
-			delete info;
-		}
-	}
-}
-
-
 void TTextView::StopLoad()
 {
 	int32		result;
 	thread_id	thread;
 	thread_info	info;
 
-	if (((thread = fThread) != 0) && (get_thread_info(fThread, &info) == B_NO_ERROR)) {
+	if (((thread = fThread) != 0) && (get_thread_info(fThread, &info) == B_NO_ERROR))
+	{
 		acquire_sem(fStopSem);
 		wait_for_thread(thread, &result);
 		fThread = 0;
@@ -1957,14 +1646,6 @@ bool TTextView::Reader::ParseMail(MailContainer *container,PlainTextBodyComponen
 //			enclosure->delete_component = component == c;
 //			if (component == c)
 //				c = new MailComponent();
-//					if (is_bfile)
-//						enclosure->type = TYPE_BE_ENCLOSURE;
-//					else
-//						enclosure->type = TYPE_ENCLOSURE;
-//					if (encoding) {
-//						enclosure->encoding = (char *)malloc(strlen(encoding) + 1);
-//						strcpy(enclosure->encoding, encoding);
-//					}
 
 			BString name;
 			if (!get_parameter(component->HeaderField("Content-Type"),"name=",&name)
@@ -2261,478 +1942,6 @@ bool acquire_window_sem(BWindow *window, sem_id sem)
 	}
 	return true;
 }
-
-
-//bool insert(reader_info *info, const char *line, int32 count, bool hyper)
-//{
-//	uint32			mode;
-//	BFont			font;
-//	rgb_color		c;
-//	rgb_color		hyper_color = {0, 0, 255, 0};
-//	rgb_color		normal_color = { 0, 0, 0, 0 };
-//	text_run_array	style;
-//
-//	info->view->GetFontAndColor(&font, &mode, &c);
-//	style.count = 1;
-//	style.runs[0].offset = 0;	
-//	style.runs[0].font = font;
-//	if (hyper)
-//		style.runs[0].color = hyper_color;
-//	else
-//		style.runs[0].color = normal_color;
-//
-//	if (count) {
-//		if (!acquire_window_sem(info->view->Window(), *info->stop_sem))
-//			return false;
-//		info->view->Insert(line, count, &style);
-//		release_window_sem(info->view->Window(), *info->stop_sem);
-//	}
-//	return true;
-//}
-
-//--------------------------------------------------------------------
-
-//bool parse_header(char *base, char *data, off_t size, char *boundary,
-//				  reader_info *info, off_t *processed)
-//{
-//	bool			is_bfile;
-//	bool			is_text;
-//	bool			result;
-//	char			*charset;
-//	char			*disposition;
-//	char			*encoding;
-//	char			*hyper;
-//	char			*new_boundary;
-//	char			*offset;
-//	char			*start;
-//	char			*str;
-//	char			*type;
-//	char			*utf8;
-//	int32			dst_len;
-//	int32			index;
-//	int32			len;
-//	int32			saved_len;
-//	off_t			amount;
-//	hyper_text		*enclosure;
-//
-//	offset = data;
-//	while (1) {
-//		is_bfile = false;
-//		is_text = true;
-//		charset = NULL;
-//		encoding = NULL;
-//		disposition = NULL;
-//		new_boundary = NULL;
-//		type = NULL;
-//
-//		if (boundary) {
-//			if ((!(offset = find_boundary(offset, boundary, (data + size) - offset)))
-//					|| (offset[strlen(boundary) + 1] == '-')) {
-//				if (processed)
-//					*processed = offset - data;
-//				return true;
-//			}
-//		}
-//		// Process Headers Loop
-//		while ((len = linelen(offset, (data + size) - offset, true)) > 2) {
-//			// Is it a content type header?
-//			if (!cistrncmp(offset, CONTENT_TYPE, strlen(CONTENT_TYPE))) {
-//				offset[len - 2] = 0;
-//				type = offset;
-//
-//				char *semi = strchr(offset, ';');
-//				if (semi)
-//					*semi = 0;
-//					
-//				// Look for text MIME type; inline text, but treat "text/html"
-//				// as attachment
-//				if (cistrstr(offset, MIME_TEXT)&&(!cistrstr(offset, "text/html"))){
-//				} else {
-//					is_text = false; // It's not text or it's text/html
-//					if (semi) {
-//						*semi = ';';
-//						semi = 0;
-//					}
-//					// Is it a multipart MIME?
-//					if (cistrstr(offset, MIME_MULTIPART)) {
-//						// Is it a Be file with attributes?
-//						if (cistrstr(offset, "x-bfile")) {
-//							is_bfile = true;
-//							start = offset + len;
-//							// Process attributes
-//							while ((start < (data + size)) && strncmp(boundary,
-//									start, strlen(boundary))) {
-//								index = linelen(start, (data + size) - start, true);
-//								start[index - 2] = 0;
-//								if ((!cistrncmp(start, CONTENT_TYPE,
-//										strlen(CONTENT_TYPE)))
-//										&& (!cistrstr(start, "x-be_attribute"))) {
-//									type = start;
-//									break;
-//								}
-//								else
-//									start[index - 2] = '\r';
-//								start += index;
-//								if (*start == '\r')
-//									start++;
-//								if (start > data + size)
-//									break;
-//							}
-//						}
-//						else if (get_parameter(offset, "boundary=", &offset[2])) {
-//							offset[0] = '-';
-//							offset[1] = '-';
-//							new_boundary = offset;
-//						}
-//					}
-//				}
-//				if (semi) {
-//					*semi = ';';
-//					semi = 0;
-//				}
-//			}
-//			// Is it a content encoding header?
-//			else if (!cistrncmp(offset, CONTENT_ENCODING,
-//					strlen(CONTENT_ENCODING))) {
-//				offset[len - 2] = 0;
-//				encoding = offset + strlen(CONTENT_ENCODING);
-//			}
-//			// Is it a content disposition header?
-//			else if (!cistrncmp(offset, CONTENT_DISPOSITION,
-//					strlen(CONTENT_DISPOSITION))) {
-//				offset[len - 2] = 0;
-//				disposition = offset + strlen(CONTENT_DISPOSITION);
-//			}
-//			// Advance to next line; Return if EOF
-//			offset += len;
-//			if (*offset == '\r')
-//				offset++;
-//			if (offset > data + size)
-//				return true;
-//		}
-//		offset += len;
-//		
-//		// Recurse on new boundry
-//		if (new_boundary) {
-//			if (!parse_header(base, offset, (data + size) - offset, new_boundary,
-//					info, &amount))
-//				return false;
-//			offset += amount;
-//		} else {
-//			if (boundary) {
-//				start = offset;
-//				while ((offset < (data + size)) && strncmp(boundary, offset,
-//						strlen(boundary))) {
-//					offset += linelen(offset, (data + size) - offset, false);
-//					if (*offset == '\r')
-//						offset++;
-//				}
-//				len = offset - start;
-//				offset = start;
-//			}
-//			else
-//				len = (data + size) - offset;
-//			// Is it text?
-//			if (((is_text) && (!type)) || ((is_text) && (type)
-//					/*&& (!cistrstr(type, "name="))*/)) {
-//				utf8 = NULL;
-//				saved_len = len;
-//
-//				if (encoding != NULL)
-//					len = decode(encoding, offset, len, false);
-//	
-//				if ((type) && (get_parameter(type, "charset=", type))) {
-//					charset = type;
-//					if (!cistrncmp(charset, "iso-2022-jp", 11)) {
-//						int32 convState = 0;
-//
-//						utf8 = (char *)malloc(4 * len);
-//						dst_len = 4 * len;
-//						convert_to_utf8(B_JIS_CONVERSION, offset, &len, utf8,
-//							&dst_len, &convState);
-//						len = dst_len;
-//					}
-//					else if (!cistrncmp(charset, "iso-8859-", 9)) {
-//						if (charset[9] != '\0') {
-//							int32 isoNum = strtol(charset + 9, NULL, 10);
-//							
-//							if ((isoNum >= 13) && (isoNum <= 15)) {
-//								isoNum = isoNum - 13;
-//								int32 convState = 0;
-//		
-//								utf8 = (char *)malloc(4 * len);
-//								dst_len = 4 * len;
-//								convert_to_utf8(B_ISO13_CONVERSION + isoNum, offset,
-//									&len, utf8, &dst_len, &convState);
-//								len = dst_len;
-//							}
-//							else
-//								if ((isoNum >= 1) && (isoNum <= 10)) {
-//									isoNum--;
-//									int32 convState = 0;
-//			
-//									utf8 = (char *)malloc(4 * len);
-//									dst_len = 4 * len;
-//									convert_to_utf8((isoNum == 0) ? B_MS_WINDOWS_CONVERSION
-//										: B_ISO1_CONVERSION + isoNum, offset, &len,
-//											utf8, &dst_len, &convState);
-//									len = dst_len;
-//								}
-//						}
-//					}
-//					else if (!cistrncmp(charset, "koi8-r", 6)) {
-//						int32 convState = 0;
-//
-//						utf8 = (char *)malloc(4 * len);
-//						dst_len = 4 * len;
-//						convert_to_utf8(B_KOI8R_CONVERSION, offset, &len, utf8,
-//							&dst_len, &convState);
-//						len = dst_len;
-//					}
-//					else if (!cistrncmp(charset, "windows-1251", 12)) {
-//						int32 convState = 0;
-//
-//						utf8 = (char *)malloc(4 * len);
-//						dst_len = 4 * len;
-//						convert_to_utf8(B_MS_WINDOWS_1251_CONVERSION, offset, &len,
-//							utf8, &dst_len, &convState);
-//						len = dst_len;
-//					}
-//					else if (!cistrncmp(charset, "dos-866", 7)) {
-//						int32 convState = 0;
-//
-//						utf8 = (char *)malloc(4 * len);
-//						dst_len = 4 * len;
-//						convert_to_utf8(B_MS_DOS_866_CONVERSION, offset, &len, utf8,
-//							&dst_len, &convState);
-//						len = dst_len;
-//					}
-//				} else {
-//					// convert to user's preferred encoding if no charset in MIME
-//					int32 convState = 0;
-//
-//					utf8 = (char *)malloc(4 * len);
-//					dst_len = 4 * len;
-//					convert_to_utf8(gMailEncoding, offset, &len, utf8, &dst_len,
-//						&convState);
-//					len = dst_len;
-//				}
-//				if (utf8) {
-//					result = strip_it(utf8, len, info);
-//					free(utf8);
-//					if (!result)
-//						return false;
-//				}
-//				else if (!strip_it(offset, len, info))
-//					return false;
-//
-//				len = saved_len;
-//				is_text = false;
-//			}
-//			else if (info->incoming) {
-//				if (type) {
-//					enclosure = (hyper_text *)malloc(sizeof(hyper_text));
-//					memset(enclosure, 0, sizeof(hyper_text));
-//					if (is_bfile)
-//						enclosure->type = TYPE_BE_ENCLOSURE;
-//					else
-//						enclosure->type = TYPE_ENCLOSURE;
-//					enclosure->content_type = (char *)malloc(strlen(type) + 1);
-//					if (encoding) {
-//						enclosure->encoding = (char *)malloc(strlen(encoding) + 1);
-//						strcpy(enclosure->encoding, encoding);
-//					}
-//					
-//					// 'str' needs to be large enough to hold 'type', 'disposition',
-//					// or the word "untitled."
-//					int32 typeLength, disLength, strLength;
-//					
-//					typeLength = strlen(type);
-//					disLength = disposition ? strlen(disposition) : 0;
-//					strLength = typeLength > disLength ? typeLength : disLength;
-//					strLength = strLength > 16 ? strLength : 16;
-//					
-//					str = (char *)malloc(strLength+1);
-//					
-//					// First look for a name in type
-//					if (get_parameter(type, "name=", str)) {
-//						
-//					} // Check in disposition if not found
-//					else if ((disposition) && (get_parameter(disposition, "name=",
-//						str))) {
-//						
-//					} else {
-//						// Otherwise, use default name
-//						strcpy(str, "untitled");
-//					}
-//					
-//					char *namePtr;
-//					
-//					// Strip path name, leaving only the leaf name
-//					for (namePtr = str + strlen(str); (namePtr > str)
-//						&& (!strchr("/\\:", namePtr[-1])); namePtr--) {}
-//					
-//					// Copy temp variable 'namePtr' to enclosure name
-//					enclosure->name = strdup(namePtr);
-//					
-//					// Terminate type at ';' character
-//					index = 0;
-//					while ((type[index]) && (type[index] != ';')) {
-//						index++;
-//					}
-//					type[index] = 0;
-//					
-//					char typeDescription[B_MIME_TYPE_LENGTH];
-//					const char *contentType = type + strlen(CONTENT_TYPE);
-//					
-//					// Try to get short type description from MIME database; use raw
-//					// MIME type if this fails
-//					if (BMimeType(contentType).GetShortDescription(typeDescription)
-//							!= B_OK)
-//						strcpy(typeDescription, contentType);
-//					
-//					// Allocate enough storage for hyper text and create hyper text
-//					// string
-//					hyper = (char *)malloc(strlen(enclosure->name)
-//						+ strlen(typeDescription) + 256);
-//					sprintf(hyper, "\n<Enclosure: %s (Type: %s)>\n",
-//						enclosure->name, typeDescription);
-//					
-//					strcpy(enclosure->content_type, contentType);
-//					info->view->GetSelection(&enclosure->text_start,
-//						&enclosure->text_end);
-//					enclosure->text_start++;
-//					enclosure->text_end += strlen(hyper) - 1;
-//					enclosure->file_offset = offset - base;
-//					enclosure->file_length = len;
-//					insert(info, hyper, strlen(hyper), true);
-//					free(hyper);
-//					free(str);
-//					info->enclosures->AddItem(enclosure);
-//				}
-//			}
-//			offset += len;
-//		}
-//		if (offset >= data + size)
-//			break;
-//	}
-//	if (processed)
-//		*processed = size;
-//
-//	return true;
-//}
-//
-////--------------------------------------------------------------------
-//
-//
-//
-//bool strip_it(const char *data, int32 data_len, reader_info *info)
-//{
-//	bool			bracket = false;
-//	char			line[522];
-//	int32			count = 0;
-//	int32			index;
-//	int32			type;
-//	hyper_text		*enclosure;
-//
-//	for (int32 loop = 0; loop < data_len; loop++)
-//	{
-//		if ((info->quote) && ((!loop) || ((loop) && (data[loop - 1] == '\n'))))
-//		{
-//			strcpy(&line[count], QUOTE);
-//			count += strlen(QUOTE);
-//		}
-//		if (!info->raw && loop && data[loop - 1] == '\n' && data[loop] == '.')
-//			continue;
-//
-//		if (!info->raw && info->incoming && (loop < data_len - 7))
-//		{
-//			type = 0;
-//
-//			//
-//			//	Search for URL prefix
-//			//
-//			for (const char **i = urlPrefixes; *i != 0; ++i) {
-//				if (!cistrncmp(&data[loop], *i, strlen(*i))) {
-//					type = TYPE_URL;
-//					break;	
-//				}
-//			}
-//
-//			//
-//			//	Not a URL? check for mailto.
-//			//
-//			if (type == 0 && !cistrncmp(&data[loop], "mailto:", strlen("mailto:")))
-//					type = TYPE_MAILTO;
-//
-//			if (type)
-//			{
-//				if (type == TYPE_URL)
-//					index = strcspn(data+loop, " <>\"\r");
-//				else
-//					index = strcspn(data+loop, " \t>)\"\\,\r");
-//				
-//				/*while ((data[loop + index] != ' ') &&
-//					   (data[loop + index] != '\t') &&
-//					   (data[loop + index] != '>') &&
-//					   (data[loop + index] != ')') &&
-//					   (data[loop + index] != '"') &&
-//					   (data[loop + index] != '\'') &&
-//					   (data[loop + index] != ',') &&
-//					   (data[loop + index] != '\r')) {
-//					index++;
-//				}*/
-//
-//				if ((loop) && (data[loop - 1] == '<')
-//						&& (data[loop + index] == '>')) {
-//					if (!insert(info, line, count - 1, false))
-//						return false;
-//					bracket = true;
-//				}
-//				else if (!insert(info, line, count, false))
-//					return false;
-//				count = 0;
-//				enclosure = (hyper_text *)malloc(sizeof(hyper_text));
-//				memset(enclosure, 0, sizeof(hyper_text));
-//				info->view->GetSelection(&enclosure->text_start,
-//										 &enclosure->text_end);
-//				enclosure->type = type;
-//				enclosure->name = (char *)malloc(index + 1);
-//				memcpy(enclosure->name, &data[loop], index);
-//				enclosure->name[index] = 0;
-//				if (bracket) {
-//					insert(info, &data[loop - 1], index + 2, true);
-//					enclosure->text_end += index + 2;
-//					bracket = false;
-//					loop += index;
-//				} else {
-//					insert(info, &data[loop], index, true);
-//					enclosure->text_end += index;
-//					loop += index - 1;
-//				}
-//				info->enclosures->AddItem(enclosure);
-//				continue;
-//			}
-//		}
-//		if (!info->raw && info->mime && data[loop] == '=')
-//		{
-//			if ((loop) && (loop < data_len - 1) && (data[loop + 1] == '\r'))
-//				loop += 2;
-//			else
-//				line[count++] = data[loop];
-//		}
-//		else if (data[loop] != '\r')
-//			line[count++] = data[loop];
-//
-//		if ((count > 511) || ((count) && (loop == data_len - 1)))
-//		{
-//			if (!insert(info, line, count, false))
-//				return false;
-//			count = 0;
-//		}
-//	}
-//	return true;
-//}
 
 
 //====================================================================

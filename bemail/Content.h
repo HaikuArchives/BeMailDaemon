@@ -158,9 +158,7 @@ public:
 	void ClearList();
 	void LoadMessage(BFile*, bool, bool, const char*);
 	void Open(hyper_text*);
-//	static status_t	Reader(reader_info *);
 	status_t Save(BMessage *, bool makeNewFile = true);
-	void SaveBeFile(BFile *, char *, ssize_t);
 	void StopLoad();
 	void AddAsContent(MailMessage*, bool);
 	void CheckSpelling(int32 start, int32 end,

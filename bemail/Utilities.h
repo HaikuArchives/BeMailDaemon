@@ -47,6 +47,11 @@ All rights reserved.
 //====================================================================
 
 #ifdef __cplusplus
+
+class BNode;
+extern status_t WriteAttrString(BNode *node, const char *attr, const char *value);
+extern status_t ReadAttrString(BNode *node, const char *attr, BString *value);
+
 extern "C" {
 #endif
 

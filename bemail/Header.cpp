@@ -66,9 +66,6 @@ const char	*kDateLabel = "Date:";
 const uint32 kMsgFrom = 'hFrm';
 
 
-ssize_t	FetchAttribute(const char *attribute, const BNode &file,
-	BString &result);	
-
 class QPopupMenu : public QueryMenu
 {
 	public:
@@ -225,6 +222,7 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 			  windowRect.Width() - SEPERATOR_MARGIN, y + TO_FIELD_HEIGHT);
 		y += FIELD_HEIGHT;
 		fAccount = new TTextControl(r, TO_TEXT, NULL, fIncoming, false, B_FOLLOW_LEFT_RIGHT);
+		fAccount->SetEnabled(false);
 		AddChild(fAccount);
 	}
 
@@ -315,16 +313,17 @@ THeaderView::InitEmailCompletion()
 	query.SetPredicate("META:email=**");
 	query.Fetch();
 	entry_ref ref;
-	BNode file;
-	BString email;
 	
 	// The leash is a work-around for when the something in the query breaks
 	// and prevents GetNextRef() from ever returning B_ENTRY_NOT_FOUND
-	for (int32 leash=0; query.GetNextRef(&ref) == B_OK && leash < 1024; leash++)
+	for (int32 leash = 0; query.GetNextRef(&ref) == B_OK && leash < 1024; leash++)
 	{
-		if (file.SetTo(&ref) == B_OK) {
-			FetchAttribute("META:email", file, email);
-			emailList.AddChoice(email.String());
+		BNode file;
+		if (file.SetTo(&ref) == B_OK)
+		{
+			BString email;
+			if (file.ReadAttrString("META:email", &email) >= B_OK)
+				emailList.AddChoice(email.String());
 		}
 	}
 }
@@ -350,15 +349,17 @@ THeaderView::InitGroupCompletion()
 	map<BString *, BString *, evil> group_map;
 	entry_ref ref;
 	BNode file;
-	while (query.GetNextRef(&ref) == B_OK) {
+	while (query.GetNextRef(&ref) == B_OK)
+	{
 		if (file.SetTo(&ref) != B_OK)
 			continue;
 		
 		BString groups;
-		FetchAttribute("META:group", file, groups);
+		if (ReadAttrString(&file, "META:group", &groups) < B_OK)
+			continue;
 
 		BString address;
-		FetchAttribute("META:email", file, address);
+		ReadAttrString(&file, "META:email", &address);
 
 		// avoid adding an empty address
 		if (address.Length() == 0)
@@ -396,7 +397,8 @@ THeaderView::InitGroupCompletion()
 	}
 	
 	map<BString *, BString *, evil>::iterator iter;
-	for (iter = group_map.begin(); iter != group_map.end();) {
+	for (iter = group_map.begin(); iter != group_map.end();)
+	{
 		BString *grp = iter->first;
 		BString *addr = iter->second;
 		addr->Append(">");
@@ -410,7 +412,6 @@ THeaderView::InitGroupCompletion()
 
 }
 
-//--------------------------------------------------------------------
 
 void THeaderView::MessageReceived(BMessage *msg)
 {
@@ -479,13 +480,14 @@ void THeaderView::AttachedToWindow(void)
 		fCc->SetTarget(Looper());
 	if (fBcc)
 		fBcc->SetTarget(Looper());
+	if (fAccount)
+		fAccount->SetTarget(Looper());
 	if (fAccountMenu)
 		fAccountMenu->SetTargetForItems(this);
 
 	BBox::AttachedToWindow();
 }
 
-//--------------------------------------------------------------------
 
 void THeaderView::BuildMenus()
 {
@@ -660,26 +662,6 @@ void THeaderView::BuildMenus()
 	*/
 }
 
-//--------------------------------------------------------------------
-
-ssize_t FetchAttribute(const char *attribute, const BNode &file, BString &result)
-{
-	attr_info info;
-	ssize_t status;
-	
-	status = file.GetAttrInfo(attribute, &info);
-	if (status == B_NO_ERROR) {
-		file.ReadAttr(attribute, B_STRING_TYPE, 0,
-			result.LockBuffer(info.size+1), info.size);
-		result.UnlockBuffer();
-	} else {
-		result.SetTo("");
-	}
-	return status;
-}
-
-
-//--------------------------------------------------------------------
 
 void THeaderView::SetAddress(BMessage *msg)
 {
@@ -694,7 +676,8 @@ void THeaderView::SetAddress(BMessage *msg)
 	BVolume			vol;
 	BVolumeRoster	volume;
 
-	switch (msg->what) {
+	switch (msg->what)
+	{
 		case M_TO_MENU:
 			text = fTo->TextView();
 			if (msg->HasString("group")) {
@@ -725,7 +708,8 @@ void THeaderView::SetAddress(BMessage *msg)
 	if (start != end)
 		text->Delete();
 
-	if (group) {
+	if (group)
+	{
 		volume.GetBootVolume(&vol);
 		query.SetVolume(&vol);
 
@@ -734,12 +718,13 @@ void THeaderView::SetAddress(BMessage *msg)
 		query.SetPredicate(predicate.String());
 		query.Fetch();
 
-		while (query.GetNextEntry(&entry) == B_NO_ERROR) {
+		while (query.GetNextEntry(&entry) == B_NO_ERROR)
+		{
 			file.SetTo(&entry, O_RDONLY);
 			BString	name;
-			FetchAttribute("META:name", file, name);
+			ReadAttrString(&file,"META:name",&name);
 			BString email;
-			FetchAttribute("META:email", file, email);
+			ReadAttrString(&file,"META:email",&email);
 
 			BString address;
 			/* if we have no Name, just use the email address */
@@ -768,6 +753,7 @@ void THeaderView::SetAddress(BMessage *msg)
 
 	text->Select(text->TextLength(), text->TextLength());
 }
+
 
 status_t THeaderView::LoadMessage(BFile *file)
 {
@@ -843,14 +829,25 @@ status_t THeaderView::LoadMessage(BFile *file)
 
 	//	Set Account/To Field
 	if (fFile->ReadAttrString(B_MAIL_ATTR_TO, &string) == B_OK)
+	{
+		BString account;
+		if (fFile->ReadAttrString("MAIL:account", &account) == B_OK)
+		{
+			account << ":  ";
+			string.Prepend(account);
+		}
 		fAccount->SetText(string.String());
+	}
 	else
 		fAccount->SetText("");
 
 	return B_OK;
 }
 
+
 //====================================================================
+//	#pragma mark -
+
 
 TTextControl::TTextControl(BRect rect, char *label, BMessage *msg, 
 	bool incoming, bool resending, int32 resizingMode)
@@ -863,7 +860,6 @@ TTextControl::TTextControl(BRect rect, char *label, BMessage *msg,
 	fResending = resending;
 }
 
-//--------------------------------------------------------------------
 
 void TTextControl::AttachedToWindow()
 {
@@ -881,7 +877,6 @@ void TTextControl::AttachedToWindow()
 	text->SetFont(&font);
 }
 
-//--------------------------------------------------------------------
 
 void TTextControl::MessageReceived(BMessage *msg)
 {
@@ -895,7 +890,8 @@ void TTextControl::MessageReceived(BMessage *msg)
 	BTextView	*text_view;
 	attr_info	info;
 
-	switch (msg->what) {
+	switch (msg->what)
+	{
 		case B_SIMPLE_DATA:
 			if ((!fIncoming) || (fResending)) {
 				while (msg->FindRef("refs", index++, &ref) == B_NO_ERROR) {
@@ -964,16 +960,18 @@ void TTextControl::MessageReceived(BMessage *msg)
 	}
 }
 
-// ***
-// QPopupMenu
-// ***
+
+//====================================================================
+//	QPopupMenu
+//	#pragma mark -
+
 
 QPopupMenu::QPopupMenu(const char *title)
 	: QueryMenu(title, true),
 	fGroups(0)
 {
-	
 }
+
 
 void QPopupMenu::EntryCreated(const entry_ref &ref, ino_t node)
 {
@@ -1043,9 +1041,9 @@ void QPopupMenu::EntryCreated(const entry_ref &ref, ino_t node)
 		msg->AddInt64("node", node);
 		
 		BString	name;
-		FetchAttribute("META:name", file, name);
+		ReadAttrString(&file,"META:name",&name);
 		BString email;
-		FetchAttribute("META:email", file, email);
+		ReadAttrString(&file,"META:email",&email);
 		BString label;
 		
 		// if we have no Name, just use the email address 
@@ -1070,6 +1068,7 @@ void QPopupMenu::EntryCreated(const entry_ref &ref, ino_t node)
 		}
 	}
 }
+
 
 void QPopupMenu::EntryRemoved(ino_t node)
 {

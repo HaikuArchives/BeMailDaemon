@@ -278,7 +278,8 @@ private:
 	bool fSent;
 	bool fDraft;
 	bool fChanged;
-	
+
+	char *fStartingText;	
 	entry_ref	fRepliedMail;
 };
 
