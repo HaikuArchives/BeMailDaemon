@@ -1,6 +1,7 @@
 #include <E-mail.h>
 #include <FindDirectory.h>
 #include <Path.h>
+#include <File.h>
 #include <Directory.h>
 #include <List.h>
 
@@ -8,7 +9,9 @@
 
 #include <MailDaemon.h>
 #include <MailSettings.h>
+#include <MailMessage.h>
 #include <crypt.h>
+
 
 _EXPORT status_t	check_for_mail(int32 * incoming_count) {
 	status_t err = MailDaemon::CheckMail(true);
@@ -90,3 +93,27 @@ _EXPORT status_t	get_smtp_host(char* buffer) {
 		
 	return B_OK;
 }
+
+_EXPORT status_t set_smtp_host(char *, bool)
+{
+	return B_NO_REPLY;
+}
+
+_EXPORT status_t forward_mail(entry_ref *ref, const char *recipients, bool now)
+{
+	BFile file(ref, O_RDONLY);
+	status_t status = file.InitCheck();
+	if (status < B_OK)
+		return status;
+
+	MailMessage mail(&file);
+	mail.SetTo(recipients);
+	
+	return mail.Send(now);
+}
+
+_EXPORT status_t set_pop_account(mail_pop_account *, int32, bool)
+{
+	return B_NO_REPLY;
+}
+
