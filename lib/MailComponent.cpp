@@ -494,7 +494,8 @@ TextComponent::ParseRaw()
 	free (buffer);
 	buffer = NULL;
 
-	// Change line ends from \r\n to just \n.
+	// Change line ends from \r\n to just \n.  Though this won't work properly
+	// for UTF-16 because \r takes up two bytes rather than one.
 	char *dest, *src;
 	char *end = string + bytes;
 	for (dest = src = string; src < end; src++) {
