@@ -84,21 +84,21 @@ All rights reserved.
 #include "Words.h"
 
 const char *kUndoStrings[] = {
-	MDR_DIALECT_CHOICE ("Undo","アンドゥ"),
-	MDR_DIALECT_CHOICE ("Undo Typing","アンドゥ（入力）"),
-	MDR_DIALECT_CHOICE ("Undo Cut","アンドゥ（カット）"),
-	MDR_DIALECT_CHOICE ("Undo Paste","アンドゥ（ペースト）"),
-	MDR_DIALECT_CHOICE ("Undo Clear","アンドゥ（クリア）"),
-	MDR_DIALECT_CHOICE ("Undo Drop","アンドゥ（ドロップ）")
+	MDR_DIALECT_CHOICE ("Undo","取り消し"),
+	MDR_DIALECT_CHOICE ("Undo Typing","取り消し（入力）"),
+	MDR_DIALECT_CHOICE ("Undo Cut","取り消し（切り取り）"),
+	MDR_DIALECT_CHOICE ("Undo Paste","取り消し（貼り付け）"),
+	MDR_DIALECT_CHOICE ("Undo Clear","取り消し（消去）"),
+	MDR_DIALECT_CHOICE ("Undo Drop","取り消し（ドロップ）")
 };
 
 const char *kRedoStrings[] = {
-	MDR_DIALECT_CHOICE ("Redo", "リドゥ"),
-	MDR_DIALECT_CHOICE ("Redo Typing", "リドゥ（入力）"),
-	MDR_DIALECT_CHOICE ("Redo Cut", "リドゥ（カット）"),
-	MDR_DIALECT_CHOICE ("Redo Paste", "リドゥ（ペースト）"),
-	MDR_DIALECT_CHOICE ("Redo Clear", "リドゥ（クリア）"),
-	MDR_DIALECT_CHOICE ("Redo Drop", "リドゥ（ドロップ）")
+	MDR_DIALECT_CHOICE ("Redo", "やり直し"),
+	MDR_DIALECT_CHOICE ("Redo Typing", "やり直し（入力）"),
+	MDR_DIALECT_CHOICE ("Redo Cut", "やり直し（切り取り）"),
+	MDR_DIALECT_CHOICE ("Redo Paste", "やり直し（貼り付け）"),
+	MDR_DIALECT_CHOICE ("Redo Clear", "やり直し（消去）"),
+	MDR_DIALECT_CHOICE ("Redo Drop", "やり直し（ドロップ）")
 };
 
 bool		gHelpOnly = false;
@@ -1031,24 +1031,24 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 		else
 		{
 			if (strlen(str))
-				sprintf(status, "Leave as '%s'", str);
+				sprintf(status, MDR_DIALECT_CHOICE ("Leave as '%s'","属性を<%s>にする"), str);
 			else
-				sprintf(status, "Leave same");
+				sprintf(status, MDR_DIALECT_CHOICE ("Leave same","属性はそのまま"));
 			sub_menu->AddItem(item = new BMenuItem(status,
 							new BMessage(M_CLOSE_SAME), 'W'));
 			message = M_CLOSE_SAME;
 			AddShortcut('W', B_COMMAND_KEY | B_SHIFT_KEY, new BMessage(M_CLOSE_SAME));
 		}
 		sub_menu->AddItem(new BMenuItem(
-			MDR_DIALECT_CHOICE ("Set to 'Saved'", "'保存済<Saved>'に設定"),
+			MDR_DIALECT_CHOICE ("Set to 'Saved'", "属性を<Saved>に設定"),
 			new BMessage(M_CLOSE_SAVED), 'W', B_CONTROL_KEY));
 		sub_menu->AddItem(new BMenuItem(new TMenu(
-			"Set to"B_UTF8_ELLIPSIS,
+			MDR_DIALECT_CHOICE ("Set to", "他の属性に変更")B_UTF8_ELLIPSIS,
 			INDEX_STATUS, M_STATUS, false, false), new BMessage(M_CLOSE_CUSTOM)));
 		menu->AddItem(sub_menu);
 
 		sub_menu->AddItem(new BMenuItem(
-			MDR_DIALECT_CHOICE ("Move to Trash", "ゴミ箱に移動"),
+			MDR_DIALECT_CHOICE ("Move to Trash", "削除"),
 			new BMessage(M_DELETE), 'T', B_CONTROL_KEY));
 		AddShortcut('T', B_SHIFT_KEY | B_COMMAND_KEY, new BMessage(M_DELETE_NEXT));	
 	}
@@ -1085,20 +1085,20 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 	//	Edit Menu
 	//
 	menu = new BMenu(MDR_DIALECT_CHOICE ("Edit", "編集"));
-	menu->AddItem(fUndo = new BMenuItem(MDR_DIALECT_CHOICE ("Undo","アンドゥ"), new BMessage(B_UNDO), 'Z'));
+	menu->AddItem(fUndo = new BMenuItem(MDR_DIALECT_CHOICE ("Undo","やり直し"), new BMessage(B_UNDO), 'Z'));
 	fUndo->SetTarget(NULL, this);
 	menu->AddSeparatorItem();
-	menu->AddItem(fCut = new BMenuItem(MDR_DIALECT_CHOICE ("Cut","カット"), new BMessage(B_CUT), 'X'));
+	menu->AddItem(fCut = new BMenuItem(MDR_DIALECT_CHOICE ("Cut","切り取り"), new BMessage(B_CUT), 'X'));
 	fCut->SetTarget(NULL, this);
 	menu->AddItem(fCopy = new BMenuItem(MDR_DIALECT_CHOICE ("Copy","コピー"), new BMessage(B_COPY), 'C'));
 	fCopy->SetTarget(NULL, this);
-	menu->AddItem(fPaste = new BMenuItem(MDR_DIALECT_CHOICE ("Paste","ペースト"), new BMessage(B_PASTE), 'V'));
+	menu->AddItem(fPaste = new BMenuItem(MDR_DIALECT_CHOICE ("Paste","貼り付け"), new BMessage(B_PASTE), 'V'));
 	fPaste->SetTarget(NULL, this);
 	menu->AddItem(item = new BMenuItem(MDR_DIALECT_CHOICE ("Select All", "全文選択"), new BMessage(M_SELECT), 'A'));
 	menu->AddSeparatorItem();
 	item->SetTarget(NULL, this);
 	menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Find", "検索") B_UTF8_ELLIPSIS, new BMessage(M_FIND), 'F'));
-	menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Find Again", "再検索"), new BMessage(M_FIND_AGAIN), 'G'));
+	menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Find Again", "次を検索"), new BMessage(M_FIND_AGAIN), 'G'));
 	if (!fIncoming)
 	{
 		menu->AddSeparatorItem();
@@ -1109,7 +1109,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 			MDR_DIALECT_CHOICE ("Remove Quote","引用符を削除"),
 			new BMessage(M_REMOVE_QUOTE), B_LEFT_ARROW));
 		fSignature = new TMenu(
-			MDR_DIALECT_CHOICE ("Add Signature", "サインを追加"),
+			MDR_DIALECT_CHOICE ("Add Signature", "署名を追加"),
 			INDEX_SIGNATURE, M_SIGNATURE);
 		menu->AddItem(new BMenuItem(fSignature));
 		fSpelling = new BMenuItem(
@@ -1123,7 +1123,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 		new BMessage(M_PREFS)));
 	item->SetTarget(be_app);
 	menu->AddItem(item = new BMenuItem(
-		MDR_DIALECT_CHOICE ("Signatures","サインの編集") B_UTF8_ELLIPSIS,
+		MDR_DIALECT_CHOICE ("Signatures","署名の編集") B_UTF8_ELLIPSIS,
 		new BMessage(M_EDIT_SIGNATURE)));
 	item->SetTarget(be_app);
 	menu_bar->AddItem(menu);
@@ -1147,7 +1147,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 		menu->AddItem(menuItem = new BMenuItem(MDR_DIALECT_CHOICE ("Resend","再送信"), new BMessage(M_RESEND)));
 		menu->AddItem(menuItem = new BMenuItem(MDR_DIALECT_CHOICE ("Copy to New","新規メッセージへコピー"), new BMessage(M_COPY_TO_NEW), 'D'));
 		
-		fDeleteNext = new BMenuItem(MDR_DIALECT_CHOICE ("Move to Trash","ゴミ箱に移動"), new BMessage(M_DELETE_NEXT), 'T');
+		fDeleteNext = new BMenuItem(MDR_DIALECT_CHOICE ("Move to Trash","削除"), new BMessage(M_DELETE_NEXT), 'T');
 		menu->AddItem(fDeleteNext);
 		menu->AddSeparatorItem();
 		fPrevMsg = new BMenuItem(MDR_DIALECT_CHOICE ("Previous Message","前のメッセージ"), new BMessage(M_PREVMSG), 
@@ -1369,12 +1369,12 @@ TMailWindow::BuildButtonBar()
 		fSendButton->SetEnabled(false);
 		fSaveButton = bbar->AddButton(MDR_DIALECT_CHOICE ("Save","保存"), 44, new BMessage(M_SAVE_AS_DRAFT));
 		fSaveButton->SetEnabled(false);
-		fSigButton = bbar->AddButton(MDR_DIALECT_CHOICE ("Signature","サイン"), 4, new BMessage(M_SIG_MENU));
+		fSigButton = bbar->AddButton(MDR_DIALECT_CHOICE ("Signature","署名"), 4, new BMessage(M_SIG_MENU));
 		fSigButton->InvokeOnButton(B_SECONDARY_MOUSE_BUTTON);
 		bbar->AddDivider(5);
 		fPrintButton = bbar->AddButton(MDR_DIALECT_CHOICE ("Print","印刷"), 16, new BMessage(M_PRINT));
 		fPrintButton->SetEnabled(false);
-		bbar->AddButton(MDR_DIALECT_CHOICE ("Trash","ゴミ箱"), 0, new BMessage(M_DELETE));
+		bbar->AddButton(MDR_DIALECT_CHOICE ("Trash","削除"), 0, new BMessage(M_DELETE));
 	}
 	else
 	{
@@ -1385,8 +1385,8 @@ TMailWindow::BuildButtonBar()
 		fPrintButton = bbar->AddButton(MDR_DIALECT_CHOICE ("Print","印刷"), 16, new BMessage(M_PRINT));
 		bbar->AddButton(MDR_DIALECT_CHOICE ("Trash","削除"), 0, new BMessage(M_DELETE_NEXT));
 		bbar->AddDivider(5);
-		bbar->AddButton(MDR_DIALECT_CHOICE ("Next","次"), 24, new BMessage(M_NEXTMSG));
-		bbar->AddButton(MDR_DIALECT_CHOICE ("Previous","前"), 20, new BMessage(M_PREVMSG));
+		bbar->AddButton(MDR_DIALECT_CHOICE ("Next","次へ"), 24, new BMessage(M_NEXTMSG));
+		bbar->AddButton(MDR_DIALECT_CHOICE ("Previous","前へ"), 20, new BMessage(M_PREVMSG));
 	}
 	bbar->AddButton(MDR_DIALECT_CHOICE ("Inbox","受信箱"), 36, new BMessage(M_OPEN_MAIL_BOX));
 	bbar->AddButton(MDR_DIALECT_CHOICE ("Mail","メール"), 32, new BMessage(M_OPEN_MAIL_FOLDER));

@@ -133,7 +133,7 @@ status_t POP3Protocol::Login(const char *uid, const char *password, int method)
 			return B_NOT_ALLOWED;
 		}
 	}
-	status_view->SetMessage(MDR_DIALECT_CHOICE ("Sending username...","ユーザーIDを送信中..."));
+	status_view->SetMessage(MDR_DIALECT_CHOICE ("Sending username...","ユーザーID送信中..."));
 
 	BString cmd = "USER ";
 	cmd += uid;
@@ -147,7 +147,7 @@ status_t POP3Protocol::Login(const char *uid, const char *password, int method)
 		return err;
 	}
 
-	status_view->SetMessage(MDR_DIALECT_CHOICE ("Sending password...","パスワードを送信中..."));
+	status_view->SetMessage(MDR_DIALECT_CHOICE ("Sending password...","パスワード送信中..."));
 	cmd = "PASS ";
 	cmd += password;
 	cmd += CRLF;

@@ -69,7 +69,7 @@ SMTPProtocol::SMTPProtocol(BMessage *message, Mail::StatusView *view)
 		// to the SMTP server first...
 		fStatus = POP3Authentification();
 		if (fStatus < B_OK) {
-			error_msg << "POP3 authentification failed. The server said:\n" << fLog;
+			error_msg << MDR_DIALECT_CHOICE ("POP3 authentification failed. The server said:\n","POP3認証に失敗しました\n") << fLog;
 			smtp_errlert(error_msg.String());
 			return;
 		}
@@ -77,7 +77,7 @@ SMTPProtocol::SMTPProtocol(BMessage *message, Mail::StatusView *view)
 
 	fStatus = Open(fSettings->FindString("server"), fSettings->FindInt32("port"), authMethod == 1);
 	if (fStatus < B_OK) {
-		error_msg << "Error while opening connection to " << fSettings->FindString("server");
+		error_msg << MDR_DIALECT_CHOICE ("Error while opening connection to ","接続中にエラーが発生しました") << fSettings->FindString("server");
 
 		if (fSettings->FindInt32("port") > 0)
 			error_msg << ":" << fSettings->FindInt32("port");
@@ -86,7 +86,7 @@ SMTPProtocol::SMTPProtocol(BMessage *message, Mail::StatusView *view)
 		if (fLog.Length() > 0)
 			error_msg << ". The server says:\n" << fLog;
 		else
-			error_msg << ": Connection refused or host not found.";
+			error_msg << MDR_DIALECT_CHOICE (": Connection refused or host not found.","；接続が拒否されたかサーバーが見つかりません");
 
 		smtp_errlert(error_msg.String());
 		return;
@@ -102,7 +102,8 @@ SMTPProtocol::SMTPProtocol(BMessage *message, Mail::StatusView *view)
 
 	if (fStatus < B_OK) {
 		//-----This is a really cool kind of error message. How can we make it work for POP3?
-		error_msg << "Error while logging in to " << fSettings->FindString("server") << ". The server said:\n" << fLog;
+		error_msg << MDR_DIALECT_CHOICE ("Error while logging in to ","ログイン中にエラーが発生しました\n") << fSettings->FindString("server") 
+			<< MDR_DIALECT_CHOICE (". The server said:\n","サーバーエラー\n") << fLog;
 		smtp_errlert(error_msg.String());
 	}
 }
@@ -119,7 +120,7 @@ status_t
 SMTPProtocol::InitCheck(BString *verbose)
 {
 	if (verbose != NULL && fStatus < B_OK) {
-		*verbose << "Error while fetching mail from " << fSettings->FindString("server")
+		*verbose << MDR_DIALECT_CHOICE ("Error while fetching mail from ","受信中にエラーが発生しました") << fSettings->FindString("server")
 			<< ": " << strerror(fStatus);
 	}
 	return fStatus;
@@ -142,7 +143,11 @@ SMTPProtocol::ProcessMailMessage(BPositionIO **io_message, BEntry */*io_entry*/,
 	}
 
 	BString error;
-	error << "An error occurred while sending the message " << io_headers->FindString("MAIL:subject") << " to " << to << ":\n" << fLog;
+	MDR_DIALECT_CHOICE (
+		error << "An error occurred while sending the message " << io_headers->FindString("MAIL:subject") << " to " << to << ":\n" << fLog;,
+		error << io_headers->FindString("MAIL:subject") << "を" << to << "\nへ送信中にエラーが発生しました：\n" << fLog;
+	)
+
 	smtp_errlert(error.String());
 	fStatusView->AddItem();
 	return MD_ERROR;
@@ -154,7 +159,7 @@ SMTPProtocol::ProcessMailMessage(BPositionIO **io_message, BEntry */*io_entry*/,
 status_t
 SMTPProtocol::Open(const char *address, int port, bool esmtp)
 {
-	fStatusView->SetMessage("Connecting to server...");
+	fStatusView->SetMessage(MDR_DIALECT_CHOICE ("Connecting to server...","接続中..."));
 
 	if (port <= 0)
 		port = 25;
@@ -395,7 +400,7 @@ SMTPProtocol::Login(const char *_login, const char *password)
 void
 SMTPProtocol::Close()
 {
-	fStatusView->SetMessage("Closing connection...");
+	fStatusView->SetMessage(MDR_DIALECT_CHOICE ("Closing connection...","切断中..."));
 
 	BString cmd = "QUIT";
 	cmd += CRLF;

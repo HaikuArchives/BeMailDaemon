@@ -814,7 +814,7 @@ void FiltersConfigView::MessageReceived(BMessage *msg)
 				{
 					(new BAlert("E-mail",MDR_DIALECT_CHOICE (
 					"Could not move filter, filter deleted.",
-					"フィルターが削除された為、移動できません"),"Ok"))->Go();
+					"フィルタが削除された為、移動できません"),"Ok"))->Go();
 
 					// the filter view belongs to the moved filter
 					if (fFilterView && fFilterView->fIndex == -1)

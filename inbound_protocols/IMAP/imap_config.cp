@@ -9,6 +9,8 @@
 #include <ProtocolConfigView.h>
 #include <MailAddon.h>
 
+#include <MDRLanguage.h>
+
 using namespace Zoidberg;
 
 
@@ -35,8 +37,8 @@ IMAPConfig::IMAPConfig(BMessage *archive)
 	frame.top += 25;
 	frame.bottom += 25;
 	
-	BTextControl *folder = new BTextControl(frame,"folder","Folder: ","INBOX",NULL);
-	folder->SetDivider(be_plain_font->StringWidth("Folder: "));
+	BTextControl *folder = new BTextControl(frame,"folder",MDR_DIALECT_CHOICE ("Folder: ","受信箱： "),"INBOX",NULL);
+	folder->SetDivider(be_plain_font->StringWidth(MDR_DIALECT_CHOICE ("Folder: ","受信箱： ")));
 	
 	archive->PrintToStream();
 	

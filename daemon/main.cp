@@ -256,7 +256,7 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 				alert_string << " for " << msg->FindString("chain_name") << '\n';,
 
 				alert_string << msg->FindString("chain_name") << "より\n" << num_messages
-					<< " 通のメッセージが届きました";
+					<< " 通のメッセージが届きました　　";
 			);
 			
 			}

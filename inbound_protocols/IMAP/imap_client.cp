@@ -18,6 +18,8 @@
 
 #include "imap_reader.h"
 
+#include <MDRLanguage.h>
+
 using namespace Zoidberg;
 
 
@@ -59,11 +61,11 @@ IMAP4Client::IMAP4Client(BMessage *settings,Mail::StatusView *status)
 	if( B_OK == error )
 	{
 		num_messages = Select(settings->FindString("folder"));
-		_status->SetMessage("Logged in");
+		_status->SetMessage(MDR_DIALECT_CHOICE ("Logged in","ログイン完了"));
 	}
 	else
 	{
-		BString errdesc("Error Logging in: ");
+		BString errdesc(MDR_DIALECT_CHOICE ("Error Logging in: ","ログインエラー："));
 		errdesc << strerror(error);
 		PRINT((errdesc.String()));
 		_status->SetMessage(errdesc.String());
@@ -101,7 +103,7 @@ IMAP4Client::Open(const char* addr,int port,int)
 	if (port <= 0)
 		port = 143;
 	
-	_status->SetMessage("Opening connection...");
+	_status->SetMessage(MDR_DIALECT_CHOICE ("Opening connection...","接続中..."));
 	
 	printf("Connecting to %s:%d\n", addr, port);
 	
@@ -146,7 +148,7 @@ status_t
 IMAP4Client::Login(const char* login,const char* password,int)
 {
 	status_t result = B_ERROR;
-	_status->SetMessage("Authenticating...");
+	_status->SetMessage(MDR_DIALECT_CHOICE ("Authenticating...","認証中..."));
 	// for re-connect
 	fLogin = login; fPassword = password;
 	//
@@ -678,9 +680,9 @@ status_t IMAP4Client::GetMessage(
 	int32 seq_id = unique_ids->IndexOf(uid);
 	if (seq_id < 0)
 		return B_NAME_NOT_FOUND;
-		
-	_status->SetMessage((BString("Retrieving message id") << seq_id).String());
-	
+
+	_status->SetMessage((BString(MDR_DIALECT_CHOICE ("Retrieving message id","メッセージの検索中")) << seq_id).String());
+
 	*out_file = new IMAP4Reader(this,*out_file,uid);
 	out_folder_location->SetTo(_settings->FindString("folder"));
 	

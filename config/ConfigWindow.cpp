@@ -389,7 +389,7 @@ ConfigWindow::ConfigWindow()
 	}
 	rect.OffsetBy(0,height + 6);
 	fStatusLookField = new BMenuField(rect,"status look",
-		MDR_DIALECT_CHOICE ("Window Look:","ウィンドー外観："),lookPopUp);
+		MDR_DIALECT_CHOICE ("Window Look:","ウィンドウ外観："),lookPopUp);
 	fStatusLookField->SetDivider(labelWidth);
 	box->AddChild(fStatusLookField);
 
@@ -418,7 +418,7 @@ ConfigWindow::ConfigWindow()
 	rect.top += 7;	rect.bottom = rect.top + height + 5;
 	BStringView *stringView = new BStringView(rect,B_EMPTY_STRING, MDR_DIALECT_CHOICE (
 		"The menu links are links to folders in a real folder like the Be menu.",
-		"デスクバーで表示する項目と実際のフォルダーの関係の設定"));
+		"デスクバーで表示する項目の設定"));
 	box->AddChild(stringView);
 	stringView->SetAlignment(B_ALIGN_CENTER);
 	stringView->ResizeToPreferred();
@@ -507,7 +507,7 @@ ConfigWindow::ConfigWindow()
 #endif
 
 	BButton *revertButton = new BButton(rect,"revert",
-		MDR_DIALECT_CHOICE ("Revert","戻す"),
+		MDR_DIALECT_CHOICE ("Revert","復元"),
 		new BMessage(kMsgRevertSettings));
 	revertButton->GetPreferredSize(&w,&h);
 	revertButton->ResizeTo(w,h);

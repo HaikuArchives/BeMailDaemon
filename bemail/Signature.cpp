@@ -55,11 +55,14 @@ extern int32		level;
 extern const char	*kUndoStrings[];
 extern const char	*kRedoStrings[];
 
+const char kNameText[] = MDR_DIALECT_CHOICE ("Title:", "署名の名称:");
+const char kSigText[] = MDR_DIALECT_CHOICE ("Signature:", "署名:");
+
 
 //====================================================================
 
 TSignatureWindow::TSignatureWindow(BRect rect)
-	: BWindow (rect, MDR_DIALECT_CHOICE ("Signatures","サインの編集"), B_TITLED_WINDOW, 0),
+	: BWindow (rect, MDR_DIALECT_CHOICE ("Signatures","署名の編集"), B_TITLED_WINDOW, 0),
 	fFile(NULL)
 {
 	BMenu		*menu;
@@ -69,7 +72,7 @@ TSignatureWindow::TSignatureWindow(BRect rect)
 	BRect r = Bounds();
 	/*** Set up the menus ****/
 	menu_bar = new BMenuBar(r, "MenuBar");
-	menu = new BMenu(MDR_DIALECT_CHOICE ("Signature","サイン"));
+	menu = new BMenu(MDR_DIALECT_CHOICE ("Signature","署名"));
 	menu->AddItem(fNew = new BMenuItem(MDR_DIALECT_CHOICE ("New","新規"), new BMessage(M_NEW), 'N'));
 	fSignature = new TMenu(MDR_DIALECT_CHOICE ("Open","開く"), INDEX_SIGNATURE, M_SIGNATURE);
 	menu->AddItem(new BMenuItem(fSignature));
@@ -81,14 +84,14 @@ TSignatureWindow::TSignatureWindow(BRect rect)
 	menu_bar->AddItem(menu);
 
 	menu = new BMenu(MDR_DIALECT_CHOICE ("Edit","編集"));
-	menu->AddItem(fUndo = new BMenuItem(MDR_DIALECT_CHOICE ("Undo","アンドゥ"), new BMessage(B_UNDO), 'Z'));
+	menu->AddItem(fUndo = new BMenuItem(MDR_DIALECT_CHOICE ("Undo","やり直し"), new BMessage(B_UNDO), 'Z'));
 	fUndo->SetTarget(NULL, this);
 	menu->AddSeparatorItem();
-	menu->AddItem(fCut = new BMenuItem(MDR_DIALECT_CHOICE ("Cut","カット"), new BMessage(B_CUT), 'X'));
+	menu->AddItem(fCut = new BMenuItem(MDR_DIALECT_CHOICE ("Cut","切り取り"), new BMessage(B_CUT), 'X'));
 	fCut->SetTarget(NULL, this);
 	menu->AddItem(fCopy = new BMenuItem(MDR_DIALECT_CHOICE ("Copy","コピー"), new BMessage(B_COPY), 'C'));
 	fCopy->SetTarget(NULL, this);
-	menu->AddItem(fPaste = new BMenuItem(MDR_DIALECT_CHOICE ("Paste","ペースト"), new BMessage(B_PASTE), 'V'));
+	menu->AddItem(fPaste = new BMenuItem(MDR_DIALECT_CHOICE ("Paste","貼り付け"), new BMessage(B_PASTE), 'V'));
 	fPaste->SetTarget(NULL, this);
 	menu->AddItem(item = new BMenuItem(MDR_DIALECT_CHOICE ("Select All","全文選択"), new BMessage(M_SELECT), 'A'));
 	item->SetTarget(NULL, this);
@@ -189,7 +192,7 @@ TSignatureWindow::MessageReceived(BMessage* msg)
 				beep();
 				if (!(new BAlert("",MDR_DIALECT_CHOICE (
 						"Are you sure you want to delete this signature?",
-						"このサインを削除しますか？"),
+						"この署名を削除しますか？"),
 						MDR_DIALECT_CHOICE ("Cancel","取消l"), 
 						MDR_DIALECT_CHOICE ("Delete","削除"), NULL, B_WIDTH_AS_USUAL,
 						B_WARNING_ALERT))->Go())
@@ -227,7 +230,7 @@ TSignatureWindow::MessageReceived(BMessage* msg)
 					beep();
 					(new BAlert("", MDR_DIALECT_CHOICE (
 						"An error occurred trying to open this signature.",
-						"サインを開く時にエラーが発生しました。"),
+						"署名を開く時にエラーが発生しました。"),
 						MDR_DIALECT_CHOICE ("Sorry","了解")))->Go();
 				}
 			}
@@ -283,7 +286,7 @@ TSignatureWindow::Clear()
 	if (IsDirty()) {
 		beep();
 		result = (new BAlert("", 
-			MDR_DIALECT_CHOICE ("Save changes to signature?","変更したサインを保存しますか？"),
+			MDR_DIALECT_CHOICE ("Save changes to signature?","変更した署名を保存しますか？"),
 			MDR_DIALECT_CHOICE ("Don't save","保存しない"),
 			MDR_DIALECT_CHOICE ("Cancel","中止"),
 			MDR_DIALECT_CHOICE ("Save","保存する"),
@@ -378,7 +381,7 @@ err_exit:
 	beep();
 	(new BAlert("", MDR_DIALECT_CHOICE (
 		"An error occurred trying to save this signature.",
-		"サインを保存しようとした時にエラーが発生しました。"),
+		"署名を保存しようとした時にエラーが発生しました。"),
 		MDR_DIALECT_CHOICE ("Sorry","了解")))->Go();
 }
 
@@ -397,6 +400,14 @@ void
 TSignatureView::AttachedToWindow()
 {
 	BRect	rect = Bounds();
+	float	name_text_length = StringWidth(kNameText);
+	float	sig_text_length = StringWidth(kSigText);
+	float	divide_length;
+
+	if (name_text_length > sig_text_length)
+		divide_length = name_text_length;
+	else
+		divide_length = sig_text_length;
 
 	rect.InsetBy(8,0);
 	rect.top+= 8;
@@ -404,22 +415,20 @@ TSignatureView::AttachedToWindow()
 	fName = new TNameControl(rect, kNameText, new BMessage(NAME_FIELD));
 	AddChild(fName);
 
-	/* this makes the assumption that StringLength(SIG_TEXT) >
-	StringLength(NAME_TEXT) for English and the opposite for Japanese. */
-	fName->SetDivider(StringWidth(MDR_DIALECT_CHOICE (kSigText, kNameText)));
+	fName->SetDivider(divide_length);
 	fName->SetAlignment(B_ALIGN_RIGHT, B_ALIGN_LEFT);
 
-	rect.OffsetBy(0,fName->Bounds().Height() + 5);
+	rect.OffsetBy(0,fName->Bounds().Height()+5);
 	rect.bottom = rect.top + kSigHeight;
 	rect.left = fName->TextView()->Frame().left;
 
 	BRect text = rect;
-	text.OffsetTo(0,0);
-	text.InsetBy(3,3);
+	text.OffsetTo(10,0);
 	fTextView = new TSigTextView(rect, text);
 	BScrollView *scroller = new BScrollView("SigScroller", fTextView, B_FOLLOW_ALL, 0, false, true);
 	AddChild(scroller);
-	scroller->ResizeBy(-1 * scroller->ScrollBar(B_VERTICAL)->Frame().Width(), 0);
+	scroller->ResizeBy(-1 * scroller->ScrollBar(B_VERTICAL)->Frame().Width() - 9, 0);
+	scroller->MoveBy(7,0);
 
 	/* back up a bit to make room for the label */
 
@@ -431,15 +440,13 @@ TSignatureView::AttachedToWindow()
 	stringView->GetPreferredSize(&tWidth, &tHeight);
 
 	/* the 5 is for the spacer in the TextView */
-	rect.OffsetBy(-1 *(5 + tWidth), 0);
+
+	rect.OffsetBy(-1 *(tWidth) - 5, 0);
 	rect.right = rect.left + tWidth;
 	rect.bottom = rect.top + tHeight;
 
 	stringView->MoveTo(rect.LeftTop());
 	stringView->ResizeTo(rect.Width(), rect.Height());
-
-	/* don't ask where the 2 came from */
-	fName->SetDivider(tWidth + 2);
 
 	/* Resize the View to the correct height */
 	scroller->SetResizingMode(B_FOLLOW_NONE);

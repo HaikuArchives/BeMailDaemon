@@ -61,11 +61,6 @@ All rights reserved.
 const float kSigHeight = 200;
 const float kSigWidth = 457;
 
-/* For display positioning use, it is assumed that StringLength(SIG_TEXT) >
-StringLength(NAME_TEXT) for English and the opposite for Japanese. */
-const char kNameText[] = MDR_DIALECT_CHOICE ("Title:", "サインの名称:");
-const char kSigText[] = MDR_DIALECT_CHOICE ("Signature:", "サイン:");
-
 #define INDEX_SIGNATURE		"_signature"
 
 class TMenu;

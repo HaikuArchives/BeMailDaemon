@@ -70,8 +70,8 @@ using namespace Zoidberg;
 #define REPLYTO_TEXT		MDR_DIALECT_CHOICE ("Reply Account:", "返信用アカウント:")
 #define REPLYTO_USE_DEFAULT_TEXT	MDR_DIALECT_CHOICE ("Use Default Account", "標準アカウントを使う")
 #define REPLYTO_FROM_MAIL_TEXT		MDR_DIALECT_CHOICE ("Account From Mail", "メールのアカウントを使う")
-#define REPLY_PREAMBLE_TEXT		MDR_DIALECT_CHOICE ("Reply Preamble:", "返信の文頭に付ける語句:")
-#define SIGNATURE_TEXT		MDR_DIALECT_CHOICE ("Auto Signature:", "	自動サイン:")
+#define REPLY_PREAMBLE_TEXT		MDR_DIALECT_CHOICE ("Reply Preamble:", "返信へ追加:")
+#define SIGNATURE_TEXT		MDR_DIALECT_CHOICE ("Auto Signature:", "自動署名:")
 #define ENCODING_TEXT		MDR_DIALECT_CHOICE ("Encoding:", "エンコード形式:")
 #define BUTTONBAR_TEXT		MDR_DIALECT_CHOICE ("Button Bar:", "ボタンバー:")
 
@@ -82,7 +82,7 @@ using namespace Zoidberg;
 
 #define REVERT_BUTTON_X1	8
 #define REVERT_BUTTON_X2	(REVERT_BUTTON_X1 + BUTTON_WIDTH)
-#define REVERT_BUTTON_TEXT	MDR_DIALECT_CHOICE ("Revert", "元へ戻す")
+#define REVERT_BUTTON_TEXT	MDR_DIALECT_CHOICE ("Revert", "復元")
 
 enum	P_MESSAGES			{P_OK = 128, P_CANCEL, P_REVERT, P_FONT,
 							 P_SIZE, P_LEVEL, P_WRAP, P_ATTACH_ATTRIBUTES,

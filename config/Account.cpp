@@ -105,7 +105,7 @@ Account::Account(Mail::Chain *inbound,Mail::Chain *outbound)
 
 	fInboundItem = new AccountItem(MDR_DIALECT_CHOICE ("   · Incoming","   - 受信"),this,INBOUND_ITEM);
 	fOutboundItem = new AccountItem(MDR_DIALECT_CHOICE ("   · Outgoing","   - 送信"),this,OUTBOUND_ITEM);
-	fFilterItem = new AccountItem(MDR_DIALECT_CHOICE ("   · E-mail Filters","   - フィルター"),this,FILTER_ITEM);
+	fFilterItem = new AccountItem(MDR_DIALECT_CHOICE ("   · E-mail Filters","   - フィルタ"),this,FILTER_ITEM);
 }
 
 
