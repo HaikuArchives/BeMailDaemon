@@ -175,18 +175,12 @@ int32 Message::CountComponents() const {
 	return _num_components;
 }
 
-void Message::Attach(entry_ref *ref, bool include_attachments) {
-	if (include_attachments) {
-		AddComponent(new Mail::AttributedAttachment(ref));
-	} else {
-		Mail::SimpleAttachment *attach = new Mail::SimpleAttachment;
-		attach->SetFileName(ref->name);
-		
-		BFile *file = new BFile(ref,B_READ_ONLY);
-		attach->SetDecodedDataAndDeleteWhenDone(file);
-		
-		AddComponent(attach);
-	}
+void Message::Attach(entry_ref *ref, bool includeAttributes)
+{
+	if (includeAttributes)
+		AddComponent(new AttributedAttachment(ref));
+	else
+		AddComponent(new SimpleAttachment(ref));
 }
 		
 bool Message::IsComponentAttachment(int32 i) {

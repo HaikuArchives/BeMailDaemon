@@ -34,38 +34,95 @@ namespace Mail {
 //--------------SimpleAttachment-No attributes or awareness of the file system at large-----
 
 SimpleAttachment::SimpleAttachment()
-	: Mail::Component(),
+	: Component(),
 	_data(NULL),
 	_raw_data(NULL),
 	_we_own_data(false)
-	{
-		SetEncoding(base64);
-		SetHeaderField("Content-Disposition","Attachment");
-	}
+{
+	SetEncoding(base64);
+	SetHeaderField("Content-Disposition","Attachment");
+}
 
 SimpleAttachment::SimpleAttachment(BPositionIO *data, mail_encoding encoding)
-	: Mail::Component(),
+	: Component(),
 	_data(data),
 	_raw_data(NULL),
 	_we_own_data(false)
-	{
-		SetEncoding(encoding);
-		SetHeaderField("Content-Disposition","Attachment");
-	}
+{
+	SetEncoding(encoding);
+	SetHeaderField("Content-Disposition","Attachment");
+}
 
 SimpleAttachment::SimpleAttachment(const void *data, size_t length, mail_encoding encoding)
-	: Mail::Component(),
+	: Component(),
 	_data(new BMemoryIO(data,length)),
 	_raw_data(NULL),
 	_we_own_data(true)
-	{
-		SetEncoding(encoding);
-		SetHeaderField("Content-Disposition","Attachment");
-	}
+{
+	SetEncoding(encoding);
+	SetHeaderField("Content-Disposition","Attachment");
+}
 
-SimpleAttachment::~SimpleAttachment() {
+SimpleAttachment::SimpleAttachment(BFile *file, bool delete_when_done)
+	: Component(),
+	_data(NULL),
+	_raw_data(NULL),
+	_we_own_data(false)
+{
+	SetEncoding(base64);
+	SetTo(file,delete_when_done);
+}
+
+SimpleAttachment::SimpleAttachment(entry_ref *ref)
+	: Component(),
+	_data(NULL),
+	_raw_data(NULL),
+	_we_own_data(false)
+{
+	SetEncoding(base64);
+	SetTo(ref);
+}
+
+SimpleAttachment::~SimpleAttachment()
+{
 	if (_we_own_data)
 		delete _data;
+}
+
+status_t SimpleAttachment::SetTo(BFile *file, bool delete_file_when_done)
+{
+	char type[B_MIME_TYPE_LENGTH] = "application/octet-stream";
+
+	BNodeInfo nodeInfo(file);
+	if (nodeInfo.InitCheck() == B_OK)
+		nodeInfo.GetType(type);
+
+	SetHeaderField("Content-Type",type);
+	//---No way to get file name (see SetTo(entry_ref *))
+	//SetFileName(ref->name);
+	
+	if (delete_file_when_done)
+		SetDecodedDataAndDeleteWhenDone(file);
+	else
+		SetDecodedData(file);
+
+	return B_OK;
+}
+
+status_t SimpleAttachment::SetTo(entry_ref *ref)
+{
+	BFile *file = new BFile(ref,B_READ_ONLY);
+	status_t status = file->InitCheck();
+	if (status == B_OK)
+		SetTo(file,true);
+	else
+	{
+		delete file;
+		return status;
+	}
+
+	SetFileName(ref->name);
+	return B_OK;
 }
 
 status_t SimpleAttachment::FileName(char *text) {
@@ -251,8 +308,6 @@ status_t SimpleAttachment::RenderToRFC822(BPositionIO *render_to) {
 	
 	//---------Massive memory squandering!---ALERT!----------
 	//	now with error checks, dumb :-) -- axeld.
-	//if (_encoding != base64)
-	//	return B_BAD_TYPE;
 
 	_data->Seek(0,SEEK_END);
 	off_t size = _data->Position();
@@ -261,13 +316,16 @@ status_t SimpleAttachment::RenderToRFC822(BPositionIO *render_to) {
 		return B_NO_MEMORY;
 
 	_data->Seek(0,SEEK_SET);
-	
+
 	ssize_t read = _data->Read(src,size);
 	if (read < B_OK)
 		return read;
 
-	char *dest = (char *)malloc(max_encoded_length(_encoding,read)); //--The encoded text will never be more than twice as large with any conceivable encoding
-	
+	//--The encoded text will never be more than twice as large with any conceivable encoding
+	char *dest = (char *)malloc(max_encoded_length(_encoding,read));
+	if (dest == NULL)
+		return B_NO_MEMORY;
+
 	switch (_encoding) {
 		case base64:
 			size = encode_base64(dest,src,read);
@@ -283,7 +341,7 @@ status_t SimpleAttachment::RenderToRFC822(BPositionIO *render_to) {
 		default:
 			return B_BAD_TYPE;
 	}
-	
+
 	read = render_to->Write(dest,size);
 	free(dest);
 
@@ -333,52 +391,52 @@ AttributedAttachment::~AttributedAttachment() {
 	//------------Our SimpleAttachments are deleted by MailContainer
 }
 
-void AttributedAttachment::SetTo(BFile *file, bool delete_file_when_done) {
-	char buffer[512];
+status_t AttributedAttachment::SetTo(BFile *file, bool delete_file_when_done)
+{
 	_attributes << *file;
 	
-	BNodeInfo(file).GetType(buffer);
-	_data->SetHeaderField("Content-Type",buffer);
-	//---No way to get file name
-	//_data->SetFileName(ref->name);
-	
-	if (delete_file_when_done)
-		_data->SetDecodedDataAndDeleteWhenDone(file);
-	else
-		_data->SetDecodedData(file);
-	
+	status_t status;
+	if ((status = _data->SetTo(file,delete_file_when_done)) < B_OK)
+		return status;
+
 	//---Also, we have the make up the boundary out of whole cloth
 	//------This is likely to give a completely random string---
 	BString boundary;
-	boundary << "BFile--" << (int32(file) ^ time(NULL)) << ":" << ~((int32)file ^ (int32)&buffer ^ (int32)&_attributes) << "--";
-	SetBoundary(boundary.String()); 
+	boundary << "BFile--" << (int32(file) ^ time(NULL)) << "-" << ~((int32)file ^ (int32)&status ^ (int32)&_attributes) << "--";
+	SetBoundary(boundary.String());
+	
+	return B_OK;
 }
-	
-void AttributedAttachment::SetTo(entry_ref *ref) {
-	char buffer[512];
+
+status_t AttributedAttachment::SetTo(entry_ref *ref)
+{
 	BNode node(ref);
-	_attributes << node;
-	BFile *file = new BFile(ref,B_READ_ONLY); 
-	
-	_data->SetDecodedDataAndDeleteWhenDone(file);
-	BNodeInfo(file).GetType(buffer);
-	_data->SetHeaderField("Content-Type",buffer);
-	
-	SetFileName(ref->name);
+	status_t status = node.InitCheck();
+	if (status == B_OK)
+		_attributes << node;
+	else
+		return status;
+
+	status = _data->SetTo(ref);
+	if (status < B_OK)
+		return status;
 	
 	//------This is likely to give a completely random string---
 	BString boundary;
+	char buffer[512];
 	strcpy(buffer, ref->name);
 	for (int32 i = strlen(buffer);i-- > 0;)
 	{
 		if (buffer[i] & 0x80)
 			buffer[i] = 'x';
-		else if (buffer[i] == ' ')
+		else if (buffer[i] == ' ' || buffer[i] == ':')
 			buffer[i] = '_';
 	}
 	buffer[32] = '\0';
-	boundary << "BFile:" << buffer << "--" << ((int32)file ^ time(NULL)) << ":" << ~((int32)file ^ (int32)&buffer ^ (int32)&_attributes) << "--";
+	boundary << "BFile-" << buffer << "--" << ((int32)_data ^ time(NULL)) << "-" << ~((int32)_data ^ (int32)&buffer ^ (int32)&_attributes) << "--";
 	SetBoundary(boundary.String());
+	
+	return B_OK;
 }
 
 void AttributedAttachment::SaveToDisk(BEntry *entry) {
@@ -489,20 +547,23 @@ status_t AttributedAttachment::RenderToRFC822(BPositionIO *render_to) {
 	const
 #endif
 	char *name;
-	const void *data;
-	void *allocd;
 	type_code type, swap_typed;
-	int64 length, swapped;
-	ssize_t dataLen;
 	for (int32 i = 0; _attributes.GetInfo(B_ANY_TYPE,i,&name,&type) == B_OK; i++) {
+		const void *data;
+		ssize_t dataLen;
 		_attributes.FindData(name,type,&data,&dataLen);
 		io->Write(name,strlen(name) + 1);
 		swap_typed = B_HOST_TO_BENDIAN_INT32(type);
 		io->Write(&swap_typed,sizeof(type_code));
+
+		int64 length, swapped;
 		length = dataLen;
 		swapped = B_HOST_TO_BENDIAN_INT64(length);
 		io->Write(&swapped,sizeof(int64));
-		allocd = malloc(dataLen);
+
+		void *allocd = malloc(dataLen);
+		if (allocd == NULL)
+			return B_NO_MEMORY;
 		memcpy(allocd,data,dataLen);
 		swap_data(type, allocd, dataLen, B_SWAP_HOST_TO_BENDIAN);
 		io->Write(allocd,dataLen);
@@ -511,9 +572,7 @@ status_t AttributedAttachment::RenderToRFC822(BPositionIO *render_to) {
 	
 	_attributes_attach->SetDecodedDataAndDeleteWhenDone(io);
 	
-	status_t err = MIMEMultipartContainer::RenderToRFC822(render_to);
-	
-	return err;
+	return MIMEMultipartContainer::RenderToRFC822(render_to);
 }
 
 status_t AttributedAttachment::MIMEType(BMimeType *mime) {
@@ -528,7 +587,6 @@ void Attachment::_ReservedAttachment1() {}
 void Attachment::_ReservedAttachment2() {}
 void Attachment::_ReservedAttachment3() {}
 void Attachment::_ReservedAttachment4() {}
-void Attachment::_ReservedAttachment5() {}
 
 void SimpleAttachment::_ReservedSimple1() {}
 void SimpleAttachment::_ReservedSimple2() {}

@@ -45,11 +45,13 @@ MIMEMultipartContainer::MIMEMultipartContainer(const char *boundary, const char 
 	:
 	_boundary(NULL),
 	_MIME_message_warning(this_is_an_MIME_message_text),
-	_io_data(NULL) {		
-		SetHeaderField("MIME-Version","1.0");
-		SetHeaderField("Content-Type","multipart/mixed");
-		SetBoundary(boundary);
-	}
+	_io_data(NULL)
+{
+	// Definition of the MIME version in the mail header should be enough
+	SetHeaderField("MIME-Version","1.0");
+	SetHeaderField("Content-Type","multipart/mixed");
+	SetBoundary(boundary);
+}
 
 /*MIMEMultipartContainer::MIMEMultipartContainer(MIMEMultipartContainer &copy) :
 	Mail::Component(copy), 
@@ -296,7 +298,9 @@ status_t MIMEMultipartContainer::RenderToRFC822(BPositionIO *render_to) {
 		if (_components_in_code.ItemAt(i) != NULL) { //---- _components_in_code has precedence
 			
 			Mail::Component *code = (Mail::Component *)_components_in_code.ItemAt(i);
-			code->RenderToRFC822(render_to); //----Easy enough
+			status_t status = code->RenderToRFC822(render_to); //----Easy enough
+			if (status < B_OK)
+				return status;
 		} else {
 			// copy message contents
 

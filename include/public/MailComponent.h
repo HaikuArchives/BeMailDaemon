@@ -82,7 +82,7 @@ class TextComponent : public Mail::Component {
 		virtual ~TextComponent();		
 
 		void SetEncoding(mail_encoding encoding, int32 charset);
-			//------encoding: you should always use quoted_printable, base64 is strongly not reccomend, see rfc 2047 for the reasons why
+			//------encoding: you should always use quoted_printable, base64 is strongly not recommended, see rfc 2047 for the reasons why
 			//------charset: use Conversion flavor constants from UTF8.h
 		
 		void SetText(const char *text);
