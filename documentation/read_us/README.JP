@@ -181,10 +181,11 @@ BEOS Mail Daemon Replacement v2.1.0 Release Candidate 2
 
 履歴：
 
-June 27 2003 - v2.1.0rc2
+June 29 2003 - v2.1.0rc2
 - Fixed some IMAP bugs.  Not all IMAP servers are the same, or even standard.
 - Wipe out the /boot/beos/etc/word_index/ directory when installing, since the corrupt spell checking indices crash BeMail, and they get automatically regenerated if they aren't there.
 - Installer now creates the symbolic link /boot/develop/lib/(x86|ppc)/libmail.so which the older installers accidentally deleted.
+- Added Robert Paciorek's central beep modification.  Use this notification method if you have several e-mail accounts and just want one beep when there's new mail in any of them (rather than separate beeps for each account with new mail).  Didn't add his RS232 CTS/RTS signal line toggling code that turns on a light plugged into the serial port - not that many users would use it and it would need preferences changes to choose a serial port, etc.  Contact him (http://www.bebits.com/devprofile/2771) if you want the modifications.
 
 June 26 2003 - v2.1.0rc1
 - Added US-ASCII encoding and decoding, which also uses 7bit rather than quoted printable.

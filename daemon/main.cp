@@ -78,6 +78,12 @@ class MailDaemonApp : public BApplication {
 		Settings settings_file;
 		
 		int32 new_messages;
+		bool central_beep;
+			// TRUE to do a beep when the status window closes.  This happens
+			// when all mail has been received, so you get one beep for
+			// everything rather than individual beeps for each mail account.
+			// Set to TRUE by the 'mcbp' message that the mail Notification
+			// filter sends us, cleared when the beep is done.
 		BList fetch_done_respondents;
 		
 		BQuery *query;
@@ -157,7 +163,7 @@ void MailDaemonApp::ReadyToRun() {
 		else
 			string << "未読メッセージはありません";
 	);	
-	
+	central_beep = false;
 	status->SetDefaultMessage(string);
 	
 	led = new LEDAnimation;
@@ -261,6 +267,15 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 					ShowAlert("New Messages",alert_string.String());,
 					ShowAlert("新しいメッセージ",alert_string.String());)
 				alert_string = B_EMPTY_STRING;
+			}
+			if (central_beep) {
+				system_beep("New E-mail");
+				central_beep = false;
+			}
+			break;
+		case 'mcbp':
+			if (new_messages > 0) {
+				central_beep = true;
 			}
 			break;
 		case 'mnum': //----Number of new messages

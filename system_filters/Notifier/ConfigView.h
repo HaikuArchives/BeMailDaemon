@@ -12,7 +12,8 @@ enum {
 	do_beep = 1,
 	alert = 2,
 	blink_leds = 4,
-	big_doozy_alert = 8
+	big_doozy_alert = 8,
+	one_central_beep = 16
 };
 
 class ConfigView : public BView

@@ -37,8 +37,9 @@ ConfigView::ConfigView()
 		MDR_DIALECT_CHOICE ("Beep","音"),
 		MDR_DIALECT_CHOICE ("Alert","窓（メール毎）"),
 		MDR_DIALECT_CHOICE ("Keyboard LEDs","キーボードLED"),
-		MDR_DIALECT_CHOICE ("Central Alert","窓（一括）")};
-	for (int32 i = 0,j = 1;i < 4;i++,j *= 2)
+		MDR_DIALECT_CHOICE ("Central Alert","窓（一括）"),
+		"Central Beep"};
+	for (int32 i = 0,j = 1;i < 5;i++,j *= 2)
 		menu->AddItem(new BMenuItem(notifyMethods[i],new BMessage(kMsgNotifyMethod)));
 
 	BMenuField *field = new BMenuField(frame,"notify",

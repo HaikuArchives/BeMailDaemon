@@ -99,6 +99,9 @@ void NotifyCallback::Callback(status_t result) {
 	if (strategy & blink_leds)
 		be_app->PostMessage('mblk');
 	
+	if (strategy & one_central_beep)
+		be_app->PostMessage('mcbp');
+	
 	if (strategy & big_doozy_alert) {
 		BMessage msg('numg');
 		msg.AddInt32("num_messages",num_messages);
