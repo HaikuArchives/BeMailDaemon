@@ -1556,9 +1556,13 @@ void TTextView::LoadMessage(BFile *file, bool quoteIt, const char *text)
 	if (text)
 		Insert(text, strlen(text));
 
-	attr_info attrInfo;
+	//attr_info attrInfo;
 	TTextView::Reader *reader = new TTextView::Reader(fHeader, fRaw, quoteIt, fIncoming,
-				text != NULL, fFile->GetAttrInfo(B_MAIL_ATTR_MIME, &attrInfo) == B_OK,
+				text != NULL, true,
+				// I removed the following, because I absolutely can't imagine why it's
+				// there (the mail kit should be able to deal with non-compliant mails)
+				// -- axeld.
+				// fFile->GetAttrInfo(B_MAIL_ATTR_MIME, &attrInfo) == B_OK,
 				this, fFile, fEnclosures, fStopSem);
 
 	resume_thread(fThread = spawn_thread(Reader::Run, "reader", B_NORMAL_PRIORITY, reader));
@@ -2261,23 +2265,23 @@ status_t TTextView::Reader::Run(void *_this)
 		if (!reader->Process((const char *)msg + len, size - len))
 			goto done;
 	}
-	else if (!reader->fMime)
-	{
-		// convert to user's preferred encoding if charset not specified in MIME
-		int32	convState = 0;
-		int32	src_len = size - len;
-		int32	dst_len = 4 * src_len;
-		char	*utf8 = (char *)malloc(dst_len);
-
-		convert_to_utf8(gMailEncoding, msg + len, &src_len, utf8, &dst_len,
-			&convState);
-
-		bool result = reader->Process((const char *)utf8, dst_len);
-		free(utf8);
-
-		if (!result)
-			goto done;
-	}
+//	else if (!reader->fMime)
+//	{
+//		// convert to user's preferred encoding if charset not specified in MIME
+//		int32	convState = 0;
+//		int32	src_len = size - len;
+//		int32	dst_len = 4 * src_len;
+//		char	*utf8 = (char *)malloc(dst_len);
+//
+//		convert_to_utf8(gMailEncoding, msg + len, &src_len, utf8, &dst_len,
+//			&convState);
+//
+//		bool result = reader->Process((const char *)utf8, dst_len);
+//		free(utf8);
+//
+//		if (!result)
+//			goto done;
+//	}
 	else
 	{
 		reader->fFile->Seek(0, 0);
