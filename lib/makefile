@@ -152,6 +152,13 @@ endif
 TARGET_DIR=.
 INSTALL_DIR=/boot/beos/system/lib
 
+#	Detect BONE
+ifeq ($(shell ls 2>/dev/null -1 /boot/develop/headers/be/bone/bone_api.h), /boot/develop/headers/be/bone/bone_api.h)
+	# do nothing. We just need it for the net_server case.
+else
+	LIBS += net
+endif
+
 ## include the makefile-engine
 include $(BUILDHOME)/etc/makefile-engine.MailD
 
