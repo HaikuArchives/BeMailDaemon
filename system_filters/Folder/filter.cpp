@@ -65,7 +65,7 @@ class FolderFilter : public Mail::Filter
 	BDirectory destination;
 	int32 chain_id;
 	int fNumberOfFilesSaved;
-	int size_limit;
+	int size_limit; // Messages larger than this many bytes get partially downloaded.  -1 for always do full download.
 
   public:
 	FolderFilter(BMessage*,Mail::ChainRunner *);
@@ -81,7 +81,7 @@ class FolderFilter : public Mail::Filter
 
 FolderFilter::FolderFilter(BMessage* msg,Mail::ChainRunner *runner)
 	: Mail::Filter(msg),
-	chain_id(msg->FindInt32("chain")), size_limit(0)
+	chain_id(msg->FindInt32("chain")), size_limit(-1)
 {
 	fNumberOfFilesSaved = 0;
 	dest_string = runner->Chain()->MetaData()->FindString("path");
