@@ -274,9 +274,15 @@ status_t MailMessage::RenderTo(BFile *file) {
 	//------Copy in headers from _header_kludge_yikes
 	if (_header_kludge_yikes != NULL) {
 		type_code type;
-		char *name, *data;
+
+#ifdef B_BEOS_VERSION_DANO
+		const
+#endif
+		char *name;
+		const char *data;
+		
 		for (int32 i = 0; _header_kludge_yikes->GetInfo(B_STRING_TYPE,i,&name,&type) >= B_OK; i++) {
-			if (_header_kludge_yikes->FindString(name,(const char **)&data) >= B_OK)
+			if (_header_kludge_yikes->FindString(name,&data) >= B_OK)
 				_body->AddHeaderField(name,data);
 		}
 		
