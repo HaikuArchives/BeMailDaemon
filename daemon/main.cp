@@ -170,6 +170,7 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 						break;
 					}
 				}
+				close (s);
 #else
 				if (find_thread("tty_thread") <= 0)
 					break;
