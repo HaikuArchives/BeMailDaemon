@@ -318,6 +318,9 @@ void MailSettings::SetDefaultOutboundChainID(uint32 to) {
 	/*--------Hack!!! Hack!!! Hack!!!------------*/
 //#ifdef HACK
 	MailChain new_acc(to);
+	if (new_acc.InitCheck() < B_OK)
+		return;
+
 	create_directory("/boot/home/config/settings/Mail/MailPop/",0777);
 	create_directory("/boot/home/config/settings/Mail/MailSmtp/",0777);
 	BFile old_daemon("/boot/home/config/settings/Mail/MailPop/MailPop1",B_READ_WRITE | B_CREATE_FILE | B_ERASE_FILE);
@@ -327,8 +330,10 @@ void MailSettings::SetDefaultOutboundChainID(uint32 to) {
 	old_settings.AddString("pop_user_name",B_EMPTY_STRING);
 	old_settings.AddString("pop_password",B_EMPTY_STRING);
 	old_settings.AddString("pop_host",B_EMPTY_STRING);
-	old_settings.AddString("pop_real_name",new_acc.MetaData()->FindString("real_name"));
-	old_settings.AddString("pop_reply_to",new_acc.MetaData()->FindString("reply_to"));
+	const char *string = new_acc.MetaData()->FindString("real_name");
+	old_settings.AddString("pop_real_name",string ? string : B_EMPTY_STRING);
+	string = new_acc.MetaData()->FindString("reply_to");
+	old_settings.AddString("pop_reply_to",string ? string : B_EMPTY_STRING);
 	old_settings.AddInt32("pop_days",0);
 	old_settings.AddInt32("pop_interval",0);
 	old_settings.AddInt32("pop_start",0);
