@@ -42,7 +42,7 @@ IMAP4Client::IMAP4Client(BMessage *settings,Mail::StatusView *status)
 {
 //	BNetDebug::Enable(true);
 	SetTimeout(kIMAP4ClientTimeout);
-	error = Open(settings->FindString("server"),settings->FindInt32("port"),settings->FindInt32("flavor"));
+	error = Open(_settings->FindString("server"),settings->FindInt32("port"),settings->FindInt32("flavor"));
 
 	if( B_OK == error )
 	{
@@ -221,7 +221,7 @@ IMAP4Client::UniqueIDs()
 	
 	BString out;
 	SendCommand(cmd.String());
-	printf("Our command is: %s\n",cmd.String());
+//	printf("Our command is: %s\n",cmd.String());
 	int32 cmdNumber = fCommandCount;
 	int32 state;
 	int32 pos,i;
@@ -557,7 +557,7 @@ IMAP4Client::Logout()
 status_t
 IMAP4Client::SendCommand(const char* command)
 {
-	printf("C: '%s'\n",command);
+	printf("[%s:%d] C: '%s'\n", fAddress.String(), (int)fPort, command);
 	BString out("");
 	status_t err = B_ERROR;
 	char *cmd = new char[strlen(command) + 15];

@@ -89,6 +89,7 @@ status_t Settings::Reload()
 	
 	// open
 	BFile settings(path.Path(),B_READ_ONLY);
+	ret = settings.InitCheck();
 	if (ret != B_OK)
 	{
 		fprintf(stderr, "Couldn't open settings file '%s': %s\n",
