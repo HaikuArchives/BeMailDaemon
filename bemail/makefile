@@ -132,7 +132,7 @@ DRIVER_PATH =
 
 MACHINE=$(shell uname -m)
 ifneq ($(MACHINE),BePC)
-	COMPILER_FLAGS += -w iserr
+	COMPILER_FLAGS += 
 else
 	COMPILER_FLAGS += -Werror
 endif
