@@ -47,7 +47,8 @@ class UpdateHandler : public BHandler {
 					StringList to_delete;
 					StringList to_add;
 					subdirs.NotThere(_prot->mailboxes,&to_add);
-					subdirs.NotHere(_prot->mailboxes,&to_delete);
+					if (subdirs.CountItems() != 0) // --- If it's a virgin mailfolder, the user probably just configured his machineand probably *doesn't* want all his mail folders deleted :)
+						subdirs.NotHere(_prot->mailboxes,&to_delete);
 					for (int32 i = 0; i < to_add.CountItems(); i++) {
 						if (_prot->CreateMailbox(to_add[i]) != B_OK)
 							continue;

@@ -262,8 +262,6 @@ status_t ProtocolConfigView::Archive(BMessage *into, bool) const {
 		host_name.Truncate(host_name.FindFirst(':'));
 	}
 	
-	into->RemoveName("manifest");
-	
 	if (into->ReplaceString("server",host_name.String()) != B_OK)
 		into->AddString("server",host_name.String());
 

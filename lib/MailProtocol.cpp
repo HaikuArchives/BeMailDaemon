@@ -143,7 +143,10 @@ Protocol::Protocol(BMessage *settings, ChainRunner *run)
 			if (node.InitCheck() >= B_OK) {
 				attr_info info;
 				if (node.GetAttrInfo(attr_name.String(),&info) < B_OK) {
-					runner->Chain()->MetaData()->FindFlat("manifest", manifest); //---no error checking, because if it doesn't exist, it will stay empty anyway
+					if (runner->Chain()->MetaData()->FindFlat("manifest", manifest) == B_OK) {
+						runner->Chain()->MetaData()->RemoveName("manifest");
+						runner->Chain()->Save(); //--- Not having this code made an earlier version of MDR delete all my *(&(*& mail
+					}
 				} else {
 					void *flatmanifest = malloc(info.size);
 					node.ReadAttr(attr_name.String(),manifest->TypeCode(),0,flatmanifest,info.size);

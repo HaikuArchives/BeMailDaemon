@@ -716,6 +716,18 @@ class IMAP4PartialReader : public BPositionIO {
 };
 
 status_t IMAP4Client::GetMessage(const char *mailbox, const char *message, BPositionIO **data, BMessage *headers) {	
+	{
+		//--- Error reporting for non-existant messages often simply doesn't exist. So we have to check first...
+		BString uid = mailbox;
+		uid << '/' << message;
+		if (!unique_ids->HasItem(uid.String())) {
+			uid.Prepend("This message (");
+			uid.Append(") does not exist on the server. Possibly it was deleted by another client.");
+			runner->ShowError(uid.String());
+			return B_NAME_NOT_FOUND;
+		}
+	}
+	
 	Select(mailbox);
 	
 	if (headers->FindBool("ENTIRE_MESSAGE")) {				
@@ -726,9 +738,10 @@ status_t IMAP4Client::GetMessage(const char *mailbox, const char *message, BPosi
 		static char cmd[255];
 		::sprintf(cmd,"a%.7ld"CRLF,commandCount);
 		NestedString response;
+				
 		if (GetResponse(command,&response,true) != NOT_COMMAND_RESPONSE && command == cmd)
 			return B_ERROR;
-		
+				
 		for (int32 i = 0; i < response[2][1].CountItems(); i++) {
 			if (strcmp(response[2][1][i](),"\\Seen") == 0) {
 				headers->AddString("STATUS","Read");
