@@ -83,9 +83,10 @@ ifeq ($(CPU), x86)
 	endif
 
 
-#	SETTING: set the language define.  Use "make LANGUAGE=ENGLISHUK" to choose
-#	British English, or "make LANGUAGE=JAPANESE".  Default (no define) is English.
-	ifeq ($(LANGUAGE), ENGLISHUK)
+#	SETTING: set the language define.  Use "make LANGUAGE=ENGLISHUSA" to choose
+#	American English (color rather than colour), or "make LANGUAGE=JAPANESE".
+#	Default (no MDR_DIALECT define) is ENGLISHUSA.
+	ifeq ($(LANGUAGE), ENGLISHUSA)
 		CFLAGS += -DMDR_DIALECT=0
 	else
 	ifeq ($(LANGUAGE), JAPANESE)
