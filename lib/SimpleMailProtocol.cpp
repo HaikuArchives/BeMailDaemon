@@ -67,7 +67,7 @@ status_t SimpleProtocol::Init() {
 	if (error < B_OK)
 		return error;
 		
-	if (settings->FindBool("leave_mail_on_server")) {
+	//if (settings->FindBool("leave_mail_on_server")) {
 		size_t	maildrop_size = 0;
 		int32	num_messages;
 		
@@ -84,14 +84,14 @@ status_t SimpleProtocol::Init() {
 			maildrop_size += MessageSize(unique_ids->IndexOf(to_dl[i]));
 		
 		runner->GetMessages(&to_dl,maildrop_size);
-	} else {
+	/*} else {
 		if (unique_ids->CountItems() == 0) {
 			runner->Stop();
 			return error;
 		}
 			
 		runner->GetMessages(unique_ids,MailDropSize());
-	}
+	}*/
 	
 	return error;
 }
@@ -102,13 +102,15 @@ SimpleProtocol::~SimpleProtocol() {
 
 status_t SimpleProtocol::GetMessage(
 	const char* uid,
-	BPositionIO** out_file, BMessage* /*out_headers*/,
+	BPositionIO** out_file, BMessage* out_headers,
 	BPath* out_folder_location
 ) {
 	int32 to_retrieve = unique_ids->IndexOf(uid);
 	if (to_retrieve < 0)
 		return B_NAME_NOT_FOUND;
-
+	
+	
+	out_headers->AddInt32("SIZE",MessageSize(to_retrieve));
 	*out_file = new Zoidberg::Mail::MessageIO(this,*out_file,to_retrieve);
 	
 	if (out_folder_location != NULL)

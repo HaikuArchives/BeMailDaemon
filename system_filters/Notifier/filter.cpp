@@ -61,9 +61,10 @@ status_t NotifyFilter::InitCheck(BString* err)
 	return B_OK;
 }
 
-status_t NotifyFilter::ProcessMailMessage(BPositionIO**, BEntry*, BMessage*, BPath*, const char*)
+status_t NotifyFilter::ProcessMailMessage(BPositionIO**, BEntry*, BMessage*headers, BPath*, const char*)
 {
-	callback->num_messages ++;
+	if (!headers->FindBool("ENTIRE_MESSAGE"))	
+		callback->num_messages ++;
 	
 	return B_OK;
 }

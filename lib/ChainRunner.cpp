@@ -47,7 +47,9 @@ _EXPORT ChainRunner *Mail::GetRunner(int32 chain_id, Mail::StatusWindow *status,
 	if (running_chains.HasItem((void *)(chain_id)))
 		return (ChainRunner *)running_chain_pointers.ItemAt(running_chains.IndexOf((void *)(chain_id)));
 		
-	return new ChainRunner(Mail::GetChain(chain_id),status,self_destruct,true,self_destruct);
+	ChainRunner *runner = new ChainRunner(Mail::GetChain(chain_id),status,self_destruct,true,self_destruct);
+	runner->RunChain();
+	return runner;
 }
 
 void unload(void *id);

@@ -199,9 +199,24 @@ status_t POP3Protocol::Retrieve(int32 message, BPositionIO *write_to)
 {
 	BString cmd;
 	cmd << "RETR " << message + 1 << CRLF;
-	status_t result = RetrieveInternal(cmd.String(),message,write_to, true);
+	//status_t result = RetrieveInternal(cmd.String(),message,write_to, true);
+	size_t message_len = MessageSize(message);
+	if (SendCommand(cmd.String()) != B_OK)
+		return B_ERROR;
+	int32 octets_read = 0;
+	int32 temp;
+	char *buffer = new char[message_len];
+
+	while (octets_read < message_len) {
+		temp = conn.Receive(buffer + octets_read,message_len - octets_read);
+		runner->ReportProgress(temp,0);
+		octets_read += temp;
+	}
+	write_to->Write(buffer,message_len);
+	conn.Receive(buffer,5);
+	delete [] buffer;
 	runner->ReportProgress(0,1);
-	return result;
+	return B_OK;
 }
 
 
@@ -315,14 +330,21 @@ void POP3Protocol::Delete(int32 num) {
 
 
 size_t POP3Protocol::MessageSize(int32 index) {
+	int32 i = sizes[index];
+	if (i > 0)
+		return i;
 	BString cmd = "LIST ";
 	cmd << (index+1) << CRLF;
 	if (SendCommand(cmd.String()) != B_OK)
 		return 0;
-	int32 i = fLog.FindLast(" ");
+	puts(fLog.String());
+	i = fLog.FindLast(" ");
 	if (i >= 0)
-		return atol(&(fLog.String()[i]));
-	return 0;	
+		i = atol(&(fLog.String()[i]));
+	else
+		i = 0;
+	sizes[index] = i;
+	return i;
 }
 
 

@@ -9,6 +9,8 @@
 #include <Query.h>
 #include <VolumeRoster.h>
 #include <StringList.h>
+#include <E-mail.h>
+#include <NodeInfo.h>
 
 #include <stdio.h>
 #include <assert.h>
@@ -56,13 +58,14 @@ class RanYetReset : public Mail::ChainCallback {
 
 class MessageDeletion : public Mail::ChainCallback {
 	public:
-		MessageDeletion(Protocol *home, const char *uid, bool delete_anyway);
+		MessageDeletion(Protocol *home, const char *uid, BEntry *io_entry, bool delete_anyway);
 		virtual void Callback(status_t result);
 		
 	private:
 		Protocol *us;
 		bool always;
 		const char *message_id;
+		BEntry *entry;
 };
 
 }
@@ -104,7 +107,7 @@ Protocol::~Protocol() {
 	if (manifest != NULL) {
 		BMessage *meta_data = runner->Chain()->MetaData();
 		meta_data->RemoveName("manifest");
-		if (settings->FindBool("leave_mail_on_server"))
+		//if (settings->FindBool("leave_mail_on_server"))
 			meta_data->AddFlat("manifest",manifest);
 	}
 	delete unique_ids;
@@ -120,7 +123,7 @@ Protocol::~Protocol() {
 							
 status_t Protocol::ProcessMailMessage
 	(
-		BPositionIO** io_message, BEntry* /*io_entry*/,
+		BPositionIO** io_message, BEntry* io_entry,
 		BMessage* io_headers, BPath* io_folder, const char* io_uid
 	) {
 		status_t error;
@@ -173,7 +176,7 @@ status_t Protocol::ProcessMailMessage
 		}
 		
 		runner->RegisterMessageCallback(new ManifestAdder(manifest,io_uid));
-		runner->RegisterMessageCallback(new MessageDeletion(this,io_uid,!settings->FindBool("leave_mail_on_server")));
+		runner->RegisterMessageCallback(new MessageDeletion(this,io_uid,io_entry,!settings->FindBool("leave_mail_on_server")));
 		
 		return B_OK;
 }
@@ -188,16 +191,20 @@ void Protocol::_ReservedProtocol5() {}
 //	#pragma mark -
 
 
-Mail::MessageDeletion::MessageDeletion(Protocol *home, const char *uid, bool delete_anyway) :
+Mail::MessageDeletion::MessageDeletion(Protocol *home, const char *uid,BEntry *io_entry, bool delete_anyway) :
 	us(home),
 	always(delete_anyway),
-	message_id(uid) {}
+	message_id(uid), entry(io_entry) {}
 
 void Mail::MessageDeletion::Callback(status_t result) {
 	#if DEBUG
 	 printf("Deleting %s\n",message_id->String());
 	#endif
-	if (always || result == B_MAIL_DISCARD)
+	BNode node(entry);
+	BNodeInfo info(&node);
+	char type[255];
+	info.GetType(type);
+	if ((always && strcmp(B_MAIL_TYPE,type) == 0) || result == B_MAIL_DISCARD)
 		us->DeleteMessage(message_id);
 }
 

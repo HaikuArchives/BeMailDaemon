@@ -106,7 +106,8 @@ void MailDaemonApp::RefsReceived(BMessage *a_message) {
 		
 		path.SetTo(&ref);
 		printf("Fetching the rest of the message %s (%d bytes)\n",uid.String(),size);
-		Mail::GetRunner(id,status)->GetSingleMessage(uid.String(),size,&path);
+		Mail::ChainRunner *runner = Mail::GetRunner(id,status);
+		runner->GetSingleMessage(uid.String(),size,&path);
 	}
 }
 	

@@ -8,6 +8,7 @@
 
 #include <NetEndpoint.h>
 #include <String.h>
+#include <map>
 
 #include <MailProtocol.h>
 
@@ -40,6 +41,7 @@ private:
 	BString			fLog;
 	int32			fNumMessages;
 	size_t			fMailDropSize;
+	map<int,int>    sizes; 
 };
 
 #endif	/* ZOIDBERG_POP3_H */
