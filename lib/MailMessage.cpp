@@ -344,15 +344,14 @@ status_t Message::RenderToRFC822(BPositionIO *file) {
 		}
 		else if (!string && (flat[i] == ',' || flat[i] == '\0')) {
 			little.SetTo(flat + j,i - j);
-			puts(little.String());
 			
 			int32 first,last;
 			if ((first = little.FindFirst('(')) >= 0 && (last = little.FindFirst(')')) > 0)
-				little.Remove(first,last - first);
+				little.Remove(first,last + 1 - first);
 
 			TrimWhite(little);
 			recipientsList.AddItem(little.String());
-			printf(":::%s\n",little.String());
+
 			j = i + 1;
 		}
 	}
@@ -367,7 +366,6 @@ status_t Message::RenderToRFC822(BPositionIO *file) {
 			little.Prepend("<");
 			little.Append(">");
 		}
-		printf("###%s\n",little.String());
 		
 		if (i)
 			recipients << ',';
