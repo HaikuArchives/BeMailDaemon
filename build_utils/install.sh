@@ -7,7 +7,7 @@ RETURN=`alert "There can only be ONE version of mail_daemon on the system at one
 if [[ $RETURN = Purge ]]
 then
 	# note: we don't remove libmail.so, because it doesn't matter here, and there may be symlinks and things
-	query -a 'BEOS:APP_SIG == "application/x-vnd.Be-POST" || BEOS:APP_SIG == "application/x-vnd.Be-mprf" || 'BEOS:APP_SIG == "application/x-vnd.Be-MAIL"' | grep -v "`/bin/pwd`" | xargs rm -f
+	query -a 'BEOS:APP_SIG == "application/x-vnd.Be-POST" || BEOS:APP_SIG == "application/x-vnd.Be-mprf" || BEOS:APP_SIG == "application/x-vnd.Be-MAIL"' | grep -v "`/bin/pwd`" | xargs rm -f
 elif [[ $RETURN = Backup ]]
 then 
 	query -a 'BEOS:APP_SIG == "application/x-vnd.Be-POST" || BEOS:APP_SIG == "application/x-vnd.Be-mprf" || BEOS:APP_SIG == "application/x-vnd.Be-MAIL" || name == libmail.so' | grep -v "`/bin/pwd`" | xargs zip -ym /boot/home/maildaemon.zip
