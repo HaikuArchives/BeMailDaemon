@@ -1,6 +1,6 @@
 /* POP3Protocol - implementation of the POP3 protocol
 **
-** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+** Copyright 2001-2002 Dr. Zoidberg Enterprises. All rights reserved.
 */
 
 
@@ -19,21 +19,36 @@
 
 using namespace Zoidberg;
 
+#define POP3_RETRIEVAL_TIMEOUT 60000000
 #define CRLF	"\r\n"
 #define pop3_error(string) (new BAlert("POP3 Error",string,"OK",NULL,NULL,B_WIDTH_AS_USUAL,B_WARNING_ALERT))->Go()
 
 
 POP3Protocol::POP3Protocol(BMessage *settings, Mail::StatusView *status)
-	: Mail::SimpleProtocol(settings,status)
+	: Mail::SimpleProtocol(settings,status),
+	fNumMessages(-1),
+	fMailDropSize(0)
 {
 	Init();
 }
 
-void POP3Protocol::SetStatusReporter(Mail::StatusView *view) {
+
+POP3Protocol::~POP3Protocol()
+{
+	SendCommand("QUIT" CRLF);
+
+	conn.Close();
+}
+
+
+void POP3Protocol::SetStatusReporter(Mail::StatusView *view)
+{
 	status_view = view;
 }
 
-status_t POP3Protocol::Open(const char *server, int port, int) {
+
+status_t POP3Protocol::Open(const char *server, int port, int)
+{
 	status_view->SetMessage("Connecting to POP3 Server...");
 
 	if (port <= 0)
@@ -77,7 +92,9 @@ status_t POP3Protocol::Open(const char *server, int port, int) {
 	return B_OK;
 }
 
-status_t POP3Protocol::Login(const char *uid, const char *password, int method) {
+
+status_t POP3Protocol::Login(const char *uid, const char *password, int method)
+{
 	status_t err;
 	
 	BString error_msg;
@@ -121,7 +138,7 @@ status_t POP3Protocol::Login(const char *uid, const char *password, int method) 
 	cmd += CRLF;
 
 	err = SendCommand(cmd.String());
-	if(err != B_OK) {
+	if (err != B_OK) {
 		error_msg << ". The server said:\n" << fLog;
 		pop3_error(error_msg.String());
 		
@@ -144,68 +161,71 @@ status_t POP3Protocol::Login(const char *uid, const char *password, int method) 
 	return B_OK;
 }
 
-POP3Protocol::~POP3Protocol() {
-	BString cmd = "QUIT";
-	cmd += CRLF;
-	
-	if( SendCommand(cmd.String()) != B_OK) {
-		// Error
-	}
 
-	conn.Close();
+status_t POP3Protocol::Stat()
+{
+	status_view->SetMessage("Getting mailbox size...");	
+
+	if (SendCommand("STAT" CRLF) < B_OK)
+		return B_ERROR;
+
+	int32 messages,dropSize;
+	if (sscanf(fLog.String(),"+OK %ld %ld",&messages,&dropSize) < 2)
+		return B_ERROR;
+
+	fNumMessages = messages;
+	fMailDropSize = dropSize;
+
+	return B_OK;
 }
 
-int32 POP3Protocol::Messages() {
-	status_view->SetMessage("Getting number of messages...");	
-	int32 mails;
 
-	BString cmd = "STAT";
-	cmd += CRLF;
-	if( SendCommand(cmd.String()) != B_OK)
-		return -1;
-	
-	const char* log = fLog.String();
-	
-	mails = atol(&log[4]);
-	return mails;
+int32 POP3Protocol::Messages()
+{
+	if (fNumMessages < 0)
+		Stat();
+
+	return fNumMessages;		
 }
 
-size_t POP3Protocol::MailDropSize() {
-	status_view->SetMessage("Getting mailbox size...");
 
-	if( SendCommand("STAT"CRLF) != B_OK)
-		return 0;
+size_t POP3Protocol::MailDropSize()
+{
+	if (fNumMessages < 0)
+		Stat();
 	
-	int32 i = fLog.FindLast(" ");
-	const char* log = fLog.String();
-	
-	if (i >= 0)
-		return atol(&log[i]);
-	return 0;
+	return fMailDropSize;
 }
 
-status_t POP3Protocol::Retrieve(int32 message, BPositionIO *write_to) {
+
+status_t POP3Protocol::Retrieve(int32 message, BPositionIO *write_to)
+{
 	BString cmd;
 	cmd << "RETR " << message + 1 << CRLF;
 	return RetrieveInternal(cmd.String(),message,write_to, true);
 }
 
-status_t POP3Protocol::GetHeader(int32 message, BPositionIO *write_to) {
+
+status_t POP3Protocol::GetHeader(int32 message, BPositionIO *write_to)
+{
 	BString cmd;
 	cmd << "TOP " << message + 1 << " 0" << CRLF;
 	return RetrieveInternal(cmd.String(),message,write_to, false);
 }
 
-status_t POP3Protocol::RetrieveInternal(const char *command, int32, BPositionIO *write_to, bool post_progress) {
+
+status_t POP3Protocol::RetrieveInternal(const char *command, int32,
+	BPositionIO *write_to, bool post_progress)
+{
 	BString content = "";
 	
-	if( SendCommand(command) != B_OK)
+	if (SendCommand(command) != B_OK)
 		return B_ERROR;
 		
 	int32 r;
 	
 	char *buf = new char[1024];
-	if(!buf) {
+	if (!buf) {
 		fLog = "Memory was exhausted";
 		return B_ERROR;
 	}
@@ -215,10 +235,10 @@ status_t POP3Protocol::RetrieveInternal(const char *command, int32, BPositionIO 
 	int32 content_len = 0;
 	bool cont = true;
 	
-	while(cont) {
-		if(conn.IsDataPending(60000000)) {
+	while (cont) {
+		if (conn.IsDataPending(POP3_RETRIEVAL_TIMEOUT)) {
 			r = conn.Receive(buf, 1023);
-			if(r <= 0) 
+			if (r <= 0) 
 				return B_ERROR;
 				
 			if (post_progress)
@@ -228,7 +248,7 @@ status_t POP3Protocol::RetrieveInternal(const char *command, int32, BPositionIO 
 			buf[r] = '\0';
 			content = buf;
 			
-			if(	content_len > 5 &&
+			if (content_len > 5 &&
 				r >= 5 &&
 				buf[r-1] == '\n' && 
 				buf[r-2] == '\r' &&
@@ -236,7 +256,7 @@ status_t POP3Protocol::RetrieveInternal(const char *command, int32, BPositionIO 
 				buf[r-4] == '\n' &&
 				buf[r-5] == '\r' ) {
 					
-					cont = false;
+				cont = false;
 			}
 				
 			//content.ReplaceAll("\n..","\n.");
@@ -260,6 +280,7 @@ status_t POP3Protocol::RetrieveInternal(const char *command, int32, BPositionIO 
 	return B_OK;
 }
 
+
 status_t POP3Protocol::UniqueIDs() {
 	status_t ret = B_OK;
 	status_view->SetMessage("Getting UniqueIDs...");
@@ -281,6 +302,7 @@ status_t POP3Protocol::UniqueIDs() {
 	return ret;
 }
 
+
 void POP3Protocol::Delete(int32 num) {
 	BString cmd = "DELE ";
 	cmd << (num+1) << CRLF;
@@ -292,6 +314,7 @@ void POP3Protocol::Delete(int32 num) {
 	#endif
 }
 
+
 size_t POP3Protocol::MessageSize(int32 index) {
 	BString cmd = "LIST ";
 	cmd << (index+1) << CRLF;
@@ -302,7 +325,8 @@ size_t POP3Protocol::MessageSize(int32 index) {
 		return atol(&(fLog.String()[i]));
 	return 0;	
 }
-		
+
+
 int32 POP3Protocol::ReceiveLine(BString &line) {
 	int32 len = 0,rcv;
 	int8 c = 0;
@@ -310,7 +334,7 @@ int32 POP3Protocol::ReceiveLine(BString &line) {
 
 	line = "";
 	
-	if (conn.IsDataPending(60000000)) {	
+	if (conn.IsDataPending(POP3_RETRIEVAL_TIMEOUT)) {	
 		while (true) {
 			rcv = conn.Receive(&c,1);
 			if((rcv <=0) || (c == '\n') || (c == EOF))
@@ -333,6 +357,7 @@ int32 POP3Protocol::ReceiveLine(BString &line) {
 	}
 	return len;
 }
+
 
 status_t POP3Protocol::SendCommand(const char* cmd) {
 	int32 len;
@@ -357,6 +382,7 @@ status_t POP3Protocol::SendCommand(const char* cmd) {
 	return err;
 }
 
+
 void POP3Protocol::MD5Digest (unsigned char *in,char *ascii_digest)
 {
 	int i;
@@ -373,11 +399,15 @@ void POP3Protocol::MD5Digest (unsigned char *in,char *ascii_digest)
 	return;
 }
 
-Mail::Filter *instantiate_mailfilter(BMessage *settings, Mail::StatusView *view) {
+
+Mail::Filter *instantiate_mailfilter(BMessage *settings, Mail::StatusView *view)
+{
 	return new POP3Protocol(settings,view);
 }
 
-BView* instantiate_config_panel(BMessage *settings,BMessage *) {
+
+BView* instantiate_config_panel(BMessage *settings,BMessage *)
+{
 	Mail::ProtocolConfigView *view = new Mail::ProtocolConfigView(Mail::MP_HAS_USERNAME | Mail::MP_HAS_AUTH_METHODS | Mail::MP_HAS_PASSWORD | Mail::MP_HAS_HOSTNAME | Mail::MP_CAN_LEAVE_MAIL_ON_SERVER);
 	view->AddAuthMethod("Plain Text");
 	view->AddAuthMethod("APOP");
