@@ -80,7 +80,7 @@ TSignatureWindow::TSignatureWindow(BRect rect)
 	menu->AddItem(fSave = new BMenuItem(MDR_DIALECT_CHOICE ("Save","S) 保存"), new BMessage(M_SAVE), 'S'));
 	menu->AddItem(fDelete = new BMenuItem(MDR_DIALECT_CHOICE ("Delete","T) 削除"), new BMessage(M_DELETE), 'T'));
 	menu->AddSeparatorItem();
-	menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Close","W) 閉じる"), new BMessage(B_CLOSE_REQUESTED), 'W'));
+	menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Close","W) 閉じる"), new BMessage(B_QUIT_REQUESTED), 'W'));
 	menu_bar->AddItem(menu);
 
 	menu = new BMenu(MDR_DIALECT_CHOICE ("Edit","E) 編集"));

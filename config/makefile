@@ -143,6 +143,7 @@ INSTALL_DIR=/boot/beos/preferences
 # Detect Zeta
 ifeq ($(shell ls 2>/dev/null -1 /boot/beos/system/lib/libzeta.so), /boot/beos/system/lib/libzeta.so)
 	LIBS += zeta
+	DEFINES += _ZETA_USING_DEPRECATED_API_
 endif
 
 

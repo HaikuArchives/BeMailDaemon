@@ -1352,7 +1352,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 			new BMessage(M_SAVE_AS_DRAFT), 'S'));
 		menu->AddItem(new BMenuItem(
 			MDR_DIALECT_CHOICE ("Close", "W) 閉じる"),
-			new BMessage(B_CLOSE_REQUESTED), 'W'));
+			new BMessage(B_QUIT_REQUESTED), 'W'));
 	}
 
 	menu->AddSeparatorItem();
@@ -2231,28 +2231,28 @@ TMailWindow::MessageReceived(BMessage *msg)
 			}
 
 			fSent = true;
-			BMessage msg(B_CLOSE_REQUESTED);
+			BMessage msg(B_QUIT_REQUESTED);
 			PostMessage(&msg);
 			break;
 		}
 
 		case M_CLOSE_READ:
 		{
-			BMessage message(B_CLOSE_REQUESTED);
+			BMessage message(B_QUIT_REQUESTED);
 			message.AddString("status", "Read");
 			PostMessage(&message);
 			break;
 		}
 		case M_CLOSE_SAVED:
 		{
-			BMessage message(B_CLOSE_REQUESTED);
+			BMessage message(B_QUIT_REQUESTED);
 			message.AddString("status", "Saved");
 			PostMessage(&message);
 			break;
 		}
 		case M_CLOSE_SAME:
 		{
-			BMessage message(B_CLOSE_REQUESTED);
+			BMessage message(B_QUIT_REQUESTED);
 			message.AddString("status", "");
 			message.AddString("same", "");
 			PostMessage(&message);
@@ -2263,7 +2263,7 @@ TMailWindow::MessageReceived(BMessage *msg)
 			{
 				const char *str;
 				msg->FindString("status", (const char**) &str);
-				BMessage message(B_CLOSE_REQUESTED);
+				BMessage message(B_QUIT_REQUESTED);
 				message.AddString("status", str);
 				PostMessage(&message);
 			}
@@ -2288,7 +2288,7 @@ TMailWindow::MessageReceived(BMessage *msg)
 		{
 			BMenuItem *menu;
 			msg->FindPointer("source", (void **)&menu);
-			BMessage message(B_CLOSE_REQUESTED);
+			BMessage message(B_QUIT_REQUESTED);
 			message.AddString("status", menu->Label());
 			PostMessage(&message);
 			break;
@@ -2515,7 +2515,7 @@ TMailWindow::MessageReceived(BMessage *msg)
 						window->Activate();
 
 						//fSent = true;
-						BMessage msg(B_CLOSE_REQUESTED);
+						BMessage msg(B_QUIT_REQUESTED);
 						PostMessage(&msg);
 					}
 

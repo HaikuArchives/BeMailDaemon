@@ -134,5 +134,10 @@ endif
 
 INSTALL_DIR := /boot/home/config/add-ons/mail_daemon/system_filters
 
+# Detect Zeta
+ifeq ($(shell ls 2>/dev/null -1 /boot/beos/system/lib/libzeta.so), /boot/beos/system/lib/libzeta.so)
+	DEFINES += _ZETA_USING_DEPRECATED_API_
+endif
+
 ## include the makefile-engine
 include $(BUILDHOME)/etc/makefile-engine.MailD
