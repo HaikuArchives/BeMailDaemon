@@ -488,7 +488,7 @@ void IMAP4Client::SyncAllBoxes() {
 		}
 	}
 	
-	dump_stringlist(unique_ids);
+	//dump_stringlist(unique_ids);
 	
 	StringList to_dl;
 	unique_ids->NotThere(*manifest,&to_dl);
