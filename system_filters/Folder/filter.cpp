@@ -34,6 +34,7 @@ static const mail_header_field gDefaultFields[] =
 	{ "mime-version", 	B_MAIL_ATTR_MIME,     B_STRING_TYPE },
 	{ "status",       	B_MAIL_ATTR_STATUS,   B_STRING_TYPE },
 	{ "THREAD",       	"MAIL:thread", 		  B_STRING_TYPE }, //---Not supposed to be used for this (we add it in Parser), but why not?
+	{ "NAME",       	B_MAIL_ATTR_NAME,	  B_STRING_TYPE },
 	{ NULL,              NULL,                 0 }
 };
 
@@ -94,6 +95,7 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	if (e->MoveTo(&dir) != B_OK)
 	{
 		// what; BAlert?
+		// Deal with cross-FS moves
 		return MD_ERROR;
 	} else {
 		BNode node(e);
@@ -122,6 +124,7 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 			out_headers->FindString(gDefaultFields[i].rfc_name,&buf);
 			if (buf == NULL)
 				continue;
+			fprintf(stderr, "Found header %s\n",gDefaultFields[i].rfc_name);
 			
 			switch (gDefaultFields[i].attr_type){
 			case B_STRING_TYPE:
