@@ -52,7 +52,7 @@ ssize_t readfoldedline(BPositionIO &in, char **buffer, size_t *buflen);
 // if buflen is not NULL, return the final size of the buffer in buflen
 // if buffer is not NULL, buflen is not NULL, and *buffer is not NULL
 //   *buffer is a buffer of size *buflen
-// if buffer is NULL (uses ) or *buffer is NULL, and buflen is not NULL then
+// if buffer is NULL or *buffer is NULL, and buflen is not NULL then
 //   start with a buffer of size *buflen
 
 }	// namespace Mail
