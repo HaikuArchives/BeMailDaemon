@@ -74,7 +74,7 @@ class DeathFilter : public BMessageFilter {
 				((ChainRunner *)(running_chain_pointers.ItemAt(i)))->Stop();
 
 			while(running_chains.CountItems() > 0)
-				snooze(100);
+				snooze(10000); // 1/100th of a second to avoid wasting CPU.
 
 			return B_DISPATCH_MESSAGE;
 		}
