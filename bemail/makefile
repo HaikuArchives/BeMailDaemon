@@ -153,11 +153,17 @@ ifeq ($(CHECK_MEM), true)
 	COMPILER_FLAGS += -fcheck-memory-usage -DDEBUG=1 -D_NO_INLINE_ASM=1 -D_KERNEL_MODE=1
 endif
 
+# Detect BONE
 ifeq ($(shell ls 2>/dev/null -1 /boot/develop/headers/be/bone/bone_api.h), /boot/develop/headers/be/bone/bone_api.h)
 	SYSTEM_INCLUDE_PATHS += /boot/develop/headers/be/bone
 	DEFINES += BONE
+
+	# And now detect Zeta
+	ifeq ($(shell ls 2>/dev/null -1 /boot/beos/system/lib/libzeta.so), /boot/beos/system/lib/libzeta.so)
+		LIBS += zeta
+	endif
 else
-# hack to fix lack of uname on my system
+	# hack to fix lack of uname on my system
 	LIBS += net
 endif
 

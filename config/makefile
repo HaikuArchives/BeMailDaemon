@@ -140,5 +140,11 @@ endif
 
 INSTALL_DIR=/boot/beos/preferences
 
+# Detect Zeta
+ifeq ($(shell ls 2>/dev/null -1 /boot/beos/system/lib/libzeta.so), /boot/beos/system/lib/libzeta.so)
+	LIBS += zeta
+endif
+
+
 ## include the makefile-engine
 include $(BUILDHOME)/etc/makefile-engine.MailD

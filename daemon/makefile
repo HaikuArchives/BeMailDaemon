@@ -141,6 +141,11 @@ ifeq ($(shell ls 2>/dev/null -1 /boot/develop/headers/be/bone/bone_api.h), /boot
 	SYSTEM_INCLUDE_PATHS += /boot/develop/headers/be/bone
 	LIBS += socket bind
 	DEFINES += BONE
+
+	# And now detect Zeta
+	ifeq ($(shell ls 2>/dev/null -1 /boot/beos/system/lib/libzeta.so), /boot/beos/system/lib/libzeta.so)
+		LIBS += zeta
+	endif
 endif
 
 INSTALL_DIR=/boot/beos/system/servers

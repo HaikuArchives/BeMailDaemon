@@ -131,6 +131,10 @@ ifeq ($(CHECK_MEM), true)
 	COMPILER_FLAGS += -fcheck-memory-usage -DDEBUG=1 -D_NO_INLINE_ASM=1 -D_KERNEL_MODE=1
 endif
 
+# Detect Zeta
+ifeq ($(shell ls 2>/dev/null -1 /boot/beos/system/lib/libzeta.so), /boot/beos/system/lib/libzeta.so)
+	LIBS += zeta
+endif
 
 INSTALL_DIR := /boot/home/config/add-ons/mail_daemon/inbound_filters
 
