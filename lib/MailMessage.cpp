@@ -6,6 +6,7 @@
 #include <Entry.h>
 #include <netdb.h>
 #include <NodeInfo.h>
+#include <ClassInfo.h>
 
 #include <malloc.h>
 #include <string.h>
@@ -242,7 +243,7 @@ status_t MailMessage::Instantiate(BPositionIO *mail_file, size_t length) {
 	_body->RemoveHeader("Reply-To");
 	_body->RemoveHeader("CC");
 	
-	MIMEMultipartContainer *cont = dynamic_cast<MIMEMultipartContainer *> (_body);
+	MIMEMultipartContainer *cont = (is_instance_of(_body, MIMEMultipartContainer)) ? ((MIMEMultipartContainer *)(_body)) : NULL;
 	
 	_num_components = (cont == NULL) ? 1 : cont->CountComponents();
 	

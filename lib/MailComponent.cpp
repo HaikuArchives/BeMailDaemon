@@ -41,9 +41,9 @@ MailComponent *MailComponent::WhatIsThis() {
 			piece = new MIMEMultipartContainer;
 	} else {
 		if (IsAttachment())
-			piece = new PlainTextBodyComponent;
-		else
 			piece = new SimpleMailAttachment;
+		else
+			piece = new PlainTextBodyComponent;
 	}
 	
 	return piece;
