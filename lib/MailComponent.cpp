@@ -539,7 +539,7 @@ TextComponent::ParseRaw()
 			charset = B_ISO1_CONVERSION;
 	}
 
-	int32 state;
+	int32 state = 0;
 	int32 destLength = bytes * 3 /* in case it grows */ + 1 /* +1 so it isn't zero which crashes */;
 	string = text.LockBuffer(destLength);
 	MDR_convert_to_utf8(charset, decoded.String(), &bytes, string, &destLength, &state);
@@ -606,7 +606,7 @@ TextComponent::RenderToRFC822(BPositionIO *render_to)
 		// if it's regular ASCII), so it can get quite a bit larger than the
 		// original text.  Multiplying by 5 should make more than enough space.
 		char *raw = alt.LockBuffer(dest_len);
-		int32 state;
+		int32 state = 0;
 		MDR_convert_from_utf8(charset,this->text.String(),&len,raw,&dest_len,&state);
 		alt.UnlockBuffer(dest_len);
 
