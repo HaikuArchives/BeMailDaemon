@@ -98,12 +98,18 @@ class MailFilter
 // to create a MailProtocol or MailFilter addon, respectively.
 //
 
-extern "C" _EXPORT BView* instantiate_config_panel(BMessage *settings);
+extern "C" _EXPORT BView* instantiate_config_panel(BMessage *settings,BMessage *metadata);
 // return a view that configures the MailProtocol or MailFilter
 // returned by the functions below.  BView::Archive(foo,true)
 // produces this addon's settings, which are passed to the in-
 // stantiate_* functions and stored persistently.  This function
 // should gracefully handle empty and NULL settings.
+// A note on the metadata argument: The metadata pointer is
+// guaranteed to remain valid as long as this view exists. As it is
+// a pointer to the chain's metadata, your view can save any
+// chain-global settings to it in its Archive() function. Note that
+// you must cache this pointer yourself! You will never get it again.
+// Also note that it is possible for it to be NULL. 
 
 extern "C" _EXPORT MailFilter* instantiate_mailfilter(BMessage *settings,StatusView *status);
 // Return a MailProtocol or MailFilter ready to do its thing,

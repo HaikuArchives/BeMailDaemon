@@ -10,6 +10,7 @@
 #include <String.h>
 #include <Message.h>
 
+#include <MailAddon.h>
 
 ConfigView::ConfigView()
 	:	BView(BRect(0,0,20,20),"folder_config",B_FOLLOW_LEFT | B_FOLLOW_TOP,0)
@@ -31,9 +32,10 @@ ConfigView::ConfigView()
 }		
 
 
-void ConfigView::SetTo(BMessage *archive)
+void ConfigView::SetTo(BMessage *archive, BMessage *meta_data)
 {
-	BString path = archive->FindString("destination_path");
+	meta = meta_data;
+	BString path = meta_data->FindString("path");
 	
 	if (path == "")
 		path = "/boot/home/mail/in";
@@ -47,8 +49,8 @@ status_t ConfigView::Archive(BMessage *into,bool) const
 {
 	if (BTextControl *control = (BTextControl *)FindView("destination_path"))
 	{
-		if (into->ReplaceString("destination_path",control->Text()) != B_OK)
-			into->AddString("destination_path",control->Text());
+		if (meta->ReplaceString("path",control->Text()) != B_OK)
+			meta->AddString("path",control->Text());
 	}
 
 	return B_OK;
@@ -61,3 +63,11 @@ void ConfigView::GetPreferredSize(float *width, float *height)
 	*height = ChildAt(0)->Bounds().Height() + 8;
 }
 
+
+BView* instantiate_config_panel(BMessage *settings, BMessage *meta_data)
+{
+	ConfigView *view = new ConfigView();
+	view->SetTo(settings,meta_data);
+
+	return view;
+}

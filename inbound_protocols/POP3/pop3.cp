@@ -362,7 +362,7 @@ MailFilter *instantiate_mailfilter(BMessage *settings, StatusView *view) {
 	return new POP3Protocol(settings,view);
 }
 
-BView* instantiate_config_panel(BMessage *settings) {
+BView* instantiate_config_panel(BMessage *settings,BMessage *) {
 	ProtocolConfigView *view = new ProtocolConfigView(Z_HAS_USERNAME | Z_HAS_AUTH_METHODS | Z_HAS_PASSWORD | Z_HAS_HOSTNAME | Z_CAN_LEAVE_MAIL_ON_SERVER);
 	view->AddAuthMethod("Plain Text");
 	view->AddAuthMethod("APOP");

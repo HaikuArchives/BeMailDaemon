@@ -91,7 +91,7 @@ MailFilter* instantiate_mailfilter(BMessage* settings, StatusView *view)
 	return new NotifyFilter(settings);
 }
 
-BView* instantiate_config_panel(BMessage *settings)
+BView* instantiate_config_panel(BMessage *settings,BMessage *)
 {
 	ConfigView *view = new ConfigView();
 	view->SetTo(settings);

@@ -13,10 +13,12 @@ class ConfigView : public BView
 {
 	public:
 		ConfigView();
-		void SetTo(BMessage *archive);
+		void SetTo(BMessage *archive,BMessage *metadata);
 
 		virtual	status_t Archive(BMessage *into, bool deep = true) const;
 		virtual	void GetPreferredSize(float *width, float *height);
+	private:
+		BMessage *meta;
 };
 
 #endif	/* CONFIG_VIEW */

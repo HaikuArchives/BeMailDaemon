@@ -196,7 +196,7 @@ void FilterConfigView::Load(BMessage *msg,entry_ref *ref)
 {
 	ResizeTo(264,30);
 
-	BView *(* instantiate_config)(BMessage *);
+	BView *(* instantiate_config)(BMessage *,BMessage *);
 	BPath addon(ref);
 	fImage = load_add_on(addon.Path());
 	if (fImage < B_OK)
@@ -209,7 +209,7 @@ void FilterConfigView::Load(BMessage *msg,entry_ref *ref)
 		return;
 	}
 
-	fConfigView = (*instantiate_config)(msg);
+	fConfigView = (*instantiate_config)(msg,fChain->MetaData());
 
 	float w = fConfigView->Bounds().Width();
 	float h = fConfigView->Bounds().Height();

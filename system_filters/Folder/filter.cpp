@@ -13,6 +13,7 @@
 #include <MailAddon.h>
 #include <MailSettings.h>
 #include <NodeMessage.h>
+#include <ChainRunner.h>
 
 
 _EXPORT const char *pretty_name = "Incoming Mail Folder";
@@ -60,10 +61,13 @@ class FolderFilter: public MailFilter
 
 FolderFilter::FolderFilter(BMessage* msg)
 : MailFilter(msg),
-  dest_string(msg->FindString("destination_path")),
-  chain_id(msg->FindInt32("chain")),
-  destination(dest_string.String())
-{}
+  chain_id(msg->FindInt32("chain"))
+{
+	ChainRunner *runner = NULL;
+	msg->FindPointer("chain_runner",&runner);
+	dest_string = runner->Chain()->MetaData()->FindString("path");
+	destination = dest_string.String();
+}
 
 status_t FolderFilter::InitCheck(BString* err)
 {
@@ -168,12 +172,4 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 MailFilter* instantiate_mailfilter(BMessage* settings, StatusView *status)
 {
 	return new FolderFilter(settings);
-}
-
-BView* instantiate_config_panel(BMessage *settings)
-{
-	ConfigView *view = new ConfigView();
-	view->SetTo(settings);
-
-	return view;
 }

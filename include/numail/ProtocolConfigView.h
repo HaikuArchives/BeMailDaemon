@@ -12,6 +12,8 @@ typedef enum {
 class ProtocolConfigView : public BView {
 	public:
 		ProtocolConfigView(uint32 options_mask = Z_HAS_FLAVORS | Z_HAS_USERNAME | Z_HAS_PASSWORD | Z_HAS_HOSTNAME);
+		virtual ~ProtocolConfigView();
+		
 		void SetTo(BMessage *archive);
 		
 		void AddFlavor(const char *label);

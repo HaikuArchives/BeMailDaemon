@@ -55,6 +55,6 @@ void IMAPConfig::GetPreferredSize(float *width, float *height) {
 	*height -= 25;
 }
 
-BView* instantiate_config_panel(BMessage *settings) {
+BView* instantiate_config_panel(BMessage *settings,BMessage *) {
 	return new IMAPConfig(settings);
 }

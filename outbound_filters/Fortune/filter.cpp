@@ -60,7 +60,7 @@ MailFilter* instantiate_mailfilter(BMessage* settings, StatusView*)
 { return new FortuneFilter(settings); }
 
 
-BView* instantiate_config_panel(BMessage *settings)
+BView* instantiate_config_panel(BMessage *settings,BMessage *)
 {
 	ConfigView *view = new ConfigView();
 	view->SetTo(settings);

@@ -31,9 +31,10 @@ ConfigView::ConfigView()
 }		
 
 
-void ConfigView::SetTo(BMessage *archive)
+void ConfigView::SetTo(BMessage *archive,BMessage *metadata)
 {
-	BString path = archive->FindString("source_path");
+	meta = metadata;
+	BString path = meta->FindString("path");
 	if (path == "")
 		path << "/boot/home/mail/out";
 
@@ -46,8 +47,8 @@ status_t ConfigView::Archive(BMessage *into,bool) const
 {
 	if (BTextControl *control = (BTextControl *)FindView("source_path"))
 	{
-		if (into->ReplaceString("source_path",control->Text()) != B_OK)
-			into->AddString("source_path",control->Text());
+		if (meta->ReplaceString("path",control->Text()) != B_OK)
+			meta->AddString("path",control->Text());
 	}
 
 	return B_OK;

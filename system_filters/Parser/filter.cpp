@@ -88,7 +88,7 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 	{
 		if (rebuf==NULL)
 		{
-			int err = regcomp(&re, "^( *([Rr][Ee] *: *)*\\[[^\\]]*\\])* *([Rr][Ee] *: *)*", REG_EXTENDED);
+			int err = regcomp(&re, "^( *([Rr][Ee] *: *)*\\[[^\\]]*\\])* *([Rr][Ee] *: *)*", 1);
 			if (err)
 			{
 				char errbuf[1024];
@@ -101,10 +101,42 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 	}
 	if (rebuf)
 	{
+		puts("Bleepy!");
+		printf ("buffer: %s\n",rebuf->buffer);
+		printf ("allocated: %d\n",rebuf->allocated);
+		printf ("used: %d\n",rebuf->used);
+		printf ("syntax: %d\n",rebuf->syntax);
+		printf ("fastmap: %s\n",rebuf->fastmap);
+		printf ("translate: %s\n",rebuf->translate);
+		printf ("re_nsub: %d\n",rebuf->re_nsub);
+		printf ("can_be_null: %d\n",rebuf->can_be_null);
+		printf ("regs_allocated: %d\n",rebuf->regs_allocated);
+		printf ("fastmap_accurate: %d\n",rebuf->fastmap_accurate);
+		printf ("no_sub: %d\n",rebuf->no_sub);
+		printf ("not_bol: %d\n",rebuf->not_bol);
+		printf ("not_eol: %d\n",rebuf->not_eol);
+		printf ("newline_anchor: %d\n",rebuf->newline_anchor);
+		
 		regmatch_t match;
-		if (regexec(rebuf, string.String(), 1, &match, 0) == 0)
+		/*if (*/regexec(rebuf, string.String(), 1, &match, 0);// >= 0)
 			// we found something
 			string.Remove(match.rm_so,match.rm_eo);
+		
+		puts("Bleepy!");
+		printf ("buffer: %s\n",rebuf->buffer);
+		printf ("allocated: %d\n",rebuf->allocated);
+		printf ("used: %d\n",rebuf->used);
+		printf ("syntax: %lu\n",rebuf->syntax);
+		printf ("fastmap: %s\n",rebuf->fastmap);
+		printf ("translate: %s\n",rebuf->translate);
+		printf ("re_nsub: %d\n",rebuf->re_nsub);
+		printf ("can_be_null: %d\n",rebuf->can_be_null);
+		printf ("regs_allocated: %d\n",rebuf->regs_allocated);
+		printf ("fastmap_accurate: %d\n",rebuf->fastmap_accurate);
+		printf ("no_sub: %d\n",rebuf->no_sub);
+		printf ("not_bol: %d\n",rebuf->not_bol);
+		printf ("not_eol: %d\n",rebuf->not_eol);
+		printf ("newline_anchor: %d\n",rebuf->newline_anchor);
 		
 		headers->AddString("THREAD",string.String());
 	}

@@ -120,9 +120,11 @@ APP_VERSION =
 #	/dev/video/usb when loaded. Default is "misc".
 DRIVER_PATH = 
 
+# ppc libroot lacks regex
 MACHINE=$(shell uname -m)
 ifneq ($(MACHINE),BePC)
-	SRCS += regex.cpp
+	SRCS += regex.c
+	DEFINES += STDC_HEADERS=1
 endif
 
 ifeq ($(CHECK_MEM), true)

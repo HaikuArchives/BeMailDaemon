@@ -463,7 +463,7 @@ MailFilter* instantiate_mailfilter(BMessage *settings,StatusView *status) {
 	return new SMTPProtocol(settings,status);
 }
 
-BView* instantiate_config_panel(BMessage *settings) {
+BView* instantiate_config_panel(BMessage *settings,BMessage *) {
 	ProtocolConfigView *view = new ProtocolConfigView(Z_HAS_AUTH_METHODS | Z_HAS_USERNAME | Z_HAS_PASSWORD | Z_HAS_HOSTNAME);
 	
 	view->AddAuthMethod("None",false);

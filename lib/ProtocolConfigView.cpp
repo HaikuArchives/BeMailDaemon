@@ -127,6 +127,8 @@ ProtocolConfigView::ProtocolConfigView(uint32 options_mask) : BView (BRect(0,0,1
 	}
 }		
 
+ProtocolConfigView::~ProtocolConfigView() {}
+
 void ProtocolConfigView::SetTo(BMessage *archive) {
 	BString host = archive->FindString("server");
 	if (archive->HasInt32("port"))

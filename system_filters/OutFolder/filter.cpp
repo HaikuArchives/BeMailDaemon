@@ -45,9 +45,7 @@ class DiskProducer : public MailFilter
 #include <Path.h>
 #include <stdio.h>
 DiskProducer::DiskProducer(BMessage* msg,StatusView*status)
-: MailFilter(msg),
-  src_string(msg->FindString("source_path")),
-  source(src_string.String())
+: MailFilter(msg)
 {
 	entry_ref entry;
 	mail_flags flags;
@@ -57,7 +55,8 @@ DiskProducer::DiskProducer(BMessage* msg,StatusView*status)
 	off_t worker;
 	
 	msg->FindPointer("chain_runner",(void **)&runner);
-	
+	src_string = runner->Chain()->MetaData()->FindString("path");
+ 	source = src_string.String();
 	while (source.GetNextRef(&entry) == B_OK) {
 		node.SetTo(&entry);
 		
@@ -134,10 +133,10 @@ void StatusChanger::Callback(MDStatus result) {
 MailFilter* instantiate_mailfilter(BMessage* settings, StatusView *status)
 { return new DiskProducer(settings,status); }
 
-BView* instantiate_config_panel(BMessage *settings)
+BView* instantiate_config_panel(BMessage *settings,BMessage *metadata)
 {
 	ConfigView *view = new ConfigView();
-	view->SetTo(settings);
+	view->SetTo(settings,metadata);
 
 	return view;
 }
