@@ -75,11 +75,13 @@ for f in inbound_* outbound_* system_* ; do
 	fi
 done
 
-cp -d documentation/read_us/* $BUILD_PATH
+cp documentation/read_us/* $BUILD_PATH
 cp build_utils/ExtraMenuLinksForR5Tracker.zip $BUILD_PATH/bin
 mkdir -p $BUILD_PATH/AGMSBayesianSpamDocumentation/pictures
-cp documentation/AGMSBayesianSpam/*html $BUILD_PATH/AGMSBayesianSpamDocumentation/
-cp documentation/AGMSBayesianSpam/pictures/*png $BUILD_PATH/AGMSBayesianSpamDocumentation/pictures
-
+cp -v documentation/AGMSBayesianSpam/*html $BUILD_PATH/AGMSBayesianSpamDocumentation/
+cp documentation/AGMSBayesianSpam/pictures/*png $BUILD_PATH/AGMSBayesianSpamDocumentation/pictures/
+mkdir -p $BUILD_PATH/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/art
+cp -v documentation/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/*html $BUILD_PATH/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/
+cp documentation/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/art/*.* $BUILD_PATH/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/art/
 
 mimeset -f $BUILD_PATH
