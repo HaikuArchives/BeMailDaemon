@@ -151,7 +151,7 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 		BMessage *headers = new BMessage;
 		BString uid = B_EMPTY_STRING;
 
-		if (file->InitCheck() < B_OK)
+		if (((BFile *)file)->InitCheck() < B_OK)
 			goto err;
 
 		for (int32 i = 0; chain->GetFilter(i,&settings,&addon) >= B_OK; i++) {			
