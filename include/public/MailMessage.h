@@ -17,6 +17,12 @@
 namespace Zoidberg {
 namespace Mail {
 
+enum reply_to_mode {
+	MD_REPLY_TO = 0,
+	MD_REPLY_TO_ALL,
+	MD_REPLY_TO_SENDER
+};
+
 class Message : public Container {
 	public:
 		Message(BPositionIO *mail_file = NULL,bool own = false);
@@ -27,7 +33,7 @@ class Message : public Container {
 		BPositionIO *Data() const { return fData; }
 			// is only set if the message owns the data
 
-		Message *ReplyMessage(bool reply_to_all, const char *quote_style = "> ");
+		Message *ReplyMessage(reply_to_mode replyTo, const char *quote_style = "> ");
 		Message *ForwardMessage(bool include_attachments = false);
 			// These return messages with the body quoted and
 			// ready to send via the appropriate channel. ReplyMessage()

@@ -1,29 +1,58 @@
 /* Daemon - talking to the mail daemon
 **
-** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+** Copyright 2001-2002 Dr. Zoidberg Enterprises. All rights reserved.
 */
 
 
 #include <Messenger.h>
 #include <Message.h>
+#include <List.h>
 
 #include <MailDaemon.h>
+#include <MailSettings.h>
 
 
 namespace Zoidberg {
 
-_EXPORT status_t Mail::CheckMail(bool send_queued_mail) {
+_EXPORT status_t
+Mail::CheckMail(bool send_queued_mail,const char *account)
+{
 	BMessenger daemon("application/x-vnd.Be-POST");
 	if (!daemon.IsValid())
 		return B_MAIL_NO_DAEMON;
-	
-	daemon.SendMessage('mnow');
-	
-	if (send_queued_mail)
-		daemon.SendMessage('msnd');
+
+	BMessage message(send_queued_mail ? 'mbth' : 'mnow');
+	if (account != NULL) {
+		BList list;
+
+		InboundChains(&list);
+		for (int32 i = list.CountItems();i-- > 0;) {
+			Mail::Chain *chain = (Mail::Chain *)list.ItemAt(i);
+			
+			if (!strcmp(chain->Name(),account))
+				message.AddInt32("chain",chain->ID());
+			
+			delete chain;
+		}
 		
+		if (send_queued_mail) {
+			list.MakeEmpty();
+			OutboundChains(&list);
+			for (int32 i = list.CountItems();i-- > 0;) {
+				Mail::Chain *chain = (Mail::Chain *)list.ItemAt(i);
+				
+				if (!strcmp(chain->Name(),account))
+					message.AddInt32("chain",chain->ID());
+				
+				delete chain;
+			}
+		}
+	}
+	daemon.SendMessage(&message);
+
 	return B_OK;
 }
+
 
 _EXPORT status_t Mail::SendQueuedMail() {
 	BMessenger daemon("application/x-vnd.Be-POST");

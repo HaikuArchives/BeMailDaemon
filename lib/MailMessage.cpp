@@ -1,6 +1,6 @@
 /* Message - the main general purpose mail message class
 **
-** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+** Copyright 2001-2002 Dr. Zoidberg Enterprises. All rights reserved.
 */
 
 
@@ -93,45 +93,65 @@ status_t Message::InitCheck() const
 	return _status;
 }
 
-Message *Message::ReplyMessage(bool reply_to_all, const char *quote_style) {
+
+Message *
+Message::ReplyMessage(reply_to_mode replyTo, bool accountFromMail,const char *quote_style)
+{
 	Mail::Message *to_return = new Mail::Message;
-	if (reply_to_all) {
+	if (replyTo == MD_REPLY_TO_ALL) {
 		to_return->SetTo(From());
+
 		BString string = CC();
+		const char *to = To();
+		if (string.ByteAt(0)) {
+			if (to != NULL && to[0])
+				string << ',' << to;
+		} else if (to != NULL && to[0])
+			string << to;
+
 		BString addr = Mail::Chain(Account()).MetaData()->FindString("reply_to");
 		int32 offset;
-		if ((offset = string.FindFirst(addr)) >= 0) {
+		while ((offset = string.FindFirst(addr)) >= 0) {
 			int32 begin = string.FindLast(',',offset);
 			int32 end = string.FindFirst(',',offset);
 			begin = (begin < 0) ? 0 : begin;
 			end = (end < 0) ? string.Length() : end;
 			string.Remove(begin,end);
 		}
-		
-		BString too = To();
-		if ((offset = too.FindFirst(addr)) >= 0) {
-			int32 begin = too.FindLast(',',offset);
-			int32 end = too.FindFirst(',',offset);
-			begin = (begin < 0) ? 0 : begin;
-			end = (end < 0) ? too.Length() : end;
-			too.Remove(begin,end);
-		}
-		if (too.Length() > 0)
-			string << ',' << too;
-			
+
 		if (string.Length() > 0)	
 			to_return->SetCC(string.String());
-	} else {
+	} else if (replyTo == MD_REPLY_TO_SENDER)
 		to_return->SetTo(From());
-	}
-	
+	else
+		to_return->SetTo(ReplyTo());
+
 	to_return->SetBodyTextTo(BodyText());
 	to_return->Body()->Quote(quote_style);
-	
-	to_return->SendViaAccount(Account());
+
+	// set the matching outbound chain
+	if (accountFromMail) {
+		char name[B_FILE_NAME_LENGTH];
+		if (GetAccountName(name,B_FILE_NAME_LENGTH) < B_OK) {
+			// just return the message with the default account
+			return to_return;
+		}
+
+		BList chains;
+		Mail::OutboundChains(&chains);
+		for (int32 i = chains.CountItems();i-- > 0;)
+		{
+			Chain *chain = (Chain *)chains.ItemAt(i);
+			if (!strcmp(chain->Name()))
+				to_return->SendViaAccount(chain->ID());
+
+			delete chain;
+		}
+	}
 	return to_return;
 }
 	
+
 Message *Message::ForwardMessage(bool include_attachments) {
 	BString header = "-------Forwarded Message----------\n";
 	header << "To: " << To() << '\n';

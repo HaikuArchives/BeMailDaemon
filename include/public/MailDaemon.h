@@ -9,7 +9,7 @@
 namespace Zoidberg {
 namespace Mail {
 
-status_t CheckMail(bool send_queued_mail = true);
+status_t CheckMail(bool send_queued_mail = true,const char *account = NULL);
 status_t SendQueuedMail();
 int32	CountNewMessages(bool wait_for_fetch_completion = false);
 

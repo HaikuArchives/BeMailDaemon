@@ -35,6 +35,8 @@
 
 #include "deskbarview.h"
 
+using namespace Zoidberg;
+
 const char *kTrackerSignature = "application/x-vnd.Be-TRAK";
 
 
@@ -177,7 +179,9 @@ void OpenFolder(const char* end)
 	tracker.SendMessage(&open_mbox);
 }
 
-void DeskbarView::MessageReceived(BMessage *message)
+
+void
+DeskbarView::MessageReceived(BMessage *message)
 {
 	switch(message->what)
 	{
@@ -187,7 +191,7 @@ void DeskbarView::MessageReceived(BMessage *message)
 			Zoidberg::Mail::CheckMail(true);
 			break;
 		case MD_CHECK_FOR_MAILS:
-			Zoidberg::Mail::CheckMail(false);
+			Zoidberg::Mail::CheckMail(false,message->FindString("account"));
 			break;
 		case MD_SEND_MAILS:
 			Zoidberg::Mail::SendQueuedMail();
@@ -303,6 +307,7 @@ void DeskbarView::MouseUp(BPoint pos)
 void DeskbarView::MouseDown(BPoint pos)
 {
 	Looper()->CurrentMessage()->FindInt32("buttons",&fLastButtons);
+	Looper()->CurrentMessage()->PrintToStream();
 
 	if (fLastButtons & B_SECONDARY_MOUSE_BUTTON)
 	{
@@ -365,7 +370,9 @@ void DeskbarView::CreateNewMailQuery(BEntry &query)
 	BNodeInfo(&file).SetType("application/x-vnd.Be-query");
 }
 
-BPopUpMenu *DeskbarView::BuildMenu()
+
+BPopUpMenu *
+DeskbarView::BuildMenu()
 {
 	BPopUpMenu *menu = new BPopUpMenu(B_EMPTY_STRING,false,false);
 	menu->SetFont(be_plain_font);
@@ -394,7 +401,7 @@ BPopUpMenu *DeskbarView::BuildMenu()
 			count++;
 
 			path.SetTo(&ref);
-			//the true here dereferences the symlinks all the way :)
+			// the true here dereferences the symlinks all the way :)
 			BEntry entry(&ref, true);
 
 			// do we want to use the NavMenu, or just an ordinary BMenuItem?
@@ -470,17 +477,37 @@ BPopUpMenu *DeskbarView::BuildMenu()
 	
 	if (modifiers() & B_SHIFT_KEY)
 	{
-		menu->AddItem(new BMenuItem("Check For Mails Only",new BMessage(MD_CHECK_FOR_MAILS)));
+		BList list;
+		Mail::InboundChains(&list);
+
+		BMenu *chainMenu = new BMenu("Check For Mails Only");
+		BFont font;
+		menu->GetFont(&font);
+		chainMenu->SetFont(&font);
+
+		for (int32 i = 0;i < list.CountItems();i++) {
+			Mail::Chain *chain = (Mail::Chain *)list.ItemAt(i);
+
+			BMessage *message = new BMessage(MD_CHECK_FOR_MAILS);
+			message->AddString("account",chain->Name());
+
+			chainMenu->AddItem(new BMenuItem(chain->Name(),message));
+			delete chain;
+		}
+		chainMenu->SetTargetForItems(this);
+		menu->AddItem(new BMenuItem(chainMenu,new BMessage(MD_CHECK_FOR_MAILS)));
+
+		//menu->AddItem(new BMenuItem("Check For Mails Only",new BMessage(MD_CHECK_FOR_MAILS)));
 		menu->AddItem(new BMenuItem("Send Pending Mails",new BMessage(MD_SEND_MAILS)));
 	}
 	else
 		menu->AddItem(new BMenuItem("Check For Mail Now",new BMessage(MD_CHECK_SEND_NOW)));
-	
+
 	menu->AddSeparatorItem();
 	menu->AddItem(new BMenuItem("Edit Preferences" B_UTF8_ELLIPSIS,new BMessage(MD_OPEN_PREFS)));
 	menu->AddItem(new BMenuItem("Quit",new BMessage(B_QUIT_REQUESTED)));
-	
-	// Reset Item Targets
+
+	// Reset Item Targets (only those which aren't already set)
 
 	for (int32 i = menu->CountItems();i-- > 0;)
 	{

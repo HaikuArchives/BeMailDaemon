@@ -132,7 +132,7 @@ StatusWindow::~StatusWindow()
 {
 	// remove all status_views, so we don't accidentally delete them
 	while (StatusView *status_view = (StatusView *)stat_views.RemoveItem(0L))
-		RemoveChild(status_view);
+		RemoveView(status_view);
 
 	Mail::Settings general;
 	if (general.InitCheck() == B_OK)

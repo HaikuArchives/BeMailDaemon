@@ -175,8 +175,10 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 					break;
 #endif
 			}
+			// supposed to fall through
 		case 'mbth':	// check & send messages
-			PostMessage('msnd');
+			msg->what = 'msnd';
+			PostMessage(msg); //'msnd');
 			// supposed to fall trough
 		case 'mnow':	// check messages
 			GetNewMessages(msg);
@@ -313,7 +315,9 @@ MailDaemonApp::QuitRequested()
 	return true;
 }
 
-void MailDaemonApp::RunChains(BList &list,BMessage *msg)
+
+void
+MailDaemonApp::RunChains(BList &list,BMessage *msg)
 {
 	Chain *chain;
 
