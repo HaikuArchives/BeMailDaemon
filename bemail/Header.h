@@ -110,17 +110,17 @@ class THeaderView : public BBox
 		TTextControl	*fCc;
 		TTextControl	*fSubject;
 		TTextControl	*fTo;
+		BStringView *fDate;
+		bool fIncoming;
 
 	private:		
 		void InitEmailCompletion();
 		void InitGroupCompletion();
 
-		bool fIncoming;
 		bool fResending;
 		QPopupMenu *fBccMenu;
 		QPopupMenu *fCcMenu;
 		QPopupMenu *fToMenu;
-		BStringView *fDate;
 		BDefaultChoiceList fEmailList;
 };
 

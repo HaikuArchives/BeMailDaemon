@@ -2430,6 +2430,13 @@ void TMailWindow::Forward(entry_ref *ref, TMailWindow *window, bool includeAttac
 	fFieldState = 0;
 }
 
+class HorizontalLine : public BView {
+	public:
+		HorizontalLine(BRect rect) : BView (rect,NULL,B_FOLLOW_ALL,B_WILL_DRAW) {}
+		virtual void Draw (BRect rect) {
+			FillRect(rect,B_SOLID_HIGH);
+		}
+};
 
 
 void TMailWindow::Print()
@@ -2441,18 +2448,43 @@ void TMailWindow::Print()
 			return;
 	}
 
-	BPrintJob print("mail_print");
+	BPrintJob print(Title());
 	print.SetSettings(new BMessage(*print_settings));
 
 	if (print.ConfigJob() == B_NO_ERROR)
 	{
 		int32 curPage = 1;
 		int32 lastLine = 0;
+		BTextView header_view(print.PrintableRect(),"header",print.PrintableRect().OffsetByCopy(BPoint(-print.PrintableRect().left,-print.PrintableRect().top)),B_FOLLOW_ALL_SIDES);
+		
+		//---------Init the header fields
+		#define add_header_field(field)			{/*header_view.SetFontAndColor(be_bold_font);*/ \
+												header_view.Insert(fHeaderView->field->Label()); \
+												header_view.Insert(" ");\
+												/*header_view.SetFontAndColor(be_plain_font);*/ \
+												header_view.Insert(fHeaderView->field->Text()); \
+												header_view.Insert("\n");}
+		add_header_field(fSubject);
+		add_header_field(fTo);
+		if ((fHeaderView->fCc != NULL) && (strcmp(fHeaderView->fCc->Text(),"") != 0))
+			add_header_field(fCc);
+		header_view.Insert(fHeaderView->fDate->Text());
+		
 		int32 maxLine = fContentView->fTextView->CountLines();
 		BRect pageRect = print.PrintableRect();
 		BRect curPageRect = pageRect;	
 
 		print.BeginJob();
+		float header_height = header_view.TextHeight(0,header_view.CountLines());
+		BBitmap bmap(BRect(0,0,pageRect.Width(),header_height),B_BITMAP_ACCEPTS_VIEWS,B_RGBA32);
+		bmap.Lock();
+		bmap.AddChild(&header_view);
+		print.DrawView(&header_view,BRect(0,0,pageRect.Width(),header_height),BPoint(0.0,0.0));
+		HorizontalLine line(BRect(0,0,pageRect.right,0));
+		bmap.AddChild(&line);
+		print.DrawView(&line,line.Bounds(),BPoint(0,header_height+1));
+		bmap.Unlock();
+		header_height += 5;
 		
 		do
 		{
@@ -2460,18 +2492,18 @@ void TMailWindow::Print()
 			curPageRect.OffsetTo(0, fContentView->fTextView->PointAt(lineOffset).y);
 			
 			int32 fromLine = lastLine;
-			lastLine = fContentView->fTextView->LineAt(BPoint(0.0, curPageRect.bottom));
+			lastLine = fContentView->fTextView->LineAt(BPoint(0.0, curPageRect.bottom - ((curPage == 1) ? header_height : 0)));
 			
-			float curPageHeight = fContentView->fTextView->TextHeight(fromLine, lastLine);
+			float curPageHeight = fContentView->fTextView->TextHeight(fromLine, lastLine) + ((curPage == 1) ? header_height : 0);				
 			if(curPageHeight > pageRect.Height())
-				curPageHeight = fContentView->fTextView->TextHeight(fromLine, --lastLine);
+				curPageHeight = fContentView->fTextView->TextHeight(fromLine, --lastLine) + ((curPage == 1) ? header_height : 0);
 
 			curPageRect.bottom = curPageRect.top + curPageHeight - 1.0;
 			
 			if((curPage >= print.FirstPage()) &&
 				(curPage <= print.LastPage()))
 			{
-				print.DrawView(fContentView->fTextView, curPageRect, BPoint(0.0, 0.0));
+				print.DrawView(fContentView->fTextView, curPageRect, BPoint(0.0, (curPage == 1) ? header_height : 0.0));
 				print.SpoolPage();
 			}
 			
@@ -2482,7 +2514,9 @@ void TMailWindow::Print()
 		} while (print.CanContinue() && lastLine < maxLine);
 
 		print.CommitJob();
-	}
+		bmap.RemoveChild(&header_view);
+		bmap.RemoveChild(&line);
+	}	
 }
 
 
@@ -2566,7 +2600,7 @@ TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 	else
 		type = Mail::MD_REPLY_TO;
 
-	fMail = mail->ReplyMessage((Mail::reply_to_mode)type,
+	fMail = mail->ReplyMessage(Mail::reply_to_mode(type),
 		gUseAccountFrom == ACCOUNT_FROM_MAIL, QUOTE);
 
 	// set header fields
