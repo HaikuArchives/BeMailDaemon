@@ -9,6 +9,7 @@
 #include <Directory.h>
 #include <File.h>
 #include <MessageRunner.h>
+#include <NodeInfo.h>
 #include <Path.h>
 #include <crypt.h>
 #include <stdio.h>
@@ -509,6 +510,19 @@ void IMAP4Client::SyncAllBoxes() {
 				SendCommand(command.String());
 				WasCommandOkay(command);
 			} else {
+				char mime_type[255];
+				BNodeInfo(&snoodle).GetType(mime_type);
+				if (strcmp(mime_type,"text/x-partial-email") == 0) {
+					BString error,squid;
+					snoodle.ReadAttrString("MAIL:subject",&error);
+					snoodle.ReadAttrString("MAIL:account",&squid);
+					error.Prepend("The message \"");
+					error << "\" could not be added to the IMAP folder " << boxes[i] << " because it is a partially downloaded message belonging to another account ("
+						  <<  squid << "). Please download the entire message by opening the e-mail. Once it has been fully downloaded, it will be added to the folder.";
+					runner->ShowError(error.String());
+					continue;
+				}
+	
 				if (selected_mb != "") {
 					BString trash;
 					SendCommand("CLOSE");
