@@ -151,7 +151,7 @@ January 25 2003 - v2.0.0b9
 - If a header field (CC, Subject, etc) is made empty in BeMail, also remove that header.  Was causing a reply (with an automatically generated CC) to get sent to extra people even though the CC seemed to have been erased.  Library code changed to accept NULL and empty value strings as meaning remove the header.
 - Made install script into a one use script, so you can't accidentally run it twice (it won't work since it moved a lot of the installation files to their final resting places).
 - Reduced the size of the spam database from around 1500 messages to just 10 spam and 10 genuine examples (after complaints it was too big).  Accuracy will be reduced, but then you can quickly make up for it by training it when it gets it wrong (and even faster with auto-train).
-- As requested by "dolgogi" in the BeBits.com talkback, I've added the "ks_c_5601-1987" character set as an alias for euc-kr in incoming mail.
+- As requested by "dolgogi" in the BeBits.com talkback, I've added the iso-2022-kr, ksc5601, ks_c_5601-1987 character sets as an alias for euc-kr in incoming mail (they seem to be subsets of euc-kr).  Outgoing is always EUC-KR.  Also, the output for EUC-KR is sent as 8bit rather than base64 or quoted printable.
 
 January 22 2003 - v2.0.0b8
 - Date format changed slightly to make it compliant to RFC-822 (some other mail apps had problems understanding it).

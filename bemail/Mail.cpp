@@ -2759,6 +2759,8 @@ TMailWindow::Send(bool now)
 		encodingRelatedToCharset = base64;
 	else if (gMailCharacterSet == B_JIS_CONVERSION)
 		encodingRelatedToCharset = seven_bit;
+	else if (gMailCharacterSet == B_EUC_KR_CONVERSION)
+		encodingRelatedToCharset = eight_bit;
 
 	if (!now)
 	{
