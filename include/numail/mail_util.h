@@ -2,7 +2,7 @@
 #define ZOIDBERG_GARGOYLE_MAIL_UTIL_H
 /* mail util - header parsing
 **
-** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+** Copyright 2001-2003 Dr. Zoidberg Enterprises. All rights reserved.
 */
 
 
@@ -78,6 +78,8 @@ ssize_t readfoldedline(BPositionIO &in, char **buffer, size_t *buflen);
 //   *buffer is a buffer of size *buflen
 // if buffer is NULL or *buffer is NULL, and buflen is not NULL then
 //   start with a buffer of size *buflen
+
+extern status_t parse_header(BMessage &headers, BPositionIO &input);
 
 }	// namespace Mail
 }	// namespace Zoidberg
