@@ -941,7 +941,7 @@ _EXPORT time_t ParseDateWithTimeZone (const char *DateString)
 		strcpy (tempZoneString, "+0000");
 
 	time (&currentTime);
-	dateAsTime = parsedate (DateString, currentTime);
+	dateAsTime = parsedate (tempDateString, currentTime);
 	if (dateAsTime == (time_t) -1)
 		return -1; // Failure.
 
