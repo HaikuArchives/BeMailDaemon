@@ -2499,10 +2499,10 @@ TTextView::Reader::Run(void *_this)
 			{
 				// strip out HTML tags
 				char *t = bodyText, *a, *end = bodyText + bodyLength;
-				bodyText = (char *)malloc(strlen(bodyText) + 1);
+				bodyText = (char *) malloc (bodyLength + 1);
 				isHTML = true;
 				
-				for(a = bodyText;*t;t++)
+				for(a = bodyText; t < end; t++)
 				{
 					int32 c = *t;
 
