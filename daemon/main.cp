@@ -278,8 +278,9 @@ void MailDaemonApp::InstallDeskbarIcon() {
 			return;
 		}
 		
-		DeskbarView *view = new DeskbarView(BRect(0,0,15,15));
-		status = deskbar.AddItem(view);
+		//DeskbarView *view = new DeskbarView(BRect(0,0,15,15));
+		//status = deskbar.AddItem(view);
+		status = deskbar.AddItem(&ref);
 		if (status)
 		{
 			fprintf(stderr, "Can't add deskbar replicant: %s\n", strerror(status));
