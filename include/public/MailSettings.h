@@ -18,6 +18,8 @@ class MailChain: public BArchivable
   public:
 	MailChain(uint32 id);
 	MailChain(BMessage*);
+	virtual ~MailChain();
+	
 	virtual status_t Archive(BMessage*,bool) const;
 	static BArchivable* Instantiate(BMessage*);
 	
