@@ -3493,8 +3493,7 @@ TMailWindow::SaveAsDraft()
 
 		// Create the file
 		status = dir.SetTo(draftPath.Path());
-		switch (status)
-		{
+		switch (status) {
 			// Create the directory if it does not exist
 			case B_ENTRY_NOT_FOUND:
 				if ((status = dir.CreateDirectory(draftPath.Path(), &dir)) != B_OK)
@@ -3543,8 +3542,10 @@ TMailWindow::SaveAsDraft()
 	WriteAttrString(&draft, B_MAIL_ATTR_NAME, fHeaderView->fTo->Text());
 	WriteAttrString(&draft, B_MAIL_ATTR_TO, fHeaderView->fTo->Text());
 	WriteAttrString(&draft, B_MAIL_ATTR_SUBJECT, fHeaderView->fSubject->Text());
-	WriteAttrString(&draft, B_MAIL_ATTR_CC, fHeaderView->fCc->Text());
-	WriteAttrString(&draft, "MAIL:bcc", fHeaderView->fBcc->Text());
+	if (fHeaderView->fCc != NULL)
+		WriteAttrString(&draft, B_MAIL_ATTR_CC, fHeaderView->fCc->Text());
+	if (fHeaderView->fBcc != NULL)
+		WriteAttrString(&draft, "MAIL:bcc", fHeaderView->fBcc->Text());
 
 	// Add the draft attribute for indexing
 	uint32 draftAttr = true;
