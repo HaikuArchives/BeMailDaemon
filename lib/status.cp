@@ -163,9 +163,9 @@ StatusView *StatusWindow::NewStatusView(const char *description,bool upstream) {
 	rect.top = stat_views.CountItems() * (min_height + 1);
 	rect.bottom = rect.top + min_height;
 	StatusView *status = new StatusView(rect,description);
-	if (upstream) {
-		rgb_color status_red = {255,100,50,255};
-		status->status->SetBarColor(status_red);
+	if (!upstream) {
+		const rgb_color downstreamColor = {48,176,48,255};	// upstream was: {255,100,50,255}
+		status->status->SetBarColor(downstreamColor);
 	}
 	
 	status->window = this;
