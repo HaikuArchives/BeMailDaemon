@@ -289,7 +289,7 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	name << " " << numericDateString;
 
 	worker = attributes.FindString("MAIL:from");
-	Mail::extract_address_name(&worker);
+	Mail::extract_address_name(worker);
 	name << " " << worker;
 
 	name.Truncate(222);	// reserve space for the uniquer
