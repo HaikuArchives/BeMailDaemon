@@ -94,7 +94,7 @@ const char *MailMessage::ReplyTo() {
 }
 
 const char *MailMessage::CC() {
-	return HeaderField("Cc");
+	return HeaderField("CC");
 }
 
 const char *MailMessage::Subject() {
@@ -293,11 +293,40 @@ status_t MailMessage::RenderTo(BFile *file) {
 		SendViaAccount(_chain_id); //-----Set the from string
 	
 	BString recipients;
+	
 	recipients << To();
 	if ((CC() != NULL) && (strlen(CC()) > 0))
 		recipients << ',' << CC();
+	
 	if ((_bcc != NULL) && (strlen(_bcc) > 0))
 		recipients << ',' << _bcc;
+	
+	//----Turn "blorp" <blorp@foo.com>,foo@bar.com into <blorp@foo.com>,<foo@bar.com>
+	int32 last_i = 0;
+	for (int32 i = 0; (recipients.ByteAt(i) != 0) && (last_i >= 0); i++) {		
+		if ((recipients.FindFirst(',',i) < recipients.FindFirst('<',i)) || (recipients.FindFirst('<',i) < 0)) {
+			puts("Yay!");
+			recipients.Insert("<",i);
+			i = last_i = recipients.FindFirst(',',i) + 1;
+			
+			if (i <= 0) {
+				i = recipients.Length() + 1;
+				last_i = -1;
+			}
+			
+			recipients.Insert(">",i-1);
+			continue;
+		}
+			
+		if (recipients.ByteAt(i) == '<') {
+			//-----subtract name
+			recipients.Remove(last_i,i-last_i);
+			//-----subtract any white space afters
+			recipients.Remove(recipients.FindFirst('>',i)+1,recipients.FindFirst(',',i) - recipients.FindFirst('>',i) - 1);
+			//-----move to next
+			i = last_i = recipients.FindFirst(',',i) + 1;
+		}
+	}
 		
 	file->WriteAttrString(B_MAIL_ATTR_RECIPIENTS,&recipients);
 	
