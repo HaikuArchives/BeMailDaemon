@@ -50,15 +50,19 @@ class MailDaemonApp : public BApplication {
 	public:
 		MailDaemonApp(void);
 		virtual ~MailDaemonApp();
-		void MessageReceived(BMessage *msg);
+
+		virtual void MessageReceived(BMessage *msg);
+		virtual void Pulse();
+		virtual bool QuitRequested();
+		virtual void ReadyToRun();
+
 		void InstallDeskbarIcon();
 		void RemoveDeskbarIcon();
-		void Pulse();
-		bool QuitRequested();
-		void ReadyToRun();
 		
-		void SendPendingMessages();
-		void GetNewMessages();
+		void RunChains(BList &list,BMessage *msg);
+		void SendPendingMessages(BMessage *msg);
+		void GetNewMessages(BMessage *msg);
+
 	private:
 		void UpdateAutoCheck(bigtime_t interval);
 
@@ -168,14 +172,16 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 					break;
 #endif
 			}
-		case 'mbth':
+		case 'mbth':	// check & send messages
 			PostMessage('msnd');
-		case 'mnow': // check messages
-			GetNewMessages();
+			// supposed to fall trough
+		case 'mnow':	// check messages
+			GetNewMessages(msg);
 			break;
-		case 'msnd': // send messages
-			SendPendingMessages();
+		case 'msnd':	// send messages
+			SendPendingMessages(msg);
 			break;
+
 		case 'mrrs':
 			settings_file.Reload();
 			UpdateAutoCheck(settings_file.AutoCheckInterval());
@@ -299,28 +305,52 @@ bool MailDaemonApp::QuitRequested() {
 	return true;
 }
 
-void MailDaemonApp::GetNewMessages() {
-	BList *list = new BList;
-	InboundChains(list);
+void MailDaemonApp::RunChains(BList &list,BMessage *msg)
+{
 	Chain *chain;
+
+	int32 index = 0,id;
+	for (;msg->FindInt32("chain",index,&id) == B_OK;index++)
+	{
+		for (int32 i = 0; i < list.CountItems(); i++) {
+			chain = (Chain *)list.ItemAt(i);
+			
+			if (chain->ID() == id)
+			{
+				chain->RunChain(status,true,true,true);
+				list.RemoveItem(i);	// the chain runner deletes the chain
+				break;
+			}
+		}
+	}
 	
-	for (int32 i = 0; i < list->CountItems(); i++) {
-		chain = (Chain *)(list->ItemAt(i));
-		
-		chain->RunChain(status,true,true,true);
-	}	
+	if (index == 0)	// invoke all chains
+	{
+		for (int32 i = 0; i < list.CountItems(); i++) {
+			chain = (Chain *)list.ItemAt(i);
+			
+			chain->RunChain(status,true,true,true);
+		}
+	}
+	else	// delete unused chains
+	{
+		for (int32 i = list.CountItems();i-- > 0;)
+			delete (Chain *)list.RemoveItem(i);
+	}
 }
 
-void MailDaemonApp::SendPendingMessages() {
-	BList *list = new BList;
-	OutboundChains(list);
-	Chain *chain;
+void MailDaemonApp::GetNewMessages(BMessage *msg) {
+	BList list;
+	InboundChains(&list);
 
-	for (int32 i = 0; i < list->CountItems(); i++) {
-		chain = (Chain *)(list->ItemAt(i));
-		
-		chain->RunChain(status,true,true,true);
-	}
+	RunChains(list,msg);	
+}
+
+void MailDaemonApp::SendPendingMessages(BMessage *msg) {
+	BList list;
+	OutboundChains(&list);
+
+	RunChains(list,msg);
 }
 
 void MailDaemonApp::Pulse() {
