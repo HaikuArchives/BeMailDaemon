@@ -255,7 +255,7 @@ status_t IMAP4Client::GetMessage(
 			
 			SendCommand(command.String());
 			static char cmd[255];
-			::sprintf(cmd,"a%.7ld %s"CRLF,++commandCount,command);
+			::sprintf(cmd,"a%.7ld %s"CRLF,++commandCount,command.String());
 			NestedString response;
 			if (GetResponse(command,&response,true) != NOT_COMMAND_RESPONSE)
 				return B_ERROR;
@@ -286,7 +286,7 @@ IMAP4Client::ReceiveLine(BString &out)
 	out = "";
 	if(net->IsDataPending(kIMAP4ClientTimeout))
 	{
-		while(c != '\n' && c != EOF && c != xEOF)
+		while(c != '\n' && c != xEOF)
 		{
 			r = net->Receive(&c,1);
 			if(r <= 0)
@@ -314,7 +314,7 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 	bool was_cr = false;
 	if(net->IsDataPending(kIMAP4ClientTimeout))
 	{
-		while(c != '\n' && c != EOF && c != xEOF)
+		while(c != '\n' && c != xEOF)
 		{
 			r = net->Receive(&c,1);
 			if(r <= 0)
