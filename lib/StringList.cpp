@@ -170,13 +170,16 @@ bool	StringList::RemoveItem(const char *item) {
 		return true;
 	}
 	
+	struct string_bucket *tmp_bkt;
+	
 	while (bkt->next != NULL) {
 		if (strcmp(bkt->next->string,item) == 0) {
 			_indexed->RemoveItem(IndexOf(item));
 			
+			tmp_bkt = bkt->next;
 			bkt->next = bkt->next->next;
-			free((void *)(bkt->string));
-			delete bkt;
+			free((void *)(tmp_bkt->string));
+			delete tmp_bkt;
 			_items--;
 			
 			return true;
