@@ -41,7 +41,6 @@ All rights reserved.
 #ifndef _ENCLOSURES_H
 #define _ENCLOSURES_H
 
-#include <Bitmap.h>
 #include <Box.h>
 #include <File.h>
 #include <ListView.h>
@@ -67,46 +66,56 @@ class TScrollView;
 
 //====================================================================
 
-class TEnclosuresView : public BView {
-public:
-	TEnclosuresView(BRect, BRect); 
-	virtual	void Draw(BRect);
-	virtual void MessageReceived(BMessage*);
-	void Focus(bool);
+class TEnclosuresView : public BView
+{
+	public:
+		TEnclosuresView(BRect, BRect);
+		~TEnclosuresView();
 
-	TListView *fList;
+		virtual	void Draw(BRect);
+		virtual void MessageReceived(BMessage*);
+		void Focus(bool);
 
-private:
-	bool fFocus;
-	float fOffset;
-	TMailWindow *fWindow;
+		TListView *fList;
+
+	private:
+		bool fFocus;
+		float fOffset;
+		TMailWindow *fWindow;
 };
 
 
 //====================================================================
 
-class TListView : public BListView {
-public:
-	TListView(BRect, TEnclosuresView*);
-	virtual	void AttachedToWindow();
-	virtual void MakeFocus(bool);
+class TListView : public BListView
+{
+	public:
+		TListView(BRect, TEnclosuresView *);
 
-private:
-	TEnclosuresView *fParent;
+		virtual	void AttachedToWindow();
+		virtual void MakeFocus(bool);
+
+	private:
+		TEnclosuresView *fParent;
 };
 
 
 //====================================================================
 
-class TListItem : public BListItem {
-public:
-	TListItem(entry_ref*);
-	virtual void DrawItem(BView*, BRect, bool);
-	virtual	void Update(BView*, const BFont*);
-	entry_ref* Ref();
+class TListItem : public BListItem
+{
+	public:
+		TListItem(entry_ref *);
 
-private:
-	entry_ref* fRef;
+		virtual void DrawItem(BView*, BRect, bool);
+		virtual	void Update(BView*, const BFont*);
+
+		entry_ref	*Ref() { return &fRef; }
+		node_ref	*NodeRef() { return &fNodeRef; }
+
+	private:
+		entry_ref	fRef;
+		node_ref	fNodeRef;
 };
 
 #endif // #ifndef _ENCLOSURES_H

@@ -861,18 +861,14 @@ void TTextView::MessageReceived(BMessage *msg)
 {
 	bool		inserted = false;
 	bool		is_enclosure = false;
-	const char	*name;
 	char		*text;
 	int32		end;
 	int32		loop;
 	int32		offset;
-	int32		opcode;
 	int32		start;
 	BFile		file;
 	BMessage	message(REFS_RECEIVED);
 	entry_ref	ref;
-	dev_t		device;
-	ino_t		inode;
 	off_t		len = 0;
 	off_t		size;
 	hyper_text	*enclosure;
@@ -962,10 +958,17 @@ void TTextView::MessageReceived(BMessage *msg)
 			break;
 
 		case B_NODE_MONITOR:
+		{
+			int32 opcode;
 			if (msg->FindInt32("opcode", &opcode) == B_NO_ERROR)
 			{
-				msg->FindInt32("device", &device);
-				msg->FindInt64("node", &inode);
+				dev_t device;
+				if (msg->FindInt32("device", &device) < B_OK)
+					break;
+				ino_t inode;
+				if (msg->FindInt64("node", &inode) < B_OK)
+					break;
+
 				for (int32 index = 0;(enclosure = (hyper_text *)fEnclosures->ItemAt(index++)) != NULL;)
 				{
 					if (device == enclosure->node.device
@@ -979,8 +982,9 @@ void TTextView::MessageReceived(BMessage *msg)
 						else if (opcode == B_ENTRY_MOVED)
 						{
 							enclosure->ref.device = device;
-							msg->FindInt64("to directory",
-								&enclosure->ref.directory);
+							msg->FindInt64("to directory", &enclosure->ref.directory);
+
+							const char *name;
 							msg->FindString("name", &name);
 							enclosure->ref.set_name(name);
 						}
@@ -989,6 +993,7 @@ void TTextView::MessageReceived(BMessage *msg)
 				}
 			}
 			break;
+		}
 
 		// 
 		// Tracker has responded to a BMessage that was dragged out of 
@@ -1394,7 +1399,7 @@ void TTextView::MouseDown(BPoint where)
 							//
 							dragMessage.AddString("be:types", B_FILE_MIME_TYPE);
 							dragMessage.AddString("be:filetypes",
-								enclosure->content_type);
+								enclosure->content_type ? enclosure->content_type : "");
 							dragMessage.AddString("be:clip_name", enclosure->name);
 							break;
 	

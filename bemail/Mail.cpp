@@ -2636,12 +2636,7 @@ status_t TMailWindow::Send(bool now)
 		return status;
 	}
 	
-	bool			close = false;
-	char			mime[256];
-	int32			index = 0;
-	int32			len;
-	status_t		result;
-	TListItem		*item;
+	status_t result;
 
 	if (fResending)
 	{
@@ -2662,16 +2657,16 @@ status_t TMailWindow::Send(bool now)
 	{
 		MailMessage mail;
 				
-		if ((len = strlen(fHeaderView->fTo->Text())) != 0)
+		if (strlen(fHeaderView->fTo->Text()) != 0)
 			mail.SetTo(fHeaderView->fTo->Text());
 
-		if ((len = strlen(fHeaderView->fSubject->Text())) != 0)
+		if (strlen(fHeaderView->fSubject->Text()) != 0)
 			mail.SetSubject(fHeaderView->fSubject->Text());
 
-		if ((len = strlen(fHeaderView->fCc->Text())) != 0)
+		if (strlen(fHeaderView->fCc->Text()) != 0)
 			mail.SetCC(fHeaderView->fCc->Text());
 
-		if ((len = strlen(fHeaderView->fBcc->Text())) != 0)
+		if (strlen(fHeaderView->fBcc->Text()) != 0)
 			mail.SetBCC(fHeaderView->fBcc->Text());
 
 		/****/
@@ -2681,8 +2676,17 @@ status_t TMailWindow::Send(bool now)
 
 		if (fEnclosuresView != NULL)
 		{
+			TListItem *item;
+			int32 index = 0;
 			while ((item = (TListItem *)fEnclosuresView->fList->ItemAt(index++)) != NULL)
+			{
+				// leave out missing enclosures
+				BEntry entry(item->Ref());
+				if (!entry.Exists())
+					continue;
+
 				mail.Attach(item->Ref());
+			}
 		}
 		if (fHeaderView->fChain != ~0UL)
 			mail.SendViaAccount(fHeaderView->fChain);
@@ -2704,6 +2708,9 @@ status_t TMailWindow::Send(bool now)
 		}
 	}
 
+	bool close = false;
+	char errorMessage[256];
+
 	switch (result)
 	{
 		case B_NO_ERROR:
@@ -2721,30 +2728,32 @@ status_t TMailWindow::Send(bool now)
 		case B_MAIL_NO_DAEMON:
 			close = true;
 			fSent = true;
-			sprintf(mime, "The mail_daemon is not running.  The message is "
+			sprintf(errorMessage, "The mail_daemon is not running.  The message is "
 				"queued and will be sent when the mail_daemon is started.");
 			break;
 
 //		case B_MAIL_UNKNOWN_HOST:
 //		case B_MAIL_ACCESS_ERROR:
-//			sprintf(mime, "An error occurred trying to connect with the SMTP "
+//			sprintf(errorMessage, "An error occurred trying to connect with the SMTP "
 //				"host.  Check your SMTP host name.");
 //			break;
 //
 //		case B_MAIL_NO_RECIPIENT:
-//			sprintf(mime, "You must have either a \"To\" or \"Bcc\" recipient.");
+//			sprintf(errorMessage, "You must have either a \"To\" or \"Bcc\" recipient.");
 //			break;
 
 		default:
-			sprintf(mime, "An error occurred trying to send mail (0x%.8lx).",
+			sprintf(errorMessage, "An error occurred trying to send mail (0x%.8lx).",
 							result);
 	}
-	if (result != B_NO_ERROR) {
+	if (result != B_NO_ERROR)
+	{
 		beep();
-		(new BAlert("", mime, "OK"))->Go();
+		(new BAlert("", errorMessage, "OK"))->Go();
 	}
 	if (close)
 		PostMessage(B_QUIT_REQUESTED);
+
 	return result;
 }
 
@@ -2841,9 +2850,12 @@ status_t TMailWindow::SaveAsDraft()
 		
 		for (int32 i = 0; (item = (TListItem *)fEnclosuresView->fList->ItemAt(i)) != NULL; i++)
 		{
-			if (i)
+			if (i > 0)
 				pathStr.Append(":");
+
 			BEntry entry(item->Ref(), true);
+			if (!entry.Exists())
+				continue;
 			
 			entry.GetPath(&path);
 			pathStr.Append(path.Path());

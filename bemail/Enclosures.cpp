@@ -35,26 +35,29 @@ All rights reserved.
 //--------------------------------------------------------------------
 //	
 //	Enclosures.cpp
-//
+//	The enclosures list view (TListView), the list items (TListItem),
+//	and the view containing the list and handling the messages (TEnclosuresView).
 //--------------------------------------------------------------------
+
+#include "Mail.h"
+#include "Enclosures.h"
+
+#include <Debug.h>
+#include <Beep.h>
+#include <Bitmap.h>
+#include <Alert.h>
+#include <NodeMonitor.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <Debug.h>
-#include <Beep.h>
-#include <InterfaceKit.h>
-
-#include "Mail.h"
-#include "Enclosures.h"
 
 
 //====================================================================
 
 TEnclosuresView::TEnclosuresView(BRect rect, BRect wind_rect)
-	: BView(rect, "m_enclosures", B_FOLLOW_TOP | B_FOLLOW_LEFT_RIGHT,
-			B_WILL_DRAW),
-		fFocus(false)
+	:	BView(rect, "m_enclosures", B_FOLLOW_TOP | B_FOLLOW_LEFT_RIGHT, B_WILL_DRAW),
+	fFocus(false)
 {
 	rgb_color c;
 	c.red = c.green = c.blue = VIEW_COLOR;
@@ -75,12 +78,24 @@ TEnclosuresView::TEnclosuresView(BRect rect, BRect wind_rect)
 	fList->SetInvocationMessage(new BMessage(LIST_INVOKED));
 
 	BScrollView	*scroll = new BScrollView("", fList, B_FOLLOW_LEFT_RIGHT | 
-	  B_FOLLOW_TOP, 0, false, true);
+			B_FOLLOW_TOP, 0, false, true);
 	AddChild(scroll);
 	scroll->ScrollBar(B_VERTICAL)->SetRange(0, 0);
 }
 
-//--------------------------------------------------------------------
+
+TEnclosuresView::~TEnclosuresView()
+{
+	for (int32 index = fList->CountItems();index-- > 0;)
+	{
+		TListItem *item = static_cast<TListItem *>(fList->ItemAt(index));
+		fList->RemoveItem(index);
+
+		watch_node(item->NodeRef(), B_STOP_WATCHING, this);
+		delete item;
+	}
+}
+
 
 void TEnclosuresView::Draw(BRect where)
 {
@@ -102,45 +117,46 @@ void TEnclosuresView::Draw(BRect where)
 	DrawString(ENCLOSE_TEXT);
 }
 
-//--------------------------------------------------------------------
 
 void TEnclosuresView::MessageReceived(BMessage *msg)
 {
-	bool		bad_type = false;
-	TListItem	*data;
-	short		loop;
-	int32		index = 0;
-	BListView	*list;
-	BFile		file;
-	BMessage	message(B_REFS_RECEIVED);
-	BMessenger	*tracker;
-	entry_ref	ref;
-	entry_ref	*item;
-
-	switch (msg->what) {
+	switch (msg->what)
+	{
 		case LIST_INVOKED:
+		{
+			BListView *list;
 			msg->FindPointer("source", (void **)&list);
-			if (list) {
-				data = (TListItem *) (list->ItemAt(msg->FindInt32("index")));
-				if (data) {
-					tracker = new BMessenger("application/x-vnd.Be-TRAK", -1, NULL);
-					if (tracker->IsValid()) {
-						message.AddRef("refs", data->Ref());
-						tracker->SendMessage(&message);
+			if (list)
+			{
+				TListItem *item = (TListItem *) (list->ItemAt(msg->FindInt32("index")));
+				if (item)
+				{
+					BMessenger tracker("application/x-vnd.Be-TRAK");
+					if (tracker.IsValid())
+					{
+						BMessage message(B_REFS_RECEIVED);
+						message.AddRef("refs", item->Ref());
+
+						tracker.SendMessage(&message);
 					}
-					delete tracker;
 				}
 			}
 			break;
+		}
 
 		case M_REMOVE:
-			while ((index = fList->CurrentSelection()) >= 0) {
-				data = (TListItem *) fList->ItemAt(index);
+		{
+			int32 index;
+			while ((index = fList->CurrentSelection()) >= 0)
+			{
+				TListItem *item = (TListItem *) fList->ItemAt(index);
 				fList->RemoveItem(index);
-				free(data->Ref());
-				free(data);
+
+				watch_node(item->NodeRef(), B_STOP_WATCHING, this);
+				delete item;
 			}
 			break;
+		}
 
 		case M_SELECT:
 			fList->Select(0, fList->CountItems() - 1, true);
@@ -149,76 +165,127 @@ void TEnclosuresView::MessageReceived(BMessage *msg)
 		case B_SIMPLE_DATA:
 		case B_REFS_RECEIVED:
 		case REFS_RECEIVED:
-			if (msg->HasRef("refs")) {
-				while (msg->FindRef("refs", index++, &ref) == B_NO_ERROR) {
-					file.SetTo(&ref, O_RDONLY);
-					if ((file.InitCheck() == B_NO_ERROR) && (file.IsFile())) {
-						for (loop = 0; loop < fList->CountItems(); loop++) {
-							data = (TListItem *) fList->ItemAt(loop);
-							if (ref == *(data->Ref())) {
+			if (msg->HasRef("refs"))
+			{
+				bool badType = false;
+
+				int32 index = 0;
+				entry_ref ref;
+				while (msg->FindRef("refs", index++, &ref) == B_NO_ERROR)
+				{
+					BFile file(&ref, O_RDONLY);
+					if (file.InitCheck() == B_OK && file.IsFile())
+					{
+						TListItem *item;
+						for (int16 loop = 0; loop < fList->CountItems(); loop++)
+						{
+							item = (TListItem *) fList->ItemAt(loop);
+							if (ref == *(item->Ref()))
+							{
 								fList->Select(loop);
 								fList->ScrollToSelection();
-								goto next;
+								continue;
 							}
 						}
-						item = new entry_ref(ref);
-						fList->AddItem(new TListItem(item));
+						fList->AddItem(item = new TListItem(&ref));
 						fList->Select(fList->CountItems() - 1);
 						fList->ScrollToSelection();
+						
+						watch_node(item->NodeRef(), B_WATCH_NAME, this);
 					}
 					else
-						bad_type = true;
-next:;
+						badType = true;
 				}
-				if (bad_type) {
+				if (badType)
+				{
 					beep();
-					(new BAlert("", "Only files can be added as enclosures.",
-								"OK"))->Go();
+					(new BAlert("", "Only files can be added as enclosures.", "OK"))->Go();
 				}
 			}
 			break;
+
+		case B_NODE_MONITOR:
+		{
+			int32 opcode;
+			if (msg->FindInt32("opcode", &opcode) == B_NO_ERROR)
+			{
+				dev_t device;
+				if (msg->FindInt32("device", &device) < B_OK)
+					break;
+				ino_t inode;
+				if (msg->FindInt64("node", &inode) < B_OK)
+					break;
+
+				for (int32 index = fList->CountItems();index-- > 0;)
+				{
+					TListItem *item = static_cast<TListItem *>(fList->ItemAt(index));
+
+					if (device == item->NodeRef()->device
+						&& inode == item->NodeRef()->node)
+					{
+						if (opcode == B_ENTRY_REMOVED)
+						{
+							// don't hide the <missing enclosure> item
+
+							//fList->RemoveItem(index);
+							//
+							//watch_node(item->NodeRef(), B_STOP_WATCHING, this);
+							//delete item;
+						}
+						else if (opcode == B_ENTRY_MOVED)
+						{
+							item->Ref()->device = device;
+							msg->FindInt64("to directory", &item->Ref()->directory);
+
+							const char *name;
+							msg->FindString("name", &name);
+							item->Ref()->set_name(name);
+						}
+
+						fList->InvalidateItem(index);
+						break;
+					}
+				}
+			}
+			break;
+		}
 
 		default:
 			BView::MessageReceived(msg);
 	}
 }
 
-//--------------------------------------------------------------------
 
 void TEnclosuresView::Focus(bool focus)
 {
-	BRect	r;
-
-	if (fFocus != focus) {
-		r = Frame();
+	if (fFocus != focus)
+	{
 		fFocus = focus;
-		Draw(r);
+		Draw(Frame());
 	}
 }
 
 
 //====================================================================
+//	#pragma mark -
+
 
 TListView::TListView(BRect rect, TEnclosuresView *view)
-		  :BListView(rect, "", B_MULTIPLE_SELECTION_LIST, B_FOLLOW_TOP |
-			  B_FOLLOW_LEFT_RIGHT )
+	:	BListView(rect, "", B_MULTIPLE_SELECTION_LIST, B_FOLLOW_TOP | B_FOLLOW_LEFT_RIGHT )
 {
 	fParent = view;
 }
 
-//--------------------------------------------------------------------
 
 void TListView::AttachedToWindow()
 {
-	BFont		font = *be_plain_font;
-	entry_ref	ref;
-
 	BListView::AttachedToWindow();
+
+	BFont font = *be_plain_font;
 	font.SetSize(FONT_SIZE);
 	SetFont(&font);
 }
 
-//--------------------------------------------------------------------
 
 void TListView::MakeFocus(bool focus)
 {
@@ -228,74 +295,67 @@ void TListView::MakeFocus(bool focus)
 
 
 //====================================================================
+//	#pragma mark -
+
 
 TListItem::TListItem(entry_ref *ref)
 {
-	fRef = ref;
+	fRef = *ref;
+
+	BEntry entry(ref);	
+	entry.GetNodeRef(&fNodeRef);
 }
 
-//--------------------------------------------------------------------
 
-void TListItem::Update(BView *owner, const BFont *finfo)
+void TListItem::Update(BView *owner, const BFont *font)
 {
-	BListItem::Update(owner, finfo);
-	if (Height() < 17)
+	BListItem::Update(owner, font);
+
+	if (Height() < 17)	// mini icon height + 1
 		SetHeight(17);
 }
 
-//--------------------------------------------------------------------
 
 void TListItem::DrawItem(BView *owner, BRect r, bool /* complete */)
 {
-	BBitmap		*bitmap;
-	BEntry		entry;
-	BFile		file;
-	BFont		font = *be_plain_font;
-	BNodeInfo	*info;
-	BPath		path;
-	BRect		sr;
-	BRect		dr;
-
-	if (IsSelected()) {
+	if (IsSelected())
+	{
 		owner->SetHighColor(180, 180, 180);
 		owner->SetLowColor(180, 180, 180);
 	}
-	else {
+	else
+	{
 		owner->SetHighColor(255, 255, 255);
 		owner->SetLowColor(255, 255, 255);
 	}
 	owner->FillRect(r);
 	owner->SetHighColor(0, 0, 0);
 
+	BFont font = *be_plain_font;
 	font.SetSize(FONT_SIZE);
 	owner->SetFont(&font);
 	owner->MovePenTo(r.left + 24, r.bottom - 4);
 
-	entry.SetTo(fRef);
-	if (entry.GetPath(&path) == B_NO_ERROR)
+	BFile file(&fRef, O_RDONLY);
+	BEntry entry(&fRef);
+	BPath path;
+	if (entry.GetPath(&path) == B_OK && file.InitCheck() == B_OK)
+	{
 		owner->DrawString(path.Path());
-	else
-		owner->DrawString("<missing enclosure>");
 
-	file.SetTo(fRef, O_RDONLY);
-	if (file.InitCheck() == B_NO_ERROR) {
-		info = new BNodeInfo(&file);
-		sr.Set(0, 0, B_MINI_ICON - 1, B_MINI_ICON - 1);
-		bitmap = new BBitmap(sr, B_COLOR_8_BIT);
-		if (info->GetTrackerIcon(bitmap, B_MINI_ICON) == B_NO_ERROR) {
-			dr.Set(r.left + 4, r.top + 1, r.left + 4 + 15, r.top + 1 + 15);
+		BNodeInfo info(&file);
+		BRect sr(0, 0, B_MINI_ICON - 1, B_MINI_ICON - 1);
+
+		BBitmap bitmap(sr, B_COLOR_8_BIT);
+		if (info.GetTrackerIcon(&bitmap, B_MINI_ICON) == B_NO_ERROR)
+		{
+			BRect dr(r.left + 4, r.top + 1, r.left + 4 + 15, r.top + 1 + 15);
 			owner->SetDrawingMode(B_OP_OVER);
-			owner->DrawBitmap(bitmap, sr, dr);
+			owner->DrawBitmap(&bitmap, sr, dr);
 			owner->SetDrawingMode(B_OP_COPY);
 		}
-		delete bitmap;
-		delete info;
 	}
+	else
+		owner->DrawString("<missing enclosure>");
 }
 
-//--------------------------------------------------------------------
-
-entry_ref* TListItem::Ref()
-{
-	return fRef;
-}
