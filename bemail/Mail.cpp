@@ -1645,10 +1645,10 @@ TMailWindow::BuildButtonBar()
 	{
 		fSendButton = bbar->AddButton(MDR_DIALECT_CHOICE ("Send","送信"), 8, new BMessage(M_SEND_NOW));
 		fSendButton->SetEnabled(false);
-		fSaveButton = bbar->AddButton(MDR_DIALECT_CHOICE ("Save","保存"), 44, new BMessage(M_SAVE_AS_DRAFT));
-		fSaveButton->SetEnabled(false);
 		fSigButton = bbar->AddButton(MDR_DIALECT_CHOICE ("Signature","署名"), 4, new BMessage(M_SIG_MENU));
 		fSigButton->InvokeOnButton(B_SECONDARY_MOUSE_BUTTON);
+		fSaveButton = bbar->AddButton(MDR_DIALECT_CHOICE ("Save","保存"), 44, new BMessage(M_SAVE_AS_DRAFT));
+		fSaveButton->SetEnabled(false);
 		bbar->AddDivider(5);
 		fPrintButton = bbar->AddButton(MDR_DIALECT_CHOICE ("Print","印刷"), 16, new BMessage(M_PRINT));
 		fPrintButton->SetEnabled(false);
