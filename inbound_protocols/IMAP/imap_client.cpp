@@ -31,6 +31,7 @@ enum { OK,BAD,NO,CONTINUE, NOT_COMMAND_RESPONSE };
 struct mailbox_info {
 	int32 exists;
 	int32 next_uid;
+	BString server_mb_name;
 };
 
 class IMAP4Client : public Mail::Protocol {
@@ -70,7 +71,7 @@ class IMAP4Client : public Mail::Protocol {
 		
 		int32 commandCount;
 		BNetEndpoint *net;
-		BString selected_mb, inbox_name;
+		BString selected_mb, inbox_name, hierarchy_delimiter;
 		int32 inbox_index;
 		StringList boxes;
 		BList box_info;
@@ -289,19 +290,42 @@ void IMAP4Client::InitializeMailboxes() {
 			break;
 		
 		if (response[3]()[0] != '.') {
-			boxes += response[3]();
 			struct mailbox_info *info = new struct mailbox_info;
 			info->exists = -1;
 			info->next_uid = -1;
+			info->server_mb_name = response[3]();
 			box_info.AddItem(info);
+			BString parsed_name = response[3]();
+			if (strcasecmp(response[2](),"NIL")) {
+				hierarchy_delimiter = response[2]();
+				if (strcmp(response[2](),"/")) {
+					if (strcmp(response[2](),"\\"))
+						parsed_name.ReplaceAll('/','\\');
+					else
+						parsed_name.ReplaceAll('/','-');
+						
+					parsed_name.ReplaceAll(response[2](),"/");
+				}
+			}
+			boxes += parsed_name.String();
 			if (strcasecmp(response[3](),"INBOX") == 0) {
 				inbox_name = response[3]();
 				inbox_index = box_info.CountItems() - 1;
 			}
 				
-			dir.CreateDirectory(response[3](),&trash);
+			dir.CreateDirectory(parsed_name.String(),&trash);
 		}
 	} while (1);
+	
+	
+	if (hierarchy_delimiter == "" || hierarchy_delimiter == "NIL") {
+		SendCommand("LIST \"\" \"\"");
+		NestedString dem;
+		GetResponse(tag,&dem);
+		hierarchy_delimiter = dem[2]();
+		if (hierarchy_delimiter == "" || hierarchy_delimiter == "NIL")
+			hierarchy_delimiter = "/";
+	}
 	
 	/*puts("Mailboxes:");
 	for (int32 i = 0; i < boxes.CountItems(); i++)
@@ -357,14 +381,16 @@ void IMAP4Client::SyncAllBoxes() {
 
 	for (int32 i = 0; i < temp.CountItems(); i++) {
 		command = "";
-		command << "CREATE \"" << temp[i] << '\"';
 		
 		boxes += temp[i];
 		struct mailbox_info *info = new struct mailbox_info;
 		info->exists = -1;
 		info->next_uid = -1;
+		info->server_mb_name = temp[i];
+		info->server_mb_name.ReplaceAll("/",hierarchy_delimiter.String());
 		box_info.AddItem(info);
 		
+		command << "CREATE \"" << info->server_mb_name << '\"';
 		SendCommand(command.String());
 		if (!WasCommandOkay(command)) {
 			command = "Error creating mailbox ";
@@ -377,11 +403,11 @@ void IMAP4Client::SyncAllBoxes() {
 		int32 num_messages = 0;
 		
 		command = "SELECT \"";
-		command << boxes[i] << '\"';
+		command << ((struct mailbox_info *)(box_info.ItemAt(i)))->server_mb_name << '\"';
 				
 		SendCommand(command.String());
 		::sprintf(expected,"a%.7ld",commandCount);
-		selected_mb = boxes[i];
+		selected_mb = ((struct mailbox_info *)(box_info.ItemAt(i)))->server_mb_name;
 		int32 next_uid;
 		while(1) {
 			NestedString response;
@@ -400,7 +426,7 @@ void IMAP4Client::SyncAllBoxes() {
 		}
 		
 		struct mailbox_info *mailbox = (struct mailbox_info *)(box_info.ItemAt(i));
-		if (next_uid == mailbox->next_uid) /* Either nothing changed, or a message was deleted, which we don't care about */ {
+		if (next_uid == mailbox->next_uid && next_uid > 0) /* Either nothing changed, or a message was deleted, which we don't care about */ {
 			SendCommand("CLOSE");
 			selected_mb = "";
 			WasCommandOkay(tag);
@@ -408,14 +434,14 @@ void IMAP4Client::SyncAllBoxes() {
 			continue;
 		}
 		
-		if ((num_messages < 0) || (next_uid < 0)) {
+		/*if ((num_messages < 0) || (next_uid < 0)) {
 			BString error = "Error while opening mailbox: ";
 			error << boxes[i];
 			runner->ShowError(error.String());
 			return;
-		}
+		}*/
 		
-		if ((num_messages - mailbox->exists) == (next_uid - mailbox->next_uid) && mailbox->next_uid >= 0 && mailbox->exists > 0) {
+		if ((num_messages - mailbox->exists) == (next_uid - mailbox->next_uid) && next_uid > 0 && mailbox->next_uid >= 0 && mailbox->exists > 0) {
 			while (mailbox->next_uid < next_uid) {
 				uid = boxes[i];
 				uid << '/' << mailbox->next_uid;
@@ -516,7 +542,7 @@ void IMAP4Client::SyncAllBoxes() {
 				Select(mb.String());
 				
 				command = "UID COPY ";
-				command << id << " \"" << boxes[i] << '\"';
+				command << id << " \"" << ((struct mailbox_info *)(box_info.ItemAt(i)))->server_mb_name << '\"';
 				SendCommand(command.String());
 				WasCommandOkay(command);
 			} else {
@@ -542,7 +568,7 @@ void IMAP4Client::SyncAllBoxes() {
 				command = "APPEND \"";
 				off_t size;
 				snoodle.GetSize(&size);
-				command << boxes[i] << "\" {" << size << '}';
+				command << ((struct mailbox_info *)(box_info.ItemAt(i)))->server_mb_name << "\" {" << size << '}';
 				SendCommand(command.String());
 				ReceiveLine(command);
 				char *buffer = new char[size];
@@ -552,7 +578,7 @@ void IMAP4Client::SyncAllBoxes() {
 				WasCommandOkay(command);
 			}
 			
-			if (selected_mb != boxes[i]) {
+			if (selected_mb != ((struct mailbox_info *)(box_info.ItemAt(i)))->server_mb_name) {
 				if (selected_mb != "") {
 					BString trash;
 					SendCommand("CLOSE");
@@ -560,8 +586,8 @@ void IMAP4Client::SyncAllBoxes() {
 					WasCommandOkay(trash);
 				}
 				BString cmd = "SELECT \"";
-				cmd << boxes[i] << '\"';
-				selected_mb = boxes[i];
+				cmd << ((struct mailbox_info *)(box_info.ItemAt(i)))->server_mb_name << '\"';
+				selected_mb = ((struct mailbox_info *)(box_info.ItemAt(i)))->server_mb_name;
 				SendCommand(cmd.String());
 			} else {
 				SendCommand("NOOP");
@@ -610,7 +636,8 @@ void IMAP4Client::SyncAllBoxes() {
 }
 
 status_t IMAP4Client::Select(const char *mb) {
-	if (selected_mb != mb) {
+	const char *real_mb = ((struct mailbox_info *)(box_info.ItemAt(boxes.IndexOf(mb))))->server_mb_name.String();
+	if (selected_mb != real_mb) {
 		if (selected_mb != "") {
 			BString trash;
 			SendCommand("CLOSE");
@@ -618,7 +645,7 @@ status_t IMAP4Client::Select(const char *mb) {
 			WasCommandOkay(trash);
 		}
 		BString cmd = "SELECT \"";
-		cmd << mb << '\"';
+		cmd << real_mb << '\"';
 		SendCommand(cmd.String());
 		
 		if (!WasCommandOkay(cmd)) {
@@ -626,7 +653,7 @@ status_t IMAP4Client::Select(const char *mb) {
 			return B_ERROR;
 		}
 		
-		selected_mb = mb;
+		selected_mb = real_mb;
 	}
 		
 	return B_OK;
