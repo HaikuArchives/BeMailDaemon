@@ -126,6 +126,7 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	const time_t   *datePntr;
 	ssize_t			dateSize;
 	char			numericDateString [40];
+	bool			tempBool;
 	struct tm   	timeFields;
 	BString			worker;
 
@@ -149,23 +150,29 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 
 	BNode node(e);
 	status_t err = 0;
-	if (out_headers->FindBool("ENTIRE_MESSAGE") || !out_headers->HasInt32("SIZE") || (size_limit >= out_headers->FindInt32("SIZE")) || size_limit == 0)
+	bool haveReadWholeMessage = false;
+	// "ENTIRE_MESSAGE" really means the user has double clicked on a partial
+	// message and now it should be fully read, and then displayed to the user.
+	if ((out_headers->FindBool("ENTIRE_MESSAGE", &tempBool) == B_OK && tempBool)
+		|| !out_headers->HasInt32("SIZE")
+		|| (size_limit == 0 || size_limit >= out_headers->FindInt32("SIZE"))) {
 		err = (*io)->Seek(0,SEEK_END); // Force protocol to read the whole message.
-
-	if (err < 0)
-	{
-		BString error;
-		MDR_DIALECT_CHOICE (
-			error << "Unable to read whole message " <<
-				out_headers->FindString("Subject") << " to " << path.Path() <<
-				": " << strerror(err);
+		if (err < 0)
+		{
+			BString error;
+			MDR_DIALECT_CHOICE (
+				error << "Unable to read whole message " <<
+					out_headers->FindString("Subject") << " to " << path.Path() <<
+					": " << strerror(err);
 			,
-			error << out_headers->FindString("Subject") << " のメッセージを " <<
-				path.Path() << "に保存中にエラーが発生しました" << strerror(err);
-		)
-		Mail::ShowAlert(MDR_DIALECT_CHOICE ("Folder Error","フォルダエラー"),error.String(),MDR_DIALECT_CHOICE ("OK","了解"),B_WARNING_ALERT);
-
-		return err;
+				error << out_headers->FindString("Subject") << " のメッセージを " <<
+					path.Path() << "に保存中にエラーが発生しました" << strerror(err);
+			)
+			Mail::ShowAlert(MDR_DIALECT_CHOICE ("Folder Error","フォルダエラー"),
+				error.String(),MDR_DIALECT_CHOICE ("OK","了解"),B_WARNING_ALERT);
+			return err;
+		}
+		haveReadWholeMessage = true;
 	}
 
 	BNodeInfo info(&node);
@@ -173,14 +180,19 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	off_t size;
 	node.GetSize(&size);
 	// Note - sometimes the actual message size is a few bytes more than the
-	// registered size, so use >= when testing.
-	if ((out_headers->HasInt32("SIZE") && size >= out_headers->FindInt32("SIZE")) || out_headers->FindBool("ENTIRE_MESSAGE") || !out_headers->HasInt32("SIZE"))	{
+	// registered size, so use >= when testing.  And sometimes the message is
+	// actually slightly smaller, due to POP server errors (some count double
+	// dots correctly, some don't, if it causes problems, don't use partial
+	// messages).
+	if (haveReadWholeMessage ||
+		(out_headers->HasInt32("SIZE") && size >= out_headers->FindInt32("SIZE"))) {
 		info.SetType(B_MAIL_TYPE);
 		// A little fixup for incorrect registered sizes, so that the full
 		// length attribute gets written correctly later.
 		if (out_headers->HasInt32("SIZE"))
 			out_headers->ReplaceInt32("SIZE", size);
-	} else
+		haveReadWholeMessage = true;
+	} else // Don't have the whole message.
 		info.SetType("text/x-partial-email");
 
 	BMessage attributes;
@@ -226,26 +238,27 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		attributes.AddString(B_MAIL_ATTR_STATUS,"New");
 
 	node << attributes;
-	
-	err = B_OK;
-	
-	if (!out_headers->FindBool("ENTIRE_MESSAGE"))
-		err = e->MoveTo(&dir);
-	
-	if (err != B_OK)
-	{
-		BString error;
-		MDR_DIALECT_CHOICE (
-			error << "An error occurred while moving the message " <<
-				out_headers->FindString("Subject") << " to " << path.Path() <<
-				": " << strerror(err);
-			,
-			error << out_headers->FindString("Subject") << " のメッセージを " <<
-				path.Path() << "に保存中にエラーが発生しました" << strerror(err);
-		)
-		Mail::ShowAlert(MDR_DIALECT_CHOICE ("Folder Error","フォルダエラー"),error.String(),MDR_DIALECT_CHOICE ("OK","了解"),B_WARNING_ALERT);
 
-		return err;
+	// Move the message file out of the temporary directory, else it gets
+	// deleted.  Partial messages have already been moved, so don't move them.
+	if (out_headers->FindBool("ENTIRE_MESSAGE", &tempBool) != B_OK
+	|| tempBool == false) {
+		err = e->MoveTo(&dir);
+		if (err != B_OK)
+		{
+			BString error;
+			MDR_DIALECT_CHOICE (
+				error << "An error occurred while moving the message " <<
+					out_headers->FindString("Subject") << " to " << path.Path() <<
+					": " << strerror(err);
+				,
+				error << out_headers->FindString("Subject") << " のメッセージを " <<
+					path.Path() << "に保存中にエラーが発生しました" << strerror(err);
+			)
+			Mail::ShowAlert(MDR_DIALECT_CHOICE ("Folder Error","フォルダエラー"),
+				error.String(),MDR_DIALECT_CHOICE ("OK","了解"),B_WARNING_ALERT);
+			return err;
+		}
 	}
 
 	// Generate a file name for the incoming message.  See also
@@ -287,6 +300,8 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	name.ReplaceAll('"','_');
 	name.ReplaceAll('<','_');
 	name.ReplaceAll('>','_');
+	while (name.FindFirst ("  ") >= 0) // Remove multiple spaces.
+		name.Replace ("  " /* Old */, " " /* New */, 1024 /* Count */);
 
 	int32 uniquer = time(NULL);
 	worker = name;
