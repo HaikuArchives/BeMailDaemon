@@ -348,16 +348,6 @@ CheckForURL(const char *string, size_t &urlLength, BString *url = NULL)
 	if (type == TYPE_URL) {
 		index = strcspn(string, " <>\"\r\n");
 
-		// filter out some punctuation marks if they are the last character
-		char suffix = string[index - 1];
-		if (suffix == '.'
-			|| suffix == ','
-			|| suffix == '?'
-			|| suffix == '!'
-			|| suffix == ':'
-			|| suffix == ';')
-			index--;
-
 		char *parenthesis = NULL;
 
 		// filter out a trailing ')' if there is no left parenthesis before
@@ -376,6 +366,16 @@ CheckForURL(const char *string, size_t &urlLength, BString *url = NULL)
 	}
 	else
 		index = strcspn(string, " \t>)\"\\,\r\n");
+
+	// filter out some punctuation marks if they are the last character
+	char suffix = string[index - 1];
+	if (suffix == '.'
+		|| suffix == ','
+		|| suffix == '?'
+		|| suffix == '!'
+		|| suffix == ':'
+		|| suffix == ';')
+		index--;
 
 	if (url != NULL) {
 		// copy the address to the specified string
