@@ -1,14 +1,13 @@
 #include <Message.h>
 #include <String.h>
+#include <E-mail.h>
 
 #include <MailAddon.h>
 
-#include "mail_parser.h"
 #include "mail_util.h"
 
 class ParseFilter: public MailFilter
 {
-	const mail_header_field* fields;
 	BString name;
 	
   public:
@@ -22,19 +21,48 @@ class ParseFilter: public MailFilter
 };
 
 ParseFilter::ParseFilter(BMessage* msg)
-: MailFilter(msg), fields(gDefaultFields), name(msg->FindString("name_field"))
-// should get fields from that message
+: MailFilter(msg), name(msg->FindString("name_field"))
 {}
+
 status_t ParseFilter::InitCheck(BString* err){ return B_OK; }
 
 MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* headers, BPath*, BString*)
 {
-	//BFile *f = reinterpret_cast<BFile*>(*data);
-	//if (f) ParseRFC2822File(headers, f, fields);
-	   ParseRFC2822File(headers, **data, fields);
 	   
 	//----Thread messages
-	BString string = headers->FindString(B_MAIL_ATTR_SUBJECT);
+	char *		buf = NULL;
+	size_t		buflen = 0;
+	int32		len;
+	time_t		when;
+	
+	char byte;
+	(*data)->Read(&byte,1);
+	(*data)->Seek(SEEK_SET,0);
+	
+	BString string,piece;
+	
+	//
+	// Parse the header
+	//
+	while ((len = readfoldedline(**data, &buf, &buflen)) > 2)
+	{
+		if (buf[len-2] == '\r') len -= 2;
+		else if (buf[len-1] == '\n') --len;
+		
+		// convert to UTF-8
+		len = rfc2047_to_utf8(&buf, &buflen, len);
+		
+		// terminate
+		buf[len] = 0;
+		string.SetTo(buf);
+		
+		string.CopyInto(piece,0,string.FindFirst(": "));
+		piece.ToLower(); //-------Unified case for later fetch
+		
+		headers->AddString(piece.String(),string.String() + piece.Length() + 2);
+	}
+		
+	string.SetTo(headers->FindString("subject"));
 	int32 last_i = 0, index =0;
 		
 	while (index < string.Length()) {
@@ -47,14 +75,16 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 		
 		string.Remove(index,last_i-index);
 	}
-	headers->AddString("MAIL:thread",string.String());
+	headers->AddString("THREAD",string.String());
+	
+	headers->PrintToStream();
 	
 	// name
 	BString h;
 	if (headers->FindString(name.String(),0,&h)==B_OK)
 	{
 		StripGook(&h);
-		headers->AddString(B_MAIL_ATTR_NAME,h);
+		headers->AddString("NAME",h);
 	}
 	
 	// header length

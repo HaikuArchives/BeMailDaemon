@@ -8,9 +8,33 @@
 #include <Path.h>
 
 #include <stdio.h>
+#include <parsedate.h>
 
 #include <MailAddon.h>
+#include <MailSettings.h>
 #include <NodeMessage.h>
+
+struct mail_header_field
+{
+	const char *rfc_name;
+	
+	const char *attr_name;
+	type_code attr_type;
+	// currently either B_STRING_TYPE and B_TIME_TYPE
+};
+
+static const mail_header_field gDefaultFields[] =
+{
+	{ "to",            	B_MAIL_ATTR_TO,       B_STRING_TYPE },
+	{ "from",         	B_MAIL_ATTR_FROM,     B_STRING_TYPE },
+	{ "date",         	B_MAIL_ATTR_WHEN,     B_TIME_TYPE },
+	{ "reply-to",     	B_MAIL_ATTR_REPLY,    B_STRING_TYPE },
+	{ "subject",      	B_MAIL_ATTR_SUBJECT,  B_STRING_TYPE },
+	{ "priority",     	B_MAIL_ATTR_PRIORITY, B_STRING_TYPE },
+	{ "mime-version", 	B_MAIL_ATTR_MIME,     B_STRING_TYPE },
+	{ "status",       	B_MAIL_ATTR_STATUS,   B_STRING_TYPE },
+	{ NULL,              NULL,                 0 }
+};
 
 class FolderFilter: public MailFilter
 {
@@ -78,19 +102,43 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		BNodeInfo info(&node);
 		info.SetType(B_MAIL_TYPE);
 		
-		out_headers->AddString("MAIL:unique_id",io_uid->String());
-		out_headers->AddString("MAIL:status","New");
-		out_headers->AddInt32("MAIL:chain",chain_id);
+		BMessage attributes;
+		
+		attributes.AddString("MAIL:unique_id",io_uid->String());
+		attributes.AddString("MAIL:status","New");
+		attributes.AddString("MAIL:account",MailChain(chain_id).Name());
+		attributes.AddInt32("MAIL:chain",chain_id);
 		
 		size_t length = (*io)->Position();
 		length -= out_headers->FindInt32(B_MAIL_ATTR_HEADER);
-		if (out_headers->ReplaceInt32(B_MAIL_ATTR_CONTENT,length) != B_OK)
-			out_headers->AddInt32(B_MAIL_ATTR_CONTENT,length);
+		if (attributes.ReplaceInt32(B_MAIL_ATTR_CONTENT,length) != B_OK)
+			attributes.AddInt32(B_MAIL_ATTR_CONTENT,length);
 		
-		node << *out_headers;
+		const char *buf;
+		time_t when;
+		for (int i=0; gDefaultFields[i].rfc_name; ++i)
+		{
+			out_headers->FindString(gDefaultFields[i].rfc_name,&buf);
+			if (buf == NULL)
+				continue;
+			
+			switch (gDefaultFields[i].attr_type){
+			case B_STRING_TYPE:
+				attributes.AddString(gDefaultFields[i].attr_name, buf);
+				break;
+			
+			case B_TIME_TYPE:
+				when = parsedate(buf, time((time_t *)NULL));
+				if (when == -1) when = time((time_t *)NULL);
+				attributes.AddData(B_MAIL_ATTR_WHEN, B_TIME_TYPE, &when, sizeof(when));
+				break;
+			}
+		}
+		
+		node << attributes;
 		
 		BString name;
-		name << "\"" << out_headers->FindString("MAIL:subject") << "\": <" << out_headers->FindString("MAIL:from") << ">";
+		name << "\"" << attributes.FindString("MAIL:subject") << "\": <" << attributes.FindString("MAIL:from") << ">";
 		
 		BString worker;
 		int32 uniquer = 0;
