@@ -61,7 +61,7 @@ All rights reserved.
 #include <MailMessage.h>
 #include <MailSettings.h>
 #include <MailDaemon.h>
-#include <mail_util.h> // For StripGook and MDR_convert_from_utf8.
+#include <mail_util.h>
 #include <MDRLanguage.h>
 
 #ifndef BONE
@@ -1039,32 +1039,24 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 		fStartingText(NULL),
 		fOriginatingWindow(NULL)
 {
-	bool		done = false;
 	char		str[256];
 	char		status[272];
-	char		*list;
-	char		*recipients;
-	int32		index = 0;
-	int32		index1;
 	uint32		message;
 	float		height;
 	BMenu		*menu;
-	BMenu		*sub_menu;
+	BMenu		*subMenu;
 	BMenuBar	*menu_bar;
 	BMenuItem	*item;
 	BMessage	*msg;
 	BRect		r;
 	attr_info	info;
 
-	if (ref)
-	{
+	if (ref) {
 		fRef = new entry_ref(*ref);
 		fFile = new BFile(fRef, O_RDONLY);
 		fMail = new Mail::Message(fRef);
 		fIncoming = true;
-	}
-	else
-	{
+	} else {
 		fRef = NULL;
 		fFile = NULL;
 		fMail = NULL;
@@ -1098,7 +1090,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 
 	if (!resending && fIncoming)
 	{
-		sub_menu = new BMenu(MDR_DIALECT_CHOICE ("Close","C) 閉じる"));
+		subMenu = new BMenu(MDR_DIALECT_CHOICE ("Close","C) 閉じる"));
 		if (fFile->GetAttrInfo(B_MAIL_ATTR_STATUS, &info) == B_NO_ERROR)
 			fFile->ReadAttr(B_MAIL_ATTR_STATUS, B_STRING_TYPE, 0, str, info.size);
 		else
@@ -1108,10 +1100,10 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 		//	canResend = true;
 		if (!strcmp(str, "New"))
 		{
-			sub_menu->AddItem(item = new BMenuItem(
+			subMenu->AddItem(item = new BMenuItem(
 				MDR_DIALECT_CHOICE ("Leave as 'New'", "N) 新規<New>のままにする"),
 				new BMessage(M_CLOSE_SAME), 'W', B_SHIFT_KEY));
-			sub_menu->AddItem(item = new BMenuItem(
+			subMenu->AddItem(item = new BMenuItem(
 				MDR_DIALECT_CHOICE ("Set to 'Read'", "R) 開封済<Read>に設定"),
 				new BMessage(M_CLOSE_READ), 'W'));
 			message = M_CLOSE_READ;
@@ -1122,20 +1114,20 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 				sprintf(status, MDR_DIALECT_CHOICE ("Leave as '%s'","W) 属性を<%s>にする"), str);
 			else
 				sprintf(status, MDR_DIALECT_CHOICE ("Leave same","W) 属性はそのまま"));
-			sub_menu->AddItem(item = new BMenuItem(status,
+			subMenu->AddItem(item = new BMenuItem(status,
 							new BMessage(M_CLOSE_SAME), 'W'));
 			message = M_CLOSE_SAME;
 			AddShortcut('W', B_COMMAND_KEY | B_SHIFT_KEY, new BMessage(M_CLOSE_SAME));
 		}
-		sub_menu->AddItem(new BMenuItem(
+		subMenu->AddItem(new BMenuItem(
 			MDR_DIALECT_CHOICE ("Set to 'Saved'", "S) 属性を<Saved>に設定"),
 			new BMessage(M_CLOSE_SAVED), 'W', B_CONTROL_KEY));
-		sub_menu->AddItem(new BMenuItem(new TMenu(
+		subMenu->AddItem(new BMenuItem(new TMenu(
 			MDR_DIALECT_CHOICE ("Set to", "X) 他の属性に変更")B_UTF8_ELLIPSIS,
 			INDEX_STATUS, M_STATUS, false, false), new BMessage(M_CLOSE_CUSTOM)));
-		menu->AddItem(sub_menu);
+		menu->AddItem(subMenu);
 
-		sub_menu->AddItem(new BMenuItem(
+		subMenu->AddItem(new BMenuItem(
 			MDR_DIALECT_CHOICE ("Move to Trash", "T) 削除"),
 			new BMessage(M_DELETE), 'T', B_CONTROL_KEY));
 		AddShortcut('T', B_SHIFT_KEY | B_COMMAND_KEY, new BMessage(M_DELETE_NEXT));	
@@ -1223,8 +1215,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 	//
 	menu = new BMenu(MDR_DIALECT_CHOICE ("Message", "M) メッセージ"));
 	
-	if (!resending && fIncoming)
-	{
+	if (!resending && fIncoming) {
 		BMenuItem *menuItem;
 		menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Reply","R) 返信"), new BMessage(M_REPLY),'R'));
 		menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Reply to Sender","S) 送信者に返信"), new BMessage(M_REPLY_TO_SENDER),'R',B_OPTION_KEY));
@@ -1266,53 +1257,42 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 			fHeader->SetMarked(true);
 		menu->AddItem(fRaw = new BMenuItem(MDR_DIALECT_CHOICE ("Show Raw Message","   メッセージを生で表示"), new BMessage(M_RAW)));
 
-		fSaveAddrMenu = sub_menu = new BMenu(MDR_DIALECT_CHOICE ("Save Address", "   アドレスを保存"));
+		fSaveAddrMenu = subMenu = new BMenu(MDR_DIALECT_CHOICE ("Save Address", "   アドレスを保存"));
 
-		recipients = (char *)calloc(1,1);
-		get_recipients(&recipients, fMail, true);
+		// create the list of addresses
 
-		list = recipients;
-		while (true)
-		{
-			if ((!list[index]) || (list[index] == ','))
-			{
-				if (!list[index])
-					done = true;
-				else
-					list[index] = 0;
-				index1 = 0;
-				while ((item = sub_menu->ItemAt(index1)) != NULL)
-				{
-					if (strcmp(list, item->Label()) == 0)
-						goto skip;
-					if (strcmp(list, item->Label()) < 0)
-						break;
-					index1++;
+		BList addressList;
+		Mail::get_address_list(addressList, fMail->To(), Mail::extract_address);
+		Mail::get_address_list(addressList, fMail->CC(), Mail::extract_address);
+		Mail::get_address_list(addressList, fMail->From(), Mail::extract_address);
+		Mail::get_address_list(addressList, fMail->ReplyTo(), Mail::extract_address);
+
+		for (int32 i = addressList.CountItems(); i-- > 0;) {
+			char *address = (char *)addressList.RemoveItem(0L);
+
+			// insert the new address in alphabetical order
+			int32 index = 0;
+			while ((item = subMenu->ItemAt(index)) != NULL) {
+				if (!strcmp(address, item->Label())) {
+					// item already in list
+					goto skip;
 				}
-				msg = new BMessage(M_SAVE);
-				msg->AddString("address" /* don't translate, internal use */, list);
-				sub_menu->AddItem(new BMenuItem(list, msg), index1);
 
-skip:			if (!done)
-				{
-					list += index + 1;
-					index = 0;
-					while (*list)
-					{
-						if (*list != ' ')
-							break;
-						else
-							list++;
-					}
-				}
-				else
+				if (strcmp(address, item->Label()) < 0)
 					break;
-			}
-			else
+
 				index++;
+			}
+
+			msg = new BMessage(M_SAVE);
+			msg->AddString("address", address);
+			subMenu->AddItem(new BMenuItem(address, msg), index);
+
+		skip:
+			free(address);
 		}
-		free(recipients);
-		menu->AddItem(sub_menu);
+
+		menu->AddItem(subMenu);
 	}
 	else {
 		menu->AddItem(fSendNow = new BMenuItem(
@@ -2866,10 +2846,11 @@ TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 			switch (*++from) {
 				case 'n':	// full name
 				{
-					BString fullName (mail->From());
+					BString fullName(mail->From());
 					if (fullName.Length() <= 0)
 						fullName = "No-From-Address-Available";
-					Zoidberg::Mail::StripGook (&fullName);
+
+					Mail::extract_address_name(fullName);
 					length = fullName.Length();
 					memcpy(to, fullName.String(), length);
 					to += length;
@@ -3552,54 +3533,40 @@ TMailWindow::OpenMessage(entry_ref *ref, uint32 characterSetForDecoding)
 		while ((item = fSaveAddrMenu->RemoveItem(0L)) != NULL)
 			delete item;
 
-		char *recipients = (char *)calloc(1,1);
-		get_recipients(&recipients, fMail, true);
+		// create the list of addresses
 
-		char *list = recipients;
-		int32 index = 0;
-		bool done = false;
+		BList addressList;
+		Mail::get_address_list(addressList, fMail->To(), Mail::extract_address);
+		Mail::get_address_list(addressList, fMail->CC(), Mail::extract_address);
+		Mail::get_address_list(addressList, fMail->From(), Mail::extract_address);
+		Mail::get_address_list(addressList, fMail->ReplyTo(), Mail::extract_address);
+
 		BMessage *msg;
 
-		while (1)
-		{
-			if ((!list[index]) || (list[index] == ','))
-			{
-				if (!list[index])
-					done = true;
-				else
-					list[index] = 0;
-				int32 index1 = 0;
-				while ((item = fSaveAddrMenu->ItemAt(index1)) != NULL)
-				{
-					if (strcmp(list, item->Label()) == 0)
-						goto skip;
-					if (strcmp(list, item->Label()) < 0)
-						break;
-					index1++;
-				}
-				msg = new BMessage(M_SAVE);
-				msg->AddString("address" /* internal use, don't translate */, list);
-				fSaveAddrMenu->AddItem(new BMenuItem(list, msg), index1);
+		for (int32 i = addressList.CountItems(); i-- > 0;) {
+			char *address = (char *)addressList.RemoveItem(0L);
 
-skip:			if (!done)
-				{
-					list += index + 1;
-					index = 0;
-					while (*list)
-					{
-						if (*list != ' ')
-							break;
-						else
-							list++;
-					}
+			// insert the new address in alphabetical order
+			int32 index = 0;
+			while ((item = fSaveAddrMenu->ItemAt(index)) != NULL) {
+				if (!strcmp(address, item->Label())) {
+					// item already in list
+					goto skip;
 				}
-				else
+
+				if (strcmp(address, item->Label()) < 0)
 					break;
-			}
-			else
+
 				index++;
+			}
+
+			msg = new BMessage(M_SAVE);
+			msg->AddString("address", address);
+			fSaveAddrMenu->AddItem(new BMenuItem(address, msg), index);
+
+		skip:
+			free(address);
 		}
-		free(recipients);
 
 		//
 		// Clear out existing contents of text view. 
