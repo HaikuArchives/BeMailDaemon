@@ -84,7 +84,7 @@ typedef struct
 	bool close;
 	bool mime;
 	TTextView *view;
-	BFile *file;
+	Mail::Message *mail;
 	BList *enclosures;
 	sem_id *stop_sem;
 } reader_info;
@@ -120,18 +120,18 @@ class TSavePanel;
 class TContentView : public BView
 {
 	public:
-		TContentView(BRect, bool, BFile*, BFont*); 
-		virtual void MessageReceived(BMessage*);
-		void FindString(const char*);
+		TContentView(BRect, bool incoming, Mail::Message *mail, BFont *); 
+		virtual void MessageReceived(BMessage *);
+		void FindString(const char *);
 		void Focus(bool);
 		void FrameResized(float, float);
 		
 		TTextView *fTextView;
-	
+
 	private:
-		bool fFocus;
-		bool fIncoming;
-		float fOffset;
+		bool	fFocus;
+		bool	fIncoming;
+		float	fOffset;
 };
 
 //====================================================================
@@ -144,8 +144,9 @@ enum {
 class TTextView : public BTextView
 {
 	public:
-		TTextView(BRect, BRect, bool, BFile*, TContentView*,BFont*);
+		TTextView(BRect, BRect, bool incoming, Mail::Message *mail, TContentView *,BFont *);
 		~TTextView();
+
 		virtual	void AttachedToWindow();
 		virtual void KeyDown(const char*, int32);
 		virtual void MakeFocus(bool);
@@ -157,7 +158,7 @@ class TTextView : public BTextView
 		virtual void  DeleteText(int32 start, int32 finish);
 	            
 		void ClearList();
-		void LoadMessage(BFile *file, bool quoteIt, const char *insertText);
+		void LoadMessage(Mail::Message *mail, bool quoteIt, const char *insertText);
 		void Open(hyper_text*);
 		status_t Save(BMessage *, bool makeNewFile = true);
 		void StopLoad();
@@ -184,6 +185,7 @@ class TTextView : public BTextView
 		BFont fFont;
 		TContentView *fParent;
 		sem_id fStopSem;
+		bool fStopLoading;
 		thread_id fThread;
 		BList *fEnclosures;
 		BPopUpMenu *fEnclosureMenu;
@@ -198,13 +200,12 @@ class TTextView : public BTextView
 		{
 			public:
 				Reader(bool header,bool raw,bool quote,bool incoming,bool stripHeaders,bool mime,
-					TTextView *view,BFile *file,BList *list,sem_id sem);
+					TTextView *view,Mail::Message *mail,BList *list,sem_id sem);
 	
 				static status_t Run(void *);
 	
 			private:
-				bool ParseMail(Zoidberg::Mail::Container *container,
-					Zoidberg::Mail::TextComponent *ignore);
+				bool ParseMail(Mail::Container *container,Mail::TextComponent *ignore);
 				bool Process(const char *data, int32 len, bool isHeader = false);
 				bool Insert(const char *line, int32 count, bool isHyperLink, bool isHeader = false);
 
@@ -218,7 +219,7 @@ class TTextView : public BTextView
 				bool fStripHeader;
 				bool fMime;
 				TTextView *fView;
-				BFile *fFile;
+				Mail::Message *fMail;
 				BList *fEnclosures;
 				sem_id fStopSem;
 		};
