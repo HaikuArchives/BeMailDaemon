@@ -1292,7 +1292,7 @@ _EXPORT time_t ParseDateWithTimeZone (const char *DateString)
 /** Parses a mail header and fills the headers BMessage
  */
 
-status_t
+_EXPORT status_t
 parse_header(BMessage &headers, BPositionIO &input)
 {
 	char *buffer = NULL;
@@ -1328,7 +1328,7 @@ parse_header(BMessage &headers, BPositionIO &input)
 }
 
 
-void
+_EXPORT void
 extract_address(BString &address)
 {
 	const char *string = address.String();
@@ -1375,7 +1375,7 @@ extract_address(BString &address)
 }
 
 
-void
+_EXPORT void
 get_address_list(BList &list, const char *string, void (*cleanupFunc)(BString &))
 {
 	if (string == NULL || !string[0])

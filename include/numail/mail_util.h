@@ -75,16 +75,16 @@ ssize_t readfoldedline(BPositionIO &in, char **buffer, size_t *buflen);
 // if buffer is NULL or *buffer is NULL, and buflen is not NULL then
 //   start with a buffer of size *buflen
 
-extern status_t parse_header(BMessage &headers, BPositionIO &input);
+status_t parse_header(BMessage &headers, BPositionIO &input);
 
-extern void extract_address(BString &address);
+void extract_address(BString &address);
 	// retrieves the mail address only from an address header formatted field
 
-extern void extract_address_name(BString &address);
+void extract_address_name(BString &address);
 	// Given a header field (usually the From: e-mail address) with gobbledygook in
 	// it, find the longest human-readable phrase (usually the person's name).
 
-extern void get_address_list(BList &list, const char *string, void (*cleanupFunc)(BString &) = NULL);
+void get_address_list(BList &list, const char *string, void (*cleanupFunc)(BString &) = NULL);
 
 }	// namespace Mail
 }	// namespace Zoidberg
