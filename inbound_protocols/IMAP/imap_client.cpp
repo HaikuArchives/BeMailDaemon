@@ -344,6 +344,7 @@ void IMAP4Client::SyncAllBoxes() {
 		
 		SendCommand(command.String());
 		::sprintf(expected,"a%.7ld",commandCount);
+		selected_mb = boxes[i];
 		while(1) {
 			NestedString response;
 			GetResponse(tag,&response);
@@ -366,6 +367,7 @@ void IMAP4Client::SyncAllBoxes() {
 		if (num_messages == 0) {
 			SendCommand("CLOSE");
 			WasCommandOkay(uid);
+			selected_mb = "";
 			continue;
 		}
 		
@@ -387,6 +389,7 @@ void IMAP4Client::SyncAllBoxes() {
 		
 		SendCommand("CLOSE");
 		WasCommandOkay(uid);
+		selected_mb = "";
 	}
 	
 	delete unique_ids;
@@ -479,6 +482,7 @@ void IMAP4Client::SyncAllBoxes() {
 				}
 				BString cmd = "SELECT \"";
 				cmd << boxes[i] << '\"';
+				selected_mb = boxes[i];
 				SendCommand(cmd.String());
 			} else {
 				SendCommand("NOOP");
