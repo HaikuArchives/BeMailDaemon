@@ -7,6 +7,9 @@
 <META NAME="description" CONTENT="Documentation for AGMSBayesianSpam, for classifying incoming e-mail messages as spam (junk mail) or genuine.">
 <!--
 ; $Log$
+; Revision 1.3  2002/11/06 00:54:47  agmsmith
+; Spam definition corrected, with prodding from Ian G.
+;
 ; Revision 1.2  2002/11/05 22:47:30  agmsmith
 ; Replace UTF-8 copyright symbol with useable token.
 ;
@@ -36,7 +39,7 @@
 <BR>Author: agmsmith@rogers.com (Alexander G. M. Smith)
 <BR>Uploader: agmsmith@rogers.com (Alexander G. M. Smith)
 <BR>Website: <A HREF="http://members.rogers.com/agmsmith/">http://members.rogers.com/agmsmith/</A>
-<BR>Version: 1.62
+<BR>Version: 1.65
 <BR>Type: internet &amp; network/e-mail
 <BR>Requires: BeOS 5.0+
 <BR>Related things: <A HREF="http://www.paulgraham.com/spam.html">http://www.paulgraham.com/spam.html</A>, <A HREF="http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html">http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html</A></FONT>
@@ -48,7 +51,17 @@
   <LI><A HREF="#Introduction">Introduction to AGMSBayesianSpam</A>
   <LI><A HREF="#Installation">Installation</A>
   <LI><A HREF="#Usage">Usage</A>
+  <UL>
+    <LI><A HREF="#Reading">Reading E-Mail</A>
+    <LI><A HREF="#Training">Training</A>
+    <LI><A HREF="#HidingServer">Hiding the Server Window</A>
+  </UL>
   <LI><A HREF="#AdvancedUsage">Advanced Usage</A>
+  <UL>
+    <LI><A HREF="#CommandLine">Command Line Mode and Scripting</A>
+    <LI><A HREF="#Spreadsheet">Using a Spreadsheet to Examine Word Statistics</A>
+    <LI><A HREF="#Tokenizing">Tokenizing Modes Compared</A>
+  </UL>
   <LI><A HREF="#ChangeLog">Change Log</A>
 </UL>
 
@@ -84,19 +97,25 @@ renaissance of Spam detection methods.
 <H1><A NAME="Installation"></A>Installation</H1>
 
 <OL TYPE="1">
-  <LI>Move the AGMSBayesianSpamServer program to the
-    <A HREF="file:/boot/home/config/bin/">/boot/home/config/bin/</A>
-    directory.  It's put there to make it useable from the command line.  If
-    you use it frequently, you can also add a symbolic link to it in your
-    desktop applications menu.
-  <LI>Install the Mail Daemon Replacement version 2.0 beta 1 or later.
-    You can get it from <A
+  <LI>Install the Mail Daemon Replacement (MDR) version 2.0 beta 1 or later
+    (use AGMSBayesianSpam version 1.60.1.1 for MDR 2.0.0b1).  Beta 3 and later
+    include AGMSBayesianSpam so you don't need to worry about incompatible
+    versions, and the MDR will even do some of the installation for you.  You
+    can get MDR from <A
     HREF="http://www.bebits.com/app/2289">http://www.bebits.com/app/2289</A> or
     get the latest source code and compile it yourself from <A
-    HREF="http://sourceforge.net/projects/bemaildaemon">http://sourceforge.net/projects/bemaildaemon</A>.
+    HREF="http://sourceforge.net/projects/bemaildaemon"
+    >http://sourceforge.net/projects/bemaildaemon</A>.
+  <LI>Move the AGMSBayesianSpamServer program to the
+    <A HREF="file:/boot/home/config/bin/">/boot/home/config/bin/</A> directory
+    (the BeOS mail daemon 2.0.0/beta3 installer will do this for you).  It's
+    put there to make it useable from the command line.  If you use it
+    frequently, you can also add a symbolic link to it in your desktop
+    applications menu or to the mail menu.
   <LI>Move the AGMSBayesianSpamFilter mail add-on to the
     <A HREF="file:/boot/home/config/add-ons/mail_daemon/inbound_filters/"
-    >/boot/home/config/add-ons/mail_daemon/inbound_filters/</A> directory.<BR>
+    >/boot/home/config/add-ons/mail_daemon/inbound_filters/</A> directory
+    (the BeOS mail daemon 2.0.0/beta3 installer will do this for you).<BR>
     <IMG SRC="pictures/HomeConfigAddonsMaildaemonInboundfilters.png"
     ALT="[/boot/home/config/add-ons/mail_daemon/inbound_filters/ directory]"
     WIDTH="634" HEIGHT="288">
@@ -158,7 +177,8 @@ renaissance of Spam detection methods.
     <LI>If you don't have a few hundred spam messages, instead of doing step
       A copy the sample "AGMSBayesianSpam Database" file to the
       <A HREF="file:/boot/home/config/settings/AGMSBayesianSpam/"
-      >/boot/home/config/settings/AGMSBayesianSpam/</A> directory.<BR>
+      >/boot/home/config/settings/AGMSBayesianSpam/</A> directory
+      (the BeOS mail daemon 2.0.0/beta3 installer will do this for you).<BR>
       <IMG SRC="pictures/DatabaseFileLocation.png"
       ALT="[Database File Location]" WIDTH="609" HEIGHT="234"><BR>
       Run the AGMSBayesianSpamServer program again.  Hit the Purge button
@@ -168,7 +188,7 @@ renaissance of Spam detection methods.
   </OL>
   <LI>Quit the AGMSBayesianSpamServer program.  Delete all the remaining
     files you unzipped from the archive (such as the example database, this
-    readme, or source code), unless you want to
+    readme, this documentation, or source code), unless you want to
     keep them around.  You will have to decide where to store them; I can't
     tell you everything :-).
   <LI>Start up the E-mail preferences control panel (part of the Mail Daemon
@@ -193,6 +213,8 @@ renaissance of Spam detection methods.
 
 <H1><A NAME="Usage"></A>Usage</H1>
 
+<H2><A NAME="Reading"></A>Reading E-Mail</H2>
+
 <P>Check for e-mail as usual.  If you look at the inbox directory in Tracker,
 you can add an extra column with the E-mail attribute "Spam/Genuine Estimate"
 to see how spammy the messages are.  0.0 means the system thinks the message is
@@ -204,11 +226,21 @@ by spam ratio, and manually throw away the messages that are spammy, then I
 switch the Tracker window back to sorting by thread+date (just a click on the
 appropriate column title does it) and get on with reading the mail.
 
+<P>If you turned on the filter option to modify the subject, you'll see spam
+messages with something like [Spam 95%] in front of the subject (I don't use it
+because it looks ugly).  But only in the Tracker display of the Subject, the
+actual subject inside the message isn't affected, just the MAIL:subject
+attribute, which is what the Tracker shows.
+
+<H2><A NAME="Training"></A>Training</H2>
+
 <P><EM>The accuracy is only as good as your database</EM>, so update it with
 more example spam and genuine messages.  In particular, if it gets the estimate
-wrong, add that message to the database to tell it what it should be doing.  A
-quick way to do that is to right click on the e-mail in Tracker, and pick Open
-With...  AGMSBayesianSpamServer.<BR>
+wrong, add that message to the database to tell it what it should be doing.
+You may also want to do this with all your messages (it gives slightly better
+results in the long run than just training on the mistakes).  A quick way to do
+that is to right click on the e-mail in Tracker, and pick Open With...
+AGMSBayesianSpamServer.<BR>
 <IMG SRC="pictures/SortingInboxBySpamEstimate.png"
 ALT="[Sorting Inbox By Spam Estimate]" WIDTH="831" HEIGHT="361"><BR>
 It should start up and ask you if the message is spam or genuine.<BR>
@@ -220,15 +252,23 @@ third does something else that's mostly harmless and fun.<BR>
 <IMG SRC="pictures/DropZones.png" ALT="[Drop Zones]" WIDTH="596"
 HEIGHT="204"><BR>
 
-<P>If you turned on the filter option to modify the subject, you'll see spam
-messages with something like [Spam 95%] in front of the subject (I don't use it
-because it looks ugly).  But only in the Tracker display of the Subject, the
-actual subject inside the message isn't affected, just the MAIL:subject
-attribute, which is what the Tracker shows.
+<H2><A NAME="HidingServer"></A>Hiding the Server Window</H2>
+
+<P>If you're annoyed by the server window popping up whenver the system checks
+for e-mail, you can tell it to hide.  Just click the "Server Mode" checkbox.
+To make it visible again, start up AGMSBayesianSpamServer (possibly by double
+clicking on its icon in <A
+HREF="file:/boot/home/config/bin/">/boot/home/config/bin/</A> and bring up the
+hidden window by using the deskbar).<BR>
+<IMG SRC="pictures/MakingTheWindowVisibleFromTheDeskbar.png"
+ALT="MakingTheWindowVisibleFromTheDeskbar" WIDTH="640" HEIGHT="109"><BR>
 
 <H1><A NAME="AdvancedUsage"></A>Advanced Usage</H1>
 
-<P>There is also a command line mode.  Just type "AGMSBayesianSpamServer help"
+<H2><A NAME="CommandLine"></A>Command Line Mode and Scripting</H2>
+
+<P>Besides the graphical user interface, there
+is also a command line mode.  Just type "AGMSBayesianSpamServer help"
 in the terminal to get a list of the commands and what they do (the ultimate
 documentation).  It also explains all of the mysterious options you see in the
 graphical user interface.  The same commands can be used in scripting, either
@@ -237,16 +277,6 @@ HREF="http://www.bebits.com/app/2042">http://www.bebits.com/app/2042</A>.  A
 useful command, if you have a lot of spam messages to add, is
 "AGMSBayesianSpamServer set genuine *" which will use all messages in the
 current directory as examples of genuine text.
-
-<P>Another advanced trick is to load the list of words into Gobe Productive's
-spreadsheet, so that you can find the most popular word or chart the word
-frequencies.  Unfortunately it can only handle about 16000 words.  To do that,
-start up Gobe Productive, pick Open, then from the file requester's "Document
-Type" menu, pick "Spreadsheet" and then in the submenu pick "Tab-delimited
-text".  Then navigate to the database, the default location is "<A
-HREF="file:/boot/home/config/settings/AGMSBayesianSpam/AGMSBayesianSpam%20Database"
->/boot/home/config/settings/AGMSBayesianSpam/AGMSBayesianSpam Database</A>".
-Have fun!
 
 <PRE>
 Mon Oct 21 15:35:49 517 /tmp>AGMSBayesianSpamServer help
@@ -431,11 +461,13 @@ just more raw data.  Well, not quite raw data since it converts
 quoted-printable codes (equals sign followed by hex digits or end of line) to
 the equivalent single characters.  "PlainText" breaks the file into MIME
 components and only looks at the ones which are of MIME type text/plain.
-"AnyText" will look for words in all text/* things, including text/html
-attachments.  "AllParts" will decode all message components and look for words
-in them, including binary attachments.  "JustHeader" will only look for words
-in the message header.  "AllPartsAndHeader", "PlainTextAndHeader" and
-"AnyTextAndHeader" will also include the words from the message headers.
+"AnyText" will look for words in all text/* <!-- End the C style comment which
+makes editing this look bad with BeIDE's syntax colouring. */ -->things,
+including text/html attachments.  "AllParts" will decode all message components
+and look for words in them, including binary attachments.  "JustHeader" will
+only look for words in the message header.  "AllPartsAndHeader",
+"PlainTextAndHeader" and "AnyTextAndHeader" will also include the words from
+the message headers.
 
 Get TokenizeMode
 Gets the method used for breaking up the message into words.
@@ -445,6 +477,100 @@ AGMSBayesianSpamUpdater shutting down...
 Mon Oct 21 15:35:52 518 /tmp>
 </PRE>
 
+<H2><A NAME="Spreadsheet"></A>Using a Spreadsheet to Examine Word Statistics</H2>
+
+<P>Another advanced trick is to load the list of words into Gobe Productive's
+spreadsheet, so that you can find the most popular word or chart the word
+frequencies.  Unfortunately it can only handle about 16000 words.  To do that,
+start up Gobe Productive, pick Open, then from the file requester's "Document
+Type" menu, pick "Spreadsheet" and then in the submenu pick "Tab-delimited
+text".  Then navigate to the database, the default location is "<A
+HREF="file:/boot/home/config/settings/AGMSBayesianSpam/AGMSBayesianSpam%20Database"
+>/boot/home/config/settings/AGMSBayesianSpam/AGMSBayesianSpam Database</A>".
+Have fun!
+
+<H2><A NAME="Tokenizing"></A>Tokenizing Modes Compared</H2>
+
+<P>I did some tests with tokenizing different parts of mail messages to see
+what would work best.
+
+<P>The Database:
+<BR>341 training genuine messages, 406 training spam messages (or 398 when
+parsing due to a bug with messages that don't have body text).
+<BR>40 test genuine messages, 40 test spam messages, all more recent than the
+training ones.
+<BR>Spam threshold is 0.56, Gary-combining method.
+
+<P>The results:
+
+<TABLE BORDER="2" SUMMARY="[Table showing results of different tokenizing methods]">
+<TR><TH>Tokenizing Method
+<TH>Genuine Test Details
+<TH>Genuine Accuracy
+<TH>Spam Test Details
+<TH>Spam Accuracy
+
+<TR><TD>Just headers
+<TD>Genuine .181352 to .557881, one false positive (a mailbox full announcement).
+<TD>2.5% wrong.
+<TD>Spam .450602 to .750511, 21 false negatives.
+<TD>52.5% wrong.
+
+<TR><TD>Whole raw message text
+<TD>Genuine .163027 to .627022, 3 false positives.
+<TD>7.5% wrong.
+<TD>Spam .509355 to .993985, 1 false negative.
+<TD>2.5% wrong.
+
+<TR><TD>Message parsed into parts plus header
+<TD>Genuine .168857 to .609005, 4 false positives.
+<TD>10% wrong.
+<TD>Spam .614564 to .994364, 0 false negatives.
+<TD>0% wrong.
+
+<TR><TD>Message parsed into parts, no header data
+<TD>Genuine .220161 to .631161, 5 false positives.
+<TD>12.5% wrong.
+<TD>Spam .592501 to .994444, 0 false negatives.
+<TD>0% wrong.
+
+<TR><TD>Any text parts and header
+<TD>Genuine .162697 to .614136, 4 false positives.
+<TD>10% wrong.
+<TD>Spam .614973 to .994362, 0 false negatives.
+<TD>0% wrong.
+
+<TR><TD>Any text parts, no headers
+<TD>Genuine .221923 to .635487, 6 false positives.
+<TD>15% wrong.
+<TD>Spam .594271 to .994441, 0 false negatives.
+<TD>0% wrong.
+
+<TR><TD>text/plain parts (including body text)
+<TD>Genuine .137869 to .583192, 3 false positives.
+<TD>7.5% wrong.
+<TD>Spam .448059 to .994119, 17 false negatives.
+<TD>42.5% wrong.
+
+<TR><TD>Only text/plain sub-parts, no headers.<BR>
+150 spam and 1 genuine training message had no words!
+<TD>Genuine .219169 to .696899, 9 false positives.
+<TD>22.5% wrong.
+<TD>Spam .660755 to .994116, 0 false negatives, 27 had no words.
+<TD>0% wrong.
+</TABLE>
+
+<P>The results look good for the whole message tokenizing method (which also
+works on non-email files) and for the all text parts plus header.  Since the
+text parts method doesn't add lots of garbage words to the database from trying
+to find words in binary attachments, it's now the default setting.
+
+<P>The header only method is pretty good too for identifying genuine messages,
+and so-so for spam messages.  That may make it useable for pre-download tests
+(delete some of the spam on the mail server before downloading it, without
+worrying about deleting too many genuine messages).
+
+
 <H1><A NAME="ChangeLog"></A>Change Log</H1>
 
 <P>The various versions released to the public.  These are actually several
@@ -452,6 +578,13 @@ accumulated minor changes, which you can see by looking at the log in the top of
 source code files.
 
 <UL>
+  <LI>Version 1.65 added a time delay for exiting the program.  This is so that
+  multiple e-mail accounts can simultaneously download mail, without having the
+  server close when one of the accounts finishes downloading.  Scripting
+  requests that come in while it is counting down to quitting time will cancel
+  the countdown.  In the belt <I>and</I> suspenders department, the filter has
+  been enhanced to try starting up the server up to three times.
+
   <LI>Version 1.60 got rid of the need to use a modified Inbox filter for MDR
   (found out the correct way of setting attributes on a message), added sound
   effects, and added parsing of mail messages (parsing MIME headers, decoding
@@ -461,7 +594,8 @@ source code files.
   of parsing to do (text/plain or text/* or */* attachments, with or without
   headers, etc).  Plus sound effect options.  The sample database has also been
   updated to use text/* plus headers tokenization, which makes it slightly
-  smaller.
+  smaller.<!-- End the C style comment which makes editing this look bad with
+  BeIDE's syntax colouring. */ -->
 
   <LI>Version 1.49 switched to Gary Robinson's method for calculating spam
   ratios.  The overall results are about the same but you have less false
