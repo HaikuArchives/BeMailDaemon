@@ -35,8 +35,6 @@ rm -f "${HOME}/config/settings/Mail/New E-mail"
 mkdir -p ~/config/add-ons/mail_daemon
 
 copyattr -d -m bin/libmail.so /boot/beos/system/lib/libmail.so
-copyattr -d -m bin/libcrypto.so /boot/home/config/lib/libcrypto.so
-copyattr -d -m bin/libssl.so /boot/home/config/lib/libssl.so
 copyattr -d -m -r bin/addons/* ~/config/add-ons/mail_daemon
 copyattr -d -m bin/mail_daemon /system/servers/mail_daemon
 copyattr -d -m bin/E-mail /boot/beos/preferences/E-mail
