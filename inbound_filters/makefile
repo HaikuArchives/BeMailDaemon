@@ -8,7 +8,7 @@ all: default
 
 default .DEFAULT :
 	-@for f in $(SUBDIRS) ; do \
-		$(MAKE) -C $$f -f makefile $@; \
+		$(MAKE) -C $$f -f makefile $@ || exit -1; \
 	done
 
 install:
