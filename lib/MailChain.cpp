@@ -72,22 +72,26 @@ status_t MailChain::Load(BMessage* settings)
 	{
 		BMessage *filter = new BMessage();
 		entry_ref *ref = new entry_ref();
+		char *addon_path;
 
 		if (settings->FindMessage("filter_settings",i,filter) != B_OK
-			|| settings->FindRef("filter_addons",i,ref) != B_OK)
+			|| settings->FindString("filter_addons",i,&addon_path) != B_OK)
 		{
 			delete filter;
 			delete ref;
 			break;
 		}
+		
+		if (get_ref_for_path(addon_path,ref) != B_OK)
+		{
+			delete filter;
+			delete ref;
+			break;
+		}
+		
 		if (!filter_settings.AddItem(filter) || !filter_addons.AddItem(ref))
 			break;
-		// I don't know about this comment so I kept it -- axeld.
-				//consumer_settings.RemoveItem(consumer);
-				//------ATT-Someone explain above line!-------
 	}
-	//delete consumer;
-	//------ATT-Consumers are gone now, right?
 	
 	if (filter_settings.CountItems()!=settings_ct
 	||  filter_addons.CountItems()!=addons_ct)
@@ -148,7 +152,7 @@ status_t MailChain::Archive(BMessage* archive, bool deep) const
 			ret = archive->AddMessage("filter_settings",settings);
 			if (ret!=B_OK) return ret;
 			
-			ret = archive->AddRef("filter_addons",ref);
+			ret = archive->AddString("filter_addons",BPath(ref).Path());
 			if (ret!=B_OK) return ret;
 		}
 		if (i!=settings_ct)
