@@ -7,6 +7,8 @@
 #include <MailAddon.h>
 
 #include <mail_util.h>
+#include <Locker.h>
+#include <regex.h>
 
 class ParseFilter: public MailFilter
 {
@@ -23,8 +25,12 @@ class ParseFilter: public MailFilter
 };
 
 ParseFilter::ParseFilter(BMessage* msg)
-: MailFilter(msg), name(msg->FindString("name_field"))
-{}
+: MailFilter(msg), name()
+{
+	const char *n = msg->FindString("name_field");
+	if (n==NULL) n = "from";
+	name = n;
+}
 
 status_t ParseFilter::InitCheck(BString* err){ return B_OK; }
 
@@ -44,7 +50,8 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 	BString string,piece;
 	
 	//
-	// Parse the header
+	// Parse the header.  Add each header as a string to
+	// the headers message, under the header's name.
 	//
 	while ((len = readfoldedline(**data, &buf, &buflen)) > 2)
 	{
@@ -62,36 +69,55 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 			continue;
 		
 		string.CopyInto(piece,0,string.FindFirst(": "));
-		piece.ToLower(); //-------Unified case for later fetch
+		piece.ToLower(); // Unified case for later fetch
 		
+		// Add each header to the headers message
 		headers->AddString(piece.String(),string.String() + piece.Length() + 2);
 	}
 		
 	free(buf);
 	
+	//
+	// add pseudo-header THREAD, that contains the subject
+	// minus stuff in []s (added by mailing lists) and
+	// Re: prefixes, added by mailers when you reply.
+	// This will generally be the "thread subject".
+	//
 	string.SetTo(headers->FindString("subject"));
-	int32 last_i = 0, index =0;
-		
-	while (index < string.Length()) {
-		if (string.ByteAt(index) == '[')
-			index = string.FindFirst(']')+2;
-		
-		last_i = string.FindFirst(": ",index) + 2;
-		if (last_i < 2)
-			break;
-		
-		string.Remove(index,last_i-index);
-	}
-	headers->AddString("THREAD",string.String());
 	
+	static regex_t *rebuf, re;
+	static BLocker remakelock;
+	if (rebuf==NULL && remakelock.Lock())
+	{
+		if (rebuf==NULL)
+		{
+			int err = regcomp(&re, "^( *([Rr][Ee] *: *)*\\[[^\\]]*\\])* *([Rr][Ee] *: *)*", REG_EXTENDED);
+			if (err)
+			{
+				char errbuf[1024];
+				regerror(err,&re,errbuf,sizeof(errbuf)-1);
+				fprintf(stderr, "Failed to compile the regex: %s\n", errbuf);
+			}
+			else rebuf = &re;
+		}
+		remakelock.Unlock();
+	}
+	if (rebuf)
+	{
+		regmatch_t match;
+		if (regexec(rebuf, string.String(), 1, &match, 0) == 0)
+			// we found something
+			string.Remove(match.rm_so,match.rm_eo);
+		
+		headers->AddString("THREAD",string.String());
+	}
 //	headers->PrintToStream();
 	
 	// name
-	BString h;
-	if (headers->FindString(name.String(),0,&h)==B_OK)
+	if (headers->FindString(name.String(),0,&string)==B_OK)
 	{
-		StripGook(&h);
-		headers->AddString("NAME",h);
+		StripGook(&string);
+		headers->AddString("NAME",string);
 	}
 	
 	// header length
