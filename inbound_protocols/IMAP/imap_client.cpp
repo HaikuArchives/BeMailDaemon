@@ -463,9 +463,15 @@ status_t IMAP4Client::DeleteMailbox(const char *mailbox) {
 		return B_ERROR;
 	
 	BString command;
-	command << "DELETE \"" << ((struct mailbox_info *)(box_info.ItemAt(mailboxes.IndexOf(mailbox))))->server_mb_name << '\"';
 	
-	box_info.RemoveItem(mailboxes.IndexOf(mailbox));
+	command = "UNSUBSCRIBE \"";
+	command << ((struct mailbox_info *)(box_info.ItemAt(mailboxes.IndexOf(mailbox))))->server_mb_name << '\"';
+	SendCommand(command.String());
+	WasCommandOkay(command);
+	//---If this fails, that's fine.
+	
+	command = "DELETE \"";
+	command << ((struct mailbox_info *)(box_info.ItemAt(mailboxes.IndexOf(mailbox))))->server_mb_name << '\"';
 	
 	SendCommand(command.String());
 	if (!WasCommandOkay(command)) {
@@ -476,10 +482,7 @@ status_t IMAP4Client::DeleteMailbox(const char *mailbox) {
 		return B_ERROR;
 	}
 	
-	command = "UNSUBSCRIBE \"";
-	command << ((struct mailbox_info *)(box_info.ItemAt(mailboxes.IndexOf(mailbox))))->server_mb_name << '\"';
-	WasCommandOkay(command);
-	//---If this fails, that's fine.
+	delete box_info.RemoveItem(mailboxes.IndexOf(mailbox));
 	
 	return B_OK;
 }
@@ -830,7 +833,9 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 				return -1;
 			}
 			
-			//putchar(c);
+			#if DEBUG
+				putchar(c);
+			#endif
 			
 			if ((isspace(c) || (internal_flag && (c == ')' || c == ']'))) && !in_quote) {
 				if (delimiters_passed == 0) {
