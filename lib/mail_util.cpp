@@ -791,7 +791,7 @@ _EXPORT void StripGook(BString* header)
 				break;
 			case 1: // "S" <foo@bar.com>
 				if ((p1 = strchr(start,'\"')) != NULL)
-					p2 = strchr (p1+1,'\"');
+					p2 = strchr (++ /* skip past leading quote */ p1,'\"');
 				break;
 			case 2: // S <foo@bar.com>
 				p1 = start;
@@ -805,15 +805,13 @@ _EXPORT void StripGook(BString* header)
 				break;
 		}
 
-		// Remove leading and trailing spaces and quotes and angle brackets and
-		// save the result if it is longer than any other likely names found.
+		// Remove leading and trailing space-like characters and save the
+		// result if it is longer than any other likely names found.
 		if (p2 != NULL) {
-			while (p1 < p2 && (isspace (*p1) ||
-				*p1 == '"' || *p1 == '\'' || *p1 == '<'))
+			while (p1 < p2 && (isspace (*p1)))
 				++p1;
 
-			while (p1 < p2 && (isspace (p2[-1]) ||
-				p2[-1] == '"' || p2[-1] == '\'' || p2[-1] == '>'))
+			while (p1 < p2 && (isspace (p2[-1])))
 				--p2;
 
 			int newLength = p2 - p1;
@@ -821,6 +819,19 @@ _EXPORT void StripGook(BString* header)
 				name.SetTo (p1, newLength);
 		}
 	} // rof
+
+	// Yahoo stupidly inserts the e-mail address into the name string, so this
+	// bit of code fixes: "Joe <joe@yahoo.com>" <joe@yahoo.com>
+
+	int32	lessIndex;
+	int32	greaterIndex;
+
+	lessIndex = name.FindFirst ('<');
+	greaterIndex = name.FindLast ('>');
+	if (lessIndex >= 0 && lessIndex < greaterIndex)
+		name.Remove (lessIndex, greaterIndex - lessIndex + 1);
+	while (name.Length() > 0 && isspace (name[name.Length() - 1]))
+		name.Remove (name.Length() - 1, 1); // Remove more trailing spaces.
 
 	*header = name;
 }
