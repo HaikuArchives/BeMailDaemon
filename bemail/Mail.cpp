@@ -1123,6 +1123,7 @@ skip:			if (!done) {
 					marked = true;
 				}
 				menu->AddItem(item);
+				delete chain;
 			}
 			if (!marked) {
 				BMenuItem *item = menu->ItemAt(0);
