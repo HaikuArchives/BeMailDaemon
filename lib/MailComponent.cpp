@@ -366,7 +366,7 @@ status_t PlainTextBodyComponent::Render(BPositionIO *render_to) {
 	int32 state;
 	convert_from_utf8(charset,this->text.String(),&len,raw,&dest_len,&state);
 	raw[dest_len] = 0;
-	alt.UnlockBuffer();
+	alt.UnlockBuffer(dest_len);
 	
 	raw = modified.LockBuffer((alt.Length()*3)+1);
 	switch (encoding) {
@@ -382,7 +382,7 @@ status_t PlainTextBodyComponent::Render(BPositionIO *render_to) {
 			len = alt.Length();
 			strcpy(raw,alt.String());
 	}
-	modified.UnlockBuffer();
+	modified.UnlockBuffer(len);
 	
 	//------Desperate bid to wrap lines
 	modified.ReplaceAll("\n","\r\n");
