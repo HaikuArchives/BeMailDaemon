@@ -59,7 +59,7 @@ class IMAP4Client : public Mail::RemoteStorageProtocol {
 		status_t ReceiveLine(BString &out);
 		status_t SendCommand(const char *command);
 		
-		status_t Select(const char *mb, bool force_reselect = false, bool queue_new_messages = true, bool noop = true);
+		status_t Select(const char *mb, bool force_reselect = false, bool queue_new_messages = true, bool noop = true, bool no_command = false);
 		status_t Close();
 		
 		virtual status_t InitCheck(BString *) { return err; }
@@ -316,7 +316,6 @@ void IMAP4Client::InitializeMailboxes() {
 
 status_t IMAP4Client::AddMessage(const char *mailbox, BPositionIO *data, BString *id) {
 	Select(mailbox); //---Update info
-	Close(); //---APPEND is not valid if a mailbox is selected
 	
 	const int32 box_index = mailboxes.IndexOf(mailbox);
 	char expected[255];
@@ -326,18 +325,16 @@ status_t IMAP4Client::AddMessage(const char *mailbox, BPositionIO *data, BString
 	off_t size;
 	data->Seek(0,SEEK_END);
 	size = data->Position();
-	command << ((struct mailbox_info *)(box_info.ItemAt(box_index)))->server_mb_name << "\" (\Seen) {" << size << '}';
+	command << ((struct mailbox_info *)(box_info.ItemAt(box_index)))->server_mb_name << "\" (\\Seen) {" << size << '}';
 	SendCommand(command.String());
 	ReceiveLine(command);
 	char *buffer = new char[size];
 	data->ReadAt(0,buffer,size);
 	send(net,buffer,size,0);
 	send(net,"\r\n",2,0);
-	WasCommandOkay(command);
+	Select(mailbox,false,false,false,true);
 	
 	if (((struct mailbox_info *)(box_info.ItemAt(box_index)))->next_uid <= 0) {
-		Select(mailbox,false,false);
-		
 		command = "FETCH ";
 		command << ((struct mailbox_info *)(box_info.ItemAt(box_index)))->exists << " UID";
 		
@@ -355,7 +352,7 @@ status_t IMAP4Client::AddMessage(const char *mailbox, BPositionIO *data, BString
 		}
 	} else {
 		*id = "";
-		*id << ((struct mailbox_info *)(box_info.ItemAt(box_index)))->next_uid;
+		*id << (((struct mailbox_info *)(box_info.ItemAt(box_index)))->next_uid - 1);
 	}
 	
 	return B_OK;
@@ -518,7 +515,7 @@ status_t IMAP4Client::Close() {
 	return B_OK;
 }
 
-status_t IMAP4Client::Select(const char *mb, bool reselect, bool queue_new_messages, bool noop) {
+status_t IMAP4Client::Select(const char *mb, bool reselect, bool queue_new_messages, bool noop, bool no_command) {
 	if (reselect)
 		Close();
 	
@@ -528,7 +525,7 @@ status_t IMAP4Client::Select(const char *mb, bool reselect, bool queue_new_messa
 		
 	const char *real_mb = info->server_mb_name.String();
 	
-	if ((selected_mb != real_mb) || (noop)) {
+	if ((selected_mb != real_mb) || (noop) || (no_command)) {
 		if ((selected_mb != "")  && (selected_mb != real_mb)){
 			BString trash;
 			SendCommand("CLOSE");
@@ -541,7 +538,8 @@ status_t IMAP4Client::Select(const char *mb, bool reselect, bool queue_new_messa
 		else
 			cmd << "SELECT \"" << real_mb << '\"';
 			
-		SendCommand(cmd.String());
+		if (!no_command)
+			SendCommand(cmd.String());
 		
 		char expected[255];
 		BString tag;

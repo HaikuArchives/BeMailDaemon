@@ -337,6 +337,8 @@ void RemoteStorageProtocol::SyncMailbox(const char *mailbox) {
 		snoodle.WriteAttrString("MAIL:unique_id",&string);
 		(*manifest) += string.String();
 		(*unique_ids) += string.String();
+		string = runner->Chain()->Name();
+		snoodle.WriteAttrString("MAIL:account",&string);
 	}
 }
 
