@@ -50,6 +50,7 @@ All rights reserved.
 #include <PopUpMenu.h>
 #include <Rect.h>
 #include <Window.h>
+#include <Entry.h>
 
 #define MAX_DICTIONARIES	8
 #define	TITLE_BAR_HEIGHT	 25
