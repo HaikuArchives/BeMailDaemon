@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v2.2.3
+BEOS Mail Daemon Replacement v2.2.4
 
 概要：
 
@@ -180,6 +180,9 @@ BEOS Mail Daemon Replacement v2.2.3
 　　さらに、SampleSpamDatabaseに関する注釈を参照してください。
 
 履歴：
+
+September 20 2003 - v2.2.4
+
 
 September 20 2003 - v2.2.3
 - Fixed crash in POP3 protocol when the mail server was not reachable (was trying to send a QUIT command over a dead connection).
