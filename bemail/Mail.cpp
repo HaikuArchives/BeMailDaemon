@@ -3235,11 +3235,21 @@ TMailWindow::Send(bool now)
 				if (count > 0) {
 					int32	userAnswer;
 					BString	messageString;
-					messageString << "Your main text contains " << count <<
-						" unencodable characters.  Perhaps a different character set "
-						"would work better?  Hit Send to send it anyway (a substitute "
-						"character will be used in place of the unencodable ones), or "
-						"choose Cancel to go back and try fixing it up.";
+					MDR_DIALECT_CHOICE (
+						messageString << "Your main text contains " << count <<
+							" unencodable characters.  Perhaps a different character "
+							"set would work better?  Hit Send to send it anyway "
+							"(a substitute character will be used in place of "
+							"the unencodable ones), or choose Cancel to go back "
+							"and try fixing it up."
+						,
+						messageString << "送信メールの本文には " << count <<
+							" 個のエンコードできない文字があります。"
+							"違う文字セットを使うほうがよい可能性があります。"
+							"このまま送信の場合は「送信」ボタンを押してください。"
+							"その場合、代用文字がUnicode化可能な文字に代わって使われます。"
+							"文字セットを変更する場合は「中止」ボタンを押して下さい。"
+						);
 					userAnswer = (new BAlert ("Question", messageString.String(),
 						MDR_DIALECT_CHOICE ("Send","送信"),
 						MDR_DIALECT_CHOICE ("Cancel","中止"), // Default is cancel.
