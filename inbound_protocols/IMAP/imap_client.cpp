@@ -117,7 +117,7 @@ class NoopWorker : public BHandler {
 		void RecentMessages() {
 			int32 num_messages = -1;
 			int32 next_uid = -1;
-			int32 total = -1;
+			int32 total = 0;
 			char expected[255];
 			BString tag;
 			::sprintf(expected,"a%.7ld",us->commandCount);
@@ -370,7 +370,7 @@ void IMAP4Client::SyncAllBoxes() {
 	}		
 			
 	for (int32 i = 0; i < boxes.CountItems(); i++) {
-		int32 num_messages = -1;
+		int32 num_messages = 0;
 		
 		command = "SELECT \"";
 		command << boxes[i] << '\"';
@@ -388,17 +388,19 @@ void IMAP4Client::SyncAllBoxes() {
 			if (tag == expected)
 				break;
 			
-			if (strcasecmp(response[1](),"EXISTS") == 0)
+			if ((response.CountItems() > 1) && (strcasecmp(response[1](),"EXISTS") == 0))
 				num_messages = atoi(response[0]());
 			
 			if (response[0].CountItems() == 2 && strcasecmp(response[0][0](),"UIDNEXT") == 0)
 				next_uid = atol(response[0][1]());
 		}
+		
 		struct mailbox_info *mailbox = (struct mailbox_info *)(box_info.ItemAt(i));
 		if (next_uid == mailbox->next_uid) /* Either nothing changed, or a message was deleted, which we don't care about */ {
 			SendCommand("CLOSE");
 			WasCommandOkay(tag);
 			mailbox->exists = num_messages;
+			selected_mb = "";
 			continue;
 		}
 		
