@@ -526,7 +526,7 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 				// chances later on.
 				if (currentWord->originalWord.Length() > 1 &&
 					isspace (currentWord->originalWord[0])) {
-					rfc2047 << ' ';
+					rfc2047 << currentWord->originalWord[0];
 					currentWord->originalWord.Remove (0 /* offset */, 1 /* length */);
 					currentWord->ConvertWordToCharset (charset);
 				}
