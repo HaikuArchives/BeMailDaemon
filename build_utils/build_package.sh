@@ -2,6 +2,12 @@
 #invoke as follows:
 #build_package.sh path_to_put_package_in version
 
+if [ "$1" = "" ]; then
+	echo "Usage: build_package.sh path_to_put_package_in version"
+	echo "   All paths must be absolute!"
+	exit
+fi
+
 #all paths must be absolute!
 
 if [ $(uname -m) = "BePC" ]; then
