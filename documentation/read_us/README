@@ -145,10 +145,11 @@ ADDON INSTALLATION.
 
 HISTORY:
 
-January 23 2003 - v2.0.0b9
+January 24 2003 - v2.0.0b9
 - Use quoted printable for the headers to avoid base64 extra CRLF insertion which makes a mess if the header (like Subject) is too long to fit on a line.
 - Added 7bit and 8bit encoding to the library, and made BeMail use 7bit for ISO-2022-JP (base64 for other Japanese character sets).
 - If a header field (CC, Subject, etc) is made empty in BeMail, also remove that header.  Was causing a reply (with an automatically generated CC) to get sent to extra people even though the CC seemed to have been erased.  Library code changed to accept NULL and empty value strings as meaning remove the header.
+- Made install script into a one use script, so you can't accidentally run it twice (it won't work since it moved a lot of the installation files to their final resting places).
 
 January 22 2003 - v2.0.0b8
 - Date format changed slightly to make it compliant to RFC-822 (some other mail apps had problems understanding it).

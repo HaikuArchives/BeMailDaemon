@@ -54,3 +54,7 @@ sleep 1
 /system/servers/mail_daemon &
 
 alert "Installation Complete"
+
+# Prevent a second attempt to install since all our source files have been moved / deleted.
+echo "This one use install script will now self destruct..."
+rm install.sh
