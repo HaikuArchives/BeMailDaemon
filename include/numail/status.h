@@ -85,9 +85,6 @@ class StatusView : public BBox {
 		uint32			_reserved[5];
 };
 
-extern void ShowAlert(const char *title, const char *body, const char *button = "Ok",
-		alert_type type = B_INFO_ALERT);
-
 }	// namespace Mail
 }	// namespace Zoidberg
 

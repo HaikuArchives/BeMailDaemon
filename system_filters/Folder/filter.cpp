@@ -64,6 +64,7 @@ class FolderFilter : public Mail::Filter
 	BString dest_string;
 	BDirectory destination;
 	int32 chain_id;
+	Mail::ChainRunner *runner;
 	int fNumberOfFilesSaved;
 	int size_limit; // Messages larger than this many bytes get partially downloaded.  -1 for always do full download.
 
@@ -79,9 +80,9 @@ class FolderFilter : public Mail::Filter
 };
 
 
-FolderFilter::FolderFilter(BMessage* msg,Mail::ChainRunner *runner)
+FolderFilter::FolderFilter(BMessage* msg,Mail::ChainRunner *therunner)
 	: Mail::Filter(msg),
-	chain_id(msg->FindInt32("chain")), size_limit(-1)
+	runner(therunner), chain_id(msg->FindInt32("chain")), size_limit(-1)
 {
 	fNumberOfFilesSaved = 0;
 	dest_string = runner->Chain()->MetaData()->FindString("path");
@@ -167,8 +168,7 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 				error << out_headers->FindString("Subject") << " のメッセージを " <<
 					path.Path() << "に保存中にエラーが発生しました" << strerror(err);
 			)
-			Mail::ShowAlert(MDR_DIALECT_CHOICE ("Folder Error","フォルダエラー"),
-				error.String(),MDR_DIALECT_CHOICE ("OK","了解"),B_WARNING_ALERT);
+			runner->ShowError(error.String());
 			return B_MAIL_END_FETCH; // Stop reading further mail messages.
 		}
 		haveReadWholeMessage = true;
@@ -256,8 +256,7 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 				error << out_headers->FindString("Subject") << " のメッセージを " <<
 					path.Path() << "に保存中にエラーが発生しました" << strerror(err);
 			)
-			Mail::ShowAlert(MDR_DIALECT_CHOICE ("Folder Error","フォルダエラー"),
-				error.String(),MDR_DIALECT_CHOICE ("OK","了解"),B_WARNING_ALERT);
+			runner->ShowError(error.String());
 			return err;
 		}
 	}

@@ -101,10 +101,10 @@ void NotifyCallback::Callback(status_t result) {
 		<< " for " << chainrunner->Chain()->Name() << ".",
 
 		text << chainrunner->Chain()->Name() << "より\n" << num_messages << " 通のメッセージが届きました");
-
-		Mail::ShowAlert(
-			MDR_DIALECT_CHOICE ("New Messages","新着メッセージ"),
-			text.String());
+		
+		BAlert *alert = new BAlert(MDR_DIALECT_CHOICE ("New Messages","新着メッセージ"), text.String(), "OK", NULL, NULL, B_WIDTH_AS_USUAL);
+		alert->SetFeel(B_NORMAL_WINDOW_FEEL);
+		alert->Go(NULL);
 	}
 	
 	if (strategy & blink_leds)
