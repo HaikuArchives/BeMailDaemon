@@ -154,6 +154,10 @@ status_t MailComponent::HeaderField(const char *key, BMessage *structure, int32 
 	return B_OK;
 }
 
+status_t MailComponent::RemoveHeader(const char *key) {
+	return headers.RemoveName(key);
+}
+
 status_t MailComponent::GetDecodedData(BPositionIO *) {return B_OK;}
 status_t MailComponent::SetDecodedData(BPositionIO *) {return B_OK;}
 
