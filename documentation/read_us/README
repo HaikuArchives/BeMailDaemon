@@ -1,0 +1,180 @@
+BEOS Mail Daemon Replacement v1.0.0 beta 5
+
+ABOUT:
+
+This is a drop-in replacement for the BeOS Mail Daemon that comes with
+BeOS. Its purpose is to be 100% compatible with the original mail_daemon
+and to improve it by adding features. The package contains the following
+files:
+
+  README
+   The file you are reading.
+
+  LICENSE
+   Conditions for using/distributing this package.
+
+  libmail2.so
+   This library provides the backend for the new mail_daemon. This is an
+   exception in the package, as it *DOES NOT* replace the original 
+   libmail.so, but complements it. It will be installed in 
+   /boot/home/config/lib
+
+  mail_daemon
+   This is the new replacement Mail Daemon. It will be installed in 
+   /boot/beos/system/servers, overwriting the original mail_daemon file.
+
+  E-mail
+   This is the new e-mail preferences panel. It will be installed to 
+   /boot/beos/preferences, overwriting the original preferences app.
+
+
+***********
+
+  Warning:
+
+  Do not keep this and other mail_daemon executables on your HD!
+  Because the original Mail Kit uses the mail_daemon's signature
+  to find it, having more than one version will cause things to
+  randomly fail, when it fins the old version instead of the new.
+
+  This software is beta quality! See the LICENSE file for more 	
+  information.
+
+***********
+
+INSTALLATION:
+
+Installation is through a zip file. Be sure to download the correct 
+version for your system (PPC or x86). Just unzip the file somewhere
+and double click the install.sh icon.
+
+The installer will offer to make a backup or purge old mail daemons.
+We STRONGLY RECOMMEND that you accept one or the other of these offers.
+The backup/purge proceedure removes all extraneous copies of the
+mail_daemon from your system, which is a common cause of other prob-
+lems.
+
+To configure the new mail_daemon, open the E-mail preferences app
+from your Deskbar menu after installing the package.
+
+Note: The x86 version in this package *DOES NOT* work under BONE;
+if you are using BONE you must use a different version compiled
+for BONE.  If you don't know where to find this, you should not
+be using BONE!
+
+USAGE:
+
+Open the E-mail preferences app (BeOS Menu/Preferences/E-mail) and 
+configure your accounts. To save all the changes, close the window
+by clicking "Save".  To delete an account, select it and press the
+DEL key or use the Remove button.
+
+Right click the Deskbar mail icon to access a menu with various options 
+(and to select your default account for sending emails).  Single-click
+the icon to open your mail inbox.
+
+PROTOCOLS INSTALLATION:
+
+Protocol add-ons should be installed in /boot/home/config/add-ons/
+mail_daemon/protocols. This directory will be automatically created by
+the installation process. The distribution contains POP3 (with APOP 
+support) and SMTP protocols.
+
+HISTORY:
+
+July 05 2001 - v1.0.0 b5
+  - Outgoing (SMTP) mail servers are now configured per account.
+  - Leave messages on server now works as expected.
+  - You can select your default acount from the Deskbar menu (fixed).
+  - Add-on loading problem under BONE seems to be fixed now.
+  - Various other bug-fixes and performance improvements.
+
+June 12 2001 - v1.0.0 b4
+  - E-mail preferences app completelly rewritten.  Now it is cleaner,
+    more intuitive, and font sensitive!  Please send us suggestions for
+    improving it.
+  - Added buttons to create/erase accounts.
+  - The Mail Status window now remembers its size and position.
+  - Option to never show the Mail Status window.
+  - More bug fixes. More error checking is now being done.
+  - First version of the filter API.
+  - Some brand new bugs for you to play with. :)
+  - The old mail_daemon icon is back! Thanks to Syn.Terra for it. 
+
+June 08 2001 - v1.0.0 b3
+  - Installation script now creates an index for the MAIL:account
+    attribute.
+  - mail_daemon detects if the MAIL:account exists and creates it
+    if it does not.
+  - Various bug fixes. *ALL* Deskbar crashes should be gone.
+  - Improved Deskbar Icon menu.
+  - Does not check for email immediately after starting.
+
+June 06 2001 - v1.0.0 b2
+  - Fixed lots of bugs!
+  - The status window can now be made persistent.
+  - E-mail preferences app works better (for some definition
+    of better).
+
+June 05 2001 - v1.0.0 b1
+  - First public release.
+
+
+IMPLEMENTATION:
+
+The latest version has the following (interesting) features:
+
+ - Add-on based architeture.
+ - Fully multithreaded.
+ - POP3 add-on with APOP support.
+ - SMTP add-on.
+ - Leave messages on server option, with optional delete messages from 
+   server after deleting local message.
+ - PPP connection detection.
+ - Multiple accounts.
+ - Addition of the Account attribute. The install script indexes it.
+ - Filter emails per account (mails will be dropped in the /boot/home/
+   mail/Account/in folder).
+ - Timed email retrieval.
+ - Deskbar replicant.
+ - The status window can be made persistent.
+ - Status window remembers its size and position.
+ - Filtering API release 1.
+
+TODO:
+
+This is a partial list of what we intend to implement. Suggestions are welcome:
+
+ - IMAP support (waiting for the rewrite).
+ - mail_parser protocol (so we can implement a PGP add-on, for instance).
+ 	handled by filters
+ - SMTP Auth (Done. Will be include in the next version).
+ - HotMail support.
+ - Spam filter
+ - Filter configuration interface
+ - Filter description field/attribute
+ - Filter order
+ - Safe setting saving
+ - Safe message saving
+ - Read initial account info from old E-mail prefs
+ - "Ask before/Skip downloading messages larger than Xkb"
+ - Handle 'MAIL:flags' properly so that messages don't get
+   resent by the old mail_daemon
+ - Handle messages that are not sent when a connection
+   fails (currently they are forgotten).
+ - More...
+
+OTHER STUFF:
+
+This program was created by Dr. Zoidberg Enterprises (zoidberg@bug-
+br.org.br). Special thanks goes to Todd Lair, Peter Folk and Stephan 
+Assmus for helping us with ideas and code. We also would like to thank 
+the BeOS community in general for their support.
+
+The cool new mail-daemon deskbar icon is a courtesy of Syn.Terra.
+
+Copyright (c)2001 by Dr. Zoidberg Enterprises. All rights reserved.
+
+Dr. Zoidberg Enterprises is a joint-venture between Bruno G. Albuquerque
+(bga@bug-br.org.br), Nathan Whitehorn (nwhitehorn@qwest.net), Peter Folk
+(pfolk@uni.uiuc.edu) and Stephan Assmus (stippi@yellowbites.com).
