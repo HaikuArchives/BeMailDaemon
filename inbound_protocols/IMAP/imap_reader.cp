@@ -162,3 +162,7 @@ IMAP4Reader::FetchInternal(const char * index,BPositionIO *destination, const ch
 	}
 	return B_ERROR;
 }
+
+IMAP4Reader::~IMAP4Reader() {
+	delete slave;
+}

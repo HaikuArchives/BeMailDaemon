@@ -567,7 +567,7 @@ status_t IMAP4Client::GetMessage(
 		return B_NAME_NOT_FOUND;
 		
 	*out_file = new IMAP4Reader(this,*out_file,uid);
-	//out_folder_location->SetTo(_settings->FindString("folder"));
+	out_folder_location->SetTo(_settings->FindString("folder"));
 	
 	return B_OK;
 }

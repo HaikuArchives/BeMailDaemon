@@ -7,6 +7,7 @@
 class IMAP4Reader : public BPositionIO {
 	public:
 		IMAP4Reader(IMAP4Client *protocol, BPositionIO *dump_to, const char *uid);
+		~IMAP4Reader();
 		
 		//----BPositionIO
 		virtual	ssize_t		ReadAt(off_t pos, void *buffer, size_t size);
