@@ -1,11 +1,30 @@
 #!/bin/sh
-#invoke as follows:
-#build_package.sh path_to_put_package_in version
+# Invoke as follows:
+# build_package.sh path_to_put_package_in version
+#
+# Note that the choice of file to copy for the install script that the user
+# sees, is specified by the main make file.  It writes the file name to the
+# LanguageSpecificInstallFileName file.  The Japanese version of the installer
+# will ask its questions in Japanese, and rename files (some of the filters)
+# which need Japanese names.
 
 if [ "$1" = "" ]; then
-	echo "Usage: build_package.sh path_to_put_package_in version"
+	echo "Usage: build_package.sh path_to_put_package_in version_string"
 	echo "   All paths must be absolute!"
 	exit
+fi
+
+cd "$(dirname "$0")"/..
+
+if test ! -e "build_utils/LanguageSpecificInstallFileName"; then
+	echo "install.sh" >build_utils/LanguageSpecificInstallFileName ;
+fi
+
+if test -e "build_utils/`cat build_utils/LanguageSpecificInstallFileName`";	then
+	echo "Will use the `cat build_utils/LanguageSpecificInstallFileName` for the install script.";
+else
+	echo "Sorry, can't find the install script named `cat build_utils/LanguageSpecificInstallFileName`.";
+	exit -1;
 fi
 
 #all paths must be absolute!
@@ -24,11 +43,10 @@ BUILD_PATH=$1/mail_daemon_$2_$CPU
 
 echo $BUILD_PATH
 
-cd "$(dirname "$0")"/..
 mkdir -p $BUILD_PATH/bin
 
-copyattr -d build_utils/install.sh $BUILD_PATH
-chmod a+x $BUILD_PATH/install.sh
+copyattr -d "build_utils/`cat build_utils/LanguageSpecificInstallFileName`" $BUILD_PATH
+chmod a+x "$BUILD_PATH/`cat build_utils/LanguageSpecificInstallFileName`"
 copyattr -d bemail/obj.$CPU/BeMail $BUILD_PATH/bin
 copyattr -d AGMSBayesianSpamServer/obj.$CPU/AGMSBayesianSpamServer $BUILD_PATH/bin
 # Note name change from SampleDatabase to SampleSpamDatabase, to make it more obvious what it is to the user.
