@@ -21,7 +21,7 @@
    Boston, MA 02111-1307, USA.  */
 
 /* BeOS PPC has no regex in libroot */
-#ifndef __PPC__
+#if !__POWERPC__
 #	include <posix/regex.h>
 #else
 
