@@ -290,7 +290,9 @@ class TMailWindow : public BWindow
 		BMessenger *fTrackerMessenger;	// Talks to tracker window that
 										// this was launched from.
 		entry_ref fPrevRef, fNextRef;
-		bool fTrackerPositionSaved;
+		bool fPrevTrackerPositionSaved : 1;
+		bool fNextTrackerPositionSaved : 1;
+
 		static BList sWindowList;
 		bool fSigAdded;
 		bool fIncoming;

@@ -2214,7 +2214,7 @@ bool TTextView::Reader::Process(const char *data, int32 data_len, bool isHeader)
 			if (type)
 			{
 				if (type == TYPE_URL)
-					index = strcspn(data+loop, " <>\"\r\n");
+					index = strcspn(data+loop, " <>)\"\r\n");
 				else
 					index = strcspn(data+loop, " \t>)\"\\,\r\n");
 				

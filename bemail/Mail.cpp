@@ -905,7 +905,8 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 			fZoom(rect),
 			fEnclosuresView(NULL),
 			fTrackerMessenger(msng),
-			fTrackerPositionSaved(false),
+			fPrevTrackerPositionSaved(false),
+			fNextTrackerPositionSaved(false),
 			fSigAdded(false),
 			fReplying(false),
 			fResending(resending),
@@ -1407,11 +1408,17 @@ entry_ref* TMailWindow::GetMailFile() const
 bool TMailWindow::GetTrackerWindowFile(entry_ref *ref, bool next) const
 {
 	// Position was already saved
-	if (fTrackerPositionSaved)
+	if (next && fNextTrackerPositionSaved)
 	{
-		*ref = next ? fNextRef : fPrevRef;
+		*ref = fNextRef;
 		return true;
 	}
+	if (!next && fPrevTrackerPositionSaved)
+	{
+		*ref = fPrevRef;
+		return true;
+	}
+
 	if (fTrackerMessenger == NULL)
 		return false;
 
@@ -1461,15 +1468,14 @@ bool TMailWindow::GetTrackerWindowFile(entry_ref *ref, bool next) const
 
 void TMailWindow::SaveTrackerPosition(entry_ref *ref)
 {
-	if (fTrackerPositionSaved)
+	// if only one of them is saved, we're not going to do it again
+	if (fNextTrackerPositionSaved || fPrevTrackerPositionSaved)
 		return;
 
 	fNextRef = fPrevRef = *ref;
 
-	bool next = GetTrackerWindowFile(&fNextRef, true);
-	bool prev = GetTrackerWindowFile(&fPrevRef, false);
-
-	fTrackerPositionSaved = next | prev;
+	fNextTrackerPositionSaved = GetTrackerWindowFile(&fNextRef, true);
+	fPrevTrackerPositionSaved = GetTrackerWindowFile(&fPrevRef, false);
 }
 
 
@@ -2927,7 +2933,8 @@ status_t TMailWindow::OpenMessage(entry_ref *ref)
 		free(fStartingText);
 		fStartingText = NULL;
 	}
-	fTrackerPositionSaved = false;
+	fPrevTrackerPositionSaved = false;
+	fNextTrackerPositionSaved = false;
 
 	delete fFile;
 	fFile = new BFile(fRef, O_RDONLY);
