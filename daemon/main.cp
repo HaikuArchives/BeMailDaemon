@@ -54,6 +54,8 @@ class MailDaemonApp : public BApplication {
 		
 		int32 new_messages;
 		BList fetch_done_respondents;
+		
+		BQuery *query;
 };
 
 
@@ -162,22 +164,22 @@ MailDaemonApp::MailDaemonApp(void)
 	UpdateAutoCheck(settings_file.AutoCheckInterval());
 
 	BVolume boot;
-	BQuery query;
+	query = new BQuery;
 	
 	BVolumeRoster().GetBootVolume(&boot);
-	query.SetTarget(this);
-	query.SetVolume(&boot);
-	query.PushAttr("MAIL:status");
-	query.PushString("New");
-	query.PushOp(B_EQ);
-	query.PushAttr("BEOS:TYPE");
-	query.PushString("text/x-email");
-	query.PushOp(B_EQ);
-	query.PushOp(B_AND);
-	query.Fetch();
+	query->SetTarget(this);
+	query->SetVolume(&boot);
+	query->PushAttr("MAIL:status");
+	query->PushString("New");
+	query->PushOp(B_EQ);
+	query->PushAttr("BEOS:TYPE");
+	query->PushString("text/x-email");
+	query->PushOp(B_EQ);
+	query->PushOp(B_AND);
+	query->Fetch();
 	
 	BEntry entry;
-	for (new_messages = 0; query.GetNextEntry(&entry) == B_OK; new_messages++);
+	for (new_messages = 0; query->GetNextEntry(&entry) == B_OK; new_messages++);
 	
 	BString string;
 	if (new_messages > 0)
@@ -193,6 +195,7 @@ MailDaemonApp::MailDaemonApp(void)
 MailDaemonApp::~MailDaemonApp()
 {
 	delete auto_check;
+	delete query;
 }
 
 
