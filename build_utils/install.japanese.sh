@@ -40,6 +40,7 @@ else
 	
 　バックアップを作成しませんでした。
 　現在のバージョンが唯一のメールデーモンとなります。"
+	exit -1
 fi
 
 quit "application/x-vnd.Be-POST"
@@ -73,6 +74,14 @@ copyattr -d -m bin/SoundSpam "${HOME}/config/settings/AGMSBayesianSpam/SoundSpam
 copyattr -d -m bin/SoundUncertain "${HOME}/config/settings/AGMSBayesianSpam/SoundUncertain"
 # Create the MIME types and indices needed by the spam server.
 ~/config/bin/AGMSBayesianSpamServer InstallThings
+
+# Patch up things that need Japanese names.  Do it here before the daemon is
+# started.  A link (rather than renaming) is done so that saved chain settings,
+# which use the file names of the add-ons, will still work if they were made in
+# English mode.
+ln -f -s -v "${HOME}/config/add-ons/mail_daemon/system_filters/Inbox" "${HOME}/config/add-ons/mail_daemon/system_filters/受信箱"
+ln -f -s -v "${HOME}/config/add-ons/mail_daemon/system_filters/Outbox" "${HOME}/config/add-ons/mail_daemon/system_filters/送信箱"
+ln -f -s -v "${HOME}/config/add-ons/mail_daemon/system_filters/New Mail Notification" "${HOME}/config/add-ons/mail_daemon/system_filters/郵便通告方法"
 
 sleep 1
 /system/Deskbar &
