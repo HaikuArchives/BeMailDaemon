@@ -22,8 +22,10 @@ Then save this following text as a script file, call it "MailToTemplate":
 
 #!/bin/sh
 
-# Make a mail merge letter from a given people file.
-# Some code from Scott Hacker's PeoplePorter.
+# Make a mail merge letter by combining data from a given people file and a
+# template letter text file.
+# $Revision$
+# Some code from Scot Hacker's PeoplePorter http://www.bebits.com/app/1747
 
 PeopleFile=$1
 echo "Mail merging using people file: $PeopleFile"
