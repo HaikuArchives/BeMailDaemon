@@ -497,7 +497,7 @@ IMAP4Client::SendCommand(const char* command)
 int32
 IMAP4Client::ReceiveLine(BString &out)
 {
-	int8 c = 0;
+	unsigned int c = 0;
 	int32 len = 0,r;
 	out = "";
 	if(IsDataPending(kIMAP4ClientTimeout))
@@ -546,7 +546,7 @@ status_t IMAP4Client::GetNextNewUid
 		StringList *manifest,
 		time_t timeout
 	) {
-		static last_viewed = 0;
+		static int last_viewed = 0;
 		
 		if (last_viewed >= to_fetch->CountItems())
 			return B_NAME_NOT_FOUND;
