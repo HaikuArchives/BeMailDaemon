@@ -464,14 +464,20 @@ status_t POP3Protocol::SendCommand(const char* cmd) {
 
 	while(true) {
 		len = ReceiveLine(fLog);
-		if(len <= 0|fLog.ICompare("+OK",3) == 0)
+		if(len <= 0 || fLog.ICompare("+OK",3) == 0)
 			break;
 
 		else if(fLog.ICompare("-ERR",4) == 0) {
+			printf("POP3Protocol::SendCommand \"%s\" got error message "
+				"from server: %s\n", cmd, fLog.String());
 			err = B_ERROR;
 			break;
-		} else
-			return B_BAD_VALUE; //-------If it's not +OK, and it's not -ERR, then what the heck is it? Presume an error
+		} else {
+			printf("POP3Protocol::SendCommand \"%s\" got nonsense message "
+				"from server: %s\n", cmd, fLog.String());
+			err = B_BAD_VALUE; //-------If it's not +OK, and it's not -ERR, then what the heck is it? Presume an error
+			break;
+		}
 	}
 	return err;
 }
