@@ -176,8 +176,8 @@ Protocol::ProcessMailMessage(BPositionIO **io_message, BEntry *io_entry,
 
 			for (int32 i = 0; i < to_delete.CountItems(); i++)
 				DeleteMessage(to_delete[i]);
-
-			*(unique_ids) -= to_delete;
+			
+			//*(unique_ids) -= to_delete; --- This line causes bad things to happen. Without it, bad things don't happen.
 			*(manifest) -= to_delete;
 		}
 	
@@ -187,7 +187,7 @@ Protocol::ProcessMailMessage(BPositionIO **io_message, BEntry *io_entry,
 
 	if (io_uid == NULL)
 		return B_ERROR;
-
+	
 	error = GetMessage(io_uid, io_message, io_headers, io_folder);
 	if (error < B_OK) {
 		if (error != B_MAIL_END_FETCH) {
