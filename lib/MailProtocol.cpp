@@ -1,6 +1,6 @@
 /* Protocol - the base class for protocol filters
 **
-** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+** Copyright 2001-2003 Dr. Zoidberg Enterprises. All rights reserved.
 */
 
 
@@ -68,11 +68,13 @@ class MessageDeletion : public Mail::ChainCallback {
 		BEntry *entry;
 };
 
-}
-}
+}	// namespace Mail
+}	// namespace Zoidberg
 
 
-inline void Protocol::error_alert(const char *process, status_t error) {
+inline void
+Protocol::error_alert(const char *process, status_t error)
+{
 	BString string;
 	MDR_DIALECT_CHOICE (
 		string << "Error while " << process << ": " << strerror(error);
@@ -83,37 +85,52 @@ inline void Protocol::error_alert(const char *process, status_t error) {
 	)
 }
 
+
 class DeleteCallback : public Mail::ChainCallback {
 	public:
-		DeleteCallback(Protocol *a) : us(a) {}
-		void Callback(status_t) {
-			us->ProcessMailMessage(NULL,NULL,NULL,NULL,NULL);
+		DeleteCallback(Protocol *a)
+			: us(a)
+		{
 		}
+
+		void Callback(status_t)
+		{
+			us->ProcessMailMessage(NULL, NULL, NULL, NULL, NULL);
+		}
+
 	private:
 		Protocol *us;
 };
 
-Protocol::Protocol(BMessage* settings, ChainRunner *run) : Filter(settings), runner(run), ran_yet(false) {
+
+Protocol::Protocol(BMessage *settings, ChainRunner *run)
+	: Filter(settings),
+	runner(run),
+	ran_yet(false)
+{
 	unique_ids = new StringList;
 	Protocol::settings = settings;
-	
+
 	manifest = new StringList;
-	runner->Chain()->MetaData()->FindFlat("manifest",manifest); //---no error checking, because if it doesn't exist, it will stay empty anyway
+	runner->Chain()->MetaData()->FindFlat("manifest", manifest); //---no error checking, because if it doesn't exist, it will stay empty anyway
 
 	runner->RegisterChainCallback(new DeleteCallback(this));
+		// ToDo: if I don't comment out the line above, MDR crashes after having send a message
 }
 
-Protocol::~Protocol() {
+
+Protocol::~Protocol()
+{
 	if (manifest != NULL) {
 		BMessage *meta_data = runner->Chain()->MetaData();
 		meta_data->RemoveName("manifest");
 		//if (settings->FindBool("leave_mail_on_server"))
-			meta_data->AddFlat("manifest",manifest);
+			meta_data->AddFlat("manifest", manifest);
 	}
+
 	delete unique_ids;
-	if (manifest != NULL)
-		delete manifest;
-};
+	delete manifest;
+}
 
 
 #define dump_stringlist(a) printf("StringList %s:\n",#a); \
@@ -121,71 +138,73 @@ Protocol::~Protocol() {
 								puts(a->ItemAt(i)); \
 							puts("Done\n");
 							
-status_t Protocol::ProcessMailMessage
-	(
-		BPositionIO** io_message, BEntry* io_entry,
-		BMessage* io_headers, BPath* io_folder, const char* io_uid
-	) {
-		status_t error;
-		
-		if (!ran_yet) {
-			{
-				//---Delete things from the manifest no longer on the server
-				StringList temp;
-				manifest->NotThere(*unique_ids,&temp);
-				(*manifest) -= temp;
-			}
-			if ((settings->FindBool("delete_remote_when_local")) || !(settings->FindBool("leave_mail_on_server"))) {
-				StringList query_contents;
-				BQuery fido;
-				BVolume boot;
-				entry_ref entry;
-				BVolumeRoster().GetBootVolume(&boot);
-				
-				fido.SetVolume(&boot);
-				fido.PushAttr("MAIL:chain");
-				fido.PushInt32(settings->FindInt32("chain"));
-				fido.PushOp(B_EQ);
-				fido.Fetch();
-				
-				BString uid;
-				while (fido.GetNextRef(&entry) == B_OK) {
-					BNode(&entry).ReadAttrString("MAIL:unique_id",&uid);
-					query_contents.AddItem(uid.String());
-				}
-				
-				StringList to_delete;
-				query_contents.NotHere(*manifest,&to_delete);
-								
-				for (int32 i = 0; i < to_delete.CountItems(); i++)
-					DeleteMessage(to_delete[i]);
-				
-				*(unique_ids) -= to_delete;
-				*(manifest) -= to_delete;
-			}
-			
-			ran_yet = true;
-			runner->RegisterProcessCallback(new RanYetReset(&ran_yet));
+status_t
+Protocol::ProcessMailMessage(BPositionIO **io_message, BEntry *io_entry,
+	BMessage *io_headers, BPath *io_folder, const char *io_uid)
+{
+	status_t error;
+
+	if (!ran_yet) {
+		{
+			//---Delete things from the manifest no longer on the server
+			StringList temp;
+			manifest->NotThere(*unique_ids, &temp);
+			(*manifest) -= temp;
 		}
-		
-		if (io_uid == NULL)
-			return B_ERROR;
-		
-		error = GetMessage(io_uid,io_message,io_headers,io_folder);
-		if (error < B_OK) {
-			if (error != B_MAIL_END_FETCH) {
+
+		if ((settings->FindBool("delete_remote_when_local")) || !(settings->FindBool("leave_mail_on_server"))) {
+			StringList query_contents;
+			BQuery fido;
+			BVolume boot;
+			entry_ref entry;
+			BVolumeRoster().GetBootVolume(&boot);
+
+			fido.SetVolume(&boot);
+			fido.PushAttr("MAIL:chain");
+			fido.PushInt32(settings->FindInt32("chain"));
+			fido.PushOp(B_EQ);
+			fido.Fetch();
+
+			BString uid;
+			while (fido.GetNextRef(&entry) == B_OK) {
+				BNode(&entry).ReadAttrString("MAIL:unique_id",&uid);
+				query_contents.AddItem(uid.String());
+			}
+
+			StringList to_delete;
+			query_contents.NotHere(*manifest,&to_delete);
+
+			for (int32 i = 0; i < to_delete.CountItems(); i++)
+				DeleteMessage(to_delete[i]);
+
+			*(unique_ids) -= to_delete;
+			*(manifest) -= to_delete;
+		}
+	
+		ran_yet = true;
+		runner->RegisterProcessCallback(new RanYetReset(&ran_yet));
+	}
+
+	if (io_uid == NULL)
+		return B_ERROR;
+
+	error = GetMessage(io_uid, io_message, io_headers, io_folder);
+	if (error < B_OK) {
+		if (error != B_MAIL_END_FETCH) {
 			MDR_DIALECT_CHOICE (
 				error_alert("getting a message",error);,
 				error_alert("新しいメッセージヲ取得中にエラーが発生しました",error);
-			)}
-			return B_MAIL_END_FETCH;
+			);
 		}
-		
-		runner->RegisterMessageCallback(new ManifestAdder(manifest,io_uid));
-		runner->RegisterMessageCallback(new MessageDeletion(this,io_uid,io_entry,!settings->FindBool("leave_mail_on_server")));
-		
-		return B_OK;
+		return B_MAIL_END_FETCH;
+	}
+
+	runner->RegisterMessageCallback(new ManifestAdder(manifest, io_uid));
+	runner->RegisterMessageCallback(new MessageDeletion(this, io_uid, io_entry, !settings->FindBool("leave_mail_on_server")));
+
+	return B_OK;
 }
+
 
 void Protocol::_ReservedProtocol1() {}
 void Protocol::_ReservedProtocol2() {}
@@ -197,14 +216,21 @@ void Protocol::_ReservedProtocol5() {}
 //	#pragma mark -
 
 
-Mail::MessageDeletion::MessageDeletion(Protocol *home, const char *uid,BEntry *io_entry, bool delete_anyway) :
+Mail::MessageDeletion::MessageDeletion(Protocol *home, const char *uid,
+	BEntry *io_entry, bool delete_anyway)
+	:
 	us(home),
 	always(delete_anyway),
-	message_id(uid), entry(io_entry) {}
+	message_id(uid), entry(io_entry)
+{
+}
 
-void Mail::MessageDeletion::Callback(status_t result) {
+
+void
+Mail::MessageDeletion::Callback(status_t result)
+{
 	#if DEBUG
-	 printf("Deleting %s\n",message_id->String());
+	 printf("Deleting %s\n", message_id);
 	#endif
 	BNode node(entry);
 	BNodeInfo info(&node);
