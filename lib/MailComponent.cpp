@@ -212,8 +212,8 @@ status_t PlainTextBodyComponent::Instantiate(BPositionIO *data, size_t length) {
 	MailComponent::Instantiate(data,length);
 	
 	length -= (data->Position() - position);
-	
-	printf("Position %d, new position %d, length %d\n",(int32)position,(int32)data->Position(),length);
+
+	//printf("Position %d, new position %d, length %d\n",(int32)position,(int32)data->Position(),length);
 	
 	//--------Note: the following code blows up on MIME components. Not sure how to fix.
 	/*if (HeaderField("MIME-Version") == NULL) {

@@ -11,26 +11,29 @@ class _EXPORT AttributedMailAttachment;
 
 //--------------SimpleMailAttachment-No attributes or awareness of the file system at large-----
 
-SimpleMailAttachment::SimpleMailAttachment() :
+SimpleMailAttachment::SimpleMailAttachment()
+	: MailComponent(),
 	_data(NULL),
-	_we_own_data(false),
-	MailComponent() {
+	_we_own_data(false)
+	{
 		SetEncoding(base64);
 		AddHeaderField("Content-Disposition","Attachment");
 	}
 
-SimpleMailAttachment::SimpleMailAttachment(BPositionIO *data) :
+SimpleMailAttachment::SimpleMailAttachment(BPositionIO *data)
+	: MailComponent(),
 	_data(data),
-	_we_own_data(false),
-	MailComponent()  {
+	_we_own_data(false)
+	{
 		SetEncoding(base64);
 		AddHeaderField("Content-Disposition","Attachment");
 	}
 
-SimpleMailAttachment::SimpleMailAttachment(const void *data, size_t length) :
+SimpleMailAttachment::SimpleMailAttachment(const void *data, size_t length)
+	: MailComponent(),
 	_data(new BMemoryIO(data,length)),
-	_we_own_data(true),
-	MailComponent()  {
+	_we_own_data(true)
+	{
 		SetEncoding(base64);
 		AddHeaderField("Content-Disposition","Attachment");
 	}
@@ -68,14 +71,19 @@ status_t SimpleMailAttachment::SetDecodedData(const void *data, size_t length) {
 		
 void SimpleMailAttachment::SetEncoding(mail_encoding encoding) {
 	_encoding = encoding;
-	
-	char *cte; //--Content Transfer Encoding
+
+	char *cte = NULL; //--Content Transfer Encoding
 	switch (_encoding) {
 		case base64:
 			cte = "base64";
 			break;
+		case quoted_printable:
+		case no_encoding:
+			// if there is really nothing to do here, we should
+			// rearrange the "switch" statement to a simple "if"
+			break;
 	}
-	
+
 	AddHeaderField("Content-Transfer-Encoding",cte);
 }
 
