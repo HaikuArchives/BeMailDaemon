@@ -16,7 +16,7 @@ class BPositionIO;
 namespace Zoidberg {
 namespace Mail {
 
-class Container : public virtual Component {
+class Container : public Component {
 	public:
 		virtual status_t AddComponent(Component *component) = 0;
 		virtual status_t RemoveComponent(int32 index) = 0;

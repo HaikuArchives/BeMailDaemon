@@ -42,7 +42,6 @@ All rights reserved.
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <assert.h>
 
 #include <Debug.h>
 #include <Alert.h>
@@ -2102,9 +2101,8 @@ bool TTextView::Reader::ParseMail(Mail::Container *container,Mail::TextComponent
 		if (component->ComponentType() == Mail::MC_MULTIPART_CONTAINER)
 		{
 			Mail::MIMEMultipartContainer *c = dynamic_cast<Mail::MIMEMultipartContainer *>(container->GetComponent(i));
-			#if DEBUG
-				assert(c != NULL);
-			#endif
+			ASSERT(c != NULL);
+
 			if (!ParseMail(c,ignore))
 				count--;
 		}

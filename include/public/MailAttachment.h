@@ -15,13 +15,15 @@
 namespace Zoidberg {
 namespace Mail {
 
-class Attachment : public virtual Component {
+class Attachment : public Component {
 	public:
 		virtual void SetFileName(const char *name) = 0;
 		virtual status_t FileName(char *name) = 0;
 
 		virtual status_t SetTo(BFile *file, bool deleteFileWhenDone = false) = 0;
 		virtual status_t SetTo(entry_ref *ref) = 0;
+
+		virtual status_t InitCheck() = 0;
 
 	private:
 		virtual void _ReservedAttachment1();
@@ -30,10 +32,10 @@ class Attachment : public virtual Component {
 		virtual void _ReservedAttachment4();
 };
 
-class SimpleAttachment : public virtual Component, public Attachment {
+class SimpleAttachment : public Attachment {
 	public:
-		SimpleAttachment(BPositionIO *data /* data to attach */, mail_encoding encoding = base64);
-		SimpleAttachment(const void *data, size_t length /* data to attach */, mail_encoding encoding = base64);
+		SimpleAttachment(BPositionIO *dataToAttach, mail_encoding encoding = base64);
+		SimpleAttachment(const void *dataToAttach, size_t lengthOfData, mail_encoding encoding = base64);
 
 		SimpleAttachment(BFile *file, bool delete_when_done);
 		SimpleAttachment(entry_ref *ref);
@@ -43,6 +45,8 @@ class SimpleAttachment : public virtual Component, public Attachment {
 
 		virtual status_t SetTo(BFile *file, bool delete_file_when_done = false);
 		virtual status_t SetTo(entry_ref *ref);
+
+		virtual status_t InitCheck();
 
 		virtual void SetFileName(const char *name);
 		virtual status_t FileName(char *name);
@@ -61,12 +65,14 @@ class SimpleAttachment : public virtual Component, public Attachment {
 		virtual status_t RenderToRFC822(BPositionIO *render_to);
 
 	private:
+		void Initialize(mail_encoding encoding);
 		void ParseNow();
 		
 		virtual void _ReservedSimple1();
 		virtual void _ReservedSimple2();
 		virtual void _ReservedSimple3();
 
+		status_t fStatus;
 		BPositionIO *_data, *_raw_data;
 		size_t _raw_length;
 		off_t _raw_offset;
@@ -76,7 +82,7 @@ class SimpleAttachment : public virtual Component, public Attachment {
 		uint32 _reserved[5];
 };
 
-class AttributedAttachment : public MIMEMultipartContainer, public Attachment {
+class AttributedAttachment : public Attachment {
 	public:
 		AttributedAttachment(BFile *file, bool delete_when_done);
 		AttributedAttachment(entry_ref *ref);
@@ -86,6 +92,8 @@ class AttributedAttachment : public MIMEMultipartContainer, public Attachment {
 		
 		virtual status_t SetTo(BFile *file, bool delete_file_when_done = false);
 		virtual status_t SetTo(entry_ref *ref);
+
+		virtual status_t InitCheck();
 
 		void SaveToDisk(BEntry *entry);
 		//-----we pay no attention to entry, but set it to the location of our file in /tmp
@@ -105,9 +113,14 @@ class AttributedAttachment : public MIMEMultipartContainer, public Attachment {
 		virtual status_t MIMEType(BMimeType *mime);
 
 	private:
+		status_t Initialize();
+
 		virtual void _ReservedAttributed1();
 		virtual void _ReservedAttributed2();
 		virtual void _ReservedAttributed3();
+
+		MIMEMultipartContainer *fContainer;
+		status_t fStatus;
 
 		SimpleAttachment *_data, *_attributes_attach;
 		BMessage _attributes;
