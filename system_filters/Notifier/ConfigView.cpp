@@ -44,7 +44,7 @@ void ConfigView::SetTo(BMessage *archive)
 	int32 method = archive->FindInt32("notification_method");
 
 	if (BMenuField *field = (BMenuField *)FindView("notification_method"))
-		field->Menu()->ItemAt(method)->SetMarked(true);
+		field->Menu()->ItemAt(method-1)->SetMarked(true);
 }
 
 
