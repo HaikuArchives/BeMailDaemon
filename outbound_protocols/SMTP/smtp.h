@@ -13,34 +13,33 @@
 
 
 class SMTPProtocol : public Zoidberg::Mail::Filter {
-public:
-	SMTPProtocol(BMessage *message, Zoidberg::Mail::StatusView *view);
-	~SMTPProtocol();
+	public:
+		SMTPProtocol(BMessage *message, Zoidberg::Mail::StatusView *view);
+		~SMTPProtocol();
 
-	virtual status_t InitCheck(BString *verbose);
-	virtual MDStatus ProcessMailMessage
-	(
-		BPositionIO** io_message, BEntry* io_entry,
-		BMessage* io_headers, BPath* io_folder, BString* io_uid
-	);
-	
-	//----Perfectly good holdovers from the old days
-	status_t Open(const char *server, int port, bool esmtp);
-	status_t Login(const char *uid, const char *password);
-	void Close();
-	status_t Send(const char *to, const char *from, BPositionIO *message);
-	
-	int32 ReceiveResponse(BString &line);
-	status_t SendCommand(const char* cmd);
-	
-private:
-	BNetEndpoint conn;
-	BString fLog;
-	BMessage *_settings;
-	Zoidberg::Mail::StatusView *status_view;
-	int32 fAuthType;
-	
-	status_t err;
+		virtual status_t InitCheck(BString *verbose);
+		virtual MDStatus ProcessMailMessage(BPositionIO **io_message, BEntry *io_entry,
+			BMessage *io_headers, BPath *io_folder, BString *io_uid);
+
+		//----Perfectly good holdovers from the old days
+		status_t Open(const char *server, int port, bool esmtp);
+		status_t Login(const char *uid, const char *password);
+		void Close();
+		status_t Send(const char *to, const char *from, BPositionIO *message);
+
+		int32 ReceiveResponse(BString &line);
+		status_t SendCommand(const char *cmd);
+
+	private:
+		status_t POP3Authentification();
+
+		BNetEndpoint fConnection;
+		BString fLog;
+		BMessage *fSettings;
+		Zoidberg::Mail::StatusView *fStatusView;
+		int32 fAuthType;
+
+		status_t fStatus;
 };
 
 #endif	/* ZOIDBERG_SMTP_H */
