@@ -46,7 +46,6 @@ MailProtocol::MailProtocol(BMessage* settings) : MailFilter(settings) {
 	manifest = new StringList;
 	
 	settings->FindPointer("chain_runner",(void **)&parent);
-	//if (strcmp(parent->Chain()->Name(),"NathanW") != 0)
 	parent->Chain()->MetaData()->FindFlat("manifest",manifest); //---no error checking, because if it doesn't exist, it will stay empty anyway
 	
 	parent->RegisterProcessCallback(new DeletePass(this));
@@ -71,14 +70,10 @@ MDStatus MailProtocol::ProcessMailMessage
 		BMessage* io_headers, BPath* io_folder, BString* io_uid
 	) {
 		status_t error;
-		
-		printf("LINE: %d\n",__LINE__);
-		
+				
 		if (InitCheck(NULL) < B_OK)
 			return MD_NO_MORE_MESSAGES;
-		
-		printf("LINE: %d\n",__LINE__);
-		
+				
 		if (unique_ids == NULL) {
 			unique_ids = new StringList;
 			error = UniqueIDs();
@@ -88,11 +83,7 @@ MDStatus MailProtocol::ProcessMailMessage
 			}
 			PrepareStatusWindow(manifest);
 		}
-		
-		printf("LINE: %d\n",__LINE__);
-		puts(parent->Chain()->Name());
-		dump_stringlist(manifest);
-		
+				
 		error = GetNextNewUid(io_uid,manifest,0); // Added 0 for timeout. Is it correct?
 
 		if (error < B_OK) {
