@@ -491,7 +491,7 @@ status_t PlainTextBodyComponent::RenderToRFC822(BPositionIO *render_to) {
 				len = alt.Length();
 				strcpy(raw,alt.String());
 		}
-		modified.UnlockBuffer(len+1);
+		modified.UnlockBuffer(len);
 		
 		//------Desperate bid to wrap lines
 		modified.ReplaceAll("\n","\r\n");
