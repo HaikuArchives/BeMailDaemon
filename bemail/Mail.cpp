@@ -2796,21 +2796,18 @@ TMailWindow::Send(bool now)
 			fMail = new Zoidberg::Mail::Message;
 
 		// Headers are always in quoted_printable since base64 encoding tends
-		// to add line feeds at the wrong times, which is bad for headers.
-		if (strlen(fHeaderView->fTo->Text()) != 0)
-			fMail->SetTo(fHeaderView->fTo->Text(),
-			gMailCharacterSet, quoted_printable);
+		// to add line feeds at the wrong times, which is bad for headers.  Had
+		// an embarrassing bug where replying to a message and clearing the CC
+		// field meant that it got sent out anyway, so pass in empty strings
+		// when changing the header to force it to remove the header.
 
-		if (strlen(fHeaderView->fSubject->Text()) != 0)
-			fMail->SetSubject(fHeaderView->fSubject->Text(),
-			gMailCharacterSet, quoted_printable);
+		fMail->SetTo(fHeaderView->fTo->Text(), gMailCharacterSet, quoted_printable);
 
-		if (strlen(fHeaderView->fCc->Text()) != 0)
-			fMail->SetCC(fHeaderView->fCc->Text(),
-			gMailCharacterSet, quoted_printable);
+		fMail->SetSubject(fHeaderView->fSubject->Text(), gMailCharacterSet, quoted_printable);
 
-		if (strlen(fHeaderView->fBcc->Text()) != 0)
-			fMail->SetBCC(fHeaderView->fBcc->Text());
+		fMail->SetCC(fHeaderView->fCc->Text(), gMailCharacterSet, quoted_printable);
+
+		fMail->SetBCC(fHeaderView->fBcc->Text());
 
 		/****/
 

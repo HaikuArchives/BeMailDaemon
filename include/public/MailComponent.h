@@ -54,6 +54,8 @@ class Component {
 			uint32 charset = MDR_NULL_CONVERSION,
 			mail_encoding encoding = null_encoding,
 			bool replace_existing = true);
+			// If you want to delete a header, pass in a zero length or NULL
+			// string for the value field, or use RemoveHeader.
 		void SetHeaderField(
 			const char *key, BMessage *structured_header,
 			bool replace_existing = true);

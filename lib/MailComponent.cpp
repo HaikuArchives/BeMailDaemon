@@ -112,7 +112,8 @@ bool Component::IsAttachment() {
 void Component::SetHeaderField(const char *key, const char *value, uint32 charset, mail_encoding encoding, bool replace_existing) {
 	if (replace_existing)
 		headers.RemoveName(key);
-	headers.AddString(key,value);
+	if (value != NULL && value[0] != 0) // Empty or NULL strings mean delete header.
+		headers.AddString(key,value);
 
 	// Latest setting of the character set and encoding to use when outputting
 	// the headers is the one which affects all the headers.  There used to be
