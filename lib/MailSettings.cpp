@@ -116,8 +116,9 @@ MailChain* MailSettings::NewChain()
 	BString string_id;
 	
 	do {
+		id++;
 		string_id = "";
-		string_id << ++id;
+		string_id << id;
 	} while ((outbound_dir.Contains(string_id.String())) || (inbound_dir.Contains(string_id.String())));
 		
 	
