@@ -305,7 +305,7 @@ void SimpleAttachment::ParseNow() {
 	BMallocIO *buffer = new BMallocIO;
 	buffer->SetSize(size); //-------8bit is *always* more efficient than an encoding, so the buffer will *never* be larger than before
 	
-	size = decode(_encoding,(char *)(buffer->Buffer()),src,size);
+	size = decode(_encoding,(char *)(buffer->Buffer()),src,size,0);
 	free(src);
 	
 	buffer->SetSize(size);
@@ -347,7 +347,7 @@ status_t SimpleAttachment::RenderToRFC822(BPositionIO *render_to) {
 			free(src);
 			break;
 		case quoted_printable:
-			size = decode_qp(dest,src,read);
+			size = decode_qp(dest,src,read,0);
 			free(src);
 			break;
 		case no_encoding:

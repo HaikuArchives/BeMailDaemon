@@ -444,7 +444,7 @@ void TextComponent::ParseRaw() {
 		return;
 
 	char *string = decoded.LockBuffer(bytes + 1);
-	bytes = decode(encoding,string,buffer,bytes);
+	bytes = decode(encoding,string,buffer,bytes,0);
 	decoded.UnlockBuffer(bytes);
 	decoded.ReplaceAll("\r\n","\n");
 	

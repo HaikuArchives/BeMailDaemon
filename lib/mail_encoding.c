@@ -34,12 +34,12 @@ _EXPORT ssize_t encode(mail_encoding encoding, char *out, const char *in, off_t 
 	return -1;
 }
 			
-_EXPORT ssize_t decode(mail_encoding encoding, char *out, const char *in, off_t length) {
+_EXPORT ssize_t decode(mail_encoding encoding, char *out, const char *in, off_t length, int underscore_is_space) {
 	switch (encoding) {
 		case base64:
 			return decode_base64(out,in,length);
 		case quoted_printable:
-			return decode_qp(out,in,length);
+			return decode_qp(out,in,length,underscore_is_space);
 		case uuencode:
 			return uu_decode(out,in,length);
 		case no_encoding:
@@ -174,7 +174,7 @@ _EXPORT  ssize_t	decode_base64(char *out, const char *in, register off_t length)
 }
 
 
-_EXPORT ssize_t	decode_qp(char *out, const char *in, off_t length)
+_EXPORT ssize_t	decode_qp(char *out, const char *in, off_t length, int underscore_is_space)
 {
 	// decode Quoted Printable
 	char *dataout = out;
@@ -203,7 +203,7 @@ _EXPORT ssize_t	decode_qp(char *out, const char *in, off_t length)
 				continue;
 			}
 		}
-		else if (*datain == '_')
+		else if ((*datain == '_') && (underscore_is_space))
 		{
 			*dataout++ = ' ';
 			++datain;
@@ -221,7 +221,7 @@ _EXPORT ssize_t	encode_qp(register char *out, register const char *in, register 
 	register int g = 0, i = 0;
 	
 	for (; i < length; i++) {
-		if ((in[i] & (1 << 7)) || (in[i] == '?') || (in[i] == '=') || (in[i] == '_')) {
+		if ((((unsigned char *)(in))[i] > 127) || (in[i] == '?') || (in[i] == '=') || (in[i] == '_')) {
 			out[g++] = '=';
 			out[g++] = hex_alphabet[(in[i] >> 4) & 0x0f];
 			out[g++] = hex_alphabet[in[i] & 0x0f];

@@ -184,7 +184,7 @@ _EXPORT ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 		// encoded text: src..src+srcLen
 		
 		// decode text, get decoded length (reducing xforms)
-		srcLen = !base64encoded ? decode_qp(src, src, srcLen)
+		srcLen = !base64encoded ? decode_qp(src, src, srcLen, 1)
 				: decode_base64(src, src, srcLen);
 		
 		// allocate space for the converted text
