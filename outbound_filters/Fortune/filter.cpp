@@ -34,8 +34,6 @@ MDStatus FortuneFilter::ProcessMailMessage
 	settings->FindString("fortune_file", &fortune_file);	
 	fortune_file.Prepend("/bin/fortune ");
 
-	printf("* Fortune * Line used: %s\n", fortune_file.String());
-
 	FILE * fd;
 	char buffer[768];
 	

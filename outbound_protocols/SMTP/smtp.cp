@@ -43,7 +43,6 @@ SMTPProtocol::SMTPProtocol(BMessage *message, StatusView *view) :
 	err(B_OK) 
 {
 	BString error_msg;
-	message->PrintToStream();
 	bool esmtp = (_settings->FindInt32("auth_method") == 1);
 		
 	err = Open(_settings->FindString("server"),_settings->FindInt32("port"),esmtp);
@@ -259,13 +258,17 @@ status_t SMTPProtocol::Login(const char* _login, const char* password)
 		baselen = ::decode_base64(base, base, baselen);
 		base[baselen] = '\0';
 		
-		printf("base: %s\n", base);
+		#if DEBUG
+		 printf("base: %s\n", base);
+		#endif
 		::MD5HexHmac(hex_digest,
 				(const unsigned char*)base,
 				(int)baselen,
 				(const unsigned char*)password,
 				(int)passlen);
-		printf("%s\n%s\n",base,hex_digest);
+		#if DEBUG
+		 printf("%s\n%s\n",base,hex_digest);
+		#endif
 		delete[] base;
 		
 		char *resp = new char[(strlen(hex_digest)+loginlen)*2+3+2];
@@ -446,7 +449,9 @@ int32 SMTPProtocol::ReceiveResponse(BString &out)
 	}else{
 		fLog = "SMTP socket timeout.";
 	}
-	printf("S:%s\n",out.String());
+	#if DEBUG
+	 printf("S:%s\n",out.String());
+	#endif
 	return len;
 }
 
@@ -454,7 +459,9 @@ int32 SMTPProtocol::ReceiveResponse(BString &out)
 status_t SMTPProtocol::SendCommand(const char* cmd)
 {
 	int32 len;
-	printf("C:%s\n",cmd);
+	#if DEBUG
+	 printf("C:%s\n",cmd);
+	#endif
 	if (conn.Send(cmd, ::strlen(cmd)) == B_ERROR)
 		return B_ERROR;
 	
@@ -471,7 +478,9 @@ status_t SMTPProtocol::SendCommand(const char* cmd)
 		{
 			const char* top = fLog.String();
 			int32 num = atol( top );
-			printf("ReplyNumber: %ld\n", num);
+			#if DEBUG
+				printf("ReplyNumber: %ld\n", num);
+			#endif
 			if(num >= 500)
 				return B_ERROR;
 			else
