@@ -32,7 +32,7 @@ ifeq ($(LANGUAGE)x, JAPANESEx)
 else
 	@echo "install.sh" >build_utils/LanguageSpecificInstallFileName
 endif
-	@echo "Build_package now set to use `cat build_utils/LanguageSpecificInstallFileName` for the language dependant installer script."
+	@echo "Build_package now set to use `cat build_utils/LanguageSpecificInstallFileName` for the language dependent installer script."
 
 
 clean:
