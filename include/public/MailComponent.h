@@ -89,6 +89,7 @@ class PlainTextBodyComponent : public MailComponent {
 		virtual status_t Render(BPositionIO *render_to);
 	private:
 		BString text;
+		BString decoded;
 		
 		mail_encoding encoding;
 		uint32 charset;

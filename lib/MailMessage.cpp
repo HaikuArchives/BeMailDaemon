@@ -272,11 +272,8 @@ status_t MailMessage::Instantiate(BPositionIO *mail_file, size_t length) {
 	mail_file->Seek(0,SEEK_SET);
 	
 	MailComponent::Instantiate(mail_file,length);
-	mail_file->Seek(0,SEEK_SET);
 	
-	MailComponent headers;
-	headers.Instantiate(mail_file,length);
-	_body = headers.WhatIsThis();
+	_body = WhatIsThis();
 	
 	mail_file->Seek(0,SEEK_SET);
 	_body->Instantiate(mail_file,length);
@@ -299,9 +296,9 @@ status_t MailMessage::Instantiate(BPositionIO *mail_file, size_t length) {
 	_body->RemoveHeader("Reply-To");
 	_body->RemoveHeader("CC");
 	
-	MIMEMultipartContainer *cont = (is_instance_of(_body, MIMEMultipartContainer)) ? ((MIMEMultipartContainer *)(_body)) : NULL;
-	
-	_num_components = (cont == NULL) ? 1 : cont->CountComponents();
+	_num_components = 1;
+	if (MIMEMultipartContainer *container = dynamic_cast<MIMEMultipartContainer *>(_body))
+		_num_components = container->CountComponents();
 	
 	// what about a better error handling/checking?
 	_status = B_OK;	

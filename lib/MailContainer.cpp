@@ -12,12 +12,22 @@ class _EXPORT MIMEMultipartContainer;
 #include <MailContainer.h>
 #include <MailAttachment.h>
 
+
 typedef struct message_part {
-	message_part(off_t start, off_t end) {this->start = start; this->end = end;}
+	message_part(off_t start, off_t end) { this->start = start; this->end = end; }
 	
 	int32 start;
 	int32 end;
 } message_part;
+
+enum multipart_reader_states {
+	CHECK_BOUNDARY_STATE = 4,
+	CHECK_PART_STATE,
+	
+	FOUND_BOUNDARY_STATE,
+	FOUND_END_STATE
+};
+
 
 MIMEMultipartContainer::MIMEMultipartContainer(const char *boundary, const char *this_is_an_MIME_message_text)
 	:
@@ -89,8 +99,9 @@ MailComponent *MIMEMultipartContainer::GetComponent(int32 index) {
 	_io_data->Seek(part->start,SEEK_SET);
 	
 	MailComponent component;
-	component.Instantiate(_io_data,part->end - part->start);
-	
+	if (component.Instantiate(_io_data,part->end - part->start) < B_OK)
+		return NULL;
+
 	MailComponent *piece = component.WhatIsThis();
 	
 	/* Debug code 
@@ -103,8 +114,11 @@ MailComponent *MIMEMultipartContainer::GetComponent(int32 index) {
 	*/
 	
 	_io_data->Seek(part->start,SEEK_SET);
-	piece->Instantiate(_io_data,part->end - part->start);
-	
+	if (piece->Instantiate(_io_data,part->end - part->start) < B_OK)
+	{
+		delete piece;
+		return NULL;
+	}
 	_components_in_code.ReplaceItem(index,piece);
 	
 	return piece;
@@ -145,6 +159,18 @@ status_t MIMEMultipartContainer::SetDecodedData(BPositionIO *) {
 	return B_BAD_TYPE; //------We don't play dat
 }
 
+static int8 check_state(char *buffer, int32 pos, int32 bytes)
+{
+	buffer += pos;
+
+	if (*buffer == '\r')
+		return FOUND_BOUNDARY_STATE;
+	if (!strncmp(buffer, "--\r", bytes - pos > 2 ? 3 : 2))
+		return FOUND_END_STATE;
+
+	return 0;
+}
+
 status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length)
 {
 	for (int32 i = _components_in_code.CountItems();i-- > 0;)
@@ -157,10 +183,7 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length)
 	
 	off_t position = data->Position();
 	MailComponent::Instantiate(data,length);
-	
-	length -= (data->Position() - position);
-		
-	BString end_delimiter;
+
 	BMessage content_type;
 	HeaderField("Content-Type",&content_type);
 	if (strncmp(content_type.FindString("unlabeled"),"multipart",9) != 0)
@@ -171,13 +194,86 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length)
 		
 	_boundary = strdup(content_type.FindString("boundary"));
 	
-	BString type = content_type.FindString("boundary");
-	type.Prepend("--");
-
-	end_delimiter << type << "--";
+	//
+	//	Find container parts
+	//
 	
-	off_t start = data->Position();
-	off_t offset = start;
+	int32 boundaryLength = strlen(_boundary);
+	int32 boundaryPos;
+	const char *expected = "\r\n--";
+	int8 state = 2;		// begin looking for '-'
+	char buffer[4096];	// buffer size must be at least as long as boundaryLength
+
+	off_t offset = data->Position();
+	off_t end = length + position;
+	int32 lastBoundary = -1;
+
+printf("parse chunk: %Lx - %Lx\n", offset, position + length);
+	while (offset < end)
+	{
+		ssize_t bytes = (offset + sizeof(buffer)) > end ? end - offset : sizeof(buffer);
+		bytes = data->Read(buffer, bytes);
+//printf("read %ld bytes (offset == 0x%Lx, end == 0x%Lx, state == %d)!\n",bytes,offset,end,state);
+		if (bytes <= 0)
+			break;
+		
+		for (int32 i = 0;i < bytes;i++)
+		{
+			switch (state)
+			{
+				case CHECK_BOUNDARY_STATE:	// check for boundary
+//printf("check for boundary: \"%s\": %-15.15s...\n",_boundary,buffer + i);
+					if ((bytes - i) > boundaryLength)	// string fits
+					{
+						boundaryPos = 0;
+						if (!strncmp(buffer + i, _boundary, boundaryLength))
+							state = check_state(buffer,boundaryLength + i,bytes);
+					}
+					else if (!strncmp(buffer + i, _boundary, boundaryPos = bytes - i))
+						state++;
+					else
+						state = 0;
+					break;
+				case CHECK_PART_STATE:		// check for part of boundary
+//printf("check for part of boundary: \"%s\": %s\n",_boundary,buffer + i);
+					if (!strncmp(buffer + i, _boundary + boundaryPos, boundaryLength - boundaryPos))
+						state = check_state(buffer,boundaryLength - boundaryPos + i,bytes);
+					else
+						state = 0;
+					break;
+				default:
+					if (buffer[i] == expected[state])
+						state++;
+					else if (state)
+					{
+						if (buffer[i] == expected[0])	// re-evaluate character
+							state = 1;
+						else
+							state = 0;
+					}
+					break;
+			}
+			if (state >= FOUND_BOUNDARY_STATE)
+			{
+				if (lastBoundary >= 0)
+				{
+				printf("found part from 0x%lx : 0x%lx\n",lastBoundary,(int32)offset + i - 2);
+					_components_in_raw.AddItem(new message_part(lastBoundary, offset + i - 2));
+					_components_in_code.AddItem(NULL);
+				}
+				if (state == FOUND_END_STATE)
+					break;
+
+				i += boundaryLength - boundaryPos;
+				lastBoundary = offset + i + 2;	// "--" boundary "\r\n"
+				state = 0;
+			}
+		}
+		offset += bytes;
+	}
+	/*
+	off_t start = offset;
+	//off_t offset = start;
 	ssize_t len, result;
 	BString line;
 	char buf[256];
@@ -217,9 +313,9 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length)
 		}
 		
 		line = "";
-		offset += len + 2 /* CRLF */;
+		offset += len + 2; // CRLF
 	}
-	
+	*/
 	return B_OK;
 }
 
@@ -241,23 +337,23 @@ status_t MIMEMultipartContainer::Render(BPositionIO *render_to) {
 			MailComponent *code = (MailComponent *)_components_in_code.ItemAt(i);
 			code->Render(render_to); //----Easy enough
 		} else {
-			uint8 copy_buf[255];
-			ssize_t len_to_copy = 255;
+			// copy message contents
+
+			uint8 buffer[1024];
+			ssize_t length;
 			message_part *part = (message_part *)_components_in_raw.ItemAt(i);
 			
-			for (off_t begin = part->start; begin < part->end; begin += 255) {
-				len_to_copy = ((part->end - begin) >= 255) ? 255 : (part->end - begin);
+			for (off_t begin = part->start; begin < part->end; begin += sizeof(buffer)) {
+				length = ((part->end - begin) >= sizeof(buffer)) ? sizeof(buffer) : (part->end - begin);
 				
-				_io_data->ReadAt(begin,copy_buf,len_to_copy);
-				render_to->Write(copy_buf,len_to_copy);
-			} //------Also not difficult
+				_io_data->ReadAt(begin,buffer,length);
+				render_to->Write(buffer,length);
+			}
 		}
 	}
 	
-	delimiter.Truncate(delimiter.Length() - 2 /* strip CRLF */);
-	delimiter << "--\r\n";
-	
-	render_to->Write(delimiter.String(),delimiter.Length());
+	render_to->Write(delimiter.String(),delimiter.Length() - 2);	// strip CRLF
+	render_to->Write("--\r\n",4);
 	
 	return B_OK;
 }

@@ -51,7 +51,6 @@ SimpleMailAttachment::~SimpleMailAttachment() {
 }
 
 status_t SimpleMailAttachment::FileName(char *text) {
-puts("SimpleMailAttachment::FileName()");
 	BMessage content_type;
 	HeaderField("Content-Type",&content_type);
 	
@@ -72,13 +71,16 @@ void SimpleMailAttachment::SetFileName(const char *name) {
 }
 
 status_t SimpleMailAttachment::GetDecodedData(BPositionIO *data) {
-	char buffer[255];
-	size_t len = 255;
+	if (!_data)
+		return B_IO_ERROR;
+
+	char buffer[256];
+	ssize_t length;
 	_data->Seek(0,SEEK_SET);
-	
-	while ((len = _data->Read(buffer,255)) > 0)
-		data->Write(buffer,len);
-		
+
+	while ((length = _data->Read(buffer,sizeof(buffer))) > 0)
+		data->Write(buffer,length);
+
 	return B_OK;
 }
 
@@ -333,7 +335,6 @@ status_t AttributedMailAttachment::SetDecodedData(BPositionIO *data) {
 	_data->SetDecodedData(data);
 	return B_OK;
 }
-
 		
 status_t AttributedMailAttachment::Instantiate(BPositionIO *data, size_t length) {
 	status_t err;
@@ -352,11 +353,14 @@ status_t AttributedMailAttachment::Instantiate(BPositionIO *data, size_t length)
 	if (_attributes_attach != NULL)
 		delete _attributes_attach;
 	_attributes.MakeEmpty();
-	
-	//------This needs error checking badly------
-	_data = (SimpleMailAttachment *)GetComponent(0);
-	_attributes_attach = (SimpleMailAttachment *)GetComponent(1);
-	
+
+	// get data and attributes	
+	if ((_data = (SimpleMailAttachment *)GetComponent(0)) == NULL)
+		return B_BAD_VALUE;
+	if ((_attributes_attach = (SimpleMailAttachment *)GetComponent(1)) == NULL
+		|| _attributes_attach->GetDecodedData() == NULL)
+		return B_BAD_VALUE;
+
 	int32		len;
 	int32		index = 0;
 	type_code	code;

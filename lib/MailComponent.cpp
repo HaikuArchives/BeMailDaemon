@@ -24,6 +24,7 @@ struct CharsetConversionEntry
 extern const CharsetConversionEntry charsets[21];
 
 MailComponent::MailComponent() {}
+MailComponent::~MailComponent() {}
 
 uint32 MailComponent::ComponentType()
 {
@@ -125,13 +126,13 @@ const char *MailComponent::HeaderField(const char *key, int32 index) {
 }
 
 status_t MailComponent::HeaderField(const char *key, BMessage *structure, int32 index) {
-	BString string,sub_cat,end_piece;
-	
-	string = HeaderField(key,index);
+	BString string = HeaderField(key,index);
 	if (string == "")
 		return B_NAME_NOT_FOUND;
 	
+	BString sub_cat,end_piece;
 	int32 i = 0, end = 0;
+
 	while (end < string.Length()) {
 		end = string.FindFirst(';',i);
 		if (end < 0)
@@ -176,9 +177,6 @@ status_t MailComponent::RemoveHeader(const char *key) {
 }
 
 const char *MailComponent::HeaderAt(int32 index) {
-
-// This is really compiler dependent, but I don't know how to
-// check for the subversion of gcc.
 #if B_BEOS_VERSION_DANO
 	const
 #endif
@@ -197,10 +195,9 @@ status_t MailComponent::Instantiate(BPositionIO *data, size_t /*length*/) {
 	
 	headers.MakeEmpty();
 	
-	BString string,piece;
-	char *		buf = (char *)malloc(1);
-	size_t		buflen = 0;
-	int32		len;
+	char *	buf = (char *)malloc(1);
+	size_t	buflen = 0;
+	int32	len;
 	//
 	// Parse the header
 	//
@@ -214,15 +211,15 @@ status_t MailComponent::Instantiate(BPositionIO *data, size_t /*length*/) {
 		
 		// terminate
 		buf[len] = 0;
-		string.SetTo(buf);
-		
-		if (string.FindFirst(": ") < 0)
-			continue;
-		
-		string.CopyInto(piece,0,string.FindFirst(": "));
-		piece.CapitalizeEachWord(); //-------Unified case for later fetch
-		
-		headers.AddString(piece.String(),string.String() + piece.Length() + 2);
+
+		const char *delimiter = strstr(buf, ": ");
+		if (delimiter == NULL)
+			continue;	
+
+		BString header(buf, delimiter - buf);
+		header.CapitalizeEachWord(); //-------Unified case for later fetch
+
+		headers.AddString(header.String(),delimiter + 2);
 	}
 	free(buf);
 
@@ -284,16 +281,24 @@ status_t MailComponent::MIMEType(BMimeType *mime) {
 	return B_OK;
 }
 
-MailComponent::~MailComponent() {}
+
+//-------------------------------------------------------------------------
+//	#pragma mark -
+
 
 PlainTextBodyComponent::PlainTextBodyComponent(const char *text) 
 	: MailComponent(),
 	encoding(quoted_printable),
-	charset(B_ISO1_CONVERSION) {
-		if (text != NULL)
-			SetText(text);
+	charset(B_ISO1_CONVERSION)
+{
+	if (text != NULL)
+		SetText(text);
 			
-		SetHeaderField("MIME-Version","1.0");
+	SetHeaderField("MIME-Version","1.0");
+}
+
+PlainTextBodyComponent::~PlainTextBodyComponent()
+{
 }
 
 void PlainTextBodyComponent::SetEncoding(mail_encoding encoding, int32 charset) {
@@ -328,8 +333,14 @@ void PlainTextBodyComponent::Quote(const char *message, const char *quote_style)
 }
 
 status_t PlainTextBodyComponent::GetDecodedData(BPositionIO *data) {
-	data->Write(text.String(),text.Length());
-	return B_OK;
+	BMimeType type;
+	ssize_t written;
+	if (MIMEType(&type) == B_OK && type == "text/plain")
+		written = data->Write(text.String(),text.Length());
+	else
+		written = data->Write(decoded.String(), decoded.Length());
+
+	return written >= 0 ? B_OK : written;
 }
 
 status_t PlainTextBodyComponent::SetDecodedData(BPositionIO *data)  {
@@ -348,8 +359,8 @@ status_t PlainTextBodyComponent::Instantiate(BPositionIO *data, size_t length) {
 	off_t position = data->Position();
 	MailComponent::Instantiate(data,length);
 	
-	length -= (data->Position() - position);
-		
+	length -= data->Position() - position;
+	
 	//--------Note: the following code blows up on MIME components. Not sure how to fix.
 	/*if (HeaderField("MIME-Version") == NULL) {
 		text = "";
@@ -383,43 +394,37 @@ status_t PlainTextBodyComponent::Instantiate(BPositionIO *data, size_t length) {
 	if (encoding_string.IFindFirst("quoted-printable") >= 0)
 		encoding = quoted_printable;
 	
-	char buffer[255];
-	size_t buf_len;
+	char *buffer = (char *)malloc(length + 1);
+	if (buffer == NULL)
+		return B_NO_MEMORY;
 	
-	BString alternate, alt2;
-	for (int32 offset = 0; (buf_len = data->Read(buffer,((length - offset) >= 254) ? 254 : (length - offset))) > 0; offset += buf_len) { 
-		buffer[buf_len] = 0;
-		alternate << buffer;
-	}
-	
-	ssize_t len;
-	char *text = alt2.LockBuffer(alternate.Length()+1);
+	ssize_t bytes;
+	if ((bytes = data->Read(buffer,length)) < 0)
+		return bytes;
+
+	char *string = decoded.LockBuffer(bytes + 1);
 	switch (encoding) {
 		case 'b':
-			len = decode_base64(text,alternate.String(),alternate.Length());
+			bytes = decode_base64(string,buffer,bytes);
 			break;
 		case 'q':
-			len = decode_qp(text,alternate.String(),alternate.Length());
+			bytes = decode_qp(string,buffer,bytes);
 			break;
 		default:
-			len = alternate.Length();
-			memcpy(text,alternate.String(),alternate.Length());
+			memcpy(string,buffer,bytes);
 	}
-	alt2.UnlockBuffer(len);
+	decoded.UnlockBuffer(bytes);
+	decoded.ReplaceAll("\r\n","\n");
 	
-	
-	alt2.ReplaceAll("\r\n","\n");
-	
-	text = this->text.LockBuffer(len * 2);
-	int32 dest_len = len * 2;
+	string = text.LockBuffer(bytes * 2);
+	int32 destLength = bytes * 2;
 	int32 state;
-	puts(alt2.String());
-	convert_to_utf8(charset,alt2.String(),&len,text,&dest_len,&state);
-	if (dest_len > 0)
-		this->text.UnlockBuffer(dest_len);
+	convert_to_utf8(charset,decoded.String(),&bytes,string,&destLength,&state);
+	if (destLength > 0)
+		text.UnlockBuffer(destLength);
 	else {
-		this->text.UnlockBuffer(0);
-		this->text.SetTo(alt2);
+		text.UnlockBuffer(0);
+		text.SetTo(decoded);
 	}
 	
 	return B_OK;
@@ -513,4 +518,3 @@ status_t PlainTextBodyComponent::Render(BPositionIO *render_to) {
 	return B_OK;
 }
 
-PlainTextBodyComponent::~PlainTextBodyComponent() {}
