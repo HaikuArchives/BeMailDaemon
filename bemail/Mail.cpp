@@ -115,7 +115,7 @@ int32 		gDictCount = 0;
 uint32		gDefaultChain;
 
 static const char *kDraftPath = "mail/draft";
-static const char *kDraftType = "text/plain";
+static const char *kDraftType = "text/x-vnd.Be-MailDraft";
 static const char *kMailFolder = "mail";
 static const char *kMailboxFolder = "mail/mailbox";
 
@@ -679,7 +679,7 @@ void TMailApp::RefsReceived(BMessage *msg)
 
 					}
 				}
-				else if( strcmp(type, kDraftType) == 0 )
+				else if (!strcmp(type, kDraftType))
 				{
 					window = NewWindow();
 					
@@ -2617,7 +2617,7 @@ status_t TMailWindow::Send(bool now)
 		#endif
 
 		message_id << ">";
-		mail->AddHeaderField(mail_encoding, "Message-Id: ", message_id.String());
+		mail->AddHeaderField(mail_encoding, "Message-ID: ", message_id.String());
 		/****/
 		
 		if ((len = fContentView->fTextView->TextLength()) != 0)
@@ -2709,17 +2709,28 @@ status_t TMailWindow::SaveAsDraft( void )
 					return status;
 			case B_OK:
 				{
-					char fileName[512];
+					char fileName[512], *eofn;
 					int32 i;
 					
-					flags = B_WRITE_ONLY | B_CREATE_FILE | B_FAIL_IF_EXISTS;
+					// save as some version of the message's subject
+					strncpy(fileName, fHeaderView->fSubject->Text(), sizeof(fileName)-10);
+					fileName[sizeof(fileName)-10]='\0';  // terminate like strncpy doesn't
+					eofn = fileName + strlen(fileName);
+					
+					// convert /, \ and : to -
+					for (char *bad = fileName; (bad = strchr(bad, '/')); ++bad) *bad = '-';
+					for (char *bad = fileName; (bad = strchr(bad, '\\'));++bad) *bad = '-';
+					for (char *bad = fileName; (bad = strchr(bad, ':')); ++bad) *bad = '-';
+
 					// Create the file; if the name exists, find a unique name
-					for( i=1, strcpy( fileName, fHeaderView->fSubject->Text() ); (status = draft.SetTo(&dir, fileName, flags )) != B_OK; i++ )
+					flags = B_WRITE_ONLY | B_CREATE_FILE | B_FAIL_IF_EXISTS;
+					for (i = 1;(status = draft.SetTo(&dir, fileName, flags )) != B_OK;i++)
 					{
 						if( status != B_FILE_EXISTS )
 							return status;
-						sprintf( fileName, "%s %ld", fHeaderView->fSubject->Text(), i );
+						sprintf(eofn, "%ld", i );
 					}
+					
 					// Cache the ref
 					if( fRef )
 						delete fRef;
