@@ -15,6 +15,7 @@
 #include <base64.h>
 #include <MailSettings.h>
 #include <ChainRunner.h>
+#include <crypt.h>
 
 #include "smtp.h"
 #include "md5.h"
@@ -56,7 +57,14 @@ SMTPProtocol::SMTPProtocol(BMessage *message, StatusView *view) :
 			return;
 		}
 			
-		err = Login(_settings->FindString("username"),_settings->FindString("password"));
+		const char *password = _settings->FindString("password");
+		char *passwd = get_passwd(_settings,"cpasswd");
+		if (passwd)
+			password = passwd;
+
+		err = Login(_settings->FindString("username"),password);
+		delete passwd;
+
 		if (err < B_OK) {
 			//-----This is a really cool kind of error message. How can we make it work for POP3?
 			error_msg << "Error while logging in to " << _settings->FindString("server") << ". The server said:\n" << fLog;

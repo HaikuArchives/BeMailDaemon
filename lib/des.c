@@ -1,4 +1,4 @@
-/* DES - encryption algorithm used for passwords, removed double and triple DES
+/* DES - encryption algorithm, removed double and triple DES
 **
 ** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
 */
@@ -63,17 +63,28 @@ static unsigned char pc2[48] = {
 	43, 48, 38, 55, 33, 52,	45, 41, 49, 35, 28, 31 };
 
 
-void des_decrypt(char *in,char *out)
+void des_decrypt(char *in,int length,char *out)
 {
 	des_setkey(ZOIDBERG_KEY,DES_DECRYPT);
-	des_crypt(in,out);
+	length = (length + 7) / 8;
+	while (length-- > 0)
+	{
+		des_crypt(in,out);
+		in += 8;	out += 8;
+	}
 }
 
 
 void des_encrypt(char *in,char *out)
 {
+	int length = (strlen(in) + 7) / 8;
+
 	des_setkey(ZOIDBERG_KEY,DES_ENCRYPT);
-	des_crypt(in,out);
+	while (length-- > 0)
+	{
+		des_crypt(in,out);
+		in += 8;	out += 8;
+	}
 }
 
 

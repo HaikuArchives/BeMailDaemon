@@ -11,6 +11,8 @@
 
 class _EXPORT ProtocolConfigView;
 
+#include <crypt.h>
+
 #include "ProtocolConfigView.h"
 
 //--------------------Support functions and #defines---------------
@@ -132,7 +134,15 @@ void ProtocolConfigView::SetTo(BMessage *archive) {
 
 	SetTextControl(this,"host",host.String());
 	SetTextControl(this,"user",archive->FindString("username"));
-	SetTextControl(this,"pass",archive->FindString("password"));
+
+	char *password = get_passwd(archive,"cpasswd");
+	if (password)
+	{
+		SetTextControl(this,"pass",password);
+		delete password;
+	}
+	else
+		SetTextControl(this,"pass",archive->FindString("password"));
 	
 	if (archive->HasInt32("flavor")) {
 		BMenuField *menu = (BMenuField *)(FindView("flavor"));
@@ -241,10 +251,12 @@ status_t ProtocolConfigView::Archive(BMessage *into, bool) const {
 
 	if (into->ReplaceString("username",TextControl((BView *)this,"user")) != B_OK)
 		into->AddString("username",TextControl((BView *)this,"user"));
-		
-	if (into->ReplaceString("password",TextControl((BView *)this,"pass")) != B_OK)
-		into->AddString("password",TextControl((BView *)this,"pass"));
-	
+
+	// remove old unencrypted passwords		
+	into->RemoveName("password");
+
+	set_passwd(into,"cpasswd",TextControl((BView *)this,"pass"));
+
 	BMenuField *field;
 	int32 index = -1;
 	

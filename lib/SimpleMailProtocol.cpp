@@ -7,6 +7,8 @@
 
 class _EXPORT SimpleMailProtocol;
 
+#include <crypt.h>
+
 #include "MailProtocol.h"
 #include "StringList.h"
 #include "MessageIO.h"
@@ -31,8 +33,15 @@ status_t SimpleMailProtocol::Init() {
 	error = Open(settings->FindString("server"),settings->FindInt32("port"),settings->FindInt32("flavor"));
 	if (error < B_OK)
 		return error;
-		
-	error = Login(settings->FindString("username"),settings->FindString("password"),settings->FindInt32("auth_method"));
+	
+	const char *password = settings->FindString("password");
+	char *passwd = get_passwd(settings,"cpasswd");
+	if (passwd)
+		password = passwd;
+
+	error = Login(settings->FindString("username"),password,settings->FindInt32("auth_method"));
+
+	delete passwd;
 	
 	return error;
 }

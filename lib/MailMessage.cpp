@@ -7,6 +7,7 @@
 
 #include <malloc.h>
 #include <string.h>
+#include <sys/utsname.h>
 
 class _EXPORT MailMessage;
 
@@ -18,7 +19,7 @@ class _EXPORT MailMessage;
 #define mime_boundary "----------Zoidberg-BeMail-temp--------"
 #define mime_warning "This is a multipart message in MIME format."
 
-MailMessage::MailMessage(BPositionIO *mail_file) : _num_components(0), _body(NULL) {}
+MailMessage::MailMessage(BPositionIO * /*mail_file*/) : _num_components(0), _body(NULL) {}
 
 const char *MailMessage::To() {
 	return _body->HeaderField("To");

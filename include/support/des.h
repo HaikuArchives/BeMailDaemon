@@ -1,11 +1,11 @@
 #ifndef DES_H
 #define DES_H
-/* DES - encryption algorithm used for passwords, removed double and triple DES
+/* DES - encryption algorithm, removed double and triple DES
 **
 ** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
 */
 
-/* des.h - adapted and stolen from d3des.h:
+/* des.h - adapted from d3des.h:
  *
  *	Headers and defines for d3des.c
  *	Graven Imagery, 1992.
@@ -18,7 +18,7 @@
 #define DES_DECRYPT	1	/* MODE == decrypt */
 
 
-#ifdef cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -48,9 +48,9 @@ extern void des_crypt(unsigned char *, unsigned char *);
  */
 
 extern void des_encrypt(char *from,char *to);
-extern void des_decrypt(char *from,char *to);
+extern void des_decrypt(char *from,int fromLength,char *to);
 
-#ifdef cplusplus
+#ifdef __cplusplus
 }
 #endif
 
