@@ -374,8 +374,10 @@ status_t MailMessage::Render(BPositionIO *file) {
 }
 	
 status_t MailMessage::RenderTo(BDirectory *dir) {
-	BString name;
-	name << "\"" << Subject() << "\": <" << To() << ">";
+	BString name = Subject();
+	name.ReplaceAll('/','\\');
+	name.Prepend("\"");
+	name << "\": <" << To() << ">";
 	
 	BString worker;
 	int32 uniquer = time(NULL);
