@@ -1068,7 +1068,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 
 	menu->AddSeparatorItem();
 	menu->AddItem(fPrint = new BMenuItem(
-		MDR_DIALECT_CHOICE ("Page Setup", "S) ページ設定") B_UTF8_ELLIPSIS,
+		MDR_DIALECT_CHOICE ("Page Setup", "G) ページ設定") B_UTF8_ELLIPSIS,
 		new BMessage(M_PRINT_SETUP)));
 	menu->AddItem(fPrint = new BMenuItem(
 		MDR_DIALECT_CHOICE ("Print", "P) 印刷") B_UTF8_ELLIPSIS,
