@@ -31,8 +31,10 @@
 #ifndef JAF_REGEX_H
 #define JAF_REGEX_H
 
-// BeOS x86 includes regex
-#ifdef __PPC__
+// BeOS x86 includes regex, PPC does not
+#ifndef __PPC__
+#	include <posix/regex.h>
+#else
 
 /* POSIX says that <sys/types.h> must be included (by the caller) before
    <regex.h>.  */
@@ -501,9 +503,7 @@ extern size_t regerror
 //extern void regfree _RE_ARGS ((regex_t *preg));
 extern void regfree(regex_t * preg);
 
-#else
-#	include <posix/regex.h>
 #endif	/* __PPC__ */
 
-#endif /* not JAF_REGEX_H */
+#endif	/* not JAF_REGEX_H */
 
