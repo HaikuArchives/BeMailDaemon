@@ -377,7 +377,7 @@ BView* instantiate_config_panel(BMessage *settings) {
 	
 	BTextControl *control = (BTextControl *)(view->FindView("host"));
 	control->SetLabel("SMTP Host: ");
-	control->SetDivider(be_plain_font->StringWidth("SMTP Host: "));
+	//control->SetDivider(be_plain_font->StringWidth("SMTP Host: "));
 	
 	view->SetTo(settings);
 	
