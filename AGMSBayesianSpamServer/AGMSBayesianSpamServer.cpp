@@ -74,6 +74,9 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
+ * Revision 1.76  2002/12/18 02:29:22  agmsmith
+ * Add space for the Uncertain display in Tracker.
+ *
  * Revision 1.75  2002/12/18 01:54:37  agmsmith
  * Added uncertain sound effect.
  *
@@ -2088,10 +2091,11 @@ void ABSApp::AddWordsToSet (
       Letter = (unsigned char) *InputString++;
 
     /* Convert to lower case to improve word matches.  Of course this loses a
-    bit of information, such as MONEY vs Money, an indicator of spam. */
-
+    bit of information, such as MONEY vs Money, an indicator of spam.  Well,
+    apparently that is actually a useful distinction, so leave the case alone.
     if (Letter >= 0 && Letter < 128)
       Letter = tolower (Letter);
+    */
 
     /* See if it is a letter we treat as white space - all control characters
     and all punctuation except for: apostrophe (so "it's" and possessive
@@ -4554,10 +4558,11 @@ status_t ABSApp::TokenizeWhole (
     }
 
     /* Convert to lower case to improve word matches.  Of course this loses a
-    bit of information, such as MONEY vs Money, an indicator of spam. */
-
+    bit of information, such as MONEY vs Money, an indicator of spam.  Well,
+    apparently that is actually a useful distinction, so leave the case alone.
     if (Letter >= 0 && Letter < 128)
       Letter = tolower (Letter);
+    */
 
     /* See if it is a letter we treat as white space - all control characters
     and all punctuation except for: apostrophe (so "it's" and possessive
