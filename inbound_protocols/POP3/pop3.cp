@@ -313,6 +313,24 @@ status_t POP3Protocol::UniqueIDs() {
 		unique_ids->AddItem(result.String());
 	}
 	
+	if (SendCommand("LIST"CRLF) != B_OK)
+		return B_ERROR;
+	
+	int32 i(0),b;
+	while (ReceiveLine(result) > 0) {
+		if (result.ByteAt(0) == '.')
+			break;
+			
+		b = result.FindLast(" ");
+		if (b >= 0)
+			b = atol(&(result.String()[b]));
+		else
+			b = 0;
+		sizes[i] = b;
+		printf("Size of message %d is %d bytes (%s)\n",i,b,result.String());
+		i++;
+	}
+
 	return ret;
 }
 
@@ -330,21 +348,7 @@ void POP3Protocol::Delete(int32 num) {
 
 
 size_t POP3Protocol::MessageSize(int32 index) {
-	int32 i = sizes[index];
-	if (i > 0)
-		return i;
-	BString cmd = "LIST ";
-	cmd << (index+1) << CRLF;
-	if (SendCommand(cmd.String()) != B_OK)
-		return 0;
-	puts(fLog.String());
-	i = fLog.FindLast(" ");
-	if (i >= 0)
-		i = atol(&(fLog.String()[i]));
-	else
-		i = 0;
-	sizes[index] = i;
-	return i;
+	return sizes[index];
 }
 
 
