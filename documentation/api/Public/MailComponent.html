@@ -37,7 +37,7 @@
    from:</B></FONT>&nbsp;none<BR>
    <FONT FACE="helvetica"><B>Declared in:</B></FONT>&nbsp;
    include/public/MailComponent.h<BR>
-   <FONT FACE="helvetica"><B>Library:</B></FONT>&nbsp;libnumail.so<BR>
+   <FONT FACE="helvetica"><B>Library:</B></FONT>&nbsp;libmail.so<BR>
    
    <P><BR>
    </P>
@@ -437,7 +437,9 @@ and
    <P>Employs simple heuristics such as the MIME type to present you
    with an instance of a useful subclass of MailComponent. You can
    then use any of MailComponent's hook functions or RTTI calls to
-   get more information.</P></BLOCKQUOTE>
+   get more information. Bear in mind that the returned component is
+   <I>not</I> set to any data. You must still <A HREF="#Instantiate">Instantiate()</A>
+   it from whatever data this object was instantiated from.</P></BLOCKQUOTE>
 
 <P>
 
