@@ -74,6 +74,9 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
+ * Revision 1.73  2002/12/13 20:55:57  agmsmith
+ * Documentation.
+ *
  * Revision 1.72  2002/12/13 20:26:11  agmsmith
  * Fixed bug with adding messages in strings to database (was limited to
  * messages at most 1K long).  Also changed default server mode to true
@@ -911,6 +914,7 @@ private:
   BButton        *m_CreateDatabaseButtonPntr;
   char            m_DatabaseFileNameCachedValue [PATH_MAX];
   BTextControl   *m_DatabaseFileNameTextboxPntr;
+  bool            m_DatabaseLoadDone;
   BButton        *m_EstimateSpamButtonPntr;
   BFilePanel     *m_EstimateSpamFilePanelPntr;
   uint32          m_GenuineCountCachedValue;
@@ -5099,6 +5103,7 @@ ControlsView::ControlsView (BRect NewBounds)
   m_BrowseFilePanelPntr (NULL),
   m_CreateDatabaseButtonPntr (NULL),
   m_DatabaseFileNameTextboxPntr (NULL),
+  m_DatabaseLoadDone (false),
   m_EstimateSpamButtonPntr (NULL),
   m_EstimateSpamFilePanelPntr (NULL),
   m_GenuineCountTextboxPntr (NULL),
@@ -5943,6 +5948,18 @@ void ControlsView::PollServerForChanges ()
   if (WindowPntr->IsMinimized ())
     return; /* Window isn't visible, don't waste time updating it. */
 
+  /* So that people don't stare at a blank screen, request a database load if
+  nothing is there.  But only do it once, so the user doesn't get a lot of
+  invalid database messages if one doesn't exist yet.  In server mode, we never
+  get this far so it is only loaded when the user wants to see something. */
+
+  if (!m_DatabaseLoadDone)
+  {
+    m_DatabaseLoadDone = true;
+    /* Counting the number of words will load the database. */
+    SubmitCommandString (PN_DATABASE_FILE, B_COUNT_PROPERTIES, "");
+  }
+
   /* Check various read only values, which can be read from the BApplication
   without having to lock it.  This is useful for displaying the number of words
   as it is changing.  First up is the purge age setting. */
@@ -6097,6 +6114,13 @@ DatabaseWindow::DatabaseWindow ()
   if (m_WordsViewPntr == NULL)
     goto ErrorExit;
   AddChild (m_WordsViewPntr);
+
+  /* Minimize the window if we are starting up in server mode.  This is done
+  before the window is open so it doesn't flash onto the screen, and possibly
+  steal a keystroke or two.  The ControlsView will further update the minimize
+  mode when it detects changes in the server mode. */
+
+  Minimize (g_ServerMode);
 
   return;
 
