@@ -188,7 +188,7 @@ THeaderView::THeaderView (
 		// Set up the character set pop-up menu on the right of "To" box.
 		r.Set (windowRect.Width() - widestCharacterSet -
 			font.StringWidth (ENCODING_TEXT) - 2 * SEPARATOR_MARGIN,
-			y - 2, windowRect.Width() - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT + 3);
+			y - 2, windowRect.Width() - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT + 2);
 		field = new BMenuField (r, "encoding", ENCODING_TEXT, fEncodingMenu,
 			true /* fixedSize */,
 			B_FOLLOW_TOP | B_FOLLOW_LEFT,
@@ -294,10 +294,10 @@ THeaderView::THeaderView (
 				gDefaultChain = fChain;
 			}
 		}
-		r.Set(x - font.StringWidth(FROM_TEXT) - 11, y - 1,
-			  field->Frame().left - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT);
+		r.Set(x - font.StringWidth(FROM_TEXT) - 11, y - 2,
+			  field->Frame().left - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT + 2);
 		field = new BMenuField(r, "account", FROM_TEXT, fAccountMenu,
-			false /* fixedSize */,
+			true /* fixedSize */,
 			B_FOLLOW_TOP | B_FOLLOW_LEFT,
 			B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
 		field->SetFont(&font);
