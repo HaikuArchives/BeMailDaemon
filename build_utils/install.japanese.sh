@@ -26,7 +26,7 @@ BeOSのメールデーモンは
 　保存します。
 　（2回目以降は選択しないでください）
 「Don't do anything!」：
-　インストールを中止します。" "Purge" "Backup" "Don't do anything!"`
+　インストールを中止します。" "Purge" "Backup" "Abort - Don't do anything!"`
 
 if [[ $RETURN = Purge ]]
 then

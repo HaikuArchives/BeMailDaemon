@@ -9,7 +9,7 @@ fi
 
 RETURN=`alert "There can only be ONE version of mail_daemon on the system at one time (see the enclosed README file for why).
 
-Choose 'Backup' if you wish to keep your old mail_daemon, E-mail preferences app, and BeMail, and this is the first time you're installing the Mail Daemon Replacement.  Otherwise, you should choose 'Purge' to clear the other versions from your system." "Purge" "Backup" "Don't do anything!"`
+Choose 'Backup' if you wish to keep your old mail_daemon, E-mail preferences app, and BeMail, and this is the first time you're installing the Mail Daemon Replacement.  Otherwise, you should choose 'Purge' to clear the other versions from your system." "Purge" "Backup" "Abort - Don't do anything!"`
 
 if [[ $RETURN = Purge ]]
 then
