@@ -289,9 +289,9 @@ MailDaemonApp::MessageReceived(BMessage *msg)
 			}
 			if (alert_string != B_EMPTY_STRING) {
 				alert_string.Truncate(alert_string.Length()-1);
-				MDR_DIALECT_CHOICE (
-					ShowAlert("New Messages",alert_string.String());,
-					ShowAlert("新しいメッセージ",alert_string.String());)
+				BAlert *alert = new BAlert(MDR_DIALECT_CHOICE ("New Messages","新着メッセージ"), alert_string.String(), "OK", NULL, NULL, B_WIDTH_AS_USUAL);
+				alert->SetFeel(B_NORMAL_WINDOW_FEEL);
+				alert->Go(NULL);
 				alert_string = B_EMPTY_STRING;
 			}
 			if (central_beep) {
