@@ -145,10 +145,11 @@ ADDON INSTALLATION.
 
 HISTORY:
 
-December 16 2002 - v2.0.0b8
+December 17 2002 - v2.0.0b8
 - Date format changed slightly to make it compliant to RFC-822 (some other mail apps had problems understanding it).
 - decode_base64() should now work with single character line breaks as well.
 - Changed default spam cutoff ratio to 0.95 to correspond to the default Chi-Squared scoring method.
+- Added Uncertain spam classification as suggested by BiPolar.  This also means adding a Genuine cutoff number, a new sound effect, change the prefs window, etc.
 
 December 13 2002 - v2.0.0b7
 - Fixed vman's bug with TABs after the colon in the headers making it ignore the header.
