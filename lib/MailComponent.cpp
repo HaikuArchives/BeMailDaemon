@@ -109,7 +109,11 @@ status_t MailComponent::Render(BPositionIO *render_to) {
 	type_code stupidity_personified = B_STRING_TYPE;
 	int32 count = 0;
 	
-	for (int32 index = 0; headers.GetInfo(B_STRING_TYPE,index,&key,&stupidity_personified,&count) == B_OK; index++) {
+	for (int32 index = 0; headers.GetInfo(B_STRING_TYPE,index,
+#ifndef B_BEOS_VERSION_DANO
+	(char**)
+#endif
+				&key,&stupidity_personified,&count) == B_OK; index++) {
 		for (int32 g = 0; g < count; g++) {
 			headers.FindString(key,g,(const char **)&value);
 			allocd = (char *)malloc(strlen(value) + 1);
