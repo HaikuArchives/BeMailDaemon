@@ -284,7 +284,8 @@ Message::GetName(char *name, int32 maxLength) const
 
 		return status >= 0 ? B_OK : status;
 	}
-
+	// ToDo: look at From header?  But usually there is
+	// a file since only the BeMail GUI calls this.
 	return B_ERROR;
 }
 
