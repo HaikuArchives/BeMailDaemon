@@ -54,6 +54,8 @@ All rights reserved.
 #include <StorageKit.h>
 #include <String.h>
 #include <UTF8.h>
+#include <Debug.h>
+#include <Autolock.h>
 
 #include <fs_index.h>
 #include <fs_info.h>
@@ -102,7 +104,31 @@ const char *kRedoStrings[] = {
 	MDR_DIALECT_CHOICE ("Redo Drop", "Z) やり直し（ドロップ）")
 };
 
+// Spam related globals.
+static bool			 gShowSpamGUI = true;
+static BMessenger	 gMessengerToSpamServer;
+static const char	*kSpamServerSignature = "application/x-vnd.agmsmith.AGMSBayesianSpamServer";
 
+static const char *kDraftPath = "mail/draft";
+static const char *kDraftType = "text/x-vnd.Be-MailDraft";
+static const char *kMailFolder = "mail";
+static const char *kMailboxFolder = "mail/mailbox";
+
+static const char *kDictDirectory = "word_dictionary";
+static const char *kIndexDirectory = "word_index";
+static const char *kWordsPath = "/boot/optional/goodies/words";
+static const char *kExact = ".exact";
+static const char *kMetaphone = ".metaphone";
+
+// Text for both the main menu and the pop-up menu.
+static const char *kSpamMenuItemTextArray[] = {
+	"Train as Spam, then Move to Trash",	// M_TRAIN_SPAM_AND_DELETE
+	"Train as Spam",						// M_TRAIN_SPAM
+	"Untrain this Message",					// M_UNTRAIN
+	"Train as Genuine"						// M_TRAIN_GENUINE
+};
+
+// global variables
 bool		gHelpOnly = false;
 bool		header_flag = false;
 bool		wrap_mode = true;
@@ -128,29 +154,9 @@ bool		gStartWithSpellCheckOn = false;
 uint32		gDefaultChain;
 int32		gUseAccountFrom;
 
-// Spam related globals.
-static bool			 gShowSpamGUI = true;
-static BMessenger	 gMessengerToSpamServer;
-static const char	*kSpamServerSignature = "application/x-vnd.agmsmith.AGMSBayesianSpamServer";
-
-static const char *kDraftPath = "mail/draft";
-static const char *kDraftType = "text/x-vnd.Be-MailDraft";
-static const char *kMailFolder = "mail";
-static const char *kMailboxFolder = "mail/mailbox";
-
-static const char *kDictDirectory = "word_dictionary";
-static const char *kIndexDirectory = "word_index";
-static const char *kWordsPath = "/boot/optional/goodies/words";
-static const char *kExact = ".exact";
-static const char *kMetaphone = ".metaphone";
-
-// Text for both the main menu and the pop-up menu.
-static const char *kSpamMenuItemTextArray[] = {
-	"Train as Spam, then Move to Trash",	// M_TRAIN_SPAM_AND_DELETE
-	"Train as Spam",						// M_TRAIN_SPAM
-	"Untrain this Message",					// M_UNTRAIN
-	"Train as Genuine"						// M_TRAIN_GENUINE
-};
+// static list for tracking of Windows
+BList TMailWindow::sWindowList;
+BLocker TMailWindow::sWindowListLock;
 
 
 //====================================================================
@@ -202,8 +208,7 @@ TMailApp::TMailApp()
 	fFont(*be_plain_font),
 	fWindowCount(0),
 	fPrefsWindow(NULL),
-	fSigWindow(NULL),
-	fTrackerMessenger(NULL)
+	fSigWindow(NULL)
 {
 	// set default values
 	fFont.SetSize(FONT_SIZE);
@@ -227,21 +232,23 @@ TMailApp::TMailApp()
 
 TMailApp::~TMailApp()
 {
-	delete fTrackerMessenger;
 }
 
 
-void TMailApp::AboutRequested()
+void
+TMailApp::AboutRequested()
 {
-	(new BAlert("", "BeMail\nBy Robert Polic\n\n"
-					"Enhanced by Axel Dörfler and the Dr. Zoidberg crew\n\n"
-					"Mail.cpp $Revision$\n"
-					"Compiled on " __DATE__ " at " __TIME__ ".",
-					"Close"))->Go();
+	(new BAlert("",
+		"BeMail\nBy Robert Polic\n\n"
+		"Enhanced by Axel Dörfler and the Dr. Zoidberg crew\n\n"
+		"Mail.cpp $Revision$\n"
+		"Compiled on " __DATE__ " at " __TIME__ ".",
+		"Close"))->Go();
 }
 
 
-void TMailApp::ArgvReceived(int32 argc, char **argv)
+void
+TMailApp::ArgvReceived(int32 argc, char **argv)
 {
 	BEntry entry;
 	BString names;
@@ -330,7 +337,8 @@ void TMailApp::ArgvReceived(int32 argc, char **argv)
 }
 
 
-void TMailApp::MessageReceived(BMessage *msg)
+void
+TMailApp::MessageReceived(BMessage *msg)
 {
 	TMailWindow	*window = NULL;
 	entry_ref	ref;
@@ -509,12 +517,14 @@ void TMailApp::MessageReceived(BMessage *msg)
 }
 
 
-bool TMailApp::QuitRequested()
+bool
+TMailApp::QuitRequested()
 {
 	if (!BApplication::QuitRequested())
 		return false;
+
     mail_window = last_window; /* Last closed window becomes standard window size. */
-	LoadSavePrefs (false /* TRUE to load them */);
+	LoadSavePrefs(false /* TRUE to load them */);
 	return true;
 }
 
@@ -640,10 +650,9 @@ TMailApp::RefsReceived(BMessage *msg)
 	//
 	// If a tracker window opened me, get a messenger from it.
 	//
-	if (msg->HasMessenger("TrackerViewToken")) {
-		fTrackerMessenger = new BMessenger;
-		msg->FindMessenger("TrackerViewToken", fTrackerMessenger);
-	}
+	BMessenger messenger;
+	if (msg->HasMessenger("TrackerViewToken"))
+		msg->FindMessenger("TrackerViewToken", &messenger);
 
 	while (msg->HasRef("refs", item)) {
 		msg->FindRef("refs", item++, &ref);
@@ -655,7 +664,7 @@ TMailApp::RefsReceived(BMessage *msg)
 				BNodeInfo	node(&file);
 				node.GetType(type);
 				if (!strcmp(type, B_MAIL_TYPE)) {
-					window = NewWindow(&ref, NULL, false, fTrackerMessenger);
+					window = NewWindow(&ref, NULL, false, &messenger);
 					window->Show();
 				} else if(!strcmp(type, "application/x-person")) {
 					/* Got a People contact info file, see if it has an Email address. */
@@ -790,8 +799,33 @@ TMailApp::ClearPrintSettings()
 	print_settings = NULL;
 }
 
+/*
+status_t
+TMailApp::LoadSettings()
+{
+	// write settings file
+	BPath path;
+	if (find_directory(B_USER_SETTINGS_DIRECTORY, &path) < B_OK)
+		return;
 
-void TMailApp::LoadSavePrefs (bool loadThem)
+	path.Append(kWorkspacesSettingFile);
+}
+
+
+status_t
+TMailApp::SaveSettings()
+{
+	// write settings file
+	BPath path;
+	if (find_directory(B_USER_SETTINGS_DIRECTORY, &path) < B_OK)
+		return;
+
+	path.Append(kWorkspacesSettingFile);
+}
+*/
+
+void
+TMailApp::LoadSavePrefs(bool loadThem)
 {
 	// Load the preferences if loadThem is TRUE, otherwise save them.  Uses a
 	// flattened BMessage (after a year or two of inertia with the unreliable
@@ -1142,7 +1176,8 @@ TMailApp::FontChange()
 
 
 TMailWindow *
-TMailApp::NewWindow(const entry_ref *ref, const char *to, bool resend, BMessenger *msng)
+TMailApp::NewWindow(const entry_ref *ref, const char *to, bool resend,
+	BMessenger *trackerMessenger)
 {
 	BScreen screen(B_MAIN_SCREEN_ID);
 	BRect screen_frame = screen.Frame();
@@ -1174,11 +1209,9 @@ TMailApp::NewWindow(const entry_ref *ref, const char *to, bool resend, BMessenge
 
 	BString title;
 	BFile file;
-	if (!resend && ref && file.SetTo(ref, O_RDONLY) == B_NO_ERROR)
-	{
+	if (!resend && ref && file.SetTo(ref, O_RDONLY) == B_NO_ERROR) {
 		BString name;
-		if (ReadAttrString(&file, B_MAIL_ATTR_NAME, &name) == B_NO_ERROR)
-		{
+		if (ReadAttrString(&file, B_MAIL_ATTR_NAME, &name) == B_NO_ERROR) {
 			title << name;
 			BString subject;
 			if (ReadAttrString(&file, B_MAIL_ATTR_SUBJECT, &subject) == B_NO_ERROR)
@@ -1188,7 +1221,8 @@ TMailApp::NewWindow(const entry_ref *ref, const char *to, bool resend, BMessenge
 	if (title == "")
 		title = "BeMail";
 
-	TMailWindow *window = new TMailWindow(r, title.String(), ref, to, &fFont, resend, msng);
+	TMailWindow *window = new TMailWindow(r, title.String(), ref, to, &fFont, resend,
+								trackerMessenger);
 	fWindowList.AddItem(window);
 
 	return window;
@@ -1198,12 +1232,9 @@ TMailApp::NewWindow(const entry_ref *ref, const char *to, bool resend, BMessenge
 //====================================================================
 //	#pragma mark -
 
-// static list for tracking of Windows
-BList	TMailWindow::sWindowList;
-
 
 TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, const char *to,
-						 const BFont *font, bool resending, BMessenger *msng)
+						 const BFont *font, bool resending, BMessenger *messenger)
 		:	BWindow(rect, title, B_DOCUMENT_WINDOW, 0),
 		fFieldState(0),
 		fPanel(NULL),
@@ -1213,7 +1244,6 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 		fSigButton(NULL),
 		fZoom(rect),
 		fEnclosuresView(NULL),
-		fTrackerMessenger(msng),
 		fPrevTrackerPositionSaved(false),
 		fNextTrackerPositionSaved(false),
 		fSigAdded(false),
@@ -1225,6 +1255,9 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 		fStartingText(NULL),
 		fOriginatingWindow(NULL)
 {
+	if (messenger != NULL)
+		fTrackerMessenger = *messenger;
+
 	char		str[256];
 	char		status[272];
 	uint32		message;
@@ -1726,6 +1759,7 @@ TMailWindow::~TMailWindow()
 	delete fPanel;
 	delete fOriginatingWindow;
 
+	BAutolock locker(sWindowListLock);
 	sWindowList.RemoveItem(this);
 }
 
@@ -1755,7 +1789,7 @@ TMailWindow::GetTrackerWindowFile(entry_ref *ref, bool next) const
 		return true;
 	}
 
-	if (fTrackerMessenger == NULL)
+	if (!fTrackerMessenger.IsValid())
 		return false;
 
 	//
@@ -1779,7 +1813,7 @@ TMailWindow::GetTrackerWindowFile(entry_ref *ref, bool next) const
 
 		request.AddSpecifier(&spc);
 		BMessage reply;
-		if (fTrackerMessenger->SendMessage(&request, &reply) != B_OK)
+		if (fTrackerMessenger.SendMessage(&request, &reply) != B_OK)
 			return false;
 
 		if (reply.FindRef("result", &nextRef) != B_OK)
@@ -1802,7 +1836,8 @@ TMailWindow::GetTrackerWindowFile(entry_ref *ref, bool next) const
 }
 
 
-void TMailWindow::SaveTrackerPosition(entry_ref *ref)
+void
+TMailWindow::SaveTrackerPosition(entry_ref *ref)
 {
 	// if only one of them is saved, we're not going to do it again
 	if (fNextTrackerPositionSaved || fPrevTrackerPositionSaved)
@@ -1815,22 +1850,27 @@ void TMailWindow::SaveTrackerPosition(entry_ref *ref)
 }
 
 
-void TMailWindow::SetOriginatingWindow(BWindow *window)
+void
+TMailWindow::SetOriginatingWindow(BWindow *window)
 {
 	delete fOriginatingWindow;
 	fOriginatingWindow = new BMessenger(window);
 }
 
 
-void TMailWindow::SetTrackerSelectionToCurrent()
+void
+TMailWindow::SetTrackerSelectionToCurrent()
 {
-	BMessage setsel(B_SET_PROPERTY);
-	setsel.AddSpecifier("Selection");
-	setsel.AddRef("data", fRef);
-	fTrackerMessenger->SendMessage(&setsel);
+	BMessage setSelection(B_SET_PROPERTY);
+	setSelection.AddSpecifier("Selection");
+	setSelection.AddRef("data", fRef);
+
+	fTrackerMessenger.SendMessage(&setSelection);
 }
 
-void TMailWindow::SetCurrentMessageRead()
+
+void
+TMailWindow::SetCurrentMessageRead()
 {
 	BNode node(fRef);
 	if (node.InitCheck() == B_NO_ERROR)
@@ -1845,13 +1885,16 @@ void TMailWindow::SetCurrentMessageRead()
 	}
 }
 
-void TMailWindow::FrameResized(float width, float height)
+
+void
+TMailWindow::FrameResized(float width, float height)
 {
 	fContentView->FrameResized(width, height);
 }
 
 
-void TMailWindow::MenusBeginning()
+void
+TMailWindow::MenusBeginning()
 {
 	bool		enable;
 	int32		finish = 0;
@@ -1906,8 +1949,7 @@ void TMailWindow::MenusBeginning()
 			fCut->SetEnabled(false);
 			fPaste->SetEnabled(false);
 
-			if (fTrackerMessenger == NULL || !fTrackerMessenger->IsValid())
-			{
+			if (!fTrackerMessenger.IsValid()) {
 				fNextMsg->SetEnabled(false);
 				fPrevMsg->SetEnabled(false);
 			}
@@ -2142,30 +2184,25 @@ TMailWindow::MessageReceived(BMessage *msg)
 			if (fIncoming)
 				SetCurrentMessageRead();
 
-			if (fTrackerMessenger == NULL || !fTrackerMessenger->IsValid() || !fIncoming)
-			{
+			if (!fTrackerMessenger.IsValid() || !fIncoming) {
 				//
 				//	Not associated with a tracker window.  Create a new
 				//	messenger and ask the tracker to delete this entry
 				//
-				if (fDraft || fIncoming)
-				{
+				if (fDraft || fIncoming) {
 					BMessenger tracker("application/x-vnd.Be-TRAK");
-					if (tracker.IsValid())
-					{
+					if (tracker.IsValid()) {
 						BMessage msg('Ttrs');
 						msg.AddRef("refs", fRef);
 						tracker.SendMessage(&msg);
-					}
-					else
+					} else {
 						(new BAlert("",
 							MDR_DIALECT_CHOICE ( "Need tracker to move items to trash",
 							"削除するにはTrackerが必要です。"),
 							 MDR_DIALECT_CHOICE ("sorry","削除できませんでした。")))->Go();
+					}
 				}
-			}
-			else
-			{
+			} else {
 				//
 				// This is associated with a tracker window.  Ask the
 				// window to delete this entry.  Do it this way if we
@@ -2178,7 +2215,7 @@ TMailWindow::MessageReceived(BMessage *msg)
 				entryspec.AddRef("refs", fRef);
 				entryspec.AddString("property", "Entry");
 				delmsg.AddSpecifier(&entryspec);
-				fTrackerMessenger->SendMessage(&delmsg);
+				fTrackerMessenger.SendMessage(&delmsg);
 			}
 
 			//
@@ -2780,17 +2817,19 @@ void TMailWindow::Zoom(BPoint /*pos*/, float /*x*/, float /*y*/)
 }
 
 
-void TMailWindow::WindowActivated(bool status)
+void
+TMailWindow::WindowActivated(bool status)
 {
-	if (status)
-	{
+	if (status) {
+		BAutolock locker(sWindowListLock);
 		sWindowList.RemoveItem(this);
 		sWindowList.AddItem(this, 0);
 	}
 }
 
 
-void TMailWindow::Forward(entry_ref *ref, TMailWindow *window, bool includeAttachments)
+void
+TMailWindow::Forward(entry_ref *ref, TMailWindow *window, bool includeAttachments)
 {
 	// ToDo: this is broken, fix me!
 	//return;
@@ -3460,7 +3499,8 @@ TMailWindow::Send(bool now)
 }
 
 
-status_t TMailWindow::SaveAsDraft()
+status_t
+TMailWindow::SaveAsDraft()
 {
 	status_t	status;
 	BPath		draftPath;
@@ -3578,10 +3618,11 @@ status_t TMailWindow::SaveAsDraft()
 }
 
 
-status_t TMailWindow::TrainMessageAs (const char *CommandWord)
+status_t
+TMailWindow::TrainMessageAs(const char *CommandWord)
 {
 	status_t	errorCode = -1;
-	char		errorString [1500];
+	char		errorString[1500];
 	BEntry		fileEntry;
 	BPath		filePath;
 	BMessage	replyMessage;
@@ -3590,50 +3631,50 @@ status_t TMailWindow::TrainMessageAs (const char *CommandWord)
 
 	if (fRef == NULL)
 		goto ErrorExit; // Need to have a real file and name.
-	errorCode = fileEntry.SetTo (fRef, true /* traverse */);
+	errorCode = fileEntry.SetTo(fRef, true /* traverse */);
 	if (errorCode != B_OK)
 		goto ErrorExit;
-	errorCode = fileEntry.GetPath (&filePath);
+	errorCode = fileEntry.GetPath(&filePath);
 	if (errorCode != B_OK)
 		goto ErrorExit;
-	fileEntry.Unset ();
+	fileEntry.Unset();
 
 	// Get a connection to the spam database server.  Launch if needed.
 
-	if (!gMessengerToSpamServer.IsValid ()) {
+	if (!gMessengerToSpamServer.IsValid()) {
 		// Make sure the server is running.
-		if (!be_roster->IsRunning (kSpamServerSignature)) {
-			errorCode = be_roster->Launch (kSpamServerSignature);
+		if (!be_roster->IsRunning(kSpamServerSignature)) {
+			errorCode = be_roster->Launch(kSpamServerSignature);
 			if (errorCode != B_OK)
 				goto ErrorExit;
 		}
 
 		// Set up the messenger to the database server.
 		errorCode = B_SERVER_NOT_FOUND;
-		serverTeam = be_roster->TeamFor (kSpamServerSignature);
+		serverTeam = be_roster->TeamFor(kSpamServerSignature);
 		if (serverTeam < 0)
 			goto ErrorExit;
-		gMessengerToSpamServer =
-			BMessenger (kSpamServerSignature, serverTeam, &errorCode);
-		if (!gMessengerToSpamServer.IsValid ())
+
+		gMessengerToSpamServer = BMessenger (kSpamServerSignature, serverTeam, &errorCode);
+		if (!gMessengerToSpamServer.IsValid())
 			goto ErrorExit;
 	}
 
 	// Ask the server to train on the message.  Give it the command word and
 	// the absolute path name to use.
 
-	scriptingMessage.MakeEmpty ();
+	scriptingMessage.MakeEmpty();
 	scriptingMessage.what = B_SET_PROPERTY;
-	scriptingMessage.AddSpecifier (CommandWord);
-	errorCode = scriptingMessage.AddData ("data", B_STRING_TYPE,
-		filePath.Path(), strlen (filePath.Path()) + 1, false /* fixed size */);
+	scriptingMessage.AddSpecifier(CommandWord);
+	errorCode = scriptingMessage.AddData("data", B_STRING_TYPE,
+		filePath.Path(), strlen(filePath.Path()) + 1, false /* fixed size */);
 	if (errorCode != B_OK)
 		goto ErrorExit;
-	replyMessage.MakeEmpty ();
-	errorCode = gMessengerToSpamServer.SendMessage (&scriptingMessage,
+	replyMessage.MakeEmpty();
+	errorCode = gMessengerToSpamServer.SendMessage(&scriptingMessage,
 		&replyMessage);
 	if (errorCode != B_OK
-		|| replyMessage.FindInt32 ("error", &errorCode) != B_OK
+		|| replyMessage.FindInt32("error", &errorCode) != B_OK
 		|| errorCode != B_OK)
 		goto ErrorExit; // Classification failed in one of many ways.
 
@@ -3642,16 +3683,17 @@ status_t TMailWindow::TrainMessageAs (const char *CommandWord)
 
 ErrorExit:
 	beep();
-	sprintf (errorString, "Unable to train the message file \"%s\" as %s.  "
+	sprintf(errorString, "Unable to train the message file \"%s\" as %s.  "
 		"Possibly useful error code: %s (%ld).",
 		filePath.Path(), CommandWord, strerror (errorCode), errorCode);
 	(new BAlert("", errorString,
-		MDR_DIALECT_CHOICE ("Ok","了解")))->Go();
+		MDR_DIALECT_CHOICE("Ok","了解")))->Go();
 	return errorCode;
 }
 
 
-void TMailWindow::SetTitleForMessage()
+void
+TMailWindow::SetTitleForMessage()
 {
 	//
 	//	Figure out the title of this message and set the title bar
@@ -3850,8 +3892,10 @@ TMailWindow::OpenMessage(entry_ref *ref, uint32 characterSetForDecoding)
 }
 
 
-TMailWindow *TMailWindow::FrontmostWindow()
+TMailWindow *
+TMailWindow::FrontmostWindow()
 {
+	BAutolock locker(sWindowListLock);
 	if (sWindowList.CountItems() > 0)
 		return (TMailWindow *)sWindowList.ItemAt(0);
 

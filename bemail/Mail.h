@@ -64,8 +64,7 @@ All rights reserved.
 #define FONT_SIZE			11.0
 #define QUOTE				"> "
 
-enum MESSAGES
-{
+enum MESSAGES {
 	REFS_RECEIVED = 64,
 	LIST_INVOKED,
 	WINDOW_CLOSED,
@@ -75,8 +74,7 @@ enum MESSAGES
 	CHARSET_CHOICE_MADE
 };
 
-enum TEXT
-{
+enum TEXT {
 	SUBJECT_FIELD = REFS_RECEIVED + 64,
 	TO_FIELD,
 	ENCLOSE_FIELD,
@@ -85,8 +83,7 @@ enum TEXT
 	NAME_FIELD
 };
 
-enum MENUS
-{
+enum MENUS {
 	/* app */
 	M_NEW = SUBJECT_FIELD + 64,
 	M_PREFS,
@@ -150,14 +147,12 @@ enum MENUS
 	M_REDO
 };
 
-enum USER_LEVEL
-{
+enum USER_LEVEL {
 	L_BEGINNER = 0,
 	L_EXPERT
 };
 
-enum WINDOW_TYPES
-{
+enum WINDOW_TYPES {
 	MAIL_WINDOW = 0,
 	PREFS_WINDOW,
 	SIG_WINDOW
@@ -188,8 +183,7 @@ using namespace Zoidberg;
 
 //====================================================================
 
-class TMailApp : public BApplication
-{
+class TMailApp : public BApplication {
 	public:
 		TMailApp();
 		~TMailApp();
@@ -204,7 +198,7 @@ class TMailApp : public BApplication
 		TMailWindow		*FindWindow(const entry_ref &);
 		void			FontChange();
 		TMailWindow		*NewWindow(const entry_ref *rec = NULL, const char *to = NULL,
-								bool resend = false,BMessenger *msg = NULL);
+							bool resend = false, BMessenger *messenger = NULL);
 
 		BFont fFont;
 
@@ -213,24 +207,24 @@ class TMailApp : public BApplication
 		void CheckForSpamFilterExistence();
 		void LoadSavePrefs (bool loadThem);
 		
-		BList		fWindowList;
-		int32		fWindowCount;
-		TPrefsWindow *fPrefsWindow;
+		BList			fWindowList;
+		int32			fWindowCount;
+		TPrefsWindow	*fPrefsWindow;
 		TSignatureWindow *fSigWindow;
-		BMessenger	*fTrackerMessenger;	// Talks to tracker window that
-										// this was launched from.
-		bool		fPrevBBPref;
+		//BMessenger		fTrackerMessenger;
+			// Talks to tracker window that this was launched from.
+
+		bool			fPrevBBPref;
 };
 
 //--------------------------------------------------------------------
 
 class BMailMessage;
 
-class TMailWindow : public BWindow
-{
+class TMailWindow : public BWindow {
 	public:
 		TMailWindow(BRect, const char *, const entry_ref *, const char *,
-			const BFont *font, bool, BMessenger*);
+			const BFont *font, bool, BMessenger *trackerMessenger);
 		virtual ~TMailWindow();
 
 		virtual void FrameResized(float width, float height);
@@ -308,13 +302,16 @@ class TMailWindow : public BWindow
 		THeaderView *fHeaderView;
 		TEnclosuresView *fEnclosuresView;
 		TMenu *fSignature;
-		BMessenger *fTrackerMessenger;	// Talks to tracker window that
-										// this was launched from.
+		BMessenger fTrackerMessenger;
+			// Talks to tracker window that this was launched from.
+
 		entry_ref fPrevRef, fNextRef;
 		bool fPrevTrackerPositionSaved : 1;
 		bool fNextTrackerPositionSaved : 1;
 
 		static BList sWindowList;
+		static BLocker sWindowListLock;
+
 		bool fSigAdded;
 		bool fIncoming;
 		bool fReplying;
