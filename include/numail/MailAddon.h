@@ -17,9 +17,6 @@ class BPositionIO;
 class BEntry;
 
 
-namespace Zoidberg {
-namespace Mail {
-
 typedef enum
 {
 	MD_OK,
@@ -49,6 +46,10 @@ typedef enum
 	// occur: (1) there are no messages left on the server,
 	// or (2) we run out of disk space. That's it.
 } MDStatus;
+
+
+namespace Zoidberg {
+namespace Mail {
 
 class StatusView;
 

@@ -23,10 +23,11 @@ namespace Mail {
 #include <ChainRunner.h>
 #include <status.h>
 
+using namespace Zoidberg;
+using namespace Zoidberg::Mail;
 
 namespace Zoidberg {
 namespace Mail {
-
 class DeletePass : public Mail::ChainCallback {
 	public:
 		DeletePass(Protocol *home);
@@ -46,11 +47,14 @@ class MessageDeletion : public Mail::ChainCallback {
 		BString *message_id;
 };
 
+}
+}
+
 
 inline void error_alert(const char *process, status_t error) {
 	BString string;
 	string << "Error while " << process << ": " << strerror(error);
-	ShowAlert("error_alert",string.String(),"Ok",B_WARNING_ALERT);
+	Mail::ShowAlert("error_alert",string.String(),"Ok",B_WARNING_ALERT);
 }
 
 
@@ -165,7 +169,7 @@ void DeletePass::Callback(MDStatus /*status*/) {
 		
 		*(us->unique_ids) -= to_delete;
 	}
-	if (us->unique_ids != NULL) {
+	if ((us->unique_ids != NULL) && (us->InitCheck() == B_OK)) {
 		BMessage *meta_data = us->parent->Chain()->MetaData();
 		meta_data->RemoveName("manifest");
 		meta_data->AddFlat("manifest",us->unique_ids);
@@ -187,5 +191,3 @@ void MessageDeletion::Callback(MDStatus /*result*/) {
 	us->DeleteMessage(message_id->String());
 }
 
-}	// namespace Mail
-}	// namespace Zoidberg

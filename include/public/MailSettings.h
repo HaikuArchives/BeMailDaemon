@@ -13,9 +13,6 @@
 class BPath;
 
 
-namespace Zoidberg {
-namespace Mail {
-
 typedef enum {
 	inbound,
 	outbound
@@ -36,6 +33,10 @@ typedef enum
 	MD_STATUS_LOOK_THIN_BORDER           = 3,
 	MD_STATUS_LOOK_NO_BORDER             = 4
 } mail_status_window_look;
+
+
+namespace Zoidberg {
+namespace Mail {
 
 class StatusWindow;
 class Chain;
