@@ -109,14 +109,23 @@ bool FilterHTMLTag(char *first,char **t,char *end)
 
 	char *a = *t;
 
-	// check for &nbsp; entity
+	// check for some common entities
 	if (*first == '&')
 	{
-		if (!strncasecmp(a,"&nbsp;",6))
+		const char *entities[] = {"nbsp;","quot;","amp;","lt;","gt;", NULL};
+		const char replace[] =	 {' ',    '"',    '&',   '<',  '>'};
+
+		for (int32 i = 0;entities[i];i++)
 		{
-			*t += 6;
-			*first = ' ';
-			return false;
+			// this should be a case-sensitive comparison, but whoever
+			// uses HTML mail may not care about it... ;-)
+			int32 length = strlen(entities[i]);
+			if (!strncasecmp(a + 1,entities[i],length))
+			{
+				*t += length;	// note that the '&' is included here
+				*first = replace[i];
+				return false;
+			}
 		}
 	}
 
@@ -1798,7 +1807,8 @@ void TTextView::AddAsContent(MailMessage *mail, bool wrap)
 	}
 	if (!wrap)
 		body->AppendText(text); //, textLen, mail_encoding);
-	else {
+	else
+	{
 		BWindow	*window = Window();
 		BRect	saveTextRect = TextRect();
 		
@@ -1818,22 +1828,29 @@ void TTextView::AddAsContent(MailMessage *mail, bool wrap)
 		SetStylable(true);
 		SetFontAndColor(0, textLen, be_fixed_font);
 		
-		if (gMailEncoding == B_JIS_CONVERSION) {
+		if (gMailEncoding == B_JIS_CONVERSION)
+		{
 			// this is truly evil...  I'm ashamed of myself (Hiroshi)
 			int32	lastMarker = 0;
 			bool 	inKanji = false;
 			BFont	kanjiFont(be_fixed_font);
 			kanjiFont.SetSize(kanjiFont.Size() * 2);
 		
-			for (int32 i = 0; i < textLen; i++) {
-				if (ByteAt(i) > 0x7F) {
-					if (!inKanji) {
+			for (int32 i = 0; i < textLen; i++)
+			{
+				if (ByteAt(i) > 0x7F)
+				{
+					if (!inKanji)
+					{
 						SetFontAndColor(lastMarker, i, be_fixed_font, B_FONT_SIZE);
 						lastMarker = i;
 						inKanji = true;
 					}
-				} else {
-					if (inKanji) {
+				}
+				else
+				{
+					if (inKanji)
+					{
 						SetFontAndColor(lastMarker, i, &kanjiFont, B_FONT_SIZE);
 						lastMarker = i;
 						inKanji = false;
@@ -2296,7 +2313,7 @@ status_t TTextView::Reader::Run(void *_this)
 						c = ' ';
 						t--;
 					}
-					if (FilterHTMLTag(&c,&t,end))	// the tag filter
+					else if (FilterHTMLTag(&c,&t,end))	// the tag filter
 						continue;
 
 					*(a++) = c;
