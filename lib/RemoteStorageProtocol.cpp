@@ -125,20 +125,25 @@ class UpdateHandler : public BHandler {
 						opcode = B_ENTRY_REMOVED;
 					} else {
 						if (!is_dir) {
-							/*BString id(msg->FindString("name"));
-							if (_prot->CopyMessage(from_mb,to_mb,&id) != B_OK)
-								break;
+							{
+								node_ref item_ref;
+								item_ref.node = to;
+								item_ref.device = device;
+								BDirectory dir(&item_ref);
+								BNode node(&dir,msg->FindString("name"));
+								//--- Why in HELL can't you make a BNode from a node_ref?
 								
-							id.Prepend("/");
-							id.Prepend(to_mb);
-							node_ref item_ref;
-							item_ref.node = to;
-							item_ref.device = device;
-							BDirectory dir(&item_ref);
-							BNode node(&dir,msg->FindString("name"));
-								//--- Why in HELL can't you make a BNode from a node_ref?*/
+								if (node.InitCheck() != B_OK)
+									break; //-- We're late, it's already gone elsewhere. Ignore for now.
 								
-							snooze(500000);
+								BString id;
+								node.ReadAttrString("MAIL:unique_id",&id);
+								id.Truncate(id.FindLast('/'));
+								if (id == to_mb)
+									break; //-- Already where it belongs, no need to do anything
+							}
+								
+							snooze(uint64(5e5));
 							_prot->SyncMailbox(to_mb);
 								
 							//node.WriteAttrString("MAIL:unique_id",&id);
@@ -172,7 +177,24 @@ class UpdateHandler : public BHandler {
 				switch (opcode) {
 					case B_ENTRY_CREATED:
 						if (!is_dir) {
+							const char *dir = nodes[directory];
 							snooze(500000);
+							
+							if (dir == NULL)
+								dir = "";
+							
+							{
+								node_ref item_ref;
+								item_ref.node = directory;
+								item_ref.device = device;
+								BDirectory dir(&item_ref);
+								BNode node(&dir,msg->FindString("name"));
+								//--- Why in HELL can't you make a BNode from a node_ref?
+								
+								if (node.InitCheck() != B_OK)
+									break; //-- We're late, it's already gone elsewhere. Ignore for now.
+							}
+							
 							_prot->SyncMailbox(nodes[directory]);
 						} else {
 							BString mb;
