@@ -256,7 +256,7 @@ void ChainRunner::MessageReceived(BMessage *msg) {
 			break;
 		case 'GTSM': {
 			const char *uid;
-			status_t err;
+			status_t err = B_OK;
 			msg->FindString("uid",&uid);
 			BEntry *entry = new BEntry(msg->FindString("into"));
 			_statview->SetTotalItems(1);
