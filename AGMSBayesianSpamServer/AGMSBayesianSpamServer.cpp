@@ -64,6 +64,11 @@
  * rule chain can delete the message or otherwise manipulate it.
  *
  * $Log$
+ * Revision 1.85  2003/07/08 14:52:57  agmsmith
+ * Fix bug with classification choices dialog box coming up with weird
+ * sizes due to RefsReceived message coming in before ReadyToRun had
+ * finished setting up the default sizes of the controls.
+ *
  * Revision 1.84  2003/07/04 19:59:29  agmsmith
  * Now with a GUI option to let you declassify messages (set them back
  * to uncertain, rather than spam or genuine).  Required a BAlert
@@ -2075,8 +2080,11 @@ status_t ABSApp::AddPositionIOToDatabase (
     DisplayErrorMessage (ErrorMessage, 0, "Note");
   }
 
-  if (IsSpamOrWhat == PreviousClassification)
-    return B_OK; /* Nothing to do, already classified correctly. */
+  if (!m_IgnorePreviousClassification &&
+  IsSpamOrWhat == PreviousClassification)
+    /* Nothing to do if it is already classified correctly and the user doesn't
+    want double classification. */
+    return B_OK;
 
   /* Get the list of unique words in the file. */
 
