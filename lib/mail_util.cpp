@@ -221,6 +221,9 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, cha
 	//-----Just try
 	convert_from_utf8(charset,*bufp,&length,result,&len,&state);
 	length = len;
+	
+	result[length] = 0;
+	
 	free(*bufp);
 	*bufp = result;
 	}

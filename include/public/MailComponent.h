@@ -1,40 +1,22 @@
-class MailComponent;
-class BMimeType;
+#include <UTF8.h>
+#include <Message.h>
 
-_IMPEXP_MAIL MailComponent *instantiate_component(const char *disposition, 
-												  MailComponent *parent = NULL);
+class BMimeType;
 
 class MailComponent {
 	public:
-		virtual status_t Instantiate(BDataIO *data, size_t length) = 0;
-		virtual status_t Render(BDataIO *render_to) = 0;
+		MailComponent();
 		
-		virtual status_t MIMEType(BMimeType *mime) = 0;
+		void AddHeaderField(const char *key, const char *value, uint32 charset = B_ISO1_CONVERSION, char encoding = 'q', bool replace_existing = true);
+		const char *HeaderField(const char *key, int32 index = 0);
 		
-		virtual void AttachedToParent(MailComponent *parent);
-		
-		MailComponent *Parent();
-};
-
-class MailHeaderComponent : public MailComponent {
-	public:
-		MailHeaderComponent();
-		
-		void AddHeaderField(const char *key, const char *value);
-		const char *HeaderField(const char *key);
-		//--------All conversion for charsets and encodings is done for you
-		
-		void SetEncoding(char encoding, int charset);
-			//------encoding: q for quoted-printable (default), b for base64 (very much not reccomended)
-			//------charset: use Conversion flavor constants from UTF8.h
-		
-		virtual status_t Instantiate(BDataIO *data, size_t length);
-		virtual status_t Render(BDataIO *render_to);
+		virtual status_t Instantiate(BPositionIO *data, size_t length);
+		virtual status_t Render(BPositionIO *render_to);
 		
 		virtual status_t MIMEType(BMimeType *mime);
-		
+	
 	private:
-		BMessage header;
+		BMessage headers;
 };
 
 class PlainTextBodyComponent : public MailComponent {
@@ -52,11 +34,10 @@ class PlainTextBodyComponent : public MailComponent {
 		
 		const char *Text();
 		
-		virtual status_t Instantiate(BDataIO *data, size_t length);
-		virtual status_t Render(BDataIO *render_to);
-		virtual void AttachedToParent(MailComponent *parent);
+		virtual status_t Instantiate(BPositionIO *data, size_t length);
+		virtual status_t Render(BPositionIO *render_to);
 		
 		virtual status_t MIMEType(BMimeType *mime);
 	private:
 		BString text;
-}
+};
