@@ -2549,7 +2549,8 @@ void TMailWindow::CopyMessage(entry_ref *ref, TMailWindow *src)
 }
 
 
-void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
+void
+TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 {
 	fRepliedMail = *ref;
 	SetOriginatingWindow(window);
@@ -2567,10 +2568,6 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 
 	fMail = mail->ReplyMessage((Mail::reply_to_mode)type,
 		gUseAccountFrom == ACCOUNT_FROM_MAIL, QUOTE);
-
-	BFile file(ref, O_RDONLY);
-	if (file.InitCheck() != B_OK)
-		return;
 
 	// set header fields
 	fHeaderView->fTo->SetText(fMail->To());
@@ -2674,48 +2671,12 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 	else
 		fContentView->fTextView->LoadMessage(mail, true, preamble);
 
-/*	if (type == M_REPLY_ALL)
-	{
-		char *cc = (char *)calloc(1,1);
-		get_recipients(&cc, mail, false);
-
-		if (strlen(cc))
-		{
-			if (to)
-			{
-				char *str;
-				if ((str = cistrstr(cc, to)) != NULL)
-				{
-					int32 len = 0;
-					if (str == cc)
-					{
-						while ((strlen(to) + len < strlen(cc)) &&
-							   ((str[strlen(to) + len] == ' ') ||
-							    (str[strlen(to) + len] == ',')))
-							len++;
-					}
-					else
-					{
-						while ((str > cc) && ((str[-1] == ' ') || (str[-1] == ',')))
-						{
-							str--;
-							len++;
-						}
-					}
-					memmove(str, &str[strlen(to) + len], &cc[strlen(cc)] - 
-													 &str[strlen(to) + len] + 1);
-				}
-			}
-			fHeaderView->fCc->SetText(cc);
-		}
-		free(cc);
-	}
-*/
 	fReplying = true;
 }
 
 
-status_t TMailWindow::Send(bool now)
+status_t
+TMailWindow::Send(bool now)
 {
 	if (!now)
 	{

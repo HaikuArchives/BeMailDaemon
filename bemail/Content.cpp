@@ -804,6 +804,7 @@ TTextView::KeyDown(const char *key, int32 count)
 					BTextView::KeyDown(key, count);
 				else
 				{
+					// scroll to the beginning
 					Select(0, 0);
 					ScrollToSelection();
 				}
@@ -817,6 +818,7 @@ TTextView::KeyDown(const char *key, int32 count)
 					BTextView::KeyDown(key, count);
 				else
 				{
+					// scroll to the end
 					int32 length = TextLength();
 					Select(length, length);
 					ScrollToSelection();
