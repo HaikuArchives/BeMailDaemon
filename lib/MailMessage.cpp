@@ -786,6 +786,7 @@ Message::RenderTo(BDirectory *dir,BEntry *msg)
 	name.ReplaceAll('/','_');
 	name.ReplaceAll('\'','_');
 	name.ReplaceAll('"','_');
+	name.ReplaceAll('!','_');
 
 	int32 uniquer = time(NULL);
 	worker = name;
