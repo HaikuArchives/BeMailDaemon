@@ -94,11 +94,7 @@ void MailComponent::SetHeaderField(const char *key, BMessage *structure, bool re
 		if (strcasecmp(name,"unlabeled") == 0)
 			continue;
 		
-		structure->FindString(name,
-			#ifndef B_BEOS_VERSION_DANO
-			(char**)
-			#endif
-			&sub_val);
+		structure->FindString(name, &sub_val);
 		value << name << '=';
 		if (BString(sub_val).FindFirst(' ') > 0)
 			value << '\"' << sub_val << "\"; ";
