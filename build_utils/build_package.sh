@@ -1,3 +1,4 @@
+#!/bin/sh
 #invoke as follows:
 #build_package.sh path_to_put_package_in version
 
@@ -11,9 +12,9 @@ fi
 
 BUILD_PATH=$1/mail_daemon_$2_$CPU
 
-if [ #(echo $BUILD_PATH | grep -v '//*') -neq 0 ]; then
-	BUILD_PATH=$(pwd)/$1/mail_daemon_$2_$CPU
-fi
+# if [ #(echo $BUILD_PATH | grep -v '//*') -neq 0 ]; then 
+#      BUILD_PATH=$(pwd)/$1/mail_daemon_$2_$CPU; 
+# fi 
 
 echo $BUILD_PATH
 
@@ -36,7 +37,7 @@ for f in inbound_* outbound_* system_* ; do
 				cd $g/obj.$CPU
 				OBJ_NAME=$(ls | egrep -v '\..*$')
 				echo copyattr -d $pwd/$OBJ_NAME $BUILD_PATH/bin/addons/$f/$OBJ_NAME
-				copyattr -d $OBJ_NAME $BUILD_PATH/bin/addons/$f/$OBJ_NAME
+				copyattr -d "$OBJ_NAME" "$BUILD_PATH/bin/addons/$f/$OBJ_NAME" 
 				cd ../..
 			fi
 		done
