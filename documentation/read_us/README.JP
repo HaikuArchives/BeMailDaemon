@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v2.2.1
+BEOS Mail Daemon Replacement v2.2.2
 
 概要：
 
@@ -180,6 +180,11 @@ BEOS Mail Daemon Replacement v2.2.1
 　　さらに、SampleSpamDatabaseに関する注釈を参照してください。
 
 履歴：
+
+August 7 2003 - v2.2.2
+- Automatic index creation changed, use an int for the MAIL:flags, not a string!
+//- Use a query to find mail to send rather than scanning the Out directory (a certain person keeps thousands of his old files there and was getting annoyed at the time delay for checking mail).
+- More IMAP bug fixes.
 
 August 3 2003 - v2.2.1
 - Changed networking operations to use sockets directly rather than the buggy BeOS network kit.
