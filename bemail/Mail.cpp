@@ -1264,7 +1264,7 @@ skip:			if (!done)
 		fButtonBar = NULL;
 
 	r.top = r.bottom = height + bbheight + 1;
-	fHeaderView = new THeaderView(r, rect, fIncoming, fMail, resending);
+	fHeaderView = new THeaderView(r, rect, fIncoming, fMail, resending, gMailCharacterSet);
 
 	r = Frame();
 	r.OffsetTo(0, 0);
@@ -1339,8 +1339,11 @@ skip:			if (!done)
 						strcpy(fStartingText, fContentView->fTextView->Text());
 				}
 			}
-			else
-				printf("Query failed.\n");
+			else {
+				char tempString [2048];
+				query.GetPredicate (tempString, sizeof (tempString));
+				printf ("Query failed, was looking for: %s\n", tempString);
+			}
 		}
 	}
 

@@ -94,7 +94,7 @@ class	QPopupMenu;
 class THeaderView : public BBox
 {
 	public:
-		THeaderView(BRect, BRect, bool incoming, Mail::Message *mail, bool resending);
+		THeaderView(BRect, BRect, bool incoming, Mail::Message *mail, bool resending, uint32 defaultCharacterSet);
 
 		virtual void	MessageReceived(BMessage *);
 		virtual void	AttachedToWindow(void);
@@ -110,8 +110,9 @@ class THeaderView : public BBox
 		TTextControl	*fCc;
 		TTextControl	*fSubject;
 		TTextControl	*fTo;
-		BStringView *fDate;
-		bool fIncoming;
+		BStringView		*fDate;
+		bool			fIncoming;
+		uint32			fCharacterSetForEncoding;
 
 	private:		
 		void InitEmailCompletion();
