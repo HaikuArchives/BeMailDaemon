@@ -109,9 +109,6 @@ typedef struct {
 
 bool acquire_window_sem(BWindow *, sem_id);
 status_t release_window_sem(BWindow *, sem_id);
-bool insert(reader_info *, const char *, int32, bool);
-bool parse_header(char *, char *, off_t, char *, reader_info *, off_t *);
-bool strip_it(const char *, int32, reader_info *);
 
 class TSavePanel;
 
@@ -206,6 +203,9 @@ private:
 			bool Process(const char *data, int32 len, bool isHeader = false);
 			bool Insert(const char *line, int32 count, bool isHyperLink, bool isHeader = false);
 
+			bool Lock();
+			status_t Unlock();
+
 			bool fHeader;
 			bool fRaw;
 			bool fQuote;
@@ -213,7 +213,7 @@ private:
 			bool fClose;
 			bool fMime;
 			TTextView *fView;
-			BFile *fFile;
+			BFile fFile;
 			BList *fEnclosures;
 			sem_id fStopSem;
 	};

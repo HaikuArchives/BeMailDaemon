@@ -1258,6 +1258,8 @@ void TTextView::LoadMessage(BFile *file, bool quoteIt, bool close, const char *t
 	TTextView::Reader *reader = new TTextView::Reader(fHeader, fRaw, quoteIt, fIncoming,
 				close, file->GetAttrInfo(B_MAIL_ATTR_MIME, &attrInfo) == B_OK,
 				this, file, fEnclosures, fStopSem);
+	if (close)
+		delete fFile;
 
 	resume_thread(fThread = spawn_thread(Reader::Run, "reader", B_NORMAL_PRIORITY, reader));
 }
@@ -1469,14 +1471,13 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 
 void TTextView::StopLoad()
 {
-	int32		result;
-	thread_id	thread;
+//	thread_id thread = fThread;
 	thread_info	info;
-
-	if (((thread = fThread) != 0) && (get_thread_info(fThread, &info) == B_NO_ERROR))
+	if (fThread != 0 && get_thread_info(fThread, &info) == B_NO_ERROR)
 	{
 		acquire_sem(fStopSem);
-		wait_for_thread(thread, &result);
+		int32 result;
+		wait_for_thread(fThread, &result);
 		fThread = 0;
 		release_sem(fStopSem);
 	}
@@ -1607,7 +1608,7 @@ TTextView::Reader::Reader(bool header, bool raw, bool quote, bool incoming, bool
 		fClose(close),
 		fMime(mime),
 		fView(view),
-		fFile(file),
+		fFile(*file),
 		fEnclosures(list),
 		fStopSem(sem)
 {
@@ -1830,10 +1831,10 @@ bool TTextView::Reader::Insert(const char *line, int32 count, bool isHyperLink, 
 		style.runs[0].color = isHyperLink ? hyper_color : normal_color;
 	style.runs[0].font = font;
 
-	if (!acquire_window_sem(fView->Window(), fStopSem))
+	if (!Lock())
 		return false;
 	fView->Insert(line, count, &style);
-	release_window_sem(fView->Window(), fStopSem);
+	Unlock();
 
 	return true;
 }
@@ -1846,12 +1847,12 @@ status_t TTextView::Reader::Run(void *_this)
 	int32		len;
 	off_t		size;
 
-	reader->fFile->GetSize(&size);
+	reader->fFile.GetSize(&size);
 	if ((msg = (char *)malloc(size)) == NULL)
 		goto done;
-	reader->fFile->Seek(0, 0);
-	size = reader->fFile->Read(msg, size);
-	len = header_len(reader->fFile);
+	reader->fFile.Seek(0, 0);
+	size = reader->fFile.Read(msg, size);
+	len = header_len(&reader->fFile);
 
 	// show the header?
 	if (reader->fHeader && len && !reader->Process(msg, len, true))
@@ -1881,8 +1882,8 @@ status_t TTextView::Reader::Run(void *_this)
 	}
 	else
 	{
-		reader->fFile->Seek(0, 0);
-		MailMessage *mail = new MailMessage(reader->fFile);
+		reader->fFile.Seek(0, 0);
+		MailMessage *mail = new MailMessage(&reader->fFile);
 		
 		// at first, insert the mail body
 		if (mail->BodyText())
@@ -1898,20 +1899,17 @@ status_t TTextView::Reader::Run(void *_this)
 //	else if (!parse_header(msg, msg, size, NULL, info, NULL))
 //		goto done;
 
-	if (acquire_window_sem(reader->fView->Window(), reader->fStopSem))
+	if (reader->Lock())
 	{
 		reader->fView->Select(0, 0);
 		reader->fView->MakeSelectable(true);
 		if (!reader->fIncoming)
 			reader->fView->MakeEditable(true);
 
-		release_window_sem(reader->fView->Window(), reader->fStopSem);
+		reader->Unlock();
 	}
 
 done:
-	if (reader->fClose)
-		delete reader->fFile;
-
 	delete reader;
 	if (msg)
 		free(msg);
@@ -1920,22 +1918,20 @@ done:
 }
 
 
-//--------------------------------------------------------------------
-//	#pragma mark -
-
-
-status_t release_window_sem(BWindow *window, sem_id sem)
+status_t TTextView::Reader::Unlock()
 {
-	window->Unlock();
-	return release_sem(sem);
+	fView->Window()->Unlock();
+	return release_sem(fStopSem);
 }
 
 
-bool acquire_window_sem(BWindow *window, sem_id sem)
+bool TTextView::Reader::Lock()
 {
+	BWindow *window = fView->Window();
+
 	if (!window->Lock())
 		return false;
-	if (acquire_sem_etc(sem, 1, B_TIMEOUT, 0) != B_NO_ERROR)
+	if (acquire_sem_etc(fStopSem, 1, B_TIMEOUT, 0) != B_NO_ERROR)
 	{
 		window->Unlock();
 		return false;
