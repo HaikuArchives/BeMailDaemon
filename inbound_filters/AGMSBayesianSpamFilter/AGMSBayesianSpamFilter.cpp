@@ -11,6 +11,11 @@
  * Public Domain 2002, by Alexander G. M. Smith, no warranty.
  *
  * $Log$
+ * Revision 1.9  2002/12/13 20:27:44  agmsmith
+ * Added auto-training mode to the filter.  It evaluates a message for
+ * spaminess then recursively adds it to the database.  This can lead
+ * to weird results unless the user corrects the bad classifications.
+ *
  * Revision 1.8  2002/11/28 20:20:57  agmsmith
  * Now checks if the spam database is running in headers only mode, and
  * then only downloads headers if that is the case.
@@ -75,7 +80,7 @@ static const char *kServerSignature =
 
 AGMSBayesianSpamFilter::AGMSBayesianSpamFilter (BMessage *settings)
 	:	Mail::Filter (settings),
-		fAddSpamToSubject (false),
+		fAddSpamToSubject (true),
 		fAutoTraining (false),
 		fBeepGenuine (false),
 		fBeepSpam (false),
@@ -382,7 +387,7 @@ descriptive_name (
 	BMessage *settings,
 	char *buffer)
 {
-	bool		addMarker = false;
+	bool		addMarker = true;
 	bool		autoTraining = false;
 	bool		beepGenuine = false;
 	bool		beepSpam = false;

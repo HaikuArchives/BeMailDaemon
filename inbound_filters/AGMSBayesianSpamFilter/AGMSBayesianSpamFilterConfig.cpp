@@ -3,6 +3,10 @@
  * settings related to the add-on, but not the server.
  *
  * $Log$
+ * Revision 1.2  2002/12/12 00:56:28  agmsmith
+ * Added some new spam filter options - self training (not implemented yet)
+ * and a button to edit the server settings.
+ *
  * Revision 1.1  2002/11/03 02:06:15  agmsmith
  * Added initial version.
  *
@@ -89,7 +93,7 @@ class AGMSBayesianSpamFilterConfig : public BView {
 AGMSBayesianSpamFilterConfig::AGMSBayesianSpamFilterConfig (BMessage *settings)
 	:	BView (BRect (0,0,260,130), "agmsbayesianspamfilter_config",
 			B_FOLLOW_LEFT | B_FOLLOW_TOP, 0),
-		fAddSpamToSubject (false),
+		fAddSpamToSubject (true),
 		fAddSpamToSubjectCheckBoxPntr (NULL),
 		fAutoTraining (false),
 		fAutoTrainingCheckBoxPntr (NULL),
