@@ -122,7 +122,8 @@ class UpdateHandler : public BHandler {
 						opcode = B_ENTRY_CREATED;
 					} else if (to_mb == NULL) {
 						msg->AddInt64("directory",from);
-						opcode = B_ENTRY_REMOVED;
+						if (is_dir)
+							opcode = B_ENTRY_REMOVED;
 					} else {
 						if (!is_dir) {
 							{
