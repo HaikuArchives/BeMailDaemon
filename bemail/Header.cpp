@@ -73,7 +73,7 @@ class QPopupMenu : public QueryMenu
 
 	private:		
 		void AddPersonItem(const entry_ref *ref, ino_t node, BString &name, BString &email,
-							BMenu *groupMenu, BMenuItem *superItem);
+							const char *attr, BMenu *groupMenu, BMenuItem *superItem);
 
 	protected:
 		virtual void EntryCreated(const entry_ref &ref, ino_t node);
@@ -438,19 +438,19 @@ void THeaderView::MessageReceived(BMessage *msg)
 	{
 		case B_SIMPLE_DATA:
 		{
-			BTextView *text_view = (BTextView *)fTo->ChildAt(0);
+			BTextView *textView = (BTextView *)fTo->ChildAt(0);
 
-			if (text_view->IsFocus())
+			if (textView->IsFocus())
 				fTo->MessageReceived(msg);
 			else if (!fIncoming)
 			{
-				text_view = (BTextView *)fCc->ChildAt(0);
-				if (text_view->IsFocus())
+				textView = (BTextView *)fCc->ChildAt(0);
+				if (textView->IsFocus())
 					fCc->MessageReceived(msg);
 				else
 				{
-					text_view = (BTextView *)fBcc->ChildAt(0);
-					if (text_view->IsFocus())
+					textView = (BTextView *)fBcc->ChildAt(0);
+					if (textView->IsFocus())
 						fBcc->MessageReceived(msg);
 					else
 					{
@@ -548,15 +548,12 @@ void THeaderView::BuildMenus()
 	BFile	file;
 	int		groups=0;
 	
-	printf("Build Menus\n");
 	status_t status;
 	
 	while ((status = query.GetNextRef(&ref)) == B_OK) {
 		entry.GetRef(&ref);
-		printf("Found: %s\n", ref.name);
 		file.SetTo(&ref, B_READ_ONLY);
 		if (file.InitCheck() == B_NO_ERROR) {
-			printf("Init Ok\n");
 			BString	name;
 			FetchAttribute("META:name", file, name);
 			BString email;
@@ -669,10 +666,7 @@ void THeaderView::BuildMenus()
 				}
 			}
 		}
-		else
-			printf("Init Check Failed\n");
 	}
-	printf("Status Say: %s\n", strerror(status));
 	// add the seperator bars
 	if (groups > 0) {
 		fToMenu->AddItem(new BSeparatorItem(), groups);
@@ -911,33 +905,35 @@ void TTextControl::AttachedToWindow()
 
 void TTextControl::MessageReceived(BMessage *msg)
 {
-	bool		enclosure = false;
-	char		type[B_FILE_NAME_LENGTH];
-	int32		index = 0;
-	entry_ref	ref;
-	BFile		file;
-	BMessage	message(REFS_RECEIVED);
-
 	switch (msg->what)
 	{
 		case B_SIMPLE_DATA:
 			if (!fIncoming || fResending)
 			{
-				while (msg->FindRef("refs", index++, &ref) == B_NO_ERROR)
+				BMessage message(REFS_RECEIVED);
+				bool enclosure = false;
+
+				entry_ref ref;
+				for (int32 index = 0;msg->FindRef("refs", index++, &ref) == B_OK;)
 				{
-					file.SetTo(&ref, O_RDONLY);
+					BFile file(&ref, O_RDONLY);
 					if (file.InitCheck() == B_NO_ERROR)
 					{
 						BNodeInfo node(&file);
+						char type[B_FILE_NAME_LENGTH];
 						node.GetType(type);
 
 						if (fCommand != SUBJECT_FIELD && !strcmp(type,"application/x-person"))
 						{
 							// add person's E-mail address to the To: field
 
+							const char *attr;
+							if (msg->FindString("attr", &attr) < B_OK)
+								attr = "META:email";
+
 							BString email;
-							ReadAttrString(&file,"META:email,",&email);
-							
+							ReadAttrString(&file,attr,&email);
+
 							/* we got something... */	
 							if (email.Length() > 0)
 							{
@@ -1003,7 +999,7 @@ QPopupMenu::QPopupMenu(const char *title)
 
 
 void QPopupMenu::AddPersonItem(const entry_ref *ref, ino_t node, BString &name, BString &email,
-		BMenu *groupMenu, BMenuItem *superItem)
+		const char *attr, BMenu *groupMenu, BMenuItem *superItem)
 {
 	BString label;
 	
@@ -1017,6 +1013,8 @@ void QPopupMenu::AddPersonItem(const entry_ref *ref, ino_t node, BString &name, 
 	BMessage *msg = new BMessage(B_SIMPLE_DATA);
 	msg->AddRef("refs", ref);
 	msg->AddInt64("node", node);
+	if (attr)
+		msg->AddString("attr", attr);
 
 	BMenuItem *item = new BMenuItem(label.String(), msg);
 	if (fTargetHandler)
@@ -1103,7 +1101,7 @@ void QPopupMenu::EntryCreated(const entry_ref &ref, ino_t node)
 	BString email;
 	ReadAttrString(&file,"META:email",&email);
 
-	AddPersonItem(&ref,node,name,email,groupMenu,superItem);
+	AddPersonItem(&ref,node,name,email,NULL,groupMenu,superItem);
 
 	// support for 3rd-party People apps
 	for (int16 i = 2;i < 6;i++)
@@ -1111,7 +1109,7 @@ void QPopupMenu::EntryCreated(const entry_ref &ref, ino_t node)
 		char attr[16];
 		sprintf(attr,"META:email%d",i);
 		if (ReadAttrString(&file,attr,&email) >= B_OK && email.Length() > 0)
-			AddPersonItem(&ref,node,name,email,groupMenu,superItem);
+			AddPersonItem(&ref,node,name,email,attr,groupMenu,superItem);
 	}
 }
 

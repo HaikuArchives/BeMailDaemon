@@ -96,6 +96,8 @@ inline bool IsInitialUTF8Byte(uchar b)
 	return ((b & 0xC0) != 0x80);
 }
 
+
+// the prototype is obviously needed by mwcc
 bool FilterHTMLTag(char *first,char **t,char *end);
 
 bool FilterHTMLTag(char *first,char **t,char *end)
@@ -163,7 +165,9 @@ bool FilterHTMLTag(char *first,char **t,char *end)
 }
 
 
+// the prototype is obviously needed by mwcc
 void FillInQouteTextRuns(BTextView *view,const char *line,int32 length,BFont &font,text_run_array *style,int32 maxStyles = 5);
+
 void FillInQouteTextRuns(BTextView *view,const char *line,int32 length,BFont &font,text_run_array *style,int32 maxStyles)
 {
 	text_run *runs = style->runs;
