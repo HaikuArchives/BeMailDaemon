@@ -146,6 +146,8 @@ ADDON INSTALLATION.
 HISTORY:
 
 December 16 2002 - v2.0.0b8
+- Date format changed slightly to make it compliant to RFC-822 (some other mail apps had problems understanding it).
+- decode_base64() should now work with single character line breaks as well.
 - Changed default spam cutoff ratio to 0.95 to correspond to the default Chi-Squared scoring method.
 
 December 13 2002 - v2.0.0b7
