@@ -693,8 +693,43 @@ Message::RenderToRFC822(BPositionIO *file)
 
 		SetHeaderField("Date", date);
 	}
+	
+	/* add a message-id */
+	BString message_id;
+	/* empirical evidence indicates message id must be enclosed in
+	** angle brackets and there must be an "at" symbol in it
+	*/
+	message_id << "<";
+	message_id << system_time();
+	message_id << "-BeMail@";
+	
+	#if BONE
+		utsname uinfo;
+		uname(&uinfo);
+		message_id << uinfo.nodename;
+	#else
+		char host[255];
+		gethostname(host,255);
+		message_id << host;
+	#endif
 
-	// setting the file's attributes
+	message_id << ">";
+	SetHeaderField("Message-ID", message_id.String());
+	
+	status_t err = Mail::Component::RenderToRFC822(file);
+	if (err < B_OK)
+		return err;
+	
+	file->Seek(-2, SEEK_CUR); //-----Remove division between headers
+	
+	err = _body->RenderToRFC822(file);
+	if (err < B_OK)
+		return err;
+
+	// Set the message file's attributes.  Do this after the rest of the file
+	// is filled in, in case the daemon attempts to send it before it is ready
+	// (since the daemon may send it when it sees the status attribute getting
+	// set to "Pending").
 
 	if (BFile *attributed = dynamic_cast <BFile *>(file)) {
 		attributed->WriteAttrString(B_MAIL_ATTR_RECIPIENTS,&recipients);
@@ -726,37 +761,6 @@ Message::RenderToRFC822(BPositionIO *file)
 
 		BNodeInfo(attributed).SetType(B_MAIL_TYPE);
 	}
-	
-	/* add a message-id */
-	BString message_id;
-	/* empirical evidence indicates message id must be enclosed in
-	** angle brackets and there must be an "at" symbol in it
-	*/
-	message_id << "<";
-	message_id << system_time();
-	message_id << "-BeMail@";
-	
-	#if BONE
-		utsname uinfo;
-		uname(&uinfo);
-		message_id << uinfo.nodename;
-	#else
-		char host[255];
-		gethostname(host,255);
-		message_id << host;
-	#endif
-
-	message_id << ">";
-	SetHeaderField("Message-ID", message_id.String());
-	
-	status_t err = Mail::Component::RenderToRFC822(file);
-	if (err < B_OK)
-		return err;
-	
-	file->Seek(-2, SEEK_CUR); //-----Remove division between headers
-	
-	err = _body->RenderToRFC822(file);
-	return err;
 }
 	
 
