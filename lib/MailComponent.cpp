@@ -153,6 +153,11 @@ status_t Component::HeaderField(const char *key, BMessage *structure, int32 inde
 	BString sub_cat,end_piece;
 	int32 i = 0, end = 0;
 
+	// Break the header into parts, they're separated by semicolons, like this:
+	// Content-Type: multipart/mixed;boundary= "----=_NextPart_000_00AA_354DB459.5977A1CA"
+	// There's also white space and quotes to be removed, and even comments in
+	// parenthesis like this, which can appear anywhere white space is: (header comment)
+
 	while (end < string.Length()) {
 		end = string.FindFirst(';',i);
 		if (end < 0)
@@ -179,6 +184,10 @@ status_t Component::HeaderField(const char *key, BMessage *structure, int32 inde
 		if (first_equal >= 0) {
 			sub_cat.CopyInto(end_piece,first_equal+1,sub_cat.Length() - first_equal - 1);
 			sub_cat.Truncate(first_equal);
+			// Remove leading spaces from part after the equals sign.
+			while (isspace (end_piece.ByteAt(0)))
+				end_piece.Remove (0 /* index */, 1 /* number of chars */);
+			// Remove quote marks.
 			if (end_piece.ByteAt(0) == '\"') {
 				end_piece.Remove(0,1);
 				end_piece.Truncate(end_piece.Length() - 1);
