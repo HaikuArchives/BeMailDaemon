@@ -113,9 +113,9 @@ Protocol::Protocol(BMessage *settings, ChainRunner *run)
 
 	manifest = new StringList;
 	runner->Chain()->MetaData()->FindFlat("manifest", manifest); //---no error checking, because if it doesn't exist, it will stay empty anyway
-
-	runner->RegisterChainCallback(new DeleteCallback(this));
-		// ToDo: if I don't comment out the line above, MDR crashes after having send a message
+	
+	if (!settings->FindBool("login_and_do_nothing_else_of_any_importance"))
+		runner->RegisterChainCallback(new DeleteCallback(this));
 }
 
 
