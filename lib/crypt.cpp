@@ -14,7 +14,7 @@
 static const char key[PASSWORD_LENGTH + 1] = "Dr. Zoidberg Enterprises, BeMail";
 
 
-char *get_passwd(BMessage *msg,const char *name)
+_EXPORT char *get_passwd(BMessage *msg,const char *name)
 {
 	char *encryptedPassword;
 	ssize_t length;
@@ -28,7 +28,7 @@ char *get_passwd(BMessage *msg,const char *name)
 }
 
 
-bool set_passwd(BMessage *msg,const char *name,const char *password)
+_EXPORT bool set_passwd(BMessage *msg,const char *name,const char *password)
 {
 	if (!password)
 		return false;
@@ -47,7 +47,7 @@ bool set_passwd(BMessage *msg,const char *name,const char *password)
 }
 
 
-void passwd_crypt(char *in,char *out,int length)
+_EXPORT void passwd_crypt(char *in,char *out,int length)
 {
 	int i;
 
