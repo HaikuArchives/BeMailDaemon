@@ -143,6 +143,12 @@ Protocol::Protocol(BMessage *settings, ChainRunner *run)
 		fido.PushAttr("MAIL:chain");
 		fido.PushInt32(settings->FindInt32("chain"));
 		fido.PushOp(B_EQ);
+		if (!settings->FindBool("delete_remote_when_local")) {
+			fido.PushAttr("BEOS:type");
+			fido.PushString("text/x-partial-email");
+			fido.PushOp(B_EQ);
+			fido.PushOp(B_AND);
+		}
 		fido.Fetch();
 	
 		BString uid;
