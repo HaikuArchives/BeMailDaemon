@@ -65,9 +65,6 @@ extern "C" {
 int32 cistrcmp(const char *, const char *);
 int32 cistrncmp(const char *, const char *, int32);
 char *cistrstr(const char *, const char *);
-void extract(char **dest, const char *source);
-void get_recipients(char **dest, Mail::Message *mail, bool all);
-void verify_recipients(char **);
 int32 linelen(char*, int32, bool);
 
 #ifdef __cplusplus
