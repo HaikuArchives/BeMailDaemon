@@ -71,5 +71,5 @@ MDStatus CompatibilityFilter::ProcessMailMessage
 	return MD_OK;
 }
 
-MailFilter* instantiate_mailfilter(BMessage* settings)
+MailFilter* instantiate_mailfilter(BMessage* settings, StatusView*)
 { return new CompatibilityFilter(settings); }

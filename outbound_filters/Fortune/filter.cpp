@@ -23,6 +23,7 @@ class FortuneFilter: public MailFilter
 FortuneFilter::FortuneFilter(BMessage* msg)
 : MailFilter(msg), enabled(msg->FindBool("enabled"))
 {
+	printf("Constructor called.\n");
 }
 
 status_t FortuneFilter::InitCheck(BString* err){ return B_OK; }
@@ -30,6 +31,7 @@ status_t FortuneFilter::InitCheck(BString* err){ return B_OK; }
 MDStatus FortuneFilter::ProcessMailMessage
 (BPositionIO** io, BEntry* io_entry, BMessage* headers, BPath* , BString*)
 {
+	printf ("Start your engines!\n");
 	FILE * fd;
 	char buffer[768];
 	
@@ -48,5 +50,5 @@ MDStatus FortuneFilter::ProcessMailMessage
 	return MD_OK;
 }
 
-MailFilter* instantiate_mailfilter(BMessage* settings)
+MailFilter* instantiate_mailfilter(BMessage* settings, StatusView*)
 { return new FortuneFilter(settings); }
