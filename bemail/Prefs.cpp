@@ -668,12 +668,12 @@ TPrefsWindow::BuildReplyPreambleMenu()
 {
 	const char *substitutes[] = {
 /* To do: Not yet working, leave out for 2.0.0 beta 4:
-		"%n - Full name",
 		"%f - First name",
 		"%l - Last name",
-		"%d - Date",
 */
+		"%n - Full name",
 		"%e - E-mail address",
+		"%d - Date",
 		"",
 		"\\n - Newline",
 		NULL

@@ -61,6 +61,7 @@ All rights reserved.
 #include <MailMessage.h>
 #include <MailSettings.h>
 #include <MailDaemon.h>
+#include <mail_util.h> // For StripGook.
 
 #ifndef BONE
 #	include <netdb.h>
@@ -2598,6 +2599,8 @@ void TMailWindow::CopyMessage(entry_ref *ref, TMailWindow *src)
 void
 TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 {
+	const char *notImplementedString = "<Not Yet Implemented>";
+
 	fRepliedMail = *ref;
 	SetOriginatingWindow(window);
 
@@ -2650,12 +2653,18 @@ TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 
 			switch (*++from)
 			{
-				// ToDo: parse stuff!
-
-				case 'f':	// first name
-					memcpy(to, "Herbert", 7);
-					to += 7;
+				case 'n':	// full name
+				{
+					BString fullName (mail->From());
+					if (fullName.Length() <= 0)
+						fullName = "No-From-Address-Available";
+					Zoidberg::Mail::StripGook (&fullName);
+					length = fullName.Length();
+					memcpy(to, fullName.String(), length);
+					to += length;
 					break;
+				}
+
 				case 'e':	// eMail address
 				{
 					const char *address = mail->From();
@@ -2666,15 +2675,27 @@ TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 					to += length;
 					break;
 				}
-				case 'l':	// last name
-				case 'n':	// full name
+
 				case 'd':	// date
-					length = strlen("not yet implemented");
-					memcpy(to, "not yet implemented", length);
+				{
+					const char *date = mail->Date();
+					if (date == NULL)
+						date = "No-Date-Available";
+					length = strlen(date);
+					memcpy(to, date, length);
+					to += length;
+					break;
+				}
+
+				// ToDo: parse stuff!
+				case 'f':	// first name
+				case 'l':	// last name
+					length = strlen(notImplementedString);
+					memcpy(to, notImplementedString, length);
 					to += length;
 					break;
 
-				default:
+				default: // Sometimes a % is just a %.
 					*to++ = *from;
 			}
 		}
