@@ -39,6 +39,18 @@ _EXPORT int32		count_pop_accounts(void) {
 	return dir.CountEntries();
 }
 
+_EXPORT status_t get_mail_notification(mail_notification *notification)
+{
+	notification->alert = true;
+	notification->beep = false;
+	return B_OK;
+}
+
+_EXPORT status_t set_mail_notification(mail_notification *, bool)
+{
+	return B_NO_REPLY;
+}
+
 _EXPORT status_t	get_pop_account(mail_pop_account* account, int32 index) {
 	status_t err = B_OK;
 	const char *password, *passwd;
@@ -74,6 +86,10 @@ _EXPORT status_t	get_pop_account(mail_pop_account* account, int32 index) {
 	return err;
 }
 
+_EXPORT status_t set_pop_account(mail_pop_account *, int32, bool)
+{
+	return B_NO_REPLY;
+}
 
 _EXPORT status_t	get_smtp_host(char* buffer) {
 	MailChain chain(MailSettings().DefaultOutboundChainID());
@@ -110,10 +126,5 @@ _EXPORT status_t forward_mail(entry_ref *ref, const char *recipients, bool now)
 	mail.SetTo(recipients);
 	
 	return mail.Send(now);
-}
-
-_EXPORT status_t set_pop_account(mail_pop_account *, int32, bool)
-{
-	return B_NO_REPLY;
 }
 
