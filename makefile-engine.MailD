@@ -364,6 +364,12 @@ ifeq ($(INSTALL_DIR), )
 else
 	mkdir -p "$(INSTALL_DIR)"
 endif
-	copyattr --data $(TARGET) "$(INSTALL_DIR)/$(NAME)"	
+	copyattr --data $(TARGET) "$(INSTALL_DIR)/$(NAME)"
+	rm $(TARGET)
+	
+# special case libmail.so, fix this to be generic in the future I guess
+ifeq ($(TARGET), "./libmail.so")
+	ln -sf "$(INSTALL_DIR)/$(NAME)" "/boot/develop/lib/x86"
+endif
 
 -include .dependencies

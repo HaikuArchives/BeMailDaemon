@@ -13,9 +13,19 @@ SUBDIRS = \
 
 default .DEFAULT :
 	-cp makefile-engine.MailD $(BUILDHOME)/etc/makefile-engine.MailD
+	
+	# must install lib to make the rest.
+	$(MAKE) -C lib install
+			
 	-@for f in $(SUBDIRS) ; do \
 		$(MAKE) -C $$f -f makefile $@ || exit -1; \
 	done
+
+clean:
+	-@for f in $(SUBDIRS) ; do \
+		$(MAKE) -C $$f -f makefile clean || exit -1; \
+	done
+
 
 #install: all
 #	mkdir bin > /dev/null 2>&1 || true

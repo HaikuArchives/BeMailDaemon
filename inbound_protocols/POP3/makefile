@@ -51,7 +51,7 @@ RSRCS=
 #		naming scheme you need to specify the path to the library
 #		and it's name
 #		library: my_lib.a entry: my_lib.a or path/my_lib.a
-LIBS= be netapi ../../lib/libmail.so
+LIBS= be netapi mail
 
 #	specify additional paths to directories following the standard
 #	libXXX.so or libXXX.a naming scheme.  You can specify full paths
@@ -138,7 +138,7 @@ endif
 #	Detect BONE
 ifeq ($(shell ls 2>/dev/null -1 /boot/develop/headers/be/bone/bone_api.h), /boot/develop/headers/be/bone/bone_api.h)
 	SYSTEM_INCLUDE_PATHS += /boot/develop/headers/be/bone
-	LIBS = be bnetapi ../../lib/libmail.so  
+	LIBS = be bnetapi mail  
 endif
 
 INSTALL_DIR=/boot/home/config/add-ons/mail_daemon/inbound_protocols
