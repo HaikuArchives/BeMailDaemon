@@ -275,8 +275,12 @@ void AttributedMailAttachment::SetTo(entry_ref *ref) {
 	BString boundary;
 	strcpy(buffer, ref->name);
 	for (int32 i = strlen(buffer);i-- > 0;)
-		if (buffer[i] & 0x80 || buffer[i] == ' ')
+	{
+		if (buffer[i] & 0x80)
 			buffer[i] = 'x';
+		else if (buffer[i] == ' ')
+			buffer[i] = '_';
+	}
 	boundary << "BFile:" << buffer << "--" << ((int32)file ^ time(NULL)) << ":" << ~((int32)file ^ (int32)&buffer ^ (int32)&_attributes) << "--";
 	SetBoundary(boundary.String());
 }
