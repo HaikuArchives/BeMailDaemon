@@ -1186,7 +1186,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 					index1++;
 				}
 				msg = new BMessage(M_SAVE);
-				msg->AddString(MDR_DIALECT_CHOICE ("address","アドレス"), list);
+				msg->AddString("address" /* don't translate, internal use */, list);
 				sub_menu->AddItem(new BMenuItem(list, msg), index1);
 
 skip:			if (!done)
@@ -3220,7 +3220,7 @@ status_t TMailWindow::OpenMessage(entry_ref *ref)
 					index1++;
 				}
 				msg = new BMessage(M_SAVE);
-				msg->AddString("address", list);
+				msg->AddString("address" /* internal use, don't translate */, list);
 				fSaveAddrMenu->AddItem(new BMenuItem(list, msg), index1);
 
 skip:			if (!done)
