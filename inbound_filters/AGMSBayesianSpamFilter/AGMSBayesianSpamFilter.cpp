@@ -11,6 +11,9 @@
  * Public Domain 2002, by Alexander G. M. Smith, no warranty.
  *
  * $Log$
+ * Revision 1.1  2002/11/03 02:06:15  agmsmith
+ * Added initial version to SourceForge.
+ *
  * Revision 1.8  2002/10/21 16:12:09  agmsmith
  * Added option for spam if no words found, use new method of saving
  * the attribute which avoids hacking the rest of the mail system.
