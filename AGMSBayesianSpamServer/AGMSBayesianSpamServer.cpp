@@ -74,6 +74,9 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
+ * Revision 1.66  2002/11/20 22:57:12  nwhitehorn
+ * PPC Compatibility Fixes
+ *
  * Revision 1.65  2002/11/10 18:43:55  agmsmith
  * Added a time delay to some quitting operations so that scripting commands
  * from a second client (like a second e-mail account) will make the program
@@ -3800,9 +3803,7 @@ status_t ABSApp::RecursivelyTokenizeMailComponent (
   const char                *HeaderValuePntr;
   int                        i;
   int                        j;
-  const char                *MIMEStringPntr;
   int                        NumComponents;
-  char                       TempMIMEString [B_MIME_TYPE_LENGTH];
   BMimeType                  TextAnyMIMEType ("text");
   BMimeType                  TextPlainMIMEType ("text/plain");
 
@@ -3851,33 +3852,6 @@ status_t ABSApp::RecursivelyTokenizeMailComponent (
 
     if (NULL != dynamic_cast<Zoidberg::Mail::TextComponent *>(ComponentPntr))
       ComponentMIMEType.SetType ("text/plain");
-  }
-
-  /* Convert the MIME type to lower case so it can be compared with our
-  constant types.  BeOS BMIMEType is case sensitive while OpenBeOS is not, but
-  then it's not available yet so we have to do case insensitivity here. */
-
-  MIMEStringPntr = ComponentMIMEType.Type ();
-  if (MIMEStringPntr != NULL)
-  {
-    for (i = 0; i < (int) sizeof (TempMIMEString); i++)
-    {
-      TempMIMEString[i] = tolower (MIMEStringPntr[i]);
-      if (MIMEStringPntr[i] == 0)
-        break;
-    }
-    TempMIMEString[sizeof (TempMIMEString)-1] = 0;
-    ComponentMIMEType.SetTo (TempMIMEString);
-    MIMEStringPntr = ComponentMIMEType.Type ();
-
-    /* Convert MIME type "text" into "text/plain", since that's what it usually
-    is, for our purposes. */
-
-    if (strcmp (MIMEStringPntr, "text") == 0)
-    {
-      ComponentMIMEType.SetTo ("text/plain");
-      MIMEStringPntr = ComponentMIMEType.Type ();
-    }
   }
 
   switch (m_TokenizeMode)
