@@ -340,7 +340,8 @@ status_t POP3Protocol::SendCommand(const char* cmd) {
 		else if(fLog.ICompare("-ERR",4) == 0) {
 			err = B_ERROR;
 			break;
-		}
+		} else
+			return B_BAD_VALUE; //-------If it's not +OK, and it's not -ERR, then what the heck is it? Presume an error
 	}
 	return err;
 }
