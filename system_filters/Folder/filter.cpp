@@ -180,8 +180,10 @@ Mail::MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMes
 			worker << ' ' << uniquer;
 		}
 		
-		e->Rename(worker.String());
-		
+		err = e->Rename(worker.String());
+		if (err < B_OK)
+			printf("could not rename mail (%s)! (should be: %s)\n",strerror(err),worker.String());
+
 		return Mail::MD_HANDLED;
 	}
 }
