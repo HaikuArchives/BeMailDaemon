@@ -32,6 +32,7 @@ class DiskProducer : public MailFilter
 	
 	BList entries_to_send;
 	ChainRunner *runner;
+	bool _we_are_default_chain;
 	
   public:
 	DiskProducer(BMessage*,StatusView*);
@@ -50,12 +51,15 @@ DiskProducer::DiskProducer(BMessage* msg,StatusView*status)
 {
 	entry_ref entry;
 	mail_flags flags;
+	status_t result;
+	int32 chain;
 	BNode node;
 
 	size_t total_size = 0;
 	off_t worker;
 	
 	msg->FindPointer("chain_runner",(void **)&runner);
+	_we_are_default_chain == (MailSettings().DefaultOutboundChainID() == runner->Chain()->ID());
 	src_string = runner->Chain()->MetaData()->FindString("path");
  	source = src_string.String();
 	while (source.GetNextRef(&entry) == B_OK) {
@@ -63,10 +67,14 @@ DiskProducer::DiskProducer(BMessage* msg,StatusView*status)
 		
 		if (node.ReadAttr(B_MAIL_ATTR_FLAGS,B_INT32_TYPE,0,&flags,4) >= B_OK
 			&& flags & B_MAIL_PENDING) {
-			entries_to_send.AddItem(new entry_ref(entry));
-			
-			node.GetSize(&worker);
-			total_size += worker;
+			result = node.ReadAttr("MAIL:chain",B_INT32_TYPE,0,&chain,4);
+			if (((result >= B_OK) && (chain == runner->Chain()->ID())) ||
+				((result < B_OK) && (_we_are_default_chain))) {
+				entries_to_send.AddItem(new entry_ref(entry));
+				
+				node.GetSize(&worker);
+				total_size += worker;
+			}
 		}
 	}
 	
