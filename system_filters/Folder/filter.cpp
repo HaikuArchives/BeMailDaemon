@@ -64,7 +64,7 @@ FolderFilter::FolderFilter(BMessage* msg)
   chain_id(msg->FindInt32("chain"))
 {
 	ChainRunner *runner = NULL;
-	msg->FindPointer("chain_runner",&runner);
+	msg->FindPointer("chain_runner", (void**)&runner);
 	dest_string = runner->Chain()->MetaData()->FindString("path");
 	destination = dest_string.String();
 }

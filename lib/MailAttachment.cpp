@@ -272,7 +272,7 @@ void AttributedMailAttachment::SaveToDisk(BEntry *entry) {
 	path << name;
 	
 	BFile file(path.String(),B_READ_WRITE | B_CREATE_FILE);
-	file << _attributes;
+	(BNode&)file << _attributes;
 	_data->GetDecodedData(&file);
 	file.Sync();
 	
@@ -366,6 +366,9 @@ status_t AttributedMailAttachment::Instantiate(BPositionIO *data, size_t length)
 	
 status_t AttributedMailAttachment::Render(BPositionIO *render_to) {
 	BMallocIO *io = new BMallocIO;
+#if B_BEOS_VERSION_DANO
+	const
+#endif
 	char *name;
 	const void *data;
 	void *allocd;

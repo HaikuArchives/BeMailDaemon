@@ -21,7 +21,12 @@ class _EXPORT MailMessage;
 #define mime_boundary "----------Zoidberg-BeMail-temp--------"
 #define mime_warning "This is a multipart message in MIME format."
 
-MailMessage::MailMessage(BPositionIO *mail_file) : _num_components(0), _body(NULL), _bcc(NULL), _text_body(NULL) {
+MailMessage::MailMessage(BPositionIO *mail_file)
+            :_bcc(NULL)
+            ,_num_components(0)
+            ,_body(NULL)
+            , _text_body(NULL)
+{
 	MailSettings settings;
 	_chain_id = settings.DefaultOutboundChainID();
 	
@@ -306,5 +311,5 @@ void MailMessage::Send(bool send_now) {
 		
 	delete via;
 }
-		
-	
+
+
