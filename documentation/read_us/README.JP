@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v2.2.4
+BEOS Mail Daemon Replacement v2.2.5
 
 概要：
 
@@ -180,6 +180,9 @@ BEOS Mail Daemon Replacement v2.2.4
 　　さらに、SampleSpamDatabaseに関する注釈を参照してください。
 
 履歴：
+
+October 12 2003 - v2.2.5
+- Queries changed to be multivolume, so maybe (untested) you can have mail directories (inbox, outbox, draft) on volumes other than /boot.
 
 October 12 2003 - v2.2.4
 - Fixed IMAP's mailbox look-up routines so that they use LSUB instead of LIST. This fixes a few bugs with certain mail servers, and allows better interoperability with other mail clients on the same account. 
