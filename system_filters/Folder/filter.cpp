@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <parsedate.h>
+#include <unistd.h>
 
 #include <MailAddon.h>
 #include <MailSettings.h>
@@ -59,9 +60,11 @@ class FolderFilter : public Mail::Filter
 	BString dest_string;
 	BDirectory destination;
 	int32 chain_id;
+	int fNumberOfFilesSaved;
 
   public:
 	FolderFilter(BMessage*);
+	virtual ~FolderFilter();
 	virtual status_t InitCheck(BString *err);
 	virtual MDStatus ProcessMailMessage
 	(
@@ -75,11 +78,25 @@ FolderFilter::FolderFilter(BMessage* msg)
 	: Mail::Filter(msg),
 	chain_id(msg->FindInt32("chain"))
 {
+	fNumberOfFilesSaved = 0;
 	Mail::ChainRunner *runner = NULL;
 	msg->FindPointer("chain_runner", (void**)&runner);
 	dest_string = runner->Chain()->MetaData()->FindString("path");
 	destination = dest_string.String();
 }
+
+
+FolderFilter::~FolderFilter ()
+{
+	// Save the disk cache to the actual disk so mail data won't get lost if a
+	// crash happens soon after mail has been received or sent.  Mostly put
+	// here because of unexpected mail daemon activity during debugging of
+	// kernel crashing software.
+
+	if (fNumberOfFilesSaved > 0)
+		sync ();
+}
+
 
 status_t FolderFilter::InitCheck(BString* err)
 {
@@ -240,6 +257,7 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	if (err < B_OK)
 		printf("could not rename mail (%s)! (should be: %s)\n",strerror(err),worker.String());
 
+	fNumberOfFilesSaved++;
 	return MD_HANDLED;
 }
 
