@@ -33,7 +33,7 @@ class ParseFilter : public Mail::Filter
 };
 
 ParseFilter::ParseFilter(BMessage* msg)
-	: Mail::Filter(msg), name_field("from")
+	: Mail::Filter(msg), name_field("From")
 {
 	const char *n = msg->FindString("name_field");
 	if (n)
