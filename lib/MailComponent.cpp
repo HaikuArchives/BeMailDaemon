@@ -35,7 +35,7 @@ uint32 MailComponent::ComponentType()
 			return MC_ATTRIBUTED_ATTACHMENT;
 		else
 			return MC_MULTIPART_CONTAINER;
-	} else if (!IsAttachment() && super == "text")
+	} else if (!IsAttachment() && (super == "text" || type.Type() == NULL))
 		return MC_PLAIN_TEXT_BODY;
 	else
 		return MC_SIMPLE_ATTACHMENT;
