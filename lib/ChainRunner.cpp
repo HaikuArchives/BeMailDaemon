@@ -76,10 +76,9 @@ Mail::Chain *ChainRunner::Chain() {
 	return _chain;
 }
 
+BList running_chains;
+
 status_t ChainRunner::RunChain(bool asynchronous) {
-	
-	static BList running_chains;
-	
 	if (running_chains.HasItem((void *)(_chain->ID())))
 		return B_NAME_IN_USE;
 
@@ -196,7 +195,9 @@ void ChainRunner::MessageReceived(BMessage *msg) {
 					delete _statview;
 				_status->Unlock();
 			}				
-				
+			
+			running_chains.RemoveItem((void *)(_chain->ID()));
+			
 			if (save_chain)
 				_chain->Save();
 				
