@@ -80,12 +80,12 @@ bool Component::IsAttachment() {
 	const char *disposition = HeaderField("Content-Disposition");
 	if ((disposition != NULL) && (strncasecmp(disposition,"Attachment",strlen("Attachment")) == 0))
 		return true;
-	
+
 	BMessage header;
 	HeaderField("Content-Type",&header);
 	if (header.HasString("name"))
 		return true;
-	
+
 	if (HeaderField("Content-Location",&header) == B_OK)
 		return true;
 
@@ -93,14 +93,14 @@ bool Component::IsAttachment() {
 	MIMEType(&type);
 	if (type == "multipart/x-bfile")
 		return true;
-	
+
 	return false;
 }
-	
+
 void Component::SetHeaderField(const char *key, const char *value, uint32 charset, mail_encoding encoding, bool replace_existing) {
 	if (replace_existing)
 		headers.RemoveName(key);
-	
+
 	headers.AddString(key,value);
 	headers.AddInt32(key,charset);
 	headers.AddInt8(key,encoding);
@@ -109,11 +109,11 @@ void Component::SetHeaderField(const char *key, const char *value, uint32 charse
 void Component::SetHeaderField(const char *key, BMessage *structure, bool replace_existing) {
 	if (replace_existing)
 		headers.RemoveName(key);
-	
+
 	BString value;
 	if (structure->HasString("unlabeled"))
 		value << structure->FindString("unlabeled") << "; ";
-	
+
 	const char *name, *sub_val;
 	type_code type;
 	for (int32 i = 0; structure->GetInfo(B_STRING_TYPE,i,
@@ -124,7 +124,7 @@ void Component::SetHeaderField(const char *key, BMessage *structure, bool replac
 	{
 		if (strcasecmp(name,"unlabeled") == 0)
 			continue;
-		
+
 		structure->FindString(name, &sub_val);
 		value << name << '=';
 		if (BString(sub_val).FindFirst(' ') > 0)
@@ -132,15 +132,15 @@ void Component::SetHeaderField(const char *key, BMessage *structure, bool replac
 		else
 			value << sub_val << "; ";
 	}
-	
+
 	value.Truncate(value.Length() - 2); //-----Remove the last "; "
-	
+
 	SetHeaderField(key,value.String(),B_ISO1_CONVERSION,no_encoding);
 }
-	
+
 const char *Component::HeaderField(const char *key, int32 index) {
 	const char *string = NULL;
-	
+
 	headers.FindString(key,index,&string);
 	return string;
 }
@@ -149,7 +149,7 @@ status_t Component::HeaderField(const char *key, BMessage *structure, int32 inde
 	BString string = HeaderField(key,index);
 	if (string == "")
 		return B_NAME_NOT_FOUND;
-	
+
 	BString sub_cat,end_piece;
 	int32 i = 0, end = 0;
 
@@ -157,7 +157,7 @@ status_t Component::HeaderField(const char *key, BMessage *structure, int32 inde
 		end = string.FindFirst(';',i);
 		if (end < 0)
 			end = string.Length();
-		
+
 		string.CopyInto(sub_cat,i,end - i);
 		i = end + 1;
 
@@ -189,7 +189,7 @@ status_t Component::HeaderField(const char *key, BMessage *structure, int32 inde
 			structure->AddString("unlabeled",sub_cat.String());
 		}
 	}
-		
+
 	return B_OK;
 }
 
@@ -203,7 +203,7 @@ const char *Component::HeaderAt(int32 index) {
 #endif
 	char *name = NULL;
 	type_code type;
-	
+
 	headers.GetInfo(B_STRING_TYPE,index,&name,&type);
 	return name;
 }
@@ -226,16 +226,16 @@ Component::SetToRFC822(BPositionIO *data, size_t /*length*/, bool /* parse_now *
 	{
 		if (buf[len-2] == '\r') len -= 2;
 		else if (buf[len-1] == '\n') --len;
-				
+
 		// convert to UTF-8
 		len = rfc2047_to_utf8(&buf, &buflen, len);
-		
+
 		// terminate
 		buf[len] = 0;
 
 		const char *delimiter = strstr(buf, ": ");
 		if (delimiter == NULL)
-			continue;	
+			continue;
 
 		BString header(buf, delimiter - buf);
 		header.CapitalizeEachWord(); //-------Unified case for later fetch
@@ -247,18 +247,18 @@ Component::SetToRFC822(BPositionIO *data, size_t /*length*/, bool /* parse_now *
 
 	return B_OK;
 }
-	
+
 status_t Component::RenderToRFC822(BPositionIO *render_to) {
 	int32 charset;
 	int8 encoding;
 	const char *key, *value;
 	char *allocd;
-	
+
 	BString concat;
-	
+
 	type_code stupidity_personified = B_STRING_TYPE;
 	int32 count = 0;
-	
+
 	for (int32 index = 0; headers.GetInfo(B_STRING_TYPE,index,
 #ifndef B_BEOS_VERSION_DANO
 	(char**)
@@ -268,38 +268,57 @@ status_t Component::RenderToRFC822(BPositionIO *render_to) {
 			headers.FindString(key,g,(const char **)&value);
 			allocd = (char *)malloc(strlen(value) + 1);
 			strcpy(allocd,value);
-			
+
 			if (headers.FindInt32(key,&charset) != B_OK)
 				charset = B_ISO1_CONVERSION;
-				
+
 			if (headers.FindInt8(key,&encoding) != B_OK)
 				encoding = 'q';
-			
+
 			concat << key << ": ";
 			concat.CapitalizeEachWord();
-			
+
 			concat.Append(allocd,utf8_to_rfc2047(&allocd, strlen(value), charset, encoding));
-			
+
 			concat << "\r\n";
-			
+
 			free(allocd);
-			
+
 			render_to->Write(concat.String(), concat.Length());
 			concat = "";
 		}
 	}
-	
+
 	render_to->Write("\r\n", 2);
-	
+
 	return B_OK;
 }
 
 status_t Component::MIMEType(BMimeType *mime) {
+	unsigned int i;
 	BMessage msg;
+	const char *typeAsString;
+	char typeAsLowerCaseString [B_MIME_TYPE_LENGTH];
+
 	HeaderField("Content-Type",&msg);
-	
-	mime->SetTo(msg.FindString("unlabeled"));
-	
+	typeAsString = msg.FindString("unlabeled");
+
+	if (typeAsString == NULL) {
+		strcpy (typeAsLowerCaseString, "text/plain"); // Hope this is an OK default.
+	} else {
+		// Some extra processing to convert mixed or upper case MIME types into
+		// lower case, since the BeOS R5 BMimeType is case sensitive (but OpenBeOS
+		// isn't).  Also truncate the string if it is too long.
+		for (i = 0; i < sizeof (typeAsLowerCaseString) - 1 && typeAsString[i] != 0; i++)
+			typeAsLowerCaseString[i] = tolower (typeAsString[i]);
+		typeAsLowerCaseString[i] = 0;
+
+		// Some old e-mail programs saved the type as just "TEXT", which we need to
+		// convert to "text/plain" since the rest of the code looks for that.
+		if (strcmp (typeAsLowerCaseString, "text") == 0)
+			strcpy (typeAsLowerCaseString, "text/plain");
+	}
+	mime->SetTo(typeAsLowerCaseString);
 	return B_OK;
 }
 
@@ -315,7 +334,7 @@ void Component::_ReservedComponent5() {}
 //	#pragma mark -
 
 
-TextComponent::TextComponent(const char *text) 
+TextComponent::TextComponent(const char *text)
 	: Component(),
 	encoding(quoted_printable),
 	charset(B_ISO1_CONVERSION),
@@ -323,7 +342,7 @@ TextComponent::TextComponent(const char *text)
 {
 	if (text != NULL)
 		SetText(text);
-			
+
 	SetHeaderField("MIME-Version","1.0");
 }
 
@@ -338,35 +357,35 @@ void TextComponent::SetEncoding(mail_encoding encoding, int32 charset) {
 
 void TextComponent::SetText(const char *text) {
 	this->text.SetTo(text);
-	
+
 	raw_data = NULL;
 }
 
 void TextComponent::AppendText(const char *text) {
 	ParseRaw();
-	
+
 	this->text << text;
 }
 
 const char *TextComponent::Text() {
 	ParseRaw();
-	
+
 	return text.String();
 }
 
 BString *TextComponent::BStringText() {
 	ParseRaw();
-	
+
 	return &text;
 }
 
 void TextComponent::Quote(const char *message, const char *quote_style) {
 	ParseRaw();
-	
+
 	BString string;
 	string << '\n' << quote_style;
 	text.ReplaceAll("\n",string.String());
-	
+
 	string = message;
 	string << '\n';
 	text.Prepend(string.String());
@@ -374,7 +393,7 @@ void TextComponent::Quote(const char *message, const char *quote_style) {
 
 status_t TextComponent::GetDecodedData(BPositionIO *data) {
 	ParseRaw();
-	
+
 	BMimeType type;
 	ssize_t written;
 	if (MIMEType(&type) == B_OK && type == "text/plain")
@@ -388,14 +407,14 @@ status_t TextComponent::GetDecodedData(BPositionIO *data) {
 status_t TextComponent::SetDecodedData(BPositionIO *data)  {
 	char buffer[255];
 	size_t buf_len;
-	
+
 	while ((buf_len = data->Read(buffer,254)) > 0) {
 		buffer[buf_len] = 0;
 		this->text << buffer;
 	}
-	
+
 	raw_data = NULL;
-	
+
 	return B_OK;
 }
 
@@ -419,7 +438,7 @@ TextComponent::SetToRFC822(BPositionIO *data, size_t length, bool parseNow)
 
 	return B_OK;
 }
-		
+
 
 status_t
 TextComponent::ParseRaw()
@@ -504,14 +523,14 @@ TextComponent::RenderToRFC822(BPositionIO *render_to)
 			transfer_encoding = "7bit";
 			break;
 	}
-	
+
 	SetHeaderField("Content-Transfer-Encoding",transfer_encoding);
-	
+
 	Component::RenderToRFC822(render_to);
-	
+
 	BString modified = this->text;
 	BString alt;
-	
+
 	int32 len = this->text.Length();
 	if (len > 0) {
 		int32 dest_len = len * 2;
@@ -519,7 +538,7 @@ TextComponent::RenderToRFC822(BPositionIO *render_to)
 		int32 state;
 		convert_from_utf8(charset,this->text.String(),&len,raw,&dest_len,&state);
 		alt.UnlockBuffer(dest_len);
-		
+
 		raw = modified.LockBuffer((alt.Length()*3)+1);
 		switch (encoding) {
 			case 'b':
@@ -558,16 +577,16 @@ TextComponent::RenderToRFC822(BPositionIO *render_to)
 //		//------Desperate bid to wrap lines
 //		int32 curr_line_length = 0;
 //		int32 last_space = 0;
-//		
+//
 //		for (int32 i = 0; i < modified.Length(); i++) {
 //			if (isspace(modified.ByteAt(i)))
 //				last_space = i;
-//				
+//
 //			if ((modified.ByteAt(i) == '\r') && (modified.ByteAt(i+1) == '\n'))
 //				curr_line_length = 0;
 //			else
 //				curr_line_length++;
-//				
+//
 //			if (curr_line_length > 80) {
 //				if (last_space >= 0) {
 //					modified.Insert("\r\n",last_space);
@@ -576,11 +595,11 @@ TextComponent::RenderToRFC822(BPositionIO *render_to)
 //				}
 //			}
 //		}
-	}	
+	}
 	modified << "\r\n";
-	
+
 	render_to->Write(modified.String(),modified.Length());
-	
+
 	return B_OK;
 }
 
