@@ -43,8 +43,7 @@ if test -e "${HOME}/config/settings/AGMSBayesianSpam/AGMSBayesianSpam Database";
   then
     alert "The spam database file (${HOME}/config/settings/AGMSBayesianSpam/AGMSBayesianSpam Database) already exists.  You can manually replace it with the SampleSpamDatabase if you wish to.  However, if you have customized your spam words (recommended so that it recognizes what YOUR genuine mail and spam look like) then you probably want to keep using your existing database.";
   else
-    cp SampleSpamDatabase "${HOME}/config/settings/AGMSBayesianSpam/AGMSBayesianSpam Database";
-    rm SampleSpamDatabase;
+    cp bin/SampleSpamDatabase "${HOME}/config/settings/AGMSBayesianSpam/AGMSBayesianSpam Database";
 fi 
 
 sleep 1

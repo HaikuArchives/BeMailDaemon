@@ -31,7 +31,7 @@ copyattr -d build_utils/install.sh $BUILD_PATH
 chmod a+x $BUILD_PATH/install.sh
 copyattr -d bemail/obj.$CPU/BeMail $BUILD_PATH/bin
 copyattr -d AGMSBayesianSpamServer/obj.$CPU/AGMSBayesianSpamServer $BUILD_PATH/bin
-cp AGMSBayesianSpamServer/SampleDatabase $BUILD_PATH/SampleSpamDatabase
+copyattr -d AGMSBayesianSpamServer/SampleDatabase $BUILD_PATH/bin
 copyattr -d daemon/obj.$CPU/mail_daemon $BUILD_PATH/bin
 copyattr -d lib/libmail.so $BUILD_PATH/bin
 copyattr -d config/obj.$CPU/E-mail $BUILD_PATH/bin

@@ -16,6 +16,19 @@ files:
   DANGER, WILL ROBINSON
    The reasons this is not a final release. You really should read this.
 
+  AGMSBayesianSpamDocumentation
+    This lovely folder with no spaces in its name contains the documentation for
+    Alexander G. M. Smith's (hence AGMS) brilliant spam filtering software. I've
+    never used it (I love reading spam, it's really pretty amusing), but it seems
+    pretty cool. Enjoy. And sorry about the spaces.
+
+  SampleSpamDatabase
+    This contains a... sample spam database. It goes with the spam server, and
+    helps it figure out what is and isn't spam based on spam it has seen before.
+    Since it obviously hasn't seen any spam yet when you install this, we give
+    you some, already in machine format., Chief Justice Rehnquist: "I can't define
+    it, but I know it when I see it."
+
   libmail.so
    This library provides the backend for the new mail_daemon.
    It will be installed in /boot/beos/system/lib
@@ -49,7 +62,7 @@ files:
   to find it, having more than one version will cause things to
   randomly fail, when it finds the old version instead of the new.
 
-  This software is alpha quality! See the LICENSE file for more 	
+  This software is beta quality! See the LICENSE file for more 	
   information.
 
 ***********
@@ -130,13 +143,17 @@ ADDON INSTALLATION.
    containing (you guessed it!) the message thread.
 
  AGMS Bayesian Spam Filter
-   Documentation about this filter is available in the AGMSBayesianSpamDocumentation folder.
+   This filters out spam. If you want to know more (and you may) more
+   documentation can be found in the directory with no spaces in its
+   name: AGMSBayesianSpamDocumentation. It even has, unlike this, lots of
+   pretty pictures.
 
 HISTORY:
 
 November 20 2002 - v2.0.0b4
  - Zillions of bug fixes. Too much to mention, really
  - Lots of new features (we will let you have fun discovering them)
+ - Profuse apologies for waiting so long to release this
  - Bayesian Spam Filter included
 
 February 12 2002 - v2.0.0b1
