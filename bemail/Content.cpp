@@ -2193,9 +2193,9 @@ bool TTextView::Reader::Insert(const char *line, int32 count, bool isHyperLink, 
 status_t TTextView::Reader::Run(void *_this)
 {
 	Reader *reader = (Reader *)_this;
-	char	*msg;
+	char	*msg = NULL;
+	off_t	size = 0;
 	int32	len;
-	off_t	size;
 
 	len = header_len(reader->fFile);
 
@@ -2204,10 +2204,12 @@ status_t TTextView::Reader::Run(void *_this)
 	if (reader->fRaw || !reader->fMime)
 		reader->fFile->GetSize(&size);
 
-	if ((msg = (char *)malloc(size)) == NULL)
+	if (size != 0 && (msg = (char *)malloc(size)) == NULL)
 		goto done;
 	reader->fFile->Seek(0, 0);
-	size = reader->fFile->Read(msg, size);
+	
+	if (msg)
+		size = reader->fFile->Read(msg, size);
 
 	// show the header?
 	if (reader->fHeader && len)
@@ -2253,6 +2255,7 @@ status_t TTextView::Reader::Run(void *_this)
 	 	else if (!reader->Process(msg, len, true))
 			goto done;
 	}
+
 	if (reader->fRaw)
 	{
 		if (!reader->Process((const char *)msg + len, size - len))
