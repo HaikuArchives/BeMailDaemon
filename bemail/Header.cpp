@@ -70,18 +70,24 @@ class QPopupMenu : public QueryMenu
 {
 	public:
 		QPopupMenu(const char *title);
-		
+
+	private:		
+		void AddPersonItem(const entry_ref *ref, ino_t node, BString &name, BString &email,
+							BMenu *groupMenu, BMenuItem *superItem);
+
 	protected:
 		virtual void EntryCreated(const entry_ref &ref, ino_t node);
 		virtual void EntryRemoved(ino_t node);
-		
+
 		int32 fGroups;
 };
 
 //====================================================================
 
-struct evil {
-	bool operator()(const BString *s1, const BString *s2) const {
+struct evil
+{
+	bool operator()(const BString *s1, const BString *s2) const
+	{
 		return (s1->Compare(*s2) < 0);
 	}
 };
@@ -89,20 +95,20 @@ struct evil {
 //====================================================================
 
 THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
-	BFile *file, bool resending)
+			BFile *file, bool resending)
 	:	BBox(rect, "m_header", B_FOLLOW_LEFT_RIGHT, B_WILL_DRAW, B_PLAIN_BORDER),
-		fAccountMenu(NULL),
-		fChain(gDefaultChain),
-		fAccount(NULL),
-		fBcc(NULL),
-		fCc(NULL),
-		fIncoming(incoming),
-		fResending(resending),
-		fBccMenu(NULL),
-		fCcMenu(NULL),
-		fToMenu(NULL),
-		fFile(NULL),
-		fDate(NULL)
+	fAccountMenu(NULL),
+	fChain(gDefaultChain),
+	fAccount(NULL),
+	fBcc(NULL),
+	fCc(NULL),
+	fIncoming(incoming),
+	fResending(resending),
+	fBccMenu(NULL),
+	fCcMenu(NULL),
+	fToMenu(NULL),
+	fFile(NULL),
+	fDate(NULL)
 {
 	BFont font = *be_plain_font;
 	font.SetSize(FONT_SIZE);
@@ -324,6 +330,15 @@ THeaderView::InitEmailCompletion()
 			BString email;
 			if (file.ReadAttrString("META:email", &email) >= B_OK)
 				emailList.AddChoice(email.String());
+
+			// support for 3rd-party People apps
+			for (int16 i = 2;i < 6;i++)
+			{
+				char attr[16];
+				sprintf(attr,"META:email%d",i);
+				if (file.ReadAttrString(attr,&email) >= B_OK)
+					emailList.AddChoice(email.String());
+			}
 		}
 	}
 }
@@ -368,19 +383,23 @@ THeaderView::InitGroupCompletion()
 		char *grp = groups.LockBuffer(groups.Length());
 		char *next = strchr(grp, ',');
 		
-		for (;;) {
+		for (;;)
+		{
 			if (next) *next = 0;
 			while (*grp && *grp == ' ') grp++;
 		
 			BString *group = new BString(grp);
 			
 			// nobody is in this group yet, start it off
-			if (group_map[group] == NULL) {
+			if (group_map[group] == NULL)
+			{
 				BString *addresses = new BString(*group);
 				addresses->Append(" <");
 				addresses->Append(address);
 				group_map[group] = addresses;
-			} else {
+			}
+			else
+			{
 				BString *a = group_map[group];
 				a->Append(", ");
 				a->Append(address);
@@ -460,15 +479,18 @@ void THeaderView::MessageReceived(BMessage *msg)
 
 void THeaderView::AttachedToWindow(void)
 {
-	if (fToMenu) {
+	if (fToMenu)
+	{
 		fToMenu->SetTargetForItems(fTo);
 		fToMenu->SetPredicate("META:email=**");
 	}
-	if (fCcMenu) {
+	if (fCcMenu)
+	{
 		fCcMenu->SetTargetForItems(fCc);
 		fCcMenu->SetPredicate("META:email=**");
 	}
-	if (fBccMenu) {
+	if (fBccMenu)
+	{
 		fBccMenu->SetTargetForItems(fBcc);
 		fBccMenu->SetPredicate("META:email=**");
 	}
@@ -680,26 +702,32 @@ void THeaderView::SetAddress(BMessage *msg)
 	{
 		case M_TO_MENU:
 			text = fTo->TextView();
-			if (msg->HasString("group")) {
+			if (msg->HasString("group"))
+			{
 				msg->FindString("group", &msgStr);
 				group = true;
-			} else
+			}
+			else
 				msg->FindString("address", &msgStr);
 			break;
 		case M_CC_MENU:
 			text = fCc->TextView();
-			if (msg->HasString("group")) {
+			if (msg->HasString("group"))
+			{
 				msg->FindString("group", &msgStr);
 				group = true;
-			} else
+			}
+			else
 				msg->FindString("address", &msgStr);
 			break;
 		case M_BCC_MENU:
 			text = fBcc->TextView();
-			if (msg->HasString("group")) {
+			if (msg->HasString("group"))
+			{
 				msg->FindString("group", &msgStr);
 				group = true;
-			} else
+			}
+			else
 				msg->FindString("address", &msgStr);
 			break;
 	}
@@ -889,73 +917,71 @@ void TTextControl::MessageReceived(BMessage *msg)
 	entry_ref	ref;
 	BFile		file;
 	BMessage	message(REFS_RECEIVED);
-	BNodeInfo	*node;
-	BTextView	*text_view;
-	attr_info	info;
 
 	switch (msg->what)
 	{
 		case B_SIMPLE_DATA:
-			if ((!fIncoming) || (fResending)) {
-				while (msg->FindRef("refs", index++, &ref) == B_NO_ERROR) {
+			if (!fIncoming || fResending)
+			{
+				while (msg->FindRef("refs", index++, &ref) == B_NO_ERROR)
+				{
 					file.SetTo(&ref, O_RDONLY);
-					if (file.InitCheck() == B_NO_ERROR) {
-						node = new BNodeInfo(&file);
-						node->GetType(type);
-						delete node;
+					if (file.InitCheck() == B_NO_ERROR)
+					{
+						BNodeInfo node(&file);
+						node.GetType(type);
 
-/****/
-						if ((fCommand != SUBJECT_FIELD) && (!strcmp(type,
-								"application/x-person"))) {
-							if (file.GetAttrInfo("META:email", &info) == B_NO_ERROR) {
-								BString email;
-								file.ReadAttr("META:email", B_STRING_TYPE, 0,
-									email.LockBuffer(info.size+1), info.size);
-								email.UnlockBuffer();
+						if (fCommand != SUBJECT_FIELD && !strcmp(type,"application/x-person"))
+						{
+							// add person's E-mail address to the To: field
+
+							BString email;
+							ReadAttrString(&file,"META:email,",&email);
 							
 							/* we got something... */	
-							if (email.Length() > 0) {
-								BString name;
+							if (email.Length() > 0)
+							{
 								/* see if we can get a username as well */
-								if (file.GetAttrInfo("META:name", &info)
-										== B_NO_ERROR) {
-									file.ReadAttr("META:name", B_STRING_TYPE, 0,
-										name.LockBuffer(info.size+1), info.size);
-									name.UnlockBuffer();
-								}
+								BString name;
+								ReadAttrString(&file,"META:name",&name);
 									
 								BString	address;
 								/* if we have no Name, just use the email address */
-								if (name.Length() == 0) {
+								if (name.Length() == 0)
 									address = email;
-								/* otherwise, pretty-format it */
-								} else {
-									address.SetTo("") << "\"" << name << "\" <"
-										<< email << ">";
+								else
+								{
+									/* otherwise, pretty-format it */
+									address << "\"" << name << "\" <" << email << ">";
 								}
 								
-								if (int end = TextView()->TextLength()) {
+								if (int end = TextView()->TextLength())
+								{
 									TextView()->Select(end, end);
 									TextView()->Insert(", ");
 								}	
 								TextView()->Insert(address.String());
 							}
 						}
-					} else {
-						enclosure = true;
-						message.AddRef("refs", &ref);
+						else
+						{
+							enclosure = true;
+							message.AddRef("refs", &ref);
+						}
 					}
 				}
+				if (enclosure)
+					Window()->PostMessage(&message, Window());
 			}
-			if (enclosure)
-				Window()->PostMessage(&message, Window());
-		}
-		break;
+			break;
 
 		case M_SELECT:
-			text_view = (BTextView *)ChildAt(0);
-			text_view->Select(0, text_view->TextLength());
+		{
+			BTextView *textView = (BTextView *)ChildAt(0);
+			if (textView != NULL)
+				textView->Select(0, textView->TextLength());
 			break;
+		}
 
 		default:
 			// BTextControl::MessageReceived(msg);
@@ -965,110 +991,127 @@ void TTextControl::MessageReceived(BMessage *msg)
 
 
 //====================================================================
-//	QPopupMenu
+//	QPopupMenu (definition at the beginning of this file)
 //	#pragma mark -
 
 
 QPopupMenu::QPopupMenu(const char *title)
-	: QueryMenu(title, true),
+	:	QueryMenu(title, true),
 	fGroups(0)
 {
 }
 
 
+void QPopupMenu::AddPersonItem(const entry_ref *ref, ino_t node, BString &name, BString &email,
+		BMenu *groupMenu, BMenuItem *superItem)
+{
+	BString label;
+	
+	// if we have no Name, just use the email address 
+	if (name.Length() == 0)
+		label = email;
+	else
+		// otherwise, pretty-format it 
+		label << name << " (" << email << ")";
+
+	BMessage *msg = new BMessage(B_SIMPLE_DATA);
+	msg->AddRef("refs", ref);
+	msg->AddInt64("node", node);
+
+	BMenuItem *item = new BMenuItem(label.String(), msg);
+	if (fTargetHandler)
+		item->SetTarget(fTargetHandler);
+
+	// If no group, just add it; else add it to group menu
+	if (!groupMenu)
+		AddItem(item);
+	else
+	{
+		groupMenu->AddItem(item);
+		// Add ref to group super item
+		BMessage *superMsg = superItem->Message();
+		superMsg->AddRef("refs", ref);
+	}
+}
+
+
 void QPopupMenu::EntryCreated(const entry_ref &ref, ino_t node)
 {
-	BNode			file;
+	BNode file;
+	if (file.SetTo(&ref) < B_OK)
+		return;
+
+	BMessage 	*msg;
+	BMenu		*groupMenu = NULL;
+	BMenuItem	*superItem = NULL;
+	int32 		items = CountItems();
+
+	if (!items)
+		AddSeparatorItem();
 	
-	if (file.SetTo(&ref) == B_OK)
+	// Does the file have a group attribute
+	BString group;
+	if (ReadAttrString(&file,"META:group",&group) >= B_OK && group.Length() > 0)
 	{
-		BMessage 		*msg;
-		BMenuItem 		*item;
-		attr_info 		info;
-		BMenu			*groupMenu = NULL;
-		BMenuItem		*superItem = NULL;
-		int32 			items = CountItems();
-		
-		if (!items)
-			AddSeparatorItem();
-		
-		// Does the file have a group attribute
-		if (((file.GetAttrInfo("META:group", &info) == B_NO_ERROR))
-				&& (info.size > 1)) {
-			char 			*str;
-			BMenu			*sub;
-			
-			str = (char*)malloc(info.size+1);
-			str[info.size] = 0;
-			file.ReadAttr("META:group", B_STRING_TYPE, 0, str, info.size);
-			
-			// Look for submenu with label == group name
-			int32 i;
-			for (i=0; i<items; i++)
+		BMenu *sub;
+
+		// Look for submenu with label == group name
+		for (int32 i = 0; i < items; i++)
+		{
+			if ((sub = SubmenuAt(i)) != NULL)
 			{
-				if ((sub=SubmenuAt(i)) != NULL)
+				superItem = sub->Superitem();
+				if (!strcmp(superItem->Label(), group.String()))
 				{
-					superItem = sub->Superitem();
-					if (strcmp(superItem->Label(), str) == 0)
-					{
-						groupMenu = sub;
-						i++;
-						break;
-					}
+					groupMenu = sub;
+					i++;
+					break;
 				}
 			}
-			
-			// If no submenu, create one
-			if (!groupMenu) {
-				// Find where it should go (alphabetical)
-				int32 mindex = 0;
-				for (; mindex<fGroups; mindex++) {
-					if (strcmp(ItemAt(mindex)->Label(), str) > 0)
-						break;
-				}
-				
-				groupMenu = new BMenu(str);
-				groupMenu ->SetFont(be_plain_font);
-				AddItem(groupMenu, mindex);
-				superItem = groupMenu->Superitem();
-				superItem->SetMessage(new BMessage(B_SIMPLE_DATA));
-				if (fTargetHandler)
-					superItem->SetTarget(fTargetHandler);
-				fGroups++;
-			}
-			free(str);
 		}
 		
-		msg = new BMessage(B_SIMPLE_DATA);
-		msg->AddRef("refs", &ref);
-		msg->AddInt64("node", node);
-		
-		BString	name;
-		ReadAttrString(&file,"META:name",&name);
-		BString email;
-		ReadAttrString(&file,"META:email",&email);
-		BString label;
-		
-		// if we have no Name, just use the email address 
-		if (name.Length() == 0)
-			label = email;
-		else // otherwise, pretty-format it 
-			label.SetTo("") << name << " (" << email << ")";
-			
-		item = new BMenuItem(label.String(), msg);
-		if (fTargetHandler)
-			item->SetTarget(fTargetHandler);
-		
-		// If no group, just add it; else add it to group menu
+		// If no submenu, create one
 		if (!groupMenu)
-			AddItem(item);
-		else {
-			groupMenu->AddItem(item);
-			// Add ref to group superitem
-			BMessage *smsg;
-			smsg = superItem->Message();
-			smsg->AddRef("refs", &ref);
+		{
+			// Find where it should go (alphabetical)
+			int32 mindex = 0;
+			for (; mindex < fGroups; mindex++)
+			{
+				if (strcmp(ItemAt(mindex)->Label(), group.String()) > 0)
+					break;
+			}
+			
+			groupMenu = new BMenu(group.String());
+			groupMenu->SetFont(be_plain_font);
+			AddItem(groupMenu, mindex);
+			superItem = groupMenu->Superitem();
+			superItem->SetMessage(new BMessage(B_SIMPLE_DATA));
+			if (fTargetHandler)
+				superItem->SetTarget(fTargetHandler);
+
+			fGroups++;
 		}
+	}
+	
+	msg = new BMessage(B_SIMPLE_DATA);
+	msg->AddRef("refs", &ref);
+	msg->AddInt64("node", node);
+	
+	BString	name;
+	ReadAttrString(&file,"META:name",&name);
+
+	BString email;
+	ReadAttrString(&file,"META:email",&email);
+
+	AddPersonItem(&ref,node,name,email,groupMenu,superItem);
+
+	// support for 3rd-party People apps
+	for (int16 i = 2;i < 6;i++)
+	{
+		char attr[16];
+		sprintf(attr,"META:email%d",i);
+		if (ReadAttrString(&file,attr,&email) >= B_OK && email.Length() > 0)
+			AddPersonItem(&ref,node,name,email,groupMenu,superItem);
 	}
 }
 

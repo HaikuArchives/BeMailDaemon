@@ -88,52 +88,54 @@ class	QPopupMenu;
 
 //====================================================================
 
-class THeaderView : public BBox {
-public:
-	THeaderView(BRect, BRect, bool, BFile*, bool); 
-
-	virtual void	MessageReceived(BMessage*);
-	virtual void	AttachedToWindow(void);
-	void			BuildMenus();
-	void			SetAddress(BMessage*);
-	status_t		LoadMessage(BFile*);
-
-	BPopUpMenu		*fAccountMenu;
-	uint32			fChain;
-	TTextControl	*fAccount;
-	TTextControl	*fBcc;
-	TTextControl	*fCc;
-	TTextControl	*fSubject;
-	TTextControl	*fTo;
-
-private:		
-	void InitEmailCompletion();
-	void InitGroupCompletion();
+class THeaderView : public BBox
+{
+	public:
+		THeaderView(BRect, BRect, bool, BFile*, bool); 
 	
-	bool fIncoming;
-	bool fResending;
-	QPopupMenu *fBccMenu;
-	QPopupMenu *fCcMenu;
-	QPopupMenu *fToMenu;
-	BFile *fFile;
-	BStringView *fDate;
-	BDefaultChoiceList emailList;
+		virtual void	MessageReceived(BMessage*);
+		virtual void	AttachedToWindow(void);
+		void			BuildMenus();
+		void			SetAddress(BMessage*);
+		status_t		LoadMessage(BFile*);
+	
+		BPopUpMenu		*fAccountMenu;
+		uint32			fChain;
+		TTextControl	*fAccount;
+		TTextControl	*fBcc;
+		TTextControl	*fCc;
+		TTextControl	*fSubject;
+		TTextControl	*fTo;
+	
+	private:		
+		void InitEmailCompletion();
+		void InitGroupCompletion();
+		
+		bool fIncoming;
+		bool fResending;
+		QPopupMenu *fBccMenu;
+		QPopupMenu *fCcMenu;
+		QPopupMenu *fToMenu;
+		BFile *fFile;
+		BStringView *fDate;
+		BDefaultChoiceList emailList;
 };
 
 //====================================================================
 
-class TTextControl : public BComboBox {
-public:
-	TTextControl(BRect, char*, BMessage*, bool, bool, 
-		int32 resizingMode = B_FOLLOW_NONE);
-	virtual void AttachedToWindow();
-	virtual void MessageReceived(BMessage*);
+class TTextControl : public BComboBox
+{
+	public:
+		TTextControl(BRect, char*, BMessage*, bool, bool, int32 resizingMode = B_FOLLOW_NONE);
 
-private:
-	bool fIncoming;
-	bool fResending;
-	char fLabel[100];
-	int32 fCommand;
+		virtual void AttachedToWindow();
+		virtual void MessageReceived(BMessage*);
+	
+	private:
+		bool fIncoming;
+		bool fResending;
+		char fLabel[100];
+		int32 fCommand;
 };
 
 #endif // #ifndef _HEADER_H
