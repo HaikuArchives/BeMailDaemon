@@ -518,7 +518,8 @@ void AttributedAttachment::SaveToDisk(BEntry *entry) {
 
 void AttributedAttachment::SetEncoding(mail_encoding encoding) {
 	_data->SetEncoding(encoding);
-	_attributes_attach->SetEncoding(encoding);
+	if (_attributes_attach != NULL)
+		_attributes_attach->SetEncoding(encoding);
 }
 
 mail_encoding AttributedAttachment::Encoding() {
@@ -574,8 +575,8 @@ status_t AttributedAttachment::SetToRFC822(BPositionIO *data, size_t length, boo
 
 	if ((_attributes_attach = dynamic_cast<SimpleAttachment *>(fContainer->GetComponent(1))) == NULL
 		|| _attributes_attach->GetDecodedData() == NULL)
-		return B_BAD_VALUE;
-
+			return B_OK;
+			
 	// Convert the attribute binary attachment into a convenient easy to use BMessage.
 
 	int32 len = ((BMallocIO *)(_attributes_attach->GetDecodedData()))->BufferLength();
@@ -638,7 +639,9 @@ status_t AttributedAttachment::RenderToRFC822(BPositionIO *render_to) {
 		io->Write(allocd,dataLen);
 		free(allocd);
 	}
-	
+	if (_attributes_attach == NULL)
+		_attributes_attach = new SimpleAttachment;
+		
 	_attributes_attach->SetDecodedDataAndDeleteWhenDone(io);
 	
 	return fContainer->RenderToRFC822(render_to);

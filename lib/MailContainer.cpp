@@ -106,6 +106,9 @@ status_t MIMEMultipartContainer::AddComponent(Mail::Component *component) {
 
 
 Mail::Component *MIMEMultipartContainer::GetComponent(int32 index, bool parse_now) {
+	if (index >= CountComponents())
+		return NULL;
+	
 	if (Mail::Component *component = (Mail::Component *)_components_in_code.ItemAt(index))
 		return component;	//--- Handle easy case
 
