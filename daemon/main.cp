@@ -26,11 +26,13 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#include <map>
 
 #include <E-mail.h>
 #include <MailSettings.h>
 #include <MailMessage.h>
 #include <status.h>
+#include <StringList.h>
 
 #include "deskbarview.h"
 #include "LEDAnimation.h"
@@ -47,6 +49,11 @@
 	#include <unistd.h>
 #endif
 	
+typedef struct glorbal {
+	size_t bytes;
+	Zoidberg::StringList msgs;
+} snuzzwut;
+
 namespace Zoidberg {
 namespace Mail {
 
@@ -111,7 +118,6 @@ void MailDaemonApp::RefsReceived(BMessage *a_message) {
 			size = -1;
 		
 		path.SetTo(&ref);
-		printf("Fetching the rest of the message %s (%ld bytes)\n",uid.String(),size);
 		Mail::ChainRunner *runner = Mail::GetRunner(id,status);
 		runner->GetSingleMessage(uid.String(),size,&path);
 	}
@@ -435,10 +441,103 @@ void MailDaemonApp::GetNewMessages(BMessage *msg) {
 }
 
 void MailDaemonApp::SendPendingMessages(BMessage *msg) {
-	BList list;
-	OutboundChains(&list);
-
-	RunChains(list,msg);
+	BQuery query;
+	BVolume boot;
+	
+	BVolumeRoster().GetBootVolume(&boot);
+	query.SetVolume(&boot);
+	query.PushAttr(B_MAIL_ATTR_FLAGS);
+	query.PushInt32(B_MAIL_PENDING);
+	query.PushOp(B_EQ);
+	
+	query.PushAttr(B_MAIL_ATTR_FLAGS);
+	query.PushInt32(B_MAIL_PENDING | B_MAIL_SAVE);
+	query.PushOp(B_EQ);
+	
+	query.PushOp(B_OR);
+	
+	int32 chain_id = -1;
+	
+	if (msg->FindInt32("chain",&chain_id) == B_OK) {
+		query.PushAttr("MAIL:chain");
+		query.PushInt32(chain_id);
+		query.PushOp(B_EQ);
+		query.PushOp(B_AND);
+	} else {
+		chain_id = -1;
+	}
+	
+	if (!msg->HasString("message_path")) {
+		if (chain_id == -1) {
+			map <int32,snuzzwut *> messages;
+			
+			query.Fetch();
+			BEntry entry;
+			BPath path;
+			BNode node;
+			int32 chain, default_chain(Mail::Settings().DefaultOutboundChainID());
+			off_t size;
+			
+			while (query.GetNextEntry(&entry) == B_OK) {
+				node.SetTo(&entry);
+				if (node.ReadAttr("MAIL:chain",B_INT32_TYPE,0,&chain,4) < B_OK)
+					chain = default_chain;
+				entry.GetPath(&path);
+				node.GetSize(&size);
+				if (messages[chain] == NULL) {
+					messages[chain] = new snuzzwut;
+					messages[chain]->bytes = 0;
+				}
+					
+				messages[chain]->msgs += path.Path();
+				messages[chain]->bytes += size;
+			}
+			
+			map<int32,snuzzwut *>::iterator iter = messages.begin();
+			map<int32,snuzzwut *>::iterator end = messages.end();
+			while (iter != end) {
+				if ((iter->first > 0) && (Mail::Chain(iter->first).ChainDirection() == outbound)) {
+					Mail::ChainRunner *runner = Mail::GetRunner(iter->first,status);
+					runner->GetMessages(&messages[iter->first]->msgs,messages[iter->first]->bytes);
+					delete messages[iter->first];
+					runner->Stop();
+				}
+				
+				iter++;
+			}
+		} else {
+			StringList ids;
+			size_t bytes = 0;
+			
+			query.Fetch();
+			BEntry entry;
+			BPath path;
+			BNode node;
+			off_t size;
+			
+			while (query.GetNextEntry(&entry) == B_OK) {
+				node.SetTo(&entry);
+				entry.GetPath(&path);
+				node.GetSize(&size);
+				ids += path.Path();
+				bytes += size;
+			}
+			
+			Mail::ChainRunner *runner = Mail::GetRunner(chain_id,status);
+			runner->GetMessages(&ids,bytes);
+			runner->Stop();
+		}	
+	} else {
+		const char *path;
+		msg->FindString("message_path",&path);
+		StringList ids;
+		ids += path;
+		off_t size;
+		BNode(path).GetSize(&size);
+		Mail::ChainRunner *runner = Mail::GetRunner(chain_id,status);
+		runner->GetMessages(&ids,size);
+		runner->Stop();
+	}
 }
 
 void MailDaemonApp::Pulse() {
@@ -453,43 +552,31 @@ void MailDaemonApp::Pulse() {
 //	#pragma mark -
 
 
-void
-makeIndices()
+void makeIndices()
 {
-	const char *stringIndices[] = {
-		B_MAIL_ATTR_ACCOUNT, B_MAIL_ATTR_CC,
-		B_MAIL_ATTR_FROM, B_MAIL_ATTR_NAME,
-		B_MAIL_ATTR_PRIORITY, B_MAIL_ATTR_REPLY,
-		B_MAIL_ATTR_STATUS, B_MAIL_ATTR_SUBJECT,
-		B_MAIL_ATTR_TO, B_MAIL_ATTR_THREAD,
-		NULL};
+	const char *stringIndices[] = {	B_MAIL_ATTR_ACCOUNT,B_MAIL_ATTR_CC,
+									B_MAIL_ATTR_FLAGS,B_MAIL_ATTR_FROM,B_MAIL_ATTR_NAME,
+									B_MAIL_ATTR_PRIORITY,B_MAIL_ATTR_REPLY,B_MAIL_ATTR_STATUS,
+									B_MAIL_ATTR_SUBJECT,B_MAIL_ATTR_TO,B_MAIL_ATTR_THREAD, NULL};
 
 	// add mail indices for all devices capable of querying
 
 	int32 cookie = 0;
 	dev_t device;
-	while ((device = next_dev(&cookie)) >= B_OK) {
+	while ((device = next_dev(&cookie)) >= B_OK)
+	{
 		fs_info info;
-		if (fs_stat_dev(device, &info) < 0 || (info.flags & B_FS_HAS_QUERY) == 0)
+		if (fs_stat_dev(device,&info) < 0 || (info.flags & B_FS_HAS_QUERY) == 0)
 			continue;
 
-		// Work-around for misbehaviour of earlier versions - should be
-		// kept in for some time.
-		// It removes the B_MAIL_ATTR_FLAGS if it is of B_STRING_TYPE,
-		// because that's what the MDR created before...
-		index_info indexInfo;
-		if (fs_stat_index(device, B_MAIL_ATTR_FLAGS, &indexInfo) == 0
-			&& indexInfo.type == B_STRING_TYPE)
-			fs_remove_index(device, B_MAIL_ATTR_FLAGS);
+		int32 i = 0;
+		for (;stringIndices[i];i++)
+			fs_create_index(device,stringIndices[i],B_STRING_TYPE,0);
 
-		for (int32 i = 0; stringIndices[i]; i++)
-			fs_create_index(device, stringIndices[i], B_STRING_TYPE, 0);
-
-		fs_create_index(device, "MAIL:draft", B_INT32_TYPE, 0);
-		fs_create_index(device, B_MAIL_ATTR_WHEN, B_INT32_TYPE,0);
-		fs_create_index(device, B_MAIL_ATTR_FLAGS, B_INT32_TYPE, 0);
-		fs_create_index(device, "MAIL:chain", B_INT32_TYPE,0);
-		//fs_create_index(device, "MAIL:fullsize", B_UINT32_TYPE,0);
+		fs_create_index(device,"MAIL:draft", B_INT32_TYPE, 0);
+		fs_create_index(device,B_MAIL_ATTR_WHEN,B_INT32_TYPE,0);
+		fs_create_index(device,"MAIL:chain",B_INT32_TYPE,0);
+		fs_create_index(device,"MAIL:fullsize",B_SIZE_T_TYPE,0);
 	}
 }
 

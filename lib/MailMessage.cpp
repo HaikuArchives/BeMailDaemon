@@ -13,6 +13,8 @@
 #include <netdb.h>
 #include <NodeInfo.h>
 #include <ClassInfo.h>
+#include <Messenger.h>
+#include <Path.h>
 
 #include <malloc.h>
 #include <string.h>
@@ -742,7 +744,7 @@ Message::RenderToRFC822(BPositionIO *file)
 
 
 status_t
-Message::RenderTo(BDirectory *dir)
+Message::RenderTo(BDirectory *dir,BEntry *msg)
 {
 	time_t		currentTime;
 	char		numericDateString [40];
@@ -806,7 +808,10 @@ Message::RenderTo(BDirectory *dir)
 	status_t status = dir->CreateFile(worker.String(), &file);
 	if (status < B_OK)
 		return status;
-
+	
+	if (msg != NULL)
+		msg->SetTo(dir,worker.String());
+	
 	return RenderToRFC822(&file);
 }
 
@@ -823,8 +828,10 @@ Message::Send(bool send_now)
 
 	create_directory(via->MetaData()->FindString("path"),0777);
 	BDirectory directory(via->MetaData()->FindString("path"));
-
-	status_t status = RenderTo(&directory);
+	
+	BEntry message;
+	
+	status_t status = RenderTo(&directory,&message);
 	delete via;
 	if (status >= B_OK && send_now) {
 		Mail::Settings settings_file;
@@ -848,10 +855,18 @@ Message::Send(bool send_now)
 			if (find_thread("tty_thread") <= 0)
 				return B_OK;
 #endif
-			status = Mail::SendQueuedMail();
-		} else {
-			status = Mail::SendQueuedMail();
 		}
+		
+		BMessenger daemon("application/x-vnd.Be-POST");
+		if (!daemon.IsValid())
+			return B_MAIL_NO_DAEMON;
+			
+		BMessage msg('msnd');
+		msg.AddInt32("chain",_chain_id);
+		BPath path;
+		message.GetPath(&path);
+		msg.AddString("message_path",path.Path());
+		daemon.SendMessage(&msg);
 	}
 
 	return status;

@@ -35,13 +35,8 @@ class StatusChanger : public Mail::ChainCallback {
 };
 
 class DiskProducer : public Mail::Filter
-{
-	BString src_string;
-	BDirectory source;
-	
-	StringList paths_to_send;
+{	
 	Mail::ChainRunner *runner;
-	bool _we_are_default_chain;
 	status_t init;
 	
   public:
@@ -56,63 +51,14 @@ class DiskProducer : public Mail::Filter
 
 DiskProducer::DiskProducer(BMessage* msg,Mail::ChainRunner*status)
 	: Mail::Filter(msg), runner(status), init(B_OK)
-{
-	entry_ref entry;
-	mail_flags flags;
-	status_t result;
-	int32 chain;
-	BNode node;
-	BPath path;
-	
-	size_t total_size = 0;
-	off_t worker;
-	
-	_we_are_default_chain = (Mail::Settings().DefaultOutboundChainID() == runner->Chain()->ID());
-	src_string = runner->Chain()->MetaData()->FindString("path");
- 	source = src_string.String();
-	while (source.GetNextRef(&entry) == B_OK) {
-		node.SetTo(&entry);
-		
-		if (node.ReadAttr(B_MAIL_ATTR_FLAGS,B_INT32_TYPE,0,&flags,4) >= B_OK
-			&& flags & B_MAIL_PENDING) {
-			result = node.ReadAttr("MAIL:chain",B_INT32_TYPE,0,&chain,4);
-			if (((result >= B_OK) && (chain == runner->Chain()->ID())) ||
-				((result < B_OK) && (_we_are_default_chain))) {
-				path.SetTo(&entry);
-				paths_to_send += path.Path();
-				
-				node.GetSize(&worker);
-				total_size += worker;
-			}
-		}
-	}
-	
-	if (total_size == 0) {
-		//runner->Stop();
-		init = B_ERROR;
-		return;
-	}
-	
-	runner->GetMessages(&paths_to_send,total_size);
-	runner->Stop();
-}
+{}
 
 status_t DiskProducer::InitCheck(BString* err)
 {
 	if (init != B_OK)
 		return init;
-		
-	status_t ret = source.InitCheck();
 	
-	if (ret == B_OK) 
-		return B_OK;
-	else
-	{
-		if (err) *err
-		<< "DiskProducer failed: source directory '" << src_string
-		<< "' not found (" << strerror(ret) << ").";
-		return ret;
-	}
+	return B_OK;
 }
 
 status_t DiskProducer::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* out_headers, BPath*, const char* io_uid)

@@ -88,7 +88,8 @@ class Message : public Container {
 		virtual status_t SetToRFC822(BPositionIO *data, size_t length, bool parse_now = false);
 		virtual status_t RenderToRFC822(BPositionIO *render_to);
 
-		status_t RenderTo(BDirectory *dir);
+		status_t RenderTo(BDirectory *dir, BEntry *message = NULL);
+			//---message will be set to the message file if not equal to NULL
 
 		status_t Send(bool send_now);
 
