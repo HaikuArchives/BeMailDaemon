@@ -364,6 +364,7 @@ void IMAP4Client::InitializeMailboxes() {
 				inbox_name = mb_root;
 				inbox_index = box_info.CountItems() - 1;
 			}
+			SendCommand("CLOSE");
 		}
 	}
 }
