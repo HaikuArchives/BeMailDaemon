@@ -347,7 +347,7 @@ status_t IMAP4Client::AddMessage(const char *mailbox, BPositionIO *data, BString
 	}
 		
 	
-	command << ((struct mailbox_info *)(box_info.ItemAt(box_index)))->server_mb_name << "\" " << attributes << " {" << size << '}';
+	command << ((struct mailbox_info *)(box_info.ItemAt(box_index)))->server_mb_name << "\" (" << attributes << ") {" << size << '}';
 	SendCommand(command.String());
 	status_t err = ReceiveLine(command);
 	if (err < B_OK)
@@ -558,11 +558,11 @@ status_t IMAP4Client::Close() {
 status_t IMAP4Client::Select(const char *mb, bool reselect, bool queue_new_messages, bool noop, bool no_command) {
 	if (reselect)
 		Close();
-	
+
 	struct mailbox_info *info = (struct mailbox_info *)(box_info.ItemAt(mailboxes.IndexOf(mb)));
 	if (info == NULL)
 		return B_NAME_NOT_FOUND;
-		
+
 	const char *real_mb = info->server_mb_name.String();
 	
 	if ((selected_mb != real_mb) || (noop) || (no_command)) {
@@ -617,7 +617,7 @@ status_t IMAP4Client::Select(const char *mb, bool reselect, bool queue_new_messa
 			while(1) {
 				NestedString response;
 				if (GetResponse(tag,&response) < 0)
-					break;
+					return B_ERROR;
 							
 				if (tag == expected)
 					break;
