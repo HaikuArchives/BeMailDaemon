@@ -56,6 +56,7 @@ sleep 1
 /system/Deskbar &
 sleep 1
 /system/servers/mail_daemon &
+sync
 
 alert "Installation Complete."
 
