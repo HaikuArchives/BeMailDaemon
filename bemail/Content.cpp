@@ -64,7 +64,6 @@ All rights reserved.
 
 #include <MailMessage.h>
 #include <MailAttachment.h>
-#include <base64.h>
 
 #include "Mail.h"
 #include "Content.h"

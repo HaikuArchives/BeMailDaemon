@@ -12,7 +12,7 @@
 
 #include <status.h>
 #include <ProtocolConfigView.h>
-#include <base64.h>
+#include <mail_encoding.h>
 #include <MailSettings.h>
 #include <ChainRunner.h>
 #include <crypt.h>
