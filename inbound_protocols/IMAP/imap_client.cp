@@ -27,6 +27,7 @@ IMAP4Client::IMAP4Client(BMessage *settings,StatusView *status)
 	,fIdleTime(0)
 	,_settings(settings)
 	,_status(status)
+	,to_fetch(NULL)
 {
 //	BNetDebug::Enable(true);
 	SetTimeout(kIMAP4ClientTimeout);
@@ -51,8 +52,9 @@ status_t IMAP4Client::InitCheck(BString* out_message) {
  ***********************************************************/
 IMAP4Client::~IMAP4Client()
 {
-delete to_fetch;
-Logout();
+	if (to_fetch)
+		delete to_fetch;
+	Logout();
 }
 
 /***********************************************************
