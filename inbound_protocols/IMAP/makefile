@@ -30,7 +30,7 @@ TYPE= SHARED
 #	if two source files with the same name (source.c or source.cpp)
 #	are included from different directories.  Also note that spaces
 #	in folder names do not work well with this makefile.
-SRCS= 
+SRCS= imap_client.cp imap_reader.cp imap_config.cp
 
 #	specify the resource files to use
 #	full path or a relative path to the resource file can be used.
@@ -51,7 +51,7 @@ RSRCS=
 #		naming scheme you need to specify the path to the library
 #		and it's name
 #		library: my_lib.a entry: my_lib.a or path/my_lib.a
-LIBS= be ../../lib/libnumail.so
+LIBS= be netapi ../../lib/libnumail.so
 
 #	specify additional paths to directories following the standard
 #	libXXX.so or libXXX.a naming scheme.  You can specify full paths
@@ -64,7 +64,7 @@ LIBPATHS=
 #	additional paths to look for system headers
 #	thes use the form: #include <header>
 #	source file directories are NOT auto-included here
-SYSTEM_INCLUDE_PATHS = ../../include ../../include/numail ../include/public ../include/support
+SYSTEM_INCLUDE_PATHS = ../../include ../../include/numail ../../include/public ../../include/support
 
 #	additional paths to look for local headers
 #	thes use the form: #include "header"
