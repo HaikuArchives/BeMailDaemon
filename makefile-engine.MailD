@@ -261,9 +261,9 @@ LDFLAGS += $(LINKER_FLAGS)
 #	SETTING: use the archive tools if building a static library
 #	otherwise use the linker
 ifeq ($(TYPE), STATIC)
-	BUILD_LINE = ar -cru "$(TARGET)" $(OBJS)
+	BUILD_LINE = ar -cru $(TARGET) $(OBJS)
 else
-	BUILD_LINE = $(LD) -o $@ $(OBJS) $(LDFLAGS)
+	BUILD_LINE = $(LD) -o $(TARGET) $(OBJS) $(LDFLAGS)
 endif
 
 #	create the resource instruction
@@ -287,7 +287,7 @@ default: $(TARGET)
 $(TARGET):	$(OBJ_DIR) $(OBJS) $(RSRCS)
 		$(BUILD_LINE)
 		$(DO_RSRCS)
-		$(MIMESET) -f $@
+		$(MIMESET) -f $(TARGET)
 		$(DO_ATTRS)
 
 
