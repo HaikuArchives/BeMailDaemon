@@ -134,6 +134,8 @@ enum MENUS
 	M_TO_MENU,
 	M_CC_MENU,
 	M_BCC_MENU,
+	M_OPEN,
+	M_COPY,
 	/* nav */
 	M_NEXTMSG,
 	M_PREVMSG,

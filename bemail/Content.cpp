@@ -293,8 +293,7 @@ TContentView::TContentView(BRect rect, bool incoming, BFile *file, BFont *font)
 	text.InsetBy(5, 5);
 
 	fTextView = new TTextView(r, text, fIncoming, file, this, font);
-	BScrollView *scroll = new BScrollView("", fTextView, B_FOLLOW_ALL, 0, true, 
-	  true);
+	BScrollView *scroll = new BScrollView("", fTextView, B_FOLLOW_ALL, 0, true, true);
 	AddChild(scroll);
 }
 
@@ -304,7 +303,6 @@ void TContentView::MessageReceived(BMessage *msg)
 	char		*str;
 	char		*quote;
 	const char	*text;
-	char		new_line = '\n';
 	int32		finish;
 	int32		len;
 	int32		loop;
@@ -313,7 +311,6 @@ void TContentView::MessageReceived(BMessage *msg)
 	int32		removed = 0;
 	int32		start;
 	BFile		file;
-	BFont		*font;
 	BRect		r;
 	entry_ref	ref;
 	off_t		size;
@@ -321,10 +318,13 @@ void TContentView::MessageReceived(BMessage *msg)
 	switch (msg->what)
 	{
 		case CHANGE_FONT:
+		{
+			BFont *font;
 			msg->FindPointer("font", (void **)&font);
 			fTextView->SetFontAndColor(0, LONG_MAX, font);
 			fTextView->Invalidate(Bounds());
 			break;
+		}
 
 		case M_QUOTE:
 			r = fTextView->Bounds();
@@ -424,11 +424,15 @@ void TContentView::MessageReceived(BMessage *msg)
 				size = file.Read(str, size);
 				fTextView->GetSelection(&start, &finish);
 				text = fTextView->Text();
+
 				len = fTextView->TextLength();
-				if ((len) && (text[len - 1] != '\n'))
+				if (len && text[len - 1] != '\n')
 				{
 					fTextView->Select(len, len);
-					fTextView->Insert(&new_line, 1);
+
+					char newLine = '\n';
+					fTextView->Insert(&newLine, 1);
+
 					len++;
 				}
 				fTextView->Select(len, len);
@@ -588,14 +592,15 @@ TTextView::TTextView(BRect frame, BRect text, bool incoming, BFile *file,
 	fEnclosureMenu->AddItem(new BMenuItem("Save Enclosure"B_UTF8_ELLIPSIS, 
 	  new BMessage(M_SAVE)));
 	fEnclosureMenu->AddItem(new BMenuItem("Open Enclosure", new 
-	  BMessage(M_ADD)));
+	  BMessage(M_OPEN)));
 
 	//
 	//	Hyperlink pop up menu
 	//
 	fLinkMenu = new BPopUpMenu("Link", false, false);
 	fLinkMenu->SetFont(&menuFont);
-	fLinkMenu->AddItem(new BMenuItem("Open This Link", new BMessage(M_ADD)));
+	fLinkMenu->AddItem(new BMenuItem("Open This Link", new BMessage(M_OPEN)));
+	fLinkMenu->AddItem(new BMenuItem("Copy Link Location", new BMessage(M_COPY)));
 
 	SetDoesUndo(true);
 }
@@ -631,7 +636,6 @@ void TTextView::AttachedToWindow()
 
 void TTextView::KeyDown(const char *key, int32 count)
 {
-	char		new_line = '\n';
 	char		raw;
 	int32		end;
 	int32 		start;
@@ -642,12 +646,15 @@ void TTextView::KeyDown(const char *key, int32 count)
 	msg = Window()->CurrentMessage();
 	mods = msg->FindInt32("modifiers");
 
-	switch (key[0]) {
+	switch (key[0])
+	{
 		case B_HOME:
-			if (IsSelectable()) {
+			if (IsSelectable())
+			{
 				if (IsEditable())
 					GoToLine(CurrentLine());
-				else {
+				else
+				{
 					Select(0, 0);
 					ScrollToSelection();
 				}
@@ -655,10 +662,12 @@ void TTextView::KeyDown(const char *key, int32 count)
 			break;
 
 		case B_END:
-			if (IsSelectable()) {
+			if (IsSelectable())
+			{
 				if (CurrentLine() == CountLines() - 1)
 					Select(TextLength(), TextLength());
-				else {
+				else
+				{
 					GoToLine(CurrentLine() + 1);
 					GetSelection(&start, &end);
 					Select(start - 1, start - 1);
@@ -666,17 +675,20 @@ void TTextView::KeyDown(const char *key, int32 count)
 			}
 			break;
 
-
 		case 0x02:						// ^b - back 1 char
-			if (IsSelectable()) {
+			if (IsSelectable())
+			{
 				GetSelection(&start, &end);
-				while (!IsInitialUTF8Byte(ByteAt(--start))) {
-					if (start < 0) {
+				while (!IsInitialUTF8Byte(ByteAt(--start)))
+				{
+					if (start < 0)
+					{
 						start = 0;
 						break;
 					}
 				}
-				if (start >= 0) {
+				if (start >= 0)
+				{
 					Select(start, start);
 					ScrollToSelection();
 				}
@@ -684,16 +696,21 @@ void TTextView::KeyDown(const char *key, int32 count)
 			break;
 
 		case B_DELETE:
-			if (IsSelectable()) {
-				if ((key[0] == B_DELETE) || (mods & B_CONTROL_KEY)) {	// ^d
-					if (IsEditable()) {
+			if (IsSelectable())
+			{
+				if ((key[0] == B_DELETE) || (mods & B_CONTROL_KEY))	// ^d
+				{
+					if (IsEditable())
+					{
 						GetSelection(&start, &end);
 						if (start != end)
 							Delete();
-						else {
-							for (end = start + 1; !IsInitialUTF8Byte(ByteAt(end));
-									end++) {
-								if (end > textLen) {
+						else
+						{
+							for (end = start + 1; !IsInitialUTF8Byte(ByteAt(end)); end++)
+							{
+								if (end > textLen)
+								{
 									end = textLen;
 									break;
 								}
@@ -710,10 +727,12 @@ void TTextView::KeyDown(const char *key, int32 count)
 			break;
 
 		case 0x05:						// ^e - end of line
-			if ((IsSelectable()) && (mods & B_CONTROL_KEY)) {
+			if ((IsSelectable()) && (mods & B_CONTROL_KEY))
+			{
 				if (CurrentLine() == CountLines() - 1)
 					Select(TextLength(), TextLength());
-				else {
+				else
+				{
 					GoToLine(CurrentLine() + 1);
 					GetSelection(&start, &end);
 					Select(start - 1, start - 1);
@@ -722,13 +741,17 @@ void TTextView::KeyDown(const char *key, int32 count)
 			break;
 
 		case 0x06:						// ^f - forward 1 char
-			if (IsSelectable()) {
+			if (IsSelectable())
+			{
 				GetSelection(&start, &end);
 				if (end > start)
 					start = end;
-				else {
-					for (end = start + 1; !IsInitialUTF8Byte(ByteAt(end)); end++) {
-						if (end > textLen) {
+				else
+				{
+					for (end = start + 1; !IsInitialUTF8Byte(ByteAt(end)); end++)
+					{
+						if (end > textLen)
+						{
 							end = textLen;
 							break;
 						}
@@ -741,17 +764,21 @@ void TTextView::KeyDown(const char *key, int32 count)
 			break;
 
 		case 0x0e:						// ^n - next line
-			if (IsSelectable()) {
+			if (IsSelectable())
+			{
 				raw = B_DOWN_ARROW;
 				BTextView::KeyDown(&raw, 1);
 			}
 			break;
 
 		case 0x0f:						// ^o - open line
-			if (IsEditable()) {
+			if (IsEditable())
+			{
 				GetSelection(&start, &end);
 				Delete();
-				Insert(&new_line, 1);
+
+				char newLine = '\n';
+				Insert(&newLine, 1);
 				Select(start, start);
 				ScrollToSelection();
 			}
@@ -829,17 +856,14 @@ void TTextView::MessageReceived(BMessage *msg)
 	bool		inserted = false;
 	bool		is_enclosure = false;
 	const char	*name;
-	char		type[B_FILE_NAME_LENGTH];
 	char		*text;
 	int32		end;
-	int32		index = 0;
 	int32		loop;
 	int32		offset;
 	int32		opcode;
 	int32		start;
 	BFile		file;
 	BMessage	message(REFS_RECEIVED);
-	BNodeInfo	*node;
 	entry_ref	ref;
 	dev_t		device;
 	ino_t		inode;
@@ -847,32 +871,42 @@ void TTextView::MessageReceived(BMessage *msg)
 	off_t		size;
 	hyper_text	*enclosure;
 
-	switch (msg->what) {
+	switch (msg->what)
+	{
 		case B_SIMPLE_DATA:
-			if (!fIncoming) {
-				while (msg->FindRef("refs", index++, &ref) == B_NO_ERROR) {
+			if (!fIncoming)
+			{
+				for (int32 index = 0;msg->FindRef("refs", index++, &ref) == B_NO_ERROR;)
+				{
 					file.SetTo(&ref, O_RDONLY);
-					if (file.InitCheck() == B_NO_ERROR) {
-						node = new BNodeInfo(&file);
-						node->GetType(type);
-						delete node;
+					if (file.InitCheck() == B_NO_ERROR)
+					{
+						BNodeInfo node(&file);
+						char type[B_FILE_NAME_LENGTH];
+						node.GetType(type);
+
 						file.GetSize(&size);
-						if ((!strncasecmp(type, "text/", 5)) && (size)) {
+						if ((!strncasecmp(type, "text/", 5)) && (size))
+						{
 							len += size;
 							text = (char *)malloc(size);
 							file.Read(text, size);
-							if (!inserted) {
+							if (!inserted)
+							{
 								GetSelection(&start, &end);
 								Delete();
 								inserted = true;
 							}
 							offset = 0;
-							for (loop = 0; loop < size; loop++) {
-								if (text[loop] == '\n') {
+							for (loop = 0; loop < size; loop++)
+							{
+								if (text[loop] == '\n')
+								{
 									Insert(&text[offset], loop - offset + 1);
 									offset = loop + 1;
 								}
-								else if (text[loop] == '\r') {
+								else if (text[loop] == '\r')
+								{
 									text[loop] = '\n';
 									Insert(&text[offset], loop - offset + 1);
 									if ((loop + 1 < size)
@@ -882,7 +916,9 @@ void TTextView::MessageReceived(BMessage *msg)
 								}
 							}
 							free(text);
-						} else {
+						}
+						else
+						{
 							is_enclosure = true;
 							message.AddRef("refs", &ref);
 						}
@@ -920,18 +956,22 @@ void TTextView::MessageReceived(BMessage *msg)
 			break;
 
 		case B_NODE_MONITOR:
-			if (msg->FindInt32("opcode", &opcode) == B_NO_ERROR) {
+			if (msg->FindInt32("opcode", &opcode) == B_NO_ERROR)
+			{
 				msg->FindInt32("device", &device);
 				msg->FindInt64("node", &inode);
-				while ((enclosure = (hyper_text *)fEnclosures->ItemAt(index++))
-						!= NULL) {
-					if ((device == enclosure->node.device) &&
-						(inode == enclosure->node.node)) {
-						if (opcode == B_ENTRY_REMOVED) {
+				for (int32 index = 0;(enclosure = (hyper_text *)fEnclosures->ItemAt(index++)) != NULL;)
+				{
+					if (device == enclosure->node.device
+						&& inode == enclosure->node.node)
+					{
+						if (opcode == B_ENTRY_REMOVED)
+						{
 							enclosure->saved = false;
 							enclosure->have_ref = false;
 						}
-						else if (opcode == B_ENTRY_MOVED) {
+						else if (opcode == B_ENTRY_MOVED)
+						{
 							enclosure->ref.device = device;
 							msg->FindInt64("to directory",
 								&enclosure->ref.directory);
@@ -990,19 +1030,19 @@ void TTextView::MessageReceived(BMessage *msg)
 							BFile file(&dir, name, B_READ_WRITE);
 							if (file.InitCheck() == B_OK) {
 								
-								if (strcmp(replyType,
-										"application/x-vnd.Be-bookmark") == 0)
+								if (strcmp(replyType,"application/x-vnd.Be-bookmark") == 0)
+								{
 									// we got a request to create a bookmark, stuff
 									// it with the url attribute
 									file.WriteAttr("META:url", B_STRING_TYPE, 0, 
-									  enclosure->name, strlen(enclosure->name) + 1);
-								
-								else if (strcasecmp(replyType, "text/plain")
-										== 0)
+													enclosure->name, strlen(enclosure->name) + 1);
+								}
+								else if (strcasecmp(replyType, "text/plain") == 0)
+								{
 									// create a plain text file, stuff it with
 									// the url as text
-									file.Write(enclosure->name,
-										strlen(enclosure->name));
+									file.Write(enclosure->name, strlen(enclosure->name));
+								}
 
 								BNodeInfo fileInfo(&file);
 								fileInfo.SetType(replyType);
@@ -1020,12 +1060,14 @@ void TTextView::MessageReceived(BMessage *msg)
 							char *addrStart = enclosure->name;
 							while (true)
 							{
-								if (*addrStart == ':') {	
+								if (*addrStart == ':')
+								{
 									addrStart++;
 									break;
 								}
-					
-								if (*addrStart == '\0') {
+
+								if (*addrStart == '\0')
+								{
 									addrStart = enclosure->name;		
 									break;
 								}
@@ -1041,27 +1083,28 @@ void TTextView::MessageReceived(BMessage *msg)
 							
 							BDirectory dir(&directory);	
 							BFile file(&dir, name, B_READ_WRITE);
-							if (file.InitCheck() == B_OK) {
-								
-								if (strcmp(replyType, "application/x-person")
-										== 0)
+							if (file.InitCheck() == B_OK)
+							{
+								if (strcmp(replyType, "application/x-person") == 0)
+								{
 									// we got a request to create a bookmark, stuff
 									// it with the address attribute
 									file.WriteAttr("META:email", B_STRING_TYPE, 0, 
 									  addrStart, strlen(enclosure->name) + 1);
-								
-								else if (strcasecmp(replyType, "text/plain")
-										== 0)
+								}
+								else if (strcasecmp(replyType, "text/plain") == 0)
+								{
 									// create a plain text file, stuff it with the
 									// email as text
 									file.Write(addrStart, strlen(addrStart));
+								}
 
 								BNodeInfo fileInfo(&file);
 								fileInfo.SetType(replyType);
 							}
 							break;
 						}
-					};
+					}
 				}
 				else
 				{
@@ -1072,7 +1115,6 @@ void TTextView::MessageReceived(BMessage *msg)
 					BTextView::MessageReceived(msg);
 				}
 			}
-
 			break;
 		}
 
@@ -1105,22 +1147,23 @@ void TTextView::MouseDown(BPoint where)
 				bool isAlpha, isApost, isCap;
 				int32 first;
 				
-				for (first=offset;
-					(first >= 0) && (((c=text[first])=='\'')||isalpha(c));
-					first--) {} first++;
-				isCap = isupper(text[first]);
+				for (first = offset;
+					(first >= 0) && (((c = text[first]) == '\'') || isalpha(c));
+					first--);
+				isCap = isupper(text[++first]);
 				
-				for (start = offset, c=text[start], isAlpha=isalpha(c),
-					isApost=(c=='\''); (start >= 0) && (isAlpha || (isApost
-					&& (((c=text[start+1])!='s')||!isCap) && isalpha(c)
-					&& isalpha(text[start-1]))); start--, c=text[start],
-					isAlpha=isalpha(c), isApost=(c=='\'')){} start++;
+				for (start = offset, c = text[start], isAlpha = isalpha(c), isApost = (c=='\'');
+					(start >= 0) && (isAlpha || (isApost
+					&& (((c = text[start+1]) != 's') || !isCap) && isalpha(c)
+					&& isalpha(text[start-1])));
+					start--, c = text[start], isAlpha = isalpha(c), isApost = (c == '\''));
+				start++;
 				
-				for (end = offset, c=text[end], isAlpha=isalpha(c),
-					isApost=(c=='\''); (end < length) && (isAlpha || (isApost
-					&& (((c=text[end+1])!='s')||!isCap) && isalpha(c))); 
-					end++, c=text[end], isAlpha=isalpha(c), isApost=(c=='\'')){}
-				
+				for (end = offset, c = text[end], isAlpha = isalpha(c), isApost = (c == '\'');
+					(end < length) && (isAlpha || (isApost
+					&& (((c = text[end + 1]) != 's') || !isCap) && isalpha(c))); 
+					end++, c = text[end], isAlpha = isalpha(c), isApost = (c == '\''));
+
 				length = end-start;
 				BString srcWord;
 				srcWord.SetTo(text+start, length);
@@ -1142,9 +1185,9 @@ void TTextView::MouseDown(BPoint where)
 					sort_word_list(&matches, srcWord.String());
 					for (int32 i = 0; (string = (BString *)matches.ItemAt(i)) != NULL; i++)
 					{
-						menu.AddItem((menuItem = new BMenuItem(string->String(),
-							NULL)));
-						if (strcasecmp(string->String(), srcWord.String()) == 0) {
+						menu.AddItem((menuItem = new BMenuItem(string->String(),NULL)));
+						if (strcasecmp(string->String(), srcWord.String()) == 0)
+						{
 							menuItem->SetEnabled(false);
 							foundWord = true;
 						}
@@ -1153,13 +1196,12 @@ void TTextView::MouseDown(BPoint where)
 				}
 				else
 				{
-					(menuItem = new BMenuItem("No Matches",
-						NULL))->SetEnabled(false);
+					(menuItem = new BMenuItem("No Matches",NULL))->SetEnabled(false);
 					menu.AddItem(menuItem);
 				}
 				
 				BMenuItem *addItem = NULL;
-				if (!foundWord && (gUserDict >= 0))
+				if (!foundWord && gUserDict >= 0)
 				{
 					menu.AddSeparatorItem();
 					addItem = new BMenuItem("Add", NULL);
@@ -1178,6 +1220,7 @@ void TTextView::MouseDown(BPoint where)
 						gUserDictFile->Write(newItem.String(), newItem.Length());
 						gWords[gUserDict]->BuildIndex();
 						gExactWords[gUserDict]->BuildIndex();
+
 						if (fSpellCheck)
 							CheckSpelling(0, TextLength());
 					}
@@ -1195,11 +1238,11 @@ void TTextView::MouseDown(BPoint where)
 		}
 		else if (fSpellCheck && IsEditable())
 		{
-			int32 s, e;
+			int32 start, end;
 			
-			GetSelection(&s, &e);
-			FindSpellBoundry(1, s, &s, &e);
-			CheckSpelling(s, e);
+			GetSelection(&start, &end);
+			FindSpellBoundry(1, start, &start, &end);
+			CheckSpelling(start, end);
 		}
 		
 	}
@@ -1291,13 +1334,35 @@ void TTextView::MouseDown(BPoint where)
 				else
 					item = fEnclosureMenu->Go(point, true);
 
-				if (item) {
-					if (item->Message()->what == M_SAVE) {
+				BMessage *msg;
+				if (item && (msg = item->Message()) != NULL)
+				{
+					if (msg->what == M_SAVE)
+					{
 						if (fPanel)
 							fPanel->SetEnclosure(enclosure);
-						else {
+						else
+						{
 							fPanel = new TSavePanel(enclosure, this);
 							fPanel->Window()->Show();
+						}
+					}
+					else if (msg->what == M_COPY)
+					{
+						// copy link location to clipboard
+						
+						if (be_clipboard->Lock())
+						{
+							be_clipboard->Clear();
+							
+							BMessage *clip;
+							if ((clip = be_clipboard->Data()) != NULL)
+							{
+								clip->AddData("text/plain",B_MIME_TYPE,
+												enclosure->name,strlen(enclosure->name));
+								be_clipboard->Commit();
+							}
+							be_clipboard->Unlock();
 						}
 					}
 					else

@@ -70,7 +70,8 @@ class MailMessage;
 
 struct text_run_array;
 
-typedef struct {
+typedef struct
+{
 	bool header;
 	bool raw;
 	bool quote;
@@ -83,14 +84,16 @@ typedef struct {
 	sem_id *stop_sem;
 } reader_info;
 
-enum ENCLOSURE_TYPE {
+enum ENCLOSURE_TYPE
+{
 	TYPE_ENCLOSURE = 100,
 	TYPE_BE_ENCLOSURE,
 	TYPE_URL,
 	TYPE_MAILTO
 };
 
-typedef struct {
+typedef struct
+{
 	int32 type;
 	char *name;
 	char *content_type;
@@ -109,20 +112,21 @@ class TSavePanel;
 
 //====================================================================
 
-class TContentView : public BView {
-public:
-	TContentView(BRect, bool, BFile*, BFont*); 
-	virtual void MessageReceived(BMessage*);
-	void FindString(const char*);
-	void Focus(bool);
-	void FrameResized(float, float);
+class TContentView : public BView
+{
+	public:
+		TContentView(BRect, bool, BFile*, BFont*); 
+		virtual void MessageReceived(BMessage*);
+		void FindString(const char*);
+		void Focus(bool);
+		void FrameResized(float, float);
+		
+		TTextView *fTextView;
 	
-	TTextView *fTextView;
-
-private:
-	bool fFocus;
-	bool fIncoming;
-	float fOffset;
+	private:
+		bool fFocus;
+		bool fIncoming;
+		float fOffset;
 };
 
 //====================================================================
@@ -217,15 +221,16 @@ class TTextView : public BTextView
 
 //====================================================================
 
-class TSavePanel : public BFilePanel {
-public:
-	TSavePanel(hyper_text*, TTextView*);
-	virtual void SendMessage(const BMessenger*, BMessage*);
-	void SetEnclosure(hyper_text*);
-
-private:
-	hyper_text *fEnclosure;
-	TTextView *fView;
+class TSavePanel : public BFilePanel
+{
+	public:
+		TSavePanel(hyper_text*, TTextView*);
+		virtual void SendMessage(const BMessenger*, BMessage*);
+		void SetEnclosure(hyper_text*);
+	
+	private:
+		hyper_text *fEnclosure;
+		TTextView *fView;
 };
 
 #endif // #ifndef _CONTENT_H
