@@ -50,7 +50,7 @@ using namespace Zoidberg::Mail;
 #define mime_warning "This is a multipart message in MIME format."
 
 
-Message::Message(BPositionIO *file,bool own)
+Message::Message(BPositionIO *file, bool own)
 	:
 	fData(NULL),
 	_status(B_NO_ERROR),
@@ -105,9 +105,12 @@ status_t Message::InitCheck() const
 
 
 Message *
-Message::ReplyMessage(reply_to_mode replyTo, bool accountFromMail,const char *quote_style)
+Message::ReplyMessage(reply_to_mode replyTo, bool accountFromMail, const char *quoteStyle)
 {
 	Mail::Message *to_return = new Mail::Message;
+	
+	// Set ReplyTo:
+
 	if (replyTo == MD_REPLY_TO_ALL) {
 		to_return->SetTo(From());
 
@@ -119,51 +122,52 @@ Message::ReplyMessage(reply_to_mode replyTo, bool accountFromMail,const char *qu
 		} else if (to != NULL && to[0])
 			string << to;
 
+		// filter out the sender
 		BString addr = Mail::Chain(Account()).MetaData()->FindString("reply_to");
 		int32 offset;
 		while ((offset = string.FindFirst(addr)) >= 0) {
-			int32 begin = string.FindLast(',',offset);
-			int32 end = string.FindFirst(',',offset);
+			int32 begin = string.FindLast(',', offset);
+			int32 end = string.FindFirst(',', offset);
 			begin = (begin < 0) ? 0 : begin;
 			end = (end < 0) ? string.Length() : end;
-			string.Remove(begin,end);
+			string.Remove(begin, end);
 		}
 
 		if (string.Length() > 0)	
 			to_return->SetCC(string.String());
-	} else if (replyTo == MD_REPLY_TO_SENDER)
+	} else if (replyTo == MD_REPLY_TO_SENDER || ReplyTo() == NULL)
 		to_return->SetTo(From());
 	else
 		to_return->SetTo(ReplyTo());
 
+	// Set special "In-Reply-To:" header
+	const char *messageID = _body ? _body->HeaderField("Message-Id") : NULL;
+	if (messageID != NULL)
+		to_return->SetHeaderField("In-Reply-To", messageID);
+
+	// quote body text
 	to_return->SetBodyTextTo(BodyText());
-	to_return->Body()->Quote(quote_style);
+	if (quoteStyle)
+		to_return->Body()->Quote(quoteStyle);
+
+	// Set the subject (and add a "Re:" if needed)
+	BString string = Subject();
+	if (string.ICompare("re:", 3) != 0)
+		string.Prepend("Re: ");
+	to_return->SetSubject(string.String());
 
 	// set the matching outbound chain
-	if (accountFromMail) {
-		char name[B_FILE_NAME_LENGTH];
-		if (GetAccountName(name,B_FILE_NAME_LENGTH) < B_OK) {
-			// just return the message with the default account
-			return to_return;
-		}
+	if (accountFromMail)
+		to_return->SendViaAccountFrom(this);
 
-		BList chains;
-		Mail::OutboundChains(&chains);
-		for (int32 i = chains.CountItems();i-- > 0;)
-		{
-			Chain *chain = (Chain *)chains.ItemAt(i);
-			if (!strcmp(chain->Name(),name))
-				to_return->SendViaAccount(chain->ID());
-
-			delete chain;
-		}
-	}
 	return to_return;
 }
 	
 
-Message *Message::ForwardMessage(bool include_attachments) {
-	BString header = "-------Forwarded Message----------\n";
+Message *
+Message::ForwardMessage(bool accountFromMail, bool includeAttachments)
+{
+	BString header = "------ Forwarded Message: ------\n";
 	header << "To: " << To() << '\n';
 	header << "From: " << From() << '\n';
 	if (CC() != NULL)
@@ -173,29 +177,46 @@ Message *Message::ForwardMessage(bool include_attachments) {
 	header << _text_body->Text() << '\n';
 	Mail::Message *message = new Mail::Message();
 	message->SetBodyTextTo(header.String());
-	
-	if (include_attachments) {
+
+	// set the subject
+	BString subject = Subject();
+	if (subject.IFindFirst("fwd") == B_ERROR
+		&& subject.IFindFirst("forward") == B_ERROR
+		&& subject.FindFirst("FW") == B_ERROR)
+		subject << " (fwd)";
+	message->SetSubject(subject.String());
+
+	if (includeAttachments) {
 		for (int32 i = 0; i < CountComponents(); i++) {
 			Mail::Component *cmpt = GetComponent(i);
 			if (cmpt == _text_body)
 				continue;
-				
+
 		//---I am ashamed to have the written the code between here and the next comment
+			cmpt->GetDecodedData(NULL);
+				// ... and you still managed to get it wrong ;-)), axeld.
+			// we should really move this stuff into copy constructors
+			// or something like that
+
 			BMallocIO io;
 			cmpt->RenderToRFC822(&io);
 			Mail::Component *clone = cmpt->WhatIsThis();
-			io.Seek(0,SEEK_SET);
-			clone->SetToRFC822(&io,io.BufferLength(),true);
+			io.Seek(0, SEEK_SET);
+			clone->SetToRFC822(&io, io.BufferLength(), true);
 			message->AddComponent(clone);
 		//---
 		}
 	}
-	
-	message->SendViaAccount(Account());
+
+	if (accountFromMail)
+		message->SendViaAccountFrom(this);
+
 	return message;
 }
 
-const char *Message::To() {
+
+const char *Message::To()
+{
 	return HeaderField("To");
 }
 
@@ -276,6 +297,27 @@ Message::GetName(BString *name) const
 	name->UnlockBuffer();
 
 	return status;
+}
+
+
+void
+Message::SendViaAccountFrom(Mail::Message *message)
+{
+	char name[B_FILE_NAME_LENGTH];
+	if (message->GetAccountName(name, B_FILE_NAME_LENGTH) < B_OK) {
+		// just return the message with the default account
+		return;
+	}
+
+	BList chains;
+	Mail::OutboundChains(&chains);
+	for (int32 i = chains.CountItems();i-- > 0;) {
+		Chain *chain = (Chain *)chains.ItemAt(i);
+		if (!strcmp(chain->Name(), name))
+			SendViaAccount(chain->ID());
+
+		delete chain;
+	}
 }
 
 
@@ -370,13 +412,27 @@ Message::AddComponent(Mail::Component *component)
 	return status;
 }
 
-status_t Message::RemoveComponent(int32 /*index*/) {
+
+status_t
+Message::RemoveComponent(Mail::Component */*component*/)
+{
+	// not yet implemented
+	// BeMail/Enclosures.cpp:169: contains a warning about this fact
+	return B_ERROR;
+}
+
+
+status_t
+Message::RemoveComponent(int32 /*index*/)
+{
 	// not yet implemented
 	return B_ERROR;
 }
 
 
-Mail::Component *Message::GetComponent(int32 i) {
+Mail::Component *
+Message::GetComponent(int32 i)
+{
 	if (MIMEMultipartContainer *container = dynamic_cast<MIMEMultipartContainer *>(_body))
 		return container->GetComponent(i);
 

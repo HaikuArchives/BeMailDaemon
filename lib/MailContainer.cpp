@@ -137,11 +137,34 @@ Mail::Component *MIMEMultipartContainer::GetComponent(int32 index) {
 	return piece;
 }
 
-int32 MIMEMultipartContainer::CountComponents() const {
+
+int32
+MIMEMultipartContainer::CountComponents() const
+{
 	return _components_in_code.CountItems();
 }
 
-status_t MIMEMultipartContainer::RemoveComponent(int32 index) {
+
+status_t
+MIMEMultipartContainer::RemoveComponent(Mail::Component *component)
+{
+	if (component == NULL)
+		return B_BAD_VALUE;
+
+	int32 index = _components_in_code.IndexOf(component);
+	if (component == NULL)
+		return B_ENTRY_NOT_FOUND;
+
+	delete (Mail::Component *)_components_in_code.RemoveItem(index);
+	delete (message_part *)_components_in_raw.RemoveItem(index);
+
+	return B_OK;
+}
+
+
+status_t
+MIMEMultipartContainer::RemoveComponent(int32 index)
+{
 	if (index >= CountComponents())
 		return B_BAD_INDEX;
 
@@ -151,7 +174,10 @@ status_t MIMEMultipartContainer::RemoveComponent(int32 index) {
 	return B_OK;
 }
 
-status_t MIMEMultipartContainer::GetDecodedData(BPositionIO *) {
+
+status_t
+MIMEMultipartContainer::GetDecodedData(BPositionIO *)
+{
 	return B_BAD_TYPE; //------We don't play dat
 }
 

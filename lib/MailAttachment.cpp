@@ -173,11 +173,16 @@ void SimpleAttachment::SetFileName(const char *name) {
 	SetHeaderField("Content-Type",&content_type);
 }
 
-status_t SimpleAttachment::GetDecodedData(BPositionIO *data) {
+
+status_t
+SimpleAttachment::GetDecodedData(BPositionIO *data)
+{
 	ParseNow();
-	
+
 	if (!_data)
 		return B_IO_ERROR;
+	if (data == NULL)
+		return B_BAD_VALUE;
 
 	char buffer[256];
 	ssize_t length;
@@ -189,7 +194,10 @@ status_t SimpleAttachment::GetDecodedData(BPositionIO *data) {
 	return B_OK;
 }
 
-BPositionIO *SimpleAttachment::GetDecodedData() {
+
+BPositionIO *
+SimpleAttachment::GetDecodedData()
+{
 	ParseNow();
 	
 	return _data;
@@ -529,7 +537,7 @@ status_t AttributedAttachment::GetDecodedData(BPositionIO *data) {
 	BNode *node = dynamic_cast<BNode *>(data);
 	if (node != NULL)
 		*node << _attributes;
-		
+
 	_data->GetDecodedData(data);
 	return B_OK;
 }
