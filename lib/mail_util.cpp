@@ -31,6 +31,8 @@ struct CharsetConversionEntry
 
 extern const CharsetConversionEntry charsets [] =
 {
+	// In order of authority, so when searching for the name for a particular
+	// numbered conversion, start at the beginning of the array.
 	{"iso-8859-1",  B_ISO1_CONVERSION},
 	{"iso-8859-2",  B_ISO2_CONVERSION},
 	{"iso-8859-3",  B_ISO3_CONVERSION},
@@ -48,6 +50,7 @@ extern const CharsetConversionEntry charsets [] =
 	{"iso-2022-jp", B_JIS_CONVERSION},
 	{"euc-jp",		B_EUC_CONVERSION},
 	{"euc-kr",      B_EUC_KR_CONVERSION},
+	{"ks_c_5601-1987", B_EUC_KR_CONVERSION}, // A related Korean character set.
 	{"koi8-r",      B_KOI8R_CONVERSION},
 	{"windows-1251",B_MS_WINDOWS_1251_CONVERSION},
 	{"windows-1252",B_MS_WINDOWS_CONVERSION},
