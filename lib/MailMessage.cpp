@@ -32,8 +32,8 @@ namespace Mail {
 #include <MailDaemon.h>
 #include <StringList.h>
 
-namespace Zoidberg {
-namespace Mail {
+using namespace Zoidberg;
+using namespace Zoidberg::Mail;
 
 //-------Change the following!----------------------
 #define mime_boundary "----------Zoidberg-BeMail-temp--------"
@@ -523,5 +523,3 @@ void Message::_ReservedMessage1() {}
 void Message::_ReservedMessage2() {}
 void Message::_ReservedMessage3() {}
 
-}	// namespace Mail
-}	// namespace Zoidberg

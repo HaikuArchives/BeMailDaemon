@@ -20,6 +20,7 @@ namespace Zoidberg {
 namespace Mail {
 	class _EXPORT SimpleAttachment;
 	class _EXPORT AttributedAttachment;
+	class _EXPORT Attachment;
 }
 }
 
@@ -30,8 +31,10 @@ namespace Mail {
 #include <stdio.h>
 
 
-namespace Zoidberg {
-namespace Mail {
+using namespace Zoidberg;
+using Mail::Attachment;
+using Mail::SimpleAttachment;
+using Mail::AttributedAttachment;
 
 //--------------SimpleAttachment-No attributes or awareness of the file system at large-----
 
@@ -509,19 +512,13 @@ status_t AttributedAttachment::SetToRFC822(BPositionIO *data, size_t length, boo
 	_attributes.MakeEmpty();
 
 	// get data and attributes	
-	/*if ((_data = (SimpleAttachment *)GetComponent(0)) == NULL)
-		return B_BAD_VALUE;*/
+	if ((_data = dynamic_cast<SimpleAttachment *>(GetComponent(0))) == NULL)
+		return B_BAD_VALUE;
 		
-	Component *foo = GetComponent(1);
-	SimpleAttachment *bar;
-	bar = dynamic_cast<SimpleAttachment *>(foo);
 	
-	puts(class_name(foo));
-	assert(bar != NULL);
-	
-	/*if ((_attributes_attach = (SimpleAttachment *)GetComponent(1)) == NULL
+	if ((_attributes_attach = dynamic_cast<SimpleAttachment *>(GetComponent(1))) == NULL
 		|| _attributes_attach->GetDecodedData() == NULL)
-		return B_BAD_VALUE;*/
+		return B_BAD_VALUE;
 
 	int32		len;
 	int32		index = 0;
@@ -605,6 +602,3 @@ void SimpleAttachment::_ReservedSimple3() {}
 void AttributedAttachment::_ReservedAttributed1() {}
 void AttributedAttachment::_ReservedAttributed2() {}
 void AttributedAttachment::_ReservedAttributed3() {}
-
-}	// namespace Mail
-}	// namespace Zoidberg
