@@ -74,6 +74,10 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
+ * Revision 1.79  2003/04/07 19:05:22  agmsmith
+ * Now with Allen Brunson's atoll for PPC (you need the %Ld, but that
+ * becomes %lld on other systems).
+ *
  * Revision 1.78  2003/04/04 22:43:53  agmsmith
  * Fixed up atoll PPC processor hack so it would actually work, was just
  * returning zero which meant that it wouldn't load in the database file
@@ -354,8 +358,8 @@
 #include <errno.h>
 
 #if __POWERPC__ /* atoll is missing from the PowerPC standard library. */
-static int64 atoll (const char *str) {
-  int64 result = 0;
+static long long atoll (const char *str) {
+  long long result = 0;
   if (!str || !str[0])
     return 0;
   if (sscanf (str, "%Ld", &result) != 1)
