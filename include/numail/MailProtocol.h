@@ -106,8 +106,9 @@ class Protocol : public Filter
 	friend class DeletePass;
 	
 	BHandler *trash_monitor;
+	StringList *uids_on_disk;
 	
-	uint32 _reserved[4];
+	uint32 _reserved[3];
 };
 
 }	// namespace Mail
