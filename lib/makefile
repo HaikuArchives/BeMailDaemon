@@ -35,7 +35,7 @@ SRCS= MailAddon.cpp numailkit.cpp MailProtocol.cpp SimpleMailProtocol.cpp \
 	ChainRunner.cpp NodeMessage.cpp MailDaemon.cpp c_mail_api.cpp base64.c \
 	qp.c des.c crypt.cpp ProtocolConfigView.cpp mail_util.cpp MailComponent.cpp \
 	MailContainer.cpp MailAttachment.cpp MailMessage.cpp b_mail_message.cpp \
-	cpp_abi_base64.cpp
+	cpp_abi_base64.cpp FileConfigView.cpp
 
 #	specify the resource files to use
 #	full path or a relative path to the resource file can be used.
@@ -56,7 +56,7 @@ RSRCS=
 #		naming scheme you need to specify the path to the library
 #		and it's name
 #		library: my_lib.a entry: my_lib.a or path/my_lib.a
-LIBS= be textencoding
+LIBS= be textencoding tracker
 
 #	specify additional paths to directories following the standard
 #	libXXX.so or libXXX.a naming scheme.  You can specify full paths
