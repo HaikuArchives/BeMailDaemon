@@ -10,12 +10,14 @@ SUBDIRS = \
 	outbound_filters \
 	system_filters
 
-all:
-	-@for f in $(SUBDIRS) ; do \
-		$(MAKE) -C $$f -f makefile; \
-	done
+#all:
+#	-@for f in $(SUBDIRS) ; do \
+#		$(MAKE) -C $$f -f makefile; \
+#	done
+#
 
 default .DEFAULT :
+	cp makefile-engine.MailD $(BUILDHOME)/etc/makefile-engine.MailD
 	-@for f in $(SUBDIRS) ; do \
 		$(MAKE) -C $$f -f makefile $@; \
 	done
