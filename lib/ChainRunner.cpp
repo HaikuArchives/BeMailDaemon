@@ -445,7 +445,10 @@ ChainRunner::get_messages(StringList *list)
 		}
 
 		CallCallbacksFor(message_cb, err);
-
+		
+		if (err == B_MAIL_DISCARD)
+			entry->Remove();
+		
 		if (file != NULL)
 			delete file;
 			
