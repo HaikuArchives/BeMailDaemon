@@ -283,6 +283,8 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	name.ReplaceAll('/','_');
 	name.ReplaceAll('\'','_');
 	name.ReplaceAll('"','_');
+	name.ReplaceAll('<','_');
+	name.ReplaceAll('>','_');
 
 	int32 uniquer = time(NULL);
 	worker = name;
@@ -295,7 +297,8 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		worker << ' ' << uniquer;
 	}
 	if (err < B_OK)
-		printf("could not rename mail (%s)! (should be: %s)\n",strerror(err),worker.String());
+		printf("FolderFilter::ProcessMailMessage: could not rename mail (%s)! "
+			"(should be: %s)\n",strerror(err),worker.String());
 
 	fNumberOfFilesSaved++;
 	if (out_headers->FindBool("ENTIRE_MESSAGE")) {
