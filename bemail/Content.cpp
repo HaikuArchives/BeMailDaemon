@@ -1832,8 +1832,17 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 				result = dir.CreateFile(name, &file);
 				if (result == B_NO_ERROR && enclosure->content_type)
 				{
+					char type[B_MIME_TYPE_LENGTH];
+
+					if (!strcasecmp(enclosure->content_type,"message/rfc822"))
+						strcpy(type,"text/x-email");
+					else if (!strcasecmp(enclosure->content_type,"message/delivery-status"))
+						strcpy(type,"text/plain");
+					else
+						strcpy(type,enclosure->content_type);
+
 					BNodeInfo info(&file);
-					info.SetType(enclosure->content_type);
+					info.SetType(type);
 				}
 			}
 		}
