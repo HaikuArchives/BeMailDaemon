@@ -1,10 +1,6 @@
 <HTML>
-<!--This file created 10/14/01 8:38 PM by Claris Home Page version 3.0-->
 <HEAD>
    <TITLE>MailComponent</TITLE>
-   <META NAME=GENERATOR CONTENT="Claris Home Page 3.0">
-   <X-CLARIS-WINDOW TOP=45 BOTTOM=851 LEFT=172 RIGHT=1123>
-   <X-CLARIS-TAGVIEW MODE=minimal>
 </HEAD>
 <BODY BGCOLOR="#FFFFFF" LINK="#2222AA" BACKGROUND="../art/bodyBack.gif">
 <P><A NAME=BCursor></A> <!--TOP LINKS--></P>
@@ -76,7 +72,7 @@ and
          <P></P>
       </TD>
       <TD>
-         <P><FONT SIZE="+2"><A NAME="BCursor()"></A>MailComponent()
+         <P><FONT SIZE="+2">MailComponent()
          </FONT></P>
       </TD>
    </TR>
@@ -114,7 +110,7 @@ and
          <P></P>
       </TD>
       <TD>
-         <P><FONT SIZE="+2"><A NAME="~BCursor()"></A>~MailComponent()
+         <P><FONT SIZE="+2">~MailComponent()
          </FONT></P>
       </TD>
    </TR>
@@ -486,13 +482,13 @@ and
 
 <HR>
 
-<A NAME=AddHeaderField></A><TABLE>
+<A NAME=SetHeaderField></A><TABLE>
    <TR>
       <TD>
          <P></P>
       </TD>
       <TD>
-         <P><FONT SIZE="+2">AddHeaderField() </FONT></P>
+         <P><FONT SIZE="+2">SetHeaderField() </FONT></P>
       </TD>
    </TR>
 </TABLE>
@@ -507,18 +503,29 @@ and
                <TR>
                   <TD>
                      <P>void
-                     <FONT SIZE="+1"><B><TT>AddHeaderField(</TT></B></FONT></P>
+                     <FONT SIZE="+1"><B><TT>SetHeaderField(</TT></B></FONT>
                      
-                     <BLOCKQUOTE>const char *<FONT FACE="HELVETICA" COLOR="#991122"><I>key</I></FONT>,<BR>
+                     <BLOCKQUOTE>
+                     	const char *<FONT FACE="HELVETICA" COLOR="#991122"><I>key</I></FONT>,<BR>
                         const char *<FONT FACE="HELVETICA" COLOR="#991122"><I>value</I></FONT>,<BR>
-                        uint32 <FONT FACE="HELVETICA" COLOR="#991122"><I>charset</I></FONT>
-                        = <B>B_ISO1_CONVERSION</B>,<BR>
-                        mail_encoding <FONT FACE="HELVETICA" COLOR="#991122"><I>encoding</I></FONT>
-                        = <B>quoted_printable</B>,<BR>
-                        bool <FONT FACE="HELVETICA" COLOR="#991122"><I>replace_existing</I></FONT>
-                        = <B>true</B>
+                        uint32 <FONT FACE="HELVETICA" COLOR="#991122"><I>charset</I></FONT> = <B>B_ISO1_CONVERSION</B>,<BR>
+                        mail_encoding <FONT FACE="HELVETICA" COLOR="#991122"><I>encoding</I></FONT> = <B>quoted_printable</B>,<BR>
+                        bool <FONT FACE="HELVETICA" COLOR="#991122"><I>replace_existing</I></FONT>= <B>true</B>
                         
-                        <P><FONT SIZE="+1"><B><TT>)</TT></B></FONT></P></BLOCKQUOTE>
+                        <FONT SIZE="+1"><B><TT>)</TT></B></FONT></P></BLOCKQUOTE>
+                  </TD>
+               </TR>
+               <TR>
+                  <TD>
+                     <P>void
+                     <FONT SIZE="+1"><B><TT>SetHeaderField(</TT></B></FONT>
+                     
+                     <BLOCKQUOTE>
+                     	const char *<FONT FACE="HELVETICA" COLOR="#991122"><I>key</I></FONT>,<BR>
+                        BMessage *<FONT FACE="HELVETICA" COLOR="#991122"><I>structured_header</I></FONT>,<BR>
+                        bool <FONT FACE="HELVETICA" COLOR="#991122"><I>replace_existing</I></FONT>= <B>true</B>
+                        
+                        <FONT SIZE="+1"><B><TT>)</TT></B></FONT></P></BLOCKQUOTE>
                   </TD>
                </TR>
             </TABLE>
@@ -528,16 +535,36 @@ and
    </TABLE>
    
    <P>Adds the specificed header of type <FONT FACE="HELVETICA" COLOR="#991122"><I>key
-   </I></FONT>and data<FONT FACE="HELVETICA" COLOR="#991122"><I>value</I></FONT>
+   </I></FONT>and with the UTF8 contents <FONT FACE="HELVETICA" COLOR="#991122"><I>value</I></FONT>
    to the component.
-   <FONT SIZE="+1"><B><TT>AddHeaderField()</TT></B></FONT> converts
+   <FONT SIZE="+1"><B><TT>SetHeaderField()</TT></B></FONT> converts
    any 8 bit data in <FONT FACE="HELVETICA" COLOR="#991122"><I>value</I></FONT>
    to <FONT FACE="HELVETICA" COLOR="#991122"><I>charset</I></FONT>
    (see the Support Kit on UTF8 for more information on this), and
    encodes it into 7 bit data using <FONT FACE="HELVETICA" COLOR="#991122"><I>encoding</I></FONT>.
+   
    If <FONT FACE="HELVETICA" COLOR="#991122"><I>replace_existing</I></FONT>
    is true, replaces any existing header of this type with this one,
-   otherwise adds a second one.</P></BLOCKQUOTE>
+   otherwise adds a second one.</P>
+   <P>Thus, to set the header <CODE>To:</CODE> of some <B>MailComponent</B> <I>component</I> to foo@bar.com, we would do this:</P>
+   <BLOCKQUOTE><CODE>
+   	component-&gt;SetHeaderField(&quot;To&quot;,&quot;foo@bar.com&quot;);
+   </CODE></BLOCKQUOTE>
+   <P>The version of the function that takes a BMessage sets a structured header. These are in the format
+   <CODE>unlabeled; key=value; key=value</CODE>. The most common instance of this is the <CODE>Content-Type</CODE> header,
+   where the MIME type is unlabeled, and various other information, such as character set, is specified in the
+   key/value pairs. The format for <FONT FACE="HELVETICA" COLOR="#991122"><I>structured_header</I></FONT> is relatively
+   simple: simply use <TT>BMessage::AddString(key,value)</TT> for each key/value pair. The only exception to this
+   rule is the unlabeled data. For this, simply use the key <I>unlabeled</I>. Please note that the <I>charset</I> and <I>encoding</I> arguments
+   defined for the text version of <TT>SetHeaderField</TT> is not provided here because structured headers cannot be encoded.</P>
+   <P>Thus, a relatively standard <CODE>Content-Type</CODE> header would be specified as follows:
+   <BLOCKQUOTE><CODE>
+   	BMessage structured;<BR>
+   	structured.AddString(&quot;unlabeled&quot;,&quot;text/plain&quot;);<BR>
+   	structured.AddString(&quot;charset&quot;,&quot;iso-8859-1&quot;);<BR>
+   	component-&gt;SetHeaderField(&quot;To&quot;,&amp;structured);
+   </CODE></BLOCKQUOTE>
+   </BLOCKQUOTE>
 
 <P>
 
@@ -571,6 +598,18 @@ and
                      <B>0</B><FONT SIZE="+1"><B><TT>)</TT></B></FONT></P>
                   </TD>
                </TR>
+               <TR>
+                  <TD>
+                     <P>status_t
+                     <FONT SIZE="+1"><B><TT>HeaderField(</TT></B></FONT>
+                     <BLOCKQUOTE>
+                     const char *<FONT FACE="HELVETICA" COLOR="#991122"><I>key</I></FONT>,<BR>
+                     BMessage *<FONT FACE="HELVETICA" COLOR="#991122"><I>structured_header</I></FONT>,<BR>
+                     int32 <FONT FACE="HELVETICA" COLOR="#991122"><I>index</I></FONT> = <B>0</B>
+                     
+                     <FONT SIZE="+1"><B><TT>)</TT></B></FONT></P></BLOCKQUOTE>
+                  </TD>
+               </TR>
             </TABLE>
             </P>
          </TD>
@@ -582,12 +621,107 @@ and
    use <FONT FACE="HELVETICA" COLOR="#991122"><I>index</I></FONT> to
    iterate through them. In the event that the specified header does
    not exist, <FONT SIZE="+1"><B><TT>HeaderField()
-   </TT></B></FONT>returns <B>NULL</B>.</P>
+   </TT></B></FONT>returns <B>NULL</B>. Thus, to retrieve the contents of the <CODE>Subject:</CODE> field in
+   UTF8 format, you would do this:</P>
+   <BLOCKQUOTE><CODE>
+   	const char *subject = component-&gt;HeaderField(&quot;Subject&quot;);
+   </CODE></BLOCKQUOTE>
+   <P>The version of this function that takes a BMessage
+   decodes whatever structured header may exist in <FONT FACE="HELVETICA" COLOR="#991122"><I>key</I></FONT>
+   and places it in <FONT FACE="HELVETICA" COLOR="#991122"><I>structured_header</I></FONT> according to the
+   format laid out in <A HREF="#SetHeaderField">SetHeaderField()</A>. Returns <B>B_NAME_NOT_FOUND</B>
+   if the header <FONT FACE="HELVETICA" COLOR="#991122"><I>key</I></FONT> does not exist. If it does exist,
+   but is not structured, no error is returned; the entire contents of the header are placed in <I>unlabeled</I>.
+   </P>
    
-   <P>&nbsp;</P>
+   <P>&nbsp;</P></BLOCKQUOTE>
    
-   <P></TABLE></P></BLOCKQUOTE>
+  
 
+<P>
+
+<HR>
+
+<A NAME=HeaderAt></A><TABLE>
+   <TR>
+      <TD>
+         <P></P>
+      </TD>
+      <TD>
+         <P><FONT SIZE="+2">HeaderAt() </FONT></P>
+      </TD>
+   </TR>
+</TABLE>
+</P>
+
+<P>&nbsp;</P>
+
+<BLOCKQUOTE><TABLE BORDER=2 BGCOLOR="#550033" WIDTH=1000>
+      <TR>
+         <TD>
+            <P><TABLE BORDER=1 BGCOLOR="#FFFFFF" CELLPADDING=8 WIDTH=1000>
+               <TR>
+                  <TD>
+                     <P>const char *
+                     <FONT SIZE="+1"><B><TT>HeaderAt(</TT></B></FONT>
+                     int32 <FONT FACE="HELVETICA" COLOR="#991122"><I>index</I></FONT><FONT SIZE="+1"><B><TT>)</TT></B></FONT></P>
+                  </TD>
+               </TR>
+            </TABLE>
+            </P>
+         </TD>
+      </TR>
+   </TABLE>
+   
+   <P>Returns the key of the header at <FONT FACE="HELVETICA" COLOR="#991122"><I>index</I></FONT>.
+   Useful for iterating through all the headers. If <FONT FACE="HELVETICA" COLOR="#991122"><I>index</I></FONT>
+   is out of range, <TT>HeaderAt()</TT> returns <B>NULL</B>.</P>
+   
+   <P>&nbsp;</P></BLOCKQUOTE>
+   
+   <P></TABLE></P>
+   
+  
+
+<P>
+
+<HR>
+
+<A NAME=RemoveHeader></A><TABLE>
+   <TR>
+      <TD>
+         <P></P>
+      </TD>
+      <TD>
+         <P><FONT SIZE="+2">RemoveHeader() </FONT></P>
+      </TD>
+   </TR>
+</TABLE>
+</P>
+
+<P>&nbsp;</P>
+
+<BLOCKQUOTE><TABLE BORDER=2 BGCOLOR="#550033" WIDTH=1000>
+      <TR>
+         <TD>
+            <P><TABLE BORDER=1 BGCOLOR="#FFFFFF" CELLPADDING=8 WIDTH=1000>
+               <TR>
+                  <TD>
+                     <P>const char *
+                     <FONT SIZE="+1"><B><TT>RemoveHeader(</TT></B></FONT>
+                     const char *<FONT FACE="HELVETICA" COLOR="#991122"><I>key</I></FONT><FONT SIZE="+1"><B><TT>)</TT></B></FONT></P>
+                  </TD>
+               </TR>
+            </TABLE>
+            </P>
+         </TD>
+      </TR>
+   </TABLE>
+   
+   <P>Removes all headers with the key <FONT FACE="HELVETICA" COLOR="#991122"><I>key</I></FONT>.</P>
+   
+   <P>&nbsp;</P></BLOCKQUOTE>
+   
 <P><!--TOP LINKS-->
 
 <HR NOSHADE>
