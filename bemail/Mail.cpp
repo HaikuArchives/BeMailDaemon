@@ -33,9 +33,9 @@ All rights reserved.
 */
 
 //--------------------------------------------------------------------
-//	
+//
 //	Mail.cpp
-//	
+//
 //--------------------------------------------------------------------
 
 #include <stdio.h>
@@ -158,7 +158,7 @@ static const char * kSpamMenuItemTextArray [4] = {
 int
 main()
 {
-	TMailApp().Run();	
+	TMailApp().Run();
 	return B_NO_ERROR;
 }
 
@@ -201,7 +201,7 @@ TMailApp::TMailApp()
 	:	BApplication("application/x-vnd.Be-MAIL"),
 	fFont(*be_plain_font),
 	fWindowCount(0),
-	fPrefsWindow(NULL),	
+	fPrefsWindow(NULL),
 	fSigWindow(NULL),
 	fTrackerMessenger(NULL)
 {
@@ -216,110 +216,8 @@ TMailApp::TMailApp()
 	signature_window.Set(6, TITLE_BAR_HEIGHT, 6 + kSigWidth, TITLE_BAR_HEIGHT + kSigHeight);
 	prefs_window.Set(6, TITLE_BAR_HEIGHT);
 
-	//
-	//	Find and read preferences
-	//
-	BDirectory dir;
-	BEntry entry;
-	BPath path;
-	find_directory(B_USER_SETTINGS_DIRECTORY, &path, true);
-	dir.SetTo(path.Path());
-	if (dir.FindEntry("Mail_data", &entry) == B_NO_ERROR)
-	{
-		fPrefs = new BFile(&entry, O_RDWR);
-		if (fPrefs->InitCheck() == B_NO_ERROR)
-		{
-			// ToDo: Use a flattened BMessage for the settings format, this raw
-			// binary stuff is fragile - changes can break it, minor file
-			// corruption will crash it, etc.
-			fPrefs->Read(&mail_window, sizeof(BRect));
-			fPrefs->Read(&level, sizeof(level));
-
-			font_family	f_family;
-			font_style	f_style;
-			float size;
-			fPrefs->Read(&f_family, sizeof(font_family));
-			fPrefs->Read(&f_style, sizeof(font_style));
-			fPrefs->Read(&size, sizeof(float));
-			if (size >= 9)
-				fFont.SetSize(size);
-
-			if ((strlen(f_family)) && (strlen(f_style)))
-				fFont.SetFamilyAndStyle(f_family, f_style);
-
-			fPrefs->Read(&signature_window, sizeof(BRect));
-			fPrefs->Read(&header_flag, sizeof(bool));
-			fPrefs->Read(&wrap_mode, sizeof(bool));
-			fPrefs->Read(&prefs_window, sizeof(BPoint));
-			int32 len;
-			if (fPrefs->Read(&len, sizeof(int32)) > 0)
-			{
-				free(signature);
-				signature = (char *)malloc(len);
-				fPrefs->Read(signature, len);
-			}
-
-			fPrefs->Read(&gMailCharacterSet, sizeof(int32));
-			for (uint32 index = 0; true; index++) {
-				if (kEncodings[index].flavor == MDR_NULL_CONVERSION) {
-					// The prefs file has an unknown character set (happens if
-					// you revert back to an earlier version of the software).
-					// Use the default one instead, otherwise you get very
-					// weird messages (garbage text contents due to UTF-8
-					// conversion failing, "none-bug" character set name in
-					// headers, resulting in unreadable messages).
-					gMailCharacterSet = B_MS_WINDOWS_CONVERSION;
-					break;
-				}
-				if (kEncodings[index].flavor == gMailCharacterSet)
-					break;
-			}
-
-			if (fPrefs->Read(&len, sizeof(int32)) > 0)
-			{
-				char *findString = (char *)malloc(len + 1);
-				fPrefs->Read(findString, len);
-				findString[len] = '\0';
-				FindWindow::SetFindString(findString);
-				free(findString);
-			}
-			if (fPrefs->Read(&show_buttonbar, sizeof(bool)) <= 0)
-				show_buttonbar = true;
-			if (fPrefs->Read(&gUseAccountFrom, sizeof(int32)) <= 0
-				|| gUseAccountFrom < ACCOUNT_USE_DEFAULT
-				|| gUseAccountFrom > ACCOUNT_FROM_MAIL)
-				gUseAccountFrom = ACCOUNT_USE_DEFAULT;
-			if (fPrefs->Read(&gColoredQuotes, sizeof(bool)) <= 0)
-				gColoredQuotes = true;
-
-			if (fPrefs->Read(&len, sizeof(int32)) > 0)
-			{
-				free(gReplyPreamble);
-				gReplyPreamble = (char *)malloc(len + 1);
-				fPrefs->Read(gReplyPreamble, len);
-				gReplyPreamble[len] = '\0';
-			}
-			fPrefs->Read(&attachAttributes_mode, sizeof(bool));
-			fPrefs->Read(&gWarnAboutUnencodableCharacters, sizeof(bool));
-
-			Mail::Settings settings;
-			gDefaultChain = settings.DefaultOutboundChainID();
-		}
-		else
-		{
-			delete fPrefs;
-			fPrefs = NULL;
-		}
-	}
-	else
-	{
-		fPrefs = new BFile();
-		if (dir.CreateFile("Mail_data", fPrefs) != B_NO_ERROR)
-		{
-			delete fPrefs;
-			fPrefs = NULL;
-		}
-	}
+	// Find and read preferences file.
+	LoadSavePrefs (true /* TRUE to load them */);
 
 	CheckForSpamFilterExistence();
 	fFont.SetSpacing(B_BITMAP_SPACING);
@@ -329,7 +227,6 @@ TMailApp::TMailApp()
 
 TMailApp::~TMailApp()
 {
-	delete fPrefs;
 	delete fTrackerMessenger;
 }
 
@@ -358,7 +255,7 @@ void TMailApp::ArgvReceived(int32 argc, char **argv)
 	// that goes along with it (this allows deskbar replicant to open
 	// an empty message even when BeMail is already running)
 	bool gotmailto = false;
-	
+
 	for (int32 loop = 1; loop < argc; loop++)
 	{
 		if (strcmp(argv[loop], "-h") == 0
@@ -398,7 +295,7 @@ void TMailApp::ArgvReceived(int32 argc, char **argv)
 				bccNames += ", ";
 			bccNames += argv[loop] + 6;
 		}
-		else if (strcmp(argv[loop], "-subject") == 0) 
+		else if (strcmp(argv[loop], "-subject") == 0)
 			subject = argv[++loop];
 		else if (strcmp(argv[loop], "-body") == 0 && argv[loop + 1])
 			body = argv[++loop];
@@ -455,7 +352,7 @@ void TMailApp::MessageReceived(BMessage *msg)
 					msg->FindRef("ref", &ref);
 					BNode file(&ref);
 					BString string = "";
-					
+
 					if (file.InitCheck() == B_OK)
 						ReadAttrString(&file, B_MAIL_ATTR_TO, &string);
 
@@ -514,7 +411,7 @@ void TMailApp::MessageReceived(BMessage *msg)
 				fPrefsWindow->Activate(true);
 			else
 			{
-				fPrefsWindow = new TPrefsWindow(BRect(prefs_window.x, 
+				fPrefsWindow = new TPrefsWindow(BRect(prefs_window.x,
 						prefs_window.y, prefs_window.x + PREF_WIDTH,
 						prefs_window.y + PREF_HEIGHT),
 						&fFont, &level, &wrap_mode, &attachAttributes_mode,
@@ -525,7 +422,7 @@ void TMailApp::MessageReceived(BMessage *msg)
 				fPrevBBPref = show_buttonbar;
 			}
 			break;
-		
+
 		case PREFS_CHANGED:
 		{
 			// Do we need to update the state of the button bars?
@@ -543,7 +440,7 @@ void TMailApp::MessageReceived(BMessage *msg)
 			}
 			break;
 		}
-		
+
 		case M_EDIT_SIGNATURE:
 			if (fSigWindow)
 				fSigWindow->Activate(true);
@@ -600,7 +497,7 @@ void TMailApp::MessageReceived(BMessage *msg)
 		case B_REFS_RECEIVED:
 			RefsReceived(msg);
 			break;
-			
+
 		case B_PRINTER_CHANGED:
 			ClearPrintSettings();
 			break;
@@ -613,53 +510,9 @@ void TMailApp::MessageReceived(BMessage *msg)
 
 bool TMailApp::QuitRequested()
 {
-	int32		len;
-	float		size;
-	font_family	f_family;
-	font_style	f_style;
-
 	if (!BApplication::QuitRequested())
 		return false;
-
-	if (fPrefs)
-	{
-		fFont.GetFamilyAndStyle(&f_family, &f_style);
-		size = fFont.Size();
-
-		fPrefs->Seek(0, 0);
-		fPrefs->Write(&last_window, sizeof(BRect));
-		fPrefs->Write(&level, sizeof(level));
-		fPrefs->Write(&f_family, sizeof(font_family));
-		fPrefs->Write(&f_style, sizeof(font_style));
-		fPrefs->Write(&size, sizeof(float));
-		fPrefs->Write(&signature_window, sizeof(BRect));
-		fPrefs->Write(&header_flag, sizeof(bool));
-		fPrefs->Write(&wrap_mode, sizeof(bool));
-		fPrefs->Write(&prefs_window, sizeof(BPoint));
-		len = strlen(signature) + 1;
-		fPrefs->Write(&len, sizeof(int32));
-		fPrefs->Write(signature, len);
-		fPrefs->Write(&gMailCharacterSet, sizeof(int32));
-		const char *findString = FindWindow::GetFindString();
-		len = strlen(findString);
-		fPrefs->Write(&len, sizeof(int32));
-		fPrefs->Write(findString, len);
-		fPrefs->Write(&show_buttonbar, sizeof(bool));
-		fPrefs->Write(&gUseAccountFrom, sizeof(int32));
-		fPrefs->Write(&gColoredQuotes, sizeof(bool));
-		len = strlen(gReplyPreamble);
-		fPrefs->Write(&len, sizeof(int32));
-		fPrefs->Write(gReplyPreamble, len);
-		fPrefs->Write(&attachAttributes_mode, sizeof(bool));
-		fPrefs->Write(&gWarnAboutUnencodableCharacters, sizeof(bool));
-
-		if (gDefaultChain != ~0UL)
-		{
-			Mail::Settings settings;
-			settings.SetDefaultOutboundChainID(gDefaultChain);
-			settings.Save();
-		}
-	}
+	LoadSavePrefs (false /* TRUE to load them */);
 	return true;
 }
 
@@ -734,13 +587,13 @@ TMailApp::ReadyToRun()
 			BFile user(dataPath.Path(), B_WRITE_ONLY | B_CREATE_FILE);
 			BNodeInfo(&user).SetType("text/plain");
 		}
-		
+
 		// Load dictionaries
 		directory.SetTo(dictionaryDir.Path());
-		
+
 		BString leafName;
 		gUserDict = -1;
-		
+
 		while (gDictCount < MAX_DICTIONARIES
 			&& directory.GetNextEntry(&entry) != B_ENTRY_NOT_FOUND)
 		{
@@ -788,7 +641,7 @@ TMailApp::RefsReceived(BMessage *msg)
 		fTrackerMessenger = new BMessenger;
 		msg->FindMessenger("TrackerViewToken", fTrackerMessenger);
 	}
-	
+
 	while (msg->HasRef("refs", item)) {
 		msg->FindRef("refs", item++, &ref);
 		if ((window = FindWindow(ref)) != NULL)
@@ -815,7 +668,7 @@ TMailApp::RefsReceived(BMessage *msg)
 						email << attrib;
 						free(attrib);
 
-						/* we got something... */	
+						/* we got something... */
 						if (email.Length() > 0) {
 							/* see if we can get a username as well */
 							if(file.GetAttrInfo("META:name", &info) == B_NO_ERROR) {
@@ -827,7 +680,7 @@ TMailApp::RefsReceived(BMessage *msg)
 								email.Append(">");
 								free(attrib);
 							}
-							
+
 							if (names.Length() == 0) {
 								names << name << email;
 							} else {
@@ -842,7 +695,7 @@ TMailApp::RefsReceived(BMessage *msg)
 				else if (!strcmp(type, kDraftType))
 				{
 					window = NewWindow();
-					
+
 					// If it's a draft message, open it
 					window->OpenMessage(&ref);
 					window->Show();
@@ -935,13 +788,336 @@ TMailApp::ClearPrintSettings()
 }
 
 
+void TMailApp::LoadSavePrefs (bool loadThem)
+{
+	// Load the preferences if loadThem is TRUE, otherwise save them.  Uses a
+	// flattened BMessage (after a year or two of inertia with the unreliable
+	// binary dumps) in a file named "BeMail Settings" in the Mail folder in
+	// the user's settings directory.  It can also read (but not write) the
+	// older binary dump file "Mail_data" in the top level settings directory,
+	// if it can't find the new settings.
+
+	Mail::Settings chainSettings;
+	BDirectory directory;
+	status_t errorCode;
+	const char *fieldName;
+	BPath filePath;
+	BPath mailSettingsPath;
+	BFile prefsFile;
+	BMessage settingsMsg;
+	bool tempBool;
+	float tempFloat;
+	int32 tempInt32;
+	BPoint tempPoint;
+	BRect tempRect;
+	const char *tempString;
+	BPath topSettingsPath;
+
+	// Prepare the settings directories.
+
+	if (find_directory(B_USER_SETTINGS_DIRECTORY, &topSettingsPath,
+		true /* create if needed */) != B_OK)
+		return; // No main settings directory, can't do anything.
+
+	mailSettingsPath = topSettingsPath;
+	mailSettingsPath.Append("Mail");
+	if (directory.SetTo(mailSettingsPath.Path()) != B_OK) {
+		mkdir (mailSettingsPath.Path(), 0755);
+		if (directory.SetTo(mailSettingsPath.Path()) != B_OK)
+			return;
+	}
+	directory.Unset(); // Not actually used any more.
+
+	// Read/write the default chain settings from somewhere system dependent.
+
+	if (loadThem) {
+		gDefaultChain = chainSettings.DefaultOutboundChainID();
+	} else if (gDefaultChain != ~0UL) {
+		chainSettings.SetDefaultOutboundChainID(gDefaultChain);
+		chainSettings.Save();
+	}
+
+	// Open the new style settings file.
+
+	filePath = mailSettingsPath;
+	filePath.Append("BeMail Settings");
+	errorCode = prefsFile.SetTo (filePath.Path(), loadThem ? B_READ_ONLY :
+		B_READ_WRITE | B_CREATE_FILE | B_ERASE_FILE);
+	if (!loadThem && errorCode != B_OK)
+		return; // Need the file when saving.
+
+	if (loadThem && errorCode == B_OK)
+		errorCode = settingsMsg.Unflatten (&prefsFile);
+
+	if (loadThem && errorCode == B_OK && settingsMsg.what != 'BeMl')
+		errorCode = B_BAD_VALUE;
+
+	if (loadThem && errorCode != B_OK) {
+		// Unable to read the new style "BeMail Settings" file, try reading the
+		// old style "Mail_data" file.
+
+		filePath = topSettingsPath;
+		filePath.Append("Mail_data");
+		errorCode = prefsFile.SetTo (filePath.Path(), B_READ_ONLY);
+		if (errorCode != B_OK)
+			return; // Can't even find an old style file.
+
+		prefsFile.Read(&mail_window, sizeof(BRect));
+		prefsFile.Read(&level, sizeof(level));
+
+		font_family	f_family;
+		font_style	f_style;
+		float size;
+		prefsFile.Read(&f_family, sizeof(font_family));
+		prefsFile.Read(&f_style, sizeof(font_style));
+		prefsFile.Read(&size, sizeof(float));
+		if (size >= 9)
+			fFont.SetSize(size);
+
+		if ((strlen(f_family)) && (strlen(f_style)))
+			fFont.SetFamilyAndStyle(f_family, f_style);
+
+		prefsFile.Read(&signature_window, sizeof(BRect));
+		prefsFile.Read(&header_flag, sizeof(bool));
+		prefsFile.Read(&wrap_mode, sizeof(bool));
+		prefsFile.Read(&prefs_window, sizeof(BPoint));
+		int32 len;
+		if (prefsFile.Read(&len, sizeof(int32)) > 0)
+		{
+			free(signature);
+			signature = (char *)malloc(len);
+			prefsFile.Read(signature, len);
+		}
+
+		prefsFile.Read(&gMailCharacterSet, sizeof(int32));
+		for (uint32 index = 0; true; index++) {
+			if (kEncodings[index].flavor == MDR_NULL_CONVERSION) {
+				gMailCharacterSet = B_MS_WINDOWS_CONVERSION;
+				break;
+			}
+			if (kEncodings[index].flavor == gMailCharacterSet)
+				break;
+		}
+
+		if (prefsFile.Read(&len, sizeof(int32)) > 0)
+		{
+			char *findString = (char *)malloc(len + 1);
+			prefsFile.Read(findString, len);
+			findString[len] = '\0';
+			FindWindow::SetFindString(findString);
+			free(findString);
+		}
+		if (prefsFile.Read(&show_buttonbar, sizeof(bool)) <= 0)
+			show_buttonbar = true;
+		if (prefsFile.Read(&gUseAccountFrom, sizeof(int32)) <= 0
+			|| gUseAccountFrom < ACCOUNT_USE_DEFAULT
+			|| gUseAccountFrom > ACCOUNT_FROM_MAIL)
+			gUseAccountFrom = ACCOUNT_USE_DEFAULT;
+		if (prefsFile.Read(&gColoredQuotes, sizeof(bool)) <= 0)
+			gColoredQuotes = true;
+
+		if (prefsFile.Read(&len, sizeof(int32)) > 0)
+		{
+			free(gReplyPreamble);
+			gReplyPreamble = (char *)malloc(len + 1);
+			prefsFile.Read(gReplyPreamble, len);
+			gReplyPreamble[len] = '\0';
+		}
+		prefsFile.Read(&attachAttributes_mode, sizeof(bool));
+		prefsFile.Read(&gWarnAboutUnencodableCharacters, sizeof(bool));
+
+		return; // Finished reading old style settings.
+	}
+
+	// Transfer the settings between the BMessage and our various global
+	// variables.  For loading, if the setting isn't present, leave it at the
+	// default value.  Note that loading and saving are intermingled here to
+	// make code maintenance easier (less chance of forgetting to update it if
+	// load and save were separate functions).
+
+	errorCode = B_OK; // So that saving settings can record an error.
+
+	fieldName = "MailWindowSize";
+	if (loadThem) {
+		if (settingsMsg.FindRect(fieldName, &tempRect) == B_OK)
+			mail_window = tempRect;
+	} else if (errorCode == B_OK)
+		errorCode = settingsMsg.AddRect(fieldName, mail_window);
+
+	fieldName = "ExperienceLevel";
+	if (loadThem) {
+		if (settingsMsg.FindInt32(fieldName, &tempInt32) == B_OK)
+			level = tempInt32;
+	} else if (errorCode == B_OK)
+		errorCode = settingsMsg.AddInt32(fieldName, level);
+
+	font_family fontFamily;
+	memset (fontFamily, 0, sizeof (fontFamily));
+	font_style fontStyle;
+	memset (fontStyle, 0, sizeof (fontStyle));
+	float fontSize = 0;
+
+	if (!loadThem) {
+		fFont.GetFamilyAndStyle(&fontFamily, &fontStyle);
+		fontSize = fFont.Size();
+	}
+
+	fieldName = "FontFamily";
+	if (loadThem) {
+		if (settingsMsg.FindString(fieldName, &tempString) == B_OK)
+			strncpy (fontFamily, tempString, B_FONT_FAMILY_LENGTH);
+	} else if (errorCode == B_OK)
+		errorCode = settingsMsg.AddString(fieldName, fontFamily);
+
+	fieldName = "FontStyle";
+	if (loadThem) {
+		if (settingsMsg.FindString(fieldName, &tempString) == B_OK)
+			strncpy (fontStyle, tempString, B_FONT_STYLE_LENGTH);
+	} else if (errorCode == B_OK)
+		errorCode = settingsMsg.AddString(fieldName, fontStyle);
+
+	fieldName = "FontSize";
+	if (loadThem) {
+		if (settingsMsg.FindFloat(fieldName, &tempFloat) == B_OK)
+			fontSize = tempFloat;
+	} else if (errorCode == B_OK)
+		errorCode = settingsMsg.AddFloat(fieldName, fontSize);
+
+	if (loadThem) {
+		if (fontSize >= 9)
+			fFont.SetSize(fontSize);
+		if (fontFamily[0] != 0 || fontStyle[0] != 0)
+			fFont.SetFamilyAndStyle(
+				(fontFamily[0] == 0) ? NULL : fontFamily,
+				(fontStyle[0] == 0) ? NULL : fontStyle);
+	}
+
+	fieldName = "SignatureWindowSize";
+	if (loadThem) {
+		if (settingsMsg.FindRect(fieldName, &tempRect) == B_OK)
+			signature_window = tempRect;
+	} else if (errorCode == B_OK)
+		errorCode = settingsMsg.AddRect(fieldName, signature_window);
+
+	fieldName = "ShowHeadersMode";
+	if (loadThem) {
+		if (settingsMsg.FindBool(fieldName, &tempBool) == B_OK)
+			header_flag = tempBool;
+	} else if (errorCode == B_OK)
+		errorCode = settingsMsg.AddBool(fieldName, header_flag);
+
+	fieldName = "WordWrapMode";
+	if (loadThem) {
+		if (settingsMsg.FindBool(fieldName, &tempBool) == B_OK)
+			wrap_mode = tempBool;
+	} else if (errorCode == B_OK)
+		errorCode = settingsMsg.AddBool(fieldName, wrap_mode);
+
+	fieldName = "PreferencesWindowLocation";
+	if (loadThem) {
+		if (settingsMsg.FindPoint(fieldName, &tempPoint) == B_OK)
+			prefs_window = tempPoint;
+	} else if (errorCode == B_OK)
+		errorCode = settingsMsg.AddPoint(fieldName, prefs_window);
+
+	fieldName = "SignatureText";
+	if (loadThem) {
+		if (settingsMsg.FindString(fieldName, &tempString) == B_OK) {
+			free(signature);
+			signature = (char *) malloc(strlen(tempString) + 1);
+			if (signature != NULL)
+				strcpy (signature, tempString);
+		}
+	} else if (errorCode == B_OK && signature != NULL)
+		errorCode = settingsMsg.AddString(fieldName, signature);
+
+	fieldName = "CharacterSet";
+	if (loadThem) {
+		if (settingsMsg.FindInt32(fieldName, &tempInt32) == B_OK)
+			gMailCharacterSet = tempInt32;
+		for (uint32 index = 0; true; index++) {
+			if (kEncodings[index].flavor == MDR_NULL_CONVERSION) {
+				gMailCharacterSet = B_MS_WINDOWS_CONVERSION;
+				break; // Don't use unknown character sets.
+			}
+			if (kEncodings[index].flavor == gMailCharacterSet)
+				break;
+		}
+	} else if (errorCode == B_OK)
+		errorCode = settingsMsg.AddInt32(fieldName, gMailCharacterSet);
+
+	fieldName = "FindString";
+	if (loadThem) {
+		if (settingsMsg.FindString(fieldName, &tempString) == B_OK)
+			FindWindow::SetFindString(tempString);
+	} else if (errorCode == B_OK)
+		errorCode = settingsMsg.AddString(fieldName, FindWindow::GetFindString());
+
+	fieldName = "ShowButtonBar";
+	if (loadThem) {
+		if (settingsMsg.FindBool(fieldName, &tempBool) == B_OK)
+			show_buttonbar = tempBool;
+	} else if (errorCode == B_OK)
+		errorCode = settingsMsg.AddBool(fieldName, show_buttonbar);
+
+	fieldName = "UseAccountFrom";
+	if (loadThem) {
+		if (settingsMsg.FindInt32(fieldName, &tempInt32) == B_OK)
+			gUseAccountFrom = tempInt32;
+		if (gUseAccountFrom < ACCOUNT_USE_DEFAULT
+			|| gUseAccountFrom > ACCOUNT_FROM_MAIL)
+			gUseAccountFrom = ACCOUNT_USE_DEFAULT;
+	} else if (errorCode == B_OK)
+		errorCode = settingsMsg.AddInt32(fieldName, gUseAccountFrom);
+
+	fieldName = "ColoredQuotes";
+	if (loadThem) {
+		if (settingsMsg.FindBool(fieldName, &tempBool) == B_OK)
+			gColoredQuotes = tempBool;
+	} else if (errorCode == B_OK)
+		errorCode = settingsMsg.AddBool(fieldName, gColoredQuotes);
+
+	fieldName = "ReplyPreamble";
+	if (loadThem) {
+		if (settingsMsg.FindString(fieldName, &tempString) == B_OK) {
+			free(gReplyPreamble);
+			gReplyPreamble = (char *)malloc(strlen(tempString) + 1);
+			if (gReplyPreamble != NULL)
+				strcpy (gReplyPreamble, tempString);
+		}
+	} else if (errorCode == B_OK)
+		errorCode = settingsMsg.AddString(fieldName, gReplyPreamble);
+
+	fieldName = "AttachAttributes";
+	if (loadThem) {
+		if (settingsMsg.FindBool(fieldName, &tempBool) == B_OK)
+			attachAttributes_mode = tempBool;
+	} else if (errorCode == B_OK)
+		errorCode = settingsMsg.AddBool(fieldName, attachAttributes_mode);
+
+	fieldName = "WarnAboutUnencodableCharacters";
+	if (loadThem) {
+		if (settingsMsg.FindBool(fieldName, &tempBool) == B_OK)
+			gWarnAboutUnencodableCharacters = tempBool;
+	} else if (errorCode == B_OK)
+		errorCode = settingsMsg.AddBool(fieldName, gWarnAboutUnencodableCharacters);
+
+	// Save the settings BMessage to the settings file.
+
+	if (!loadThem && errorCode == B_OK) {
+		settingsMsg.what = 'BeMl';
+		errorCode = settingsMsg.Flatten (&prefsFile);
+	}
+}
+
+
 void
 TMailApp::FontChange()
 {
 	int32		index = 0;
 	BMessage	msg;
 	BWindow		*window;
-	
+
 	msg.what = CHANGE_FONT;
 	msg.AddPointer("font", &fFont);
 
@@ -960,30 +1136,30 @@ TMailApp::NewWindow(const entry_ref *ref, const char *to, bool resend, BMessenge
 {
 	BScreen screen(B_MAIN_SCREEN_ID);
 	BRect screen_frame = screen.Frame();
-	
+
 	BRect r;
 	if ((mail_window.Width()) && (mail_window.Height()))
 		r = mail_window;
 	else
 		r.Set(6, TITLE_BAR_HEIGHT, 6 + WIND_WIDTH, TITLE_BAR_HEIGHT + WIND_HEIGHT);
-	
+
 	r.OffsetBy(fWindowCount * 20, fWindowCount * 20);
-	
+
 	if ((r.left - 6) < screen_frame.left)
 		r.OffsetTo(screen_frame.left + 8, r.top);
-		
+
 	if ((r.left + 20) > screen_frame.right)
 		r.OffsetTo(6, r.top);
-		
+
 	if ((r.top - 26) < screen_frame.top)
 		r.OffsetTo(r.left, screen_frame.top + 26);
-		
+
 	if ((r.top + 20) > screen_frame.bottom)
 		r.OffsetTo(r.left, TITLE_BAR_HEIGHT);
-		
+
 	if (r.Width() < WIND_WIDTH)
 		r.right = r.left + WIND_WIDTH;
-		
+
 	fWindowCount++;
 
 	BString title;
@@ -1078,14 +1254,14 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 	menu->AddItem(item = new BMenuItem(MDR_DIALECT_CHOICE (
 		"New Mail Message", "N) 新規メッセージ作成"), msg, 'N'));
 	item->SetTarget(be_app);
-	
+
 	QueryMenu *qmenu;
 	qmenu = new QueryMenu(MDR_DIALECT_CHOICE ("Open Draft", "O) ドラフトを開く"), false);
 	qmenu->SetTargetForItems(be_app);
-	
+
 	qmenu->SetPredicate("MAIL:draft==1");
 	menu->AddItem(qmenu);
-	
+
 	menu->AddSeparatorItem();
 
 	if (!resending && fIncoming)
@@ -1095,7 +1271,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 			fFile->ReadAttr(B_MAIL_ATTR_STATUS, B_STRING_TYPE, 0, str, info.size);
 		else
 			str[0] = 0;
-		
+
 		//if( (strcmp(str, "Pending")==0)||(strcmp(str, "Sent")==0) )
 		//	canResend = true;
 		if (!strcmp(str, "New"))
@@ -1130,7 +1306,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 		subMenu->AddItem(new BMenuItem(
 			MDR_DIALECT_CHOICE ("Move to Trash", "T) 削除"),
 			new BMessage(M_DELETE), 'T', B_CONTROL_KEY));
-		AddShortcut('T', B_SHIFT_KEY | B_COMMAND_KEY, new BMessage(M_DELETE_NEXT));	
+		AddShortcut('T', B_SHIFT_KEY | B_COMMAND_KEY, new BMessage(M_DELETE_NEXT));
 	}
 	else
 	{
@@ -1214,7 +1390,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 	//	Message Menu
 	//
 	menu = new BMenu(MDR_DIALECT_CHOICE ("Message", "M) メッセージ"));
-	
+
 	if (!resending && fIncoming) {
 		BMenuItem *menuItem;
 		menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Reply","R) 返信"), new BMessage(M_REPLY),'R'));
@@ -1227,7 +1403,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 		menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Forward with Attachments","F) 添付ファイルを含めて転送"), new BMessage(M_FORWARD_WITH_ATTACHMENTS)));
 		menu->AddItem(menuItem = new BMenuItem(MDR_DIALECT_CHOICE ("Resend","   再送信"), new BMessage(M_RESEND)));
 		menu->AddItem(menuItem = new BMenuItem(MDR_DIALECT_CHOICE ("Copy to New","D) 新規メッセージへコピー"), new BMessage(M_COPY_TO_NEW), 'D'));
-		
+
 		fDeleteNext = new BMenuItem(MDR_DIALECT_CHOICE ("Move to Trash","T) 削除"), new BMessage(M_DELETE_NEXT), 'T');
 		menu->AddItem(fDeleteNext);
 		menu->AddSeparatorItem();
@@ -1245,10 +1421,10 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 			}
 			menu->AddSeparatorItem();
 		}
-		fPrevMsg = new BMenuItem(MDR_DIALECT_CHOICE ("Previous Message","B) 前のメッセージ"), new BMessage(M_PREVMSG), 
+		fPrevMsg = new BMenuItem(MDR_DIALECT_CHOICE ("Previous Message","B) 前のメッセージ"), new BMessage(M_PREVMSG),
 		 B_UP_ARROW);
 		menu->AddItem(fPrevMsg);
-		fNextMsg = new BMenuItem(MDR_DIALECT_CHOICE ("Next Message","N) 次のメッセージ"), new BMessage(M_NEXTMSG), 
+		fNextMsg = new BMenuItem(MDR_DIALECT_CHOICE ("Next Message","N) 次のメッセージ"), new BMessage(M_NEXTMSG),
 		  B_DOWN_ARROW);
 		menu->AddItem(fNextMsg);
 		menu->AddSeparatorItem();
@@ -1327,12 +1503,12 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 	AddChild(menu_bar);
 	height = menu_bar->Bounds().bottom + 1;
 	Unlock();
-	
+
 	//
 	// Button Bar
 	//
 	float bbwidth = 0, bbheight = 0;
-	
+
 	if (show_buttonbar)
 	{
 		BuildButtonBar();
@@ -1379,7 +1555,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 
 	AddShortcut('n', B_COMMAND_KEY, new BMessage(M_NEW));
 
-	// 
+	//
 	// 	If auto-signature, add signature to the text here.
 	//
 
@@ -1416,11 +1592,11 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 					file.GetSize(&size);
 					char *str = (char *)malloc(size);
 					size = file.Read(str, size);
-					
+
 					fContentView->fTextView->Insert(str, size);
 					fContentView->fTextView->GoToLine(0);
 					fContentView->fTextView->ScrollToSelection();
-					
+
 					fStartingText = (char *)malloc(size = strlen(fContentView->fTextView->Text()) + 1);
 					if (fStartingText != NULL)
 						strcpy(fStartingText, fContentView->fTextView->Text());
@@ -1485,7 +1661,7 @@ TMailWindow::BuildButtonBar()
 	bbar->AddButton(MDR_DIALECT_CHOICE ("Inbox","受信箱"), 36, new BMessage(M_OPEN_MAIL_BOX));
 	bbar->AddButton(MDR_DIALECT_CHOICE ("Mail","メール"), 32, new BMessage(M_OPEN_MAIL_FOLDER));
 	bbar->AddDivider(5);
-	
+
 	bbar->SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
 	bbar->Hide();
 	AddChild(bbar);
@@ -1497,7 +1673,7 @@ void TMailWindow::UpdateViews( void )
 {
 	float bbwidth = 0, bbheight = 0;
 	float nextY = fMenuBar->Frame().bottom+1;
-	
+
 	// Show/Hide Button Bar
 	if (show_buttonbar)
 	{
@@ -1518,7 +1694,7 @@ void TMailWindow::UpdateViews( void )
 	}
 	else if (fButtonBar)
 		fButtonBar->Hide();
-	
+
 	// Arange other views to match
 	fHeaderView->MoveTo(0, nextY);
 	nextY = fHeaderView->Frame().bottom;
@@ -1575,7 +1751,7 @@ TMailWindow::GetTrackerWindowFile(entry_ref *ref, bool next) const
 
 	//
 	//	Ask the tracker what the next/prev file in the window is.
-	//	Continue asking for the next reference until a valid 
+	//	Continue asking for the next reference until a valid
 	//	email file is found (ignoring other types).
 	//
 	entry_ref nextRef = *ref;
@@ -1602,14 +1778,14 @@ TMailWindow::GetTrackerWindowFile(entry_ref *ref, bool next) const
 
 		char fileType[256];
 		BNode node(&nextRef);
-		if (node.InitCheck() != B_OK) 
+		if (node.InitCheck() != B_OK)
 			return false;
 
 		if (BNodeInfo(&node).GetType(fileType) != B_OK)
 			return false;
 
 		if (strcasecmp(fileType,"text/x-email") == 0)
-			foundRef = true;	
+			foundRef = true;
 	}
 
 	*ref = nextRef;
@@ -1689,7 +1865,7 @@ void TMailWindow::MenusBeginning()
 		fRemoveQuote->SetEnabled(false);
 
 		fAdd->SetEnabled(true);
-		fRemove->SetEnabled((fEnclosuresView != NULL) && 
+		fRemove->SetEnabled((fEnclosuresView != NULL) &&
 							(fEnclosuresView->fList->CurrentSelection() >= 0));
 	}
 	else
@@ -1731,7 +1907,7 @@ void TMailWindow::MenusBeginning()
 
 	fPrint->SetEnabled(fContentView->fTextView->TextLength());
 
-	textView = dynamic_cast<BTextView *>(CurrentFocus());	
+	textView = dynamic_cast<BTextView *>(CurrentFocus());
 	if ((NULL != textView) && (dynamic_cast<TTextControl *>(textView->Parent()) != NULL))
 	{
 		// one of To:, Subject:, Account:, Cc:, Bcc:
@@ -1751,7 +1927,7 @@ void TMailWindow::MenusBeginning()
 	if (!fIncoming)
 		fCut->SetEnabled(start != finish);
 
-	// Undo stuff	
+	// Undo stuff
 	bool isRedo = false;
 	undo_state	undoState = B_UNDO_UNAVAILABLE;
 
@@ -1772,22 +1948,22 @@ TMailWindow::MessageReceived(BMessage *msg)
 		{
 			int32 prevState = fFieldState, fieldMask = msg->FindInt32("bitmask");
 			void *source;
-			
+
 			if (msg->FindPointer("source", &source) == B_OK)
 			{
 				int32 length;
-				
+
 				if (fieldMask == FIELD_BODY)
 					length = ((TTextView *)source)->TextLength();
 				else
 					length = ((BComboBox *)source)->TextView()->TextLength();
-				
+
 				if (length)
 					fFieldState |= fieldMask;
 				else
 					fFieldState &= ~fieldMask;
 			}
-			
+
 			// Has anything changed?
 			if (prevState != fFieldState || !fChanged)
 			{
@@ -1800,8 +1976,8 @@ TMailWindow::MessageReceived(BMessage *msg)
 					fSendButton->SetEnabled((fFieldState & FIELD_TO) || (fFieldState & FIELD_BCC));
 			}
 			fChanged = true;
-			
-			// Update title bar if "subject" has changed 
+
+			// Update title bar if "subject" has changed
 			if (!fIncoming && fieldMask & FIELD_SUBJECT)
 			{
 				// If no subject, set to "BeMail"
@@ -1859,7 +2035,7 @@ TMailWindow::MessageReceived(BMessage *msg)
 		case M_UNTRAIN:
 			TrainMessageAs ("Uncertain");
 			break;
-		
+
 		case M_TRAIN_GENUINE:
 			TrainMessageAs ("Genuine");
 			break;
@@ -1923,7 +2099,7 @@ TMailWindow::MessageReceived(BMessage *msg)
 			message.AddInt32("type", msg->what);
 			be_app->PostMessage(&message);
 			break;
-		}	
+		}
 		case M_DELETE:
 		case M_DELETE_PREV:
 		case M_DELETE_NEXT:
@@ -1940,10 +2116,10 @@ TMailWindow::MessageReceived(BMessage *msg)
 					B_WARNING_ALERT))->Go())
 					break;
 			}
-			
+
 			if (msg->what == M_DELETE_NEXT && (modifiers() & B_SHIFT_KEY))
 				msg->what = M_DELETE_PREV;
-			
+
 			bool foundRef = false;
 			entry_ref nextRef;
 			if ((msg->what == M_DELETE_PREV || msg->what == M_DELETE_NEXT) && fRef)
@@ -1952,7 +2128,7 @@ TMailWindow::MessageReceived(BMessage *msg)
 				//	Find the next message that should be displayed
 				//
 				nextRef = *fRef;
-				foundRef = GetTrackerWindowFile(&nextRef, msg->what == 
+				foundRef = GetTrackerWindowFile(&nextRef, msg->what ==
 				  M_DELETE_NEXT);
 			}
 			if (fIncoming)
@@ -1970,7 +2146,7 @@ TMailWindow::MessageReceived(BMessage *msg)
 					if (tracker.IsValid())
 					{
 						BMessage msg('Ttrs');
-						msg.AddRef("refs", fRef);	
+						msg.AddRef("refs", fRef);
 						tracker.SendMessage(&msg);
 					}
 					else
@@ -1983,7 +2159,7 @@ TMailWindow::MessageReceived(BMessage *msg)
 			else
 			{
 				//
-				// This is associated with a tracker window.  Ask the 
+				// This is associated with a tracker window.  Ask the
 				// window to delete this entry.  Do it this way if we
 				// can instead of the above way because it doesn't reset
 				// the selection (even though we set selection below, this
@@ -2058,7 +2234,7 @@ TMailWindow::MessageReceived(BMessage *msg)
 				r.right = r.left + STATUS_WIDTH;
 				r.top += 40;
 				r.bottom = r.top + STATUS_HEIGHT;
-				
+
 				BString string;
 				ReadAttrString(fFile, B_MAIL_ATTR_STATUS, &string);
 				new TStatusWindow(r, this, string.String());
@@ -2107,13 +2283,13 @@ TMailWindow::MessageReceived(BMessage *msg)
 				BVolumeRoster volumeRoster;
 				BVolume volume;
 				volumeRoster.GetBootVolume(&volume);
-				
+
 				BQuery query;
 				query.SetVolume(&volume);
 				sprintf(arg, "META:email=%s", str);
 				query.SetPredicate(arg);
 				query.Fetch();
-				
+
 				BEntry entry;
 				if (query.GetNextEntry(&entry) == B_NO_ERROR)
 				{
@@ -2157,32 +2333,32 @@ TMailWindow::MessageReceived(BMessage *msg)
 		case M_FIND:
 			FindWindow::Find(this);
 			break;
-			
+
 		case M_FIND_AGAIN:
 			FindWindow::FindAgain(this);
 			break;
-			
+
 		case M_QUOTE:
 		case M_REMOVE_QUOTE:
 			PostMessage(msg->what, fContentView);
 			break;
-		
+
 		case M_RANDOM_SIG:
 		{
 			BList		sigList;
 			BMessage	*message;
-			
+
 			BVolume volume;
 			BVolumeRoster().GetBootVolume(&volume);
 
 			BQuery query;
 			query.SetVolume(&volume);
-			
+
 			char predicate[128];
 			sprintf(predicate, "%s = *", INDEX_SIGNATURE);
 			query.SetPredicate(predicate);
 			query.Fetch();
-			
+
 			BEntry entry;
 			while (query.GetNextEntry(&entry) == B_NO_ERROR)
 			{
@@ -2219,10 +2395,10 @@ TMailWindow::MessageReceived(BMessage *msg)
 			TMenu *menu;
 			BMenuItem *item;
 			menu = new TMenu( "Add Signature", INDEX_SIGNATURE, M_SIGNATURE, true );
-			
+
 			BPoint	where;
 			bool open_anyway = true;
-			
+
 			if (msg->FindPoint("where", &where) != B_OK)
 			{
 				BRect	bounds;
@@ -2231,8 +2407,8 @@ TMailWindow::MessageReceived(BMessage *msg)
 														   (bounds.bottom-bounds.top)/2));
 			}
 			else if (msg->FindInt32("buttons") == B_SECONDARY_MOUSE_BUTTON)
-				open_anyway = false;	
-			
+				open_anyway = false;
+
 			if ((item = menu->Go(where, false, open_anyway)) != NULL)
 			{
 				item->SetTarget(this);
@@ -2327,7 +2503,7 @@ TMailWindow::MessageReceived(BMessage *msg)
 			{
 				BMessage thePackage(B_REFS_RECEIVED);
 				BMessenger tracker("application/x-vnd.Be-TRAK");
-				
+
 				entry_ref ref;
 				folderEntry.GetRef(&ref);
 				thePackage.AddRef("refs", &ref);
@@ -2348,7 +2524,7 @@ TMailWindow::MessageReceived(BMessage *msg)
 				fFieldState |= FIELD_BCC;
 			if (fContentView->fTextView->TextLength())
 				fFieldState |= FIELD_BODY;
-				
+
 			if (fSaveButton)
 				fSaveButton->SetEnabled(false);
 			if (fPrintButton)
@@ -2375,7 +2551,7 @@ TMailWindow::MessageReceived(BMessage *msg)
 				fContentView->fTextView->EnableSpellCheck(fSpelling->IsMarked());
 			}
 			break;
-			
+
 		default:
 			BWindow::MessageReceived(msg);
 	}
@@ -2405,7 +2581,7 @@ void TMailWindow::AddEnclosure(BMessage *msg)
 	{
 		// Add enclosure to view
 		PostMessage(msg, fEnclosuresView);
-		
+
 		fChanged = true;
 		BEntry entry;
 		entry_ref ref;
@@ -2475,7 +2651,7 @@ bool TMailWindow::QuitRequested()
 			}
 		}
 	}
-		
+
 	BMessage message(WINDOW_CLOSED);
 	message.AddInt32("kind", MAIL_WINDOW);
 	message.AddPointer( "window", this );
@@ -2660,7 +2836,7 @@ void TMailWindow::Print()
 		int32 curPage = 1;
 		int32 lastLine = 0;
 		BTextView header_view(print.PrintableRect(),"header",print.PrintableRect().OffsetByCopy(BPoint(-print.PrintableRect().left,-print.PrintableRect().top)),B_FOLLOW_ALL_SIDES);
-		
+
 		//---------Init the header fields
 		#define add_header_field(field)			{/*header_view.SetFontAndColor(be_bold_font);*/ \
 												header_view.Insert(fHeaderView->field->Label()); \
@@ -2673,10 +2849,10 @@ void TMailWindow::Print()
 		if ((fHeaderView->fCc != NULL) && (strcmp(fHeaderView->fCc->Text(),"") != 0))
 			add_header_field(fCc);
 		header_view.Insert(fHeaderView->fDate->Text());
-		
+
 		int32 maxLine = fContentView->fTextView->CountLines();
 		BRect pageRect = print.PrintableRect();
-		BRect curPageRect = pageRect;	
+		BRect curPageRect = pageRect;
 
 		print.BeginJob();
 		float header_height = header_view.TextHeight(0,header_view.CountLines());
@@ -2689,38 +2865,38 @@ void TMailWindow::Print()
 		print.DrawView(&line,line.Bounds(),BPoint(0,header_height+1));
 		bmap.Unlock();
 		header_height += 5;
-		
+
 		do
 		{
 			int32 lineOffset = fContentView->fTextView->OffsetAt(lastLine);
 			curPageRect.OffsetTo(0, fContentView->fTextView->PointAt(lineOffset).y);
-			
+
 			int32 fromLine = lastLine;
 			lastLine = fContentView->fTextView->LineAt(BPoint(0.0, curPageRect.bottom - ((curPage == 1) ? header_height : 0)));
-			
-			float curPageHeight = fContentView->fTextView->TextHeight(fromLine, lastLine) + ((curPage == 1) ? header_height : 0);				
+
+			float curPageHeight = fContentView->fTextView->TextHeight(fromLine, lastLine) + ((curPage == 1) ? header_height : 0);
 			if(curPageHeight > pageRect.Height())
 				curPageHeight = fContentView->fTextView->TextHeight(fromLine, --lastLine) + ((curPage == 1) ? header_height : 0);
 
 			curPageRect.bottom = curPageRect.top + curPageHeight - 1.0;
-			
+
 			if((curPage >= print.FirstPage()) &&
 				(curPage <= print.LastPage()))
 			{
 				print.DrawView(fContentView->fTextView, curPageRect, BPoint(0.0, (curPage == 1) ? header_height : 0.0));
 				print.SpoolPage();
 			}
-			
+
 			curPageRect = pageRect;
 			lastLine++;
 			curPage++;
-		
+
 		} while (print.CanContinue() && lastLine < maxLine);
 
 		print.CommitJob();
 		bmap.RemoveChild(&header_view);
 		bmap.RemoveChild(&line);
-	}	
+	}
 }
 
 
@@ -2753,14 +2929,14 @@ void TMailWindow::SetTo(const char *mailTo, const char *subject, const char *ccT
 		fHeaderView->fCc->SetText(ccTo);
 	if (bccTo && bccTo[0])
 		fHeaderView->fBcc->SetText(bccTo);
-		
+
 	if (body && body->Length())
 	{
 		fContentView->fTextView->SetText(body->String(), body->Length());
 		fContentView->fTextView->GoToLine(0);
 	}
 
-	if (enclosures && enclosures->HasRef("refs")) 
+	if (enclosures && enclosures->HasRef("refs"))
 		AddEnclosure(enclosures);
 
 	Unlock();
@@ -2808,7 +2984,7 @@ TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 
 	fMail = mail->ReplyMessage(Mail::reply_to_mode(type),
 		gUseAccountFrom == ACCOUNT_FROM_MAIL, QUOTE);
-	
+
 	// set header fields
 	fHeaderView->fTo->SetText(fMail->To());
 	fHeaderView->fCc->SetText(fMail->CC());
@@ -2963,7 +3139,7 @@ TMailWindow::Send(bool now)
 	if (!now)
 	{
 		status_t status;
-		
+
 		if ((status = SaveAsDraft()) != B_OK)
 		{
 			beep();
@@ -3063,7 +3239,7 @@ TMailWindow::Send(bool now)
 			}
 		}
 	}
-	
+
 	status_t result;
 
 	if (fResending)
@@ -3153,7 +3329,7 @@ TMailWindow::Send(bool now)
 		case B_NO_ERROR:
 			close = true;
 			fSent = true;
-			
+
 			// If it's a draft, remove the draft file
 			if (fDraft)
 			{
@@ -3220,7 +3396,7 @@ status_t TMailWindow::SaveAsDraft()
 	BDirectory	dir;
 	BFile		draft;
 	uint32		flags = 0;
-	
+
 	if (fDraft)
 	{
 		if ((status = draft.SetTo(fRef, B_WRITE_ONLY | B_CREATE_FILE | B_ERASE_FILE)) != B_OK)
@@ -3231,10 +3407,10 @@ status_t TMailWindow::SaveAsDraft()
 		// Get the user home directory
 		if ((status = find_directory(B_USER_DIRECTORY, &draftPath)) != B_OK)
 			return status;
-		
+
 		// Append the relative path of the draft directory
 		draftPath.Append(kDraftPath);
-		
+
 		// Create the file
 		status = dir.SetTo(draftPath.Path());
 		switch (status)
@@ -3247,12 +3423,12 @@ status_t TMailWindow::SaveAsDraft()
 			{
 				char fileName[512], *eofn;
 				int32 i;
-				
+
 				// save as some version of the message's subject
 				strncpy(fileName, fHeaderView->fSubject->Text(), sizeof(fileName)-10);
 				fileName[sizeof(fileName)-10]='\0';  // terminate like strncpy doesn't
 				eofn = fileName + strlen(fileName);
-				
+
 				// convert /, \ and : to -
 				for (char *bad = fileName; (bad = strchr(bad, '/')) != NULL; ++bad) *bad = '-';
 				for (char *bad = fileName; (bad = strchr(bad, '\\')) != NULL;++bad) *bad = '-';
@@ -3266,7 +3442,7 @@ status_t TMailWindow::SaveAsDraft()
 						return status;
 					sprintf(eofn, "%ld", i );
 				}
-				
+
 				// Cache the ref
 				if (fRef)
 					delete fRef;
@@ -3279,10 +3455,10 @@ status_t TMailWindow::SaveAsDraft()
 				return status;
 		}
 	}
-	
+
 	// Write the content of the message
 	draft.Write(fContentView->fTextView->Text(), fContentView->fTextView->TextLength());
-	
+
 	//
 	// Add the header stuff as attributes
 	//
@@ -3302,7 +3478,7 @@ status_t TMailWindow::SaveAsDraft()
 		TListItem *item;
 		BPath path;
 		BString pathStr;
-		
+
 		for (int32 i = 0; (item = (TListItem *)fEnclosuresView->fList->ItemAt(i)) != NULL; i++)
 		{
 			if (i > 0)
@@ -3311,22 +3487,22 @@ status_t TMailWindow::SaveAsDraft()
 			BEntry entry(item->Ref(), true);
 			if (!entry.Exists())
 				continue;
-			
+
 			entry.GetPath(&path);
 			pathStr.Append(path.Path());
 		}
 		if (pathStr.Length())
 			WriteAttrString(&draft, "MAIL:attachments", pathStr.String());
 	}
-	
+
 	// Set the MIME Type of the file
 	BNodeInfo info(&draft);
 	info.SetType(kDraftType);
-	
+
 	fSent = true;
 	fDraft = true;
 	fChanged = false;
-	
+
 	return B_OK;
 }
 
@@ -3445,7 +3621,7 @@ void TMailWindow::SetTitleForMessage()
 
 
 //
-//	Open *another* message in the existing mail window.  Some code here is 
+//	Open *another* message in the existing mail window.  Some code here is
 //	duplicated from various constructors.
 //	The duplicated code should be in a private initializer method -- axeld.
 //
@@ -3490,7 +3666,7 @@ TMailWindow::OpenMessage(entry_ref *ref, uint32 characterSetForDecoding)
 		BNode node(fRef);
 		off_t size;
 		BString string;
-		
+
 		fMail = new Mail::Message; // Not really used much, but still needed.
 
 		// Load the raw UTF-8 text from the file.
@@ -3592,13 +3768,13 @@ TMailWindow::OpenMessage(entry_ref *ref, uint32 characterSetForDecoding)
 		}
 
 		//
-		// Clear out existing contents of text view. 
+		// Clear out existing contents of text view.
 		//
 		fContentView->fTextView->SetText("", (int32)0);
 
 		fContentView->fTextView->LoadMessage(fMail, false, NULL);
 	}
-	
+
 	return B_OK;
 }
 

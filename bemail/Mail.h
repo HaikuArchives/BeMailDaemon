@@ -211,10 +211,10 @@ class TMailApp : public BApplication
 	private:
 		void ClearPrintSettings();
 		void CheckForSpamFilterExistence();
+		void LoadSavePrefs (bool loadThem);
 		
 		BList		fWindowList;
 		int32		fWindowCount;
-		BFile		*fPrefs;
 		TPrefsWindow *fPrefsWindow;
 		TSignatureWindow *fSigWindow;
 		BMessenger	*fTrackerMessenger;	// Talks to tracker window that
