@@ -1,4 +1,6 @@
 #include <E-mail.h>
+#include <FindDirectory.h>
+#include <Path.h>
 #include <Directory.h>
 #include <List.h>
 
@@ -24,7 +26,13 @@ _EXPORT status_t	send_queued_mail(void) {
 }
 
 _EXPORT int32		count_pop_accounts(void) {
-	BDirectory dir("/boot/home/config/settings/Mail/chains/inbound");
+	BPath path;
+	status_t status = find_directory(B_USER_SETTINGS_DIRECTORY,&path);
+	if (status < B_OK)
+		return 0;
+
+	path.Append("Mail/chains/inbound");
+	BDirectory dir(path.Path());
 	return dir.CountEntries();
 }
 
