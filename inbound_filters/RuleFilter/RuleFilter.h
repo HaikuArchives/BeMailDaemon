@@ -4,11 +4,6 @@
 
 #include "StringMatcher.h"
 
-#if B_BEOS_VERSION_DANO 
-	#define DANO_ONLY(x) x
-#else
-	#define DANO_ONLY(x)
-#endif
 
 typedef enum {
 	Z_MOVE_TO,
@@ -28,9 +23,9 @@ class RuleFilter : public MailFilter {
 											   BPath* io_folder,
 											   BString* io_uid);
 	private:
-		StringMatcher			matcher;
-		DANO_ONLY(const) char*	attribute;
-		DANO_ONLY(const) char*	arg;
-		z_mail_action_flags		do_what;
+		StringMatcher		matcher;
+		const char*			attribute;
+		const char*			arg;
+		z_mail_action_flags	do_what;
 };
 

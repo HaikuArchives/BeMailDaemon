@@ -27,7 +27,7 @@ MDStatus RuleFilter::ProcessMailMessage
 	BPositionIO** , BEntry* entry,
 	BMessage* io_headers, BPath* io_folder, BString* 
 ) {
-	DANO_ONLY(const) char* data;
+	const char* data;
 	io_headers->FindString(attribute,&data);
 	puts("got data");
 	if (data == NULL)
