@@ -3,7 +3,6 @@
 #include <Mime.h>
 
 #include <string.h>
-#include <stdio.h>
 #include <unistd.h>
 #include <malloc.h>
 
@@ -95,7 +94,7 @@ MailComponent *MIMEMultipartContainer::GetComponent(int32 index) {
 	message_part *part = (message_part *)(_components_in_raw.ItemAt(index));
 	if (part == NULL)
 		return NULL;
-		
+
 	_io_data->Seek(part->start,SEEK_SET);
 	
 	MailComponent component;
@@ -112,7 +111,6 @@ MailComponent *MIMEMultipartContainer::GetComponent(int32 index) {
 	puts((char *)(data));
 	printf("Instantiating from %d to %d (%d octets)\n",part->start, part->end, part->end - part->start);
 	*/
-	
 	_io_data->Seek(part->start,SEEK_SET);
 	if (piece->Instantiate(_io_data,part->end - part->start) < B_OK)
 	{
@@ -225,6 +223,8 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length)
 						boundaryPos = 0;
 						if (!strncmp(buffer + i, _boundary, boundaryLength))
 							state = check_state(buffer,boundaryLength + i,bytes);
+						else
+							state = 0;
 					}
 					else if (!strncmp(buffer + i, _boundary, boundaryPos = bytes - i))
 					{
