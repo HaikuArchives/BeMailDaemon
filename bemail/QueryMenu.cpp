@@ -122,12 +122,8 @@ QueryMenu::~QueryMenu(void)
 	fQueryLooper->Lock();
 	fQueryLooper->RemoveHandler(fQueryHandler);
 	delete fQueryHandler;
-	
 	if (atomic_add(&fMenuCount, -1) == 1)
-	{
-		fQueryLooper->Lock();
 		fQueryLooper->Quit();
-	}
 	else
 		fQueryLooper->Unlock();
 }

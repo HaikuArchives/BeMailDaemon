@@ -409,7 +409,10 @@ THeaderView::InitEmailCompletion()
 
 	BQuery query;
 	query.SetVolume(&volume);
-	query.SetPredicate("META:email=*");
+	query.SetPredicate("META:email=**");
+		// Due to R5 BFS bugs, you need two stars, META:email=** for the query.
+		// META:email="*" will just return one entry and stop, same with
+		// META:email=* and a few other variations.  Grumble.
 	query.Fetch();
 	entry_ref ref;
 
@@ -448,7 +451,7 @@ THeaderView::InitGroupCompletion()
 	// Build a list of all unique groups and the addresses they expand to.
 	BQuery query;
 	query.SetVolume(&volume);
-	query.SetPredicate("META:group=*");
+	query.SetPredicate("META:group=**");
 	query.Fetch();
 
 	map<BString *, BString *, CompareBStrings> group_map;
@@ -582,17 +585,17 @@ THeaderView::AttachedToWindow(void)
 	if (fToMenu)
 	{
 		fToMenu->SetTargetForItems(fTo);
-		fToMenu->SetPredicate("META:email=*");
+		fToMenu->SetPredicate("META:email=**");
 	}
 	if (fCcMenu)
 	{
 		fCcMenu->SetTargetForItems(fCc);
-		fCcMenu->SetPredicate("META:email=*");
+		fCcMenu->SetPredicate("META:email=**");
 	}
 	if (fBccMenu)
 	{
 		fBccMenu->SetTargetForItems(fBcc);
-		fBccMenu->SetPredicate("META:email=*");
+		fBccMenu->SetPredicate("META:email=**");
 	}
 	if (fTo)
 		fTo->SetTarget(Looper());
@@ -610,259 +613,6 @@ THeaderView::AttachedToWindow(void)
 		fEncodingMenu->SetTargetForItems(this);
 
 	BBox::AttachedToWindow();
-}
-
-
-void
-THeaderView::BuildMenus()
-{
-	/* Unused code...
-	BMenuItem *item;
-	while (item = fToMenu->ItemAt(0)) {
-		fToMenu->RemoveItem(item);
-		delete item;
-	}
-	if (!fResending) {
-		while (item = fCcMenu->ItemAt(0)) {
-			fCcMenu->RemoveItem(item);
-			delete item;
-		}
-		while (item = fBccMenu->ItemAt(0)) {
-			fBccMenu->RemoveItem(item);
-			delete item;
-		}
-	}
-
-	// do a query to find all People files where there is a group
-	BVolumeRoster	volume;
-	BVolume			vol;
-	volume.GetBootVolume(&vol);
-
-	BQuery			query;
-	query.SetVolume(&vol);
-	query.SetPredicate("META:email=*");
-	//query.PushAttr("META:email");
-	//query.PushString("*");
-	//query.PushOp(B_EQ);
-	query.Fetch();
-
-	BEntry	entry;
-	entry_ref ref;
-	BFile	file;
-	int		groups=0;
-	
-	status_t status;
-	
-	while ((status = query.GetNextRef(&ref)) == B_OK) {
-		entry.GetRef(&ref);
-		file.SetTo(&ref, B_READ_ONLY);
-		if (file.InitCheck() == B_NO_ERROR) {
-			BString	name;
-			FetchAttribute("META:name", file, name);
-			BString email;
-			FetchAttribute("META:email", file, email);
-			BString grouplist;
-			FetchAttribute("META:group", file, grouplist);
-			
-			BString label;
-			BString address;
-			// if we have no Name, just use the email address 
-			if (name.Length() == 0) {
-				address = email;
-				label = email;
-			// otherwise, pretty-format it 
-			} else {
-				address.SetTo("") << "\"" << name << "\" <" << email << ">";
-				label.SetTo("") << name << " (" << email << ")";
-			}	
-
-			if (grouplist.Length() == 0) {
-			// just put it in the top level (contains no groups)  
-				BMessage msg;
-				msg.AddString("address", address.String());
-				
-				int index=groups;
-				while (item = fToMenu->ItemAt(index)) {
-					if (strcasecmp(item->Label(), label.String()) > 0) break;
-					index++;
-				}
-				msg.what = M_TO_MENU;
-				fToMenu->AddItem(new BMenuItem(label.String(), new BMessage(msg)), index);
-				
-				if (!fResending) {
-					msg.what = M_CC_MENU;
-					fCcMenu->AddItem(new BMenuItem(label.String(), new BMessage(msg)), index);
-					
-					msg.what = M_BCC_MENU;
-					fBccMenu->AddItem(new BMenuItem(label.String(), new BMessage(msg)), index);
-				}				
-			} else {
-				
-			// this name is in one or more groups 
-			grouplist.Append(","); 
-			BString group;
-			int group_end=0;
-			
-			while(grouplist.Length() > 0) {
-				grouplist.CopyInto(group, 0, group_end = grouplist.FindFirst(",", 0));
-				grouplist.Remove(0, group_end +1);
-
-				// here we check to see if the submenu has been created
-				if ((item = fToMenu->FindItem(group.String())) == NULL) {
-					int index=0;
-					item = fToMenu->ItemAt(index);
-					while (item != NULL && index < groups) {
-						if (strcasecmp(item->Label(), group.String()) > 0) break;
-						index++;
-						item = fToMenu->ItemAt(index);
-					}
-					
-					BMessage msg;
-					msg.AddString("group", group.String());
-									
-					BMenu *submenu = new BMenu(group.String());
-					submenu->SetFont(be_plain_font);
-					msg.what = M_TO_MENU;
-					fToMenu->AddItem(new BMenuItem(submenu, new BMessage(msg)), index);
-					
-					if (!fResending) {
-						submenu = new BMenu(group.String());
-						submenu->SetFont(be_plain_font);
-						msg.what = M_CC_MENU;
-						fCcMenu->AddItem(new BMenuItem(submenu, new BMessage(msg)), index);
-		
-						submenu = new BMenu(group.String());
-						submenu->SetFont(be_plain_font);
-						msg.what = M_BCC_MENU;
-						fBccMenu->AddItem(new BMenuItem(submenu, new BMessage(msg)), index);
-					}
-					groups++;
-				}
-					
-					// the submenu either exists or was just created 
-					item = fToMenu->FindItem(group.String());
-					BMenu *submenu = item->Submenu();
-		
-					int index=0;
-					while (item = submenu->ItemAt(index)) {
-						if (strcasecmp(item->Label(), label.String()) > 0) break;
-						index++;
-					}
-					
-					BMessage msg;
-					msg.AddString("address", address.String());
-					
-					msg.what=M_TO_MENU;
-					submenu->AddItem(new BMenuItem(label.String(), new BMessage(msg)), index);
-					
-					if (!fResending) {
-						msg.what=M_CC_MENU;
-						item = fCcMenu->FindItem(group.String());
-						submenu = item->Submenu();
-						submenu->AddItem(new BMenuItem(label.String(), new BMessage(msg)), index);
-						
-						msg.what=M_BCC_MENU;
-						item = fBccMenu->FindItem(group.String());
-						submenu = item->Submenu();
-						submenu->AddItem(new BMenuItem(label.String(), new BMessage(msg)), index);
-					}
-				}
-			}
-		}
-	}
-	// add the seperator bars
-	if (groups > 0) {
-		fToMenu->AddItem(new BSeparatorItem(), groups);
-		if (!fResending) {
-			fCcMenu->AddItem(new BSeparatorItem(), groups);
-			fBccMenu->AddItem(new BSeparatorItem(),  groups);
-		}
-	}
-	*/
-}
-
-
-void
-THeaderView::SetAddress(BMessage *msg)
-{
-	const char *msgStr = NULL;
-	BTextView *text = NULL;
-	bool group = false;
-
-	if (msg->HasString("group")) {
-		msg->FindString("group", &msgStr);
-		group = true;
-	} else
-		msg->FindString("address", &msgStr);
-
-	switch (msg->what) {
-		case M_TO_MENU:
-			text = fTo->TextView();
-			break;
-		case M_CC_MENU:
-			text = fCc->TextView();
-			break;
-		case M_BCC_MENU:
-			text = fBcc->TextView();
-			break;
-		default:
-			return;
-	}
-
-	int32 start, end;
-	text->GetSelection(&start, &end);
-	if (start != end)
-		text->Delete();
-
-	if (group) {
-		// Find all People files with the group text as a substring in their
-		// META:group attribute.
-		BVolume volume;
-		BVolumeRoster().GetBootVolume(&volume);
-
-		BQuery query;
-		query.SetVolume(&volume);
-
-		BString predicate;
-		predicate << "META:group=\"*" << msgStr << "*\"";
-		query.SetPredicate(predicate.String());
-		query.Fetch();
-
-		BEntry entry;
-		BFile file;
-		while (query.GetNextEntry(&entry) == B_NO_ERROR) {
-			if (file.SetTo(&entry, B_READ_ONLY) != B_OK)
-				continue;
-			BString	name;
-			ReadAttrString(&file, "META:name", &name);
-			BString email;
-			ReadAttrString(&file, "META:email", &email);
-
-			BString address;
-			if (name.Length() == 0)
-				// If we have no Name, just use the email address.
-				address = email;
-			else
-				// Otherwise, pretty-format it.
-				address.SetTo("") << "\"" << name << "\" <" << email << ">";
-			
-			if ((end = text->TextLength()) != 0)
-			{
-				text->Select(end, end);
-				text->Insert(", ");
-			}	
-			text->Insert(address.String());
-		}
-	} else {
-		if ((end = text->TextLength()) != 0)
-		{
-			text->Select(end, end);
-			text->Insert(", ");
-		}
-		text->Insert(msgStr);
-	}
-
-	text->Select(text->TextLength(), text->TextLength());
 }
 
 

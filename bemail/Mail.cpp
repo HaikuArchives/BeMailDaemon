@@ -1638,9 +1638,6 @@ void TMailWindow::MenusBeginning()
 		}
 	}
 
-	if (!fIncoming || fResending)
-		fHeaderView->BuildMenus();
-
 	fPrint->SetEnabled(fContentView->fTextView->TextLength());
 
 	textView = dynamic_cast<BTextView *>(CurrentFocus());	
@@ -2127,12 +2124,6 @@ void TMailWindow::MessageReceived(BMessage *msg)
 
 		case M_REMOVE:
 			PostMessage(msg->what, fEnclosuresView);
-			break;
-
-		case M_TO_MENU:
-		case M_CC_MENU:
-		case M_BCC_MENU:
-			fHeaderView->SetAddress(msg);
 			break;
 
 		case CHARSET_CHOICE_MADE:

@@ -100,8 +100,6 @@ class THeaderView : public BBox
 
 		virtual void	MessageReceived(BMessage *);
 		virtual void	AttachedToWindow(void);
-		void			BuildMenus();
-		void			SetAddress(BMessage*);
 		status_t		LoadMessage(Mail::Message *);
 
 		BPopUpMenu		*fAccountMenu;
