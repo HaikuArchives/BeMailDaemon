@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v2.0.1 Beta 1
+BEOS Mail Daemon Replacement v3.0.0 Beta 1
 
 BEEP! THIS IS A TEST OF THE EMERGENCY BROADCAST SYSTEM.
 
@@ -8,25 +8,19 @@ There are a few bugs in this version of the Mail Daemon Replacement. (Would this
 
 BUGS:
 
-1) Your inbox *must* be on your boot disk. We'll have a fix for this soon, but be aware of this. If you don't, you will soon start seeing errors about cross-device links (it initially creates the mail files in /tmp and then moves them to inbox) and all your mail will be deleted. Don't say we didn't warn you. The e-mail monster is hiding in a cross-device link. Don't bring him out!
+1) Your inbox *must* be on your boot disk. We'll have a fix for this soon (or perhaps not), but be aware of this. If you don't, you will soon start seeing errors about cross-device links (it initially creates the mail files in /tmp and then moves them to inbox) and all your mail will be deleted. Don't say we didn't warn you. The e-mail monster is hiding in a cross-device link. Don't bring him out!
 
-2) Sometimes the new message count is wrong.  Quit and restart the daemon if this upsets you.  This seems to be due to a BeOS BFS queries bug.
+2) Sometimes the new message count is wrong.  Quit and restart the daemon if this upsets you.  This is due to a BeOS BFS queries bug, which we can't fix, since it's in the kernel. When OpenBFS is released (or so says BGA), this will cease to be a problem. You may praise or curse BGA at your leisure for either fixing it or for taking so long. Your choice.
 
 3) The soonness of the dates mentioned in this file is greatly exaggerated. Please volunteer to fix bugs to correct this.
 
 
 IT'S NOT A BUG, IT'S A FEATURE:
 
-1) The settings file format has changed since pre-beta version 2, and drastically since version 1. Therefore you will be obliged to re-enter your settings if upgrading from a version 2 alpha or earlier. Sorry. But you had to for the last release, too, and since this is a bug fix for that, it will never happen again. We promise.
+1) If you were using IMAP before, and use IMAP now, it will redownload all your messages. There's nothing I can do to stop it. But it will only do it once. And you can set it to only download the headers now, which is a good thing, right? I mean, you don't need to redownload the 15 MB of baby pictures from your Aunt Martha again, now do you?
 
-2) The settings file thing means that if you had "Leave Mail On Server" set, then the mail daemon will redownload every single message on the server. This is the last time it will happen! Really! As a consolation, mail fetch should be slightly faster with this option on than before.
+2) The settings in things like Postmaster and the old e-mail prefs that used the settings of the old mail daemon will no longer be able to save settings. They will however be able to read them, since we were nice and added that feature. But what are you doing using Postmaster anyway?
 
-3) The settings in things like Postmaster and the old e-mail prefs that used the settings of the old mail daemon will no longer be able to save settings. They will however be able to read them, since we were nice and added that feature. But what are you doing using Postmaster anyway?
-
-4) Most of the addon names have changed. They are nice and friendly now, so don't get scared.
-
-5) There may be some difficulties with using multiple filters. This is an unconfirmed issue, so we won't actually say that it exists. It might, though. And if it does exist, we'll fix by the next release. Probably.
-
-6) BeMail will crash on startup if you have a too-old preferences file for it. Go and delete /boot/home/config/settings/Mail_data to fix this. Yes, we should be using a flattened BMessage rather than raw binary for the preferences.
+3) There may be some difficulties with using multiple filters. This is an unconfirmed issue, so we won't actually say that it exists. It might, though. And if it does exist, we'll fix by the next release. Probably.
 
 THANK YOU FOR LISTENING. WE WILL NOW RETURN TO OUR REGULARLY SCHEDULED PROGRAM. BEEP!
