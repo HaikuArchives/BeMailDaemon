@@ -948,7 +948,7 @@ _EXPORT time_t ParseDateWithTimeZone (const char *DateString)
 	zoneDeltaTime = 60 * atol (tempZoneString + 3); // Get the last two digits - minutes.
 	tempZoneString[3] = 0;
 	zoneDeltaTime += atol (tempZoneString + 1) * 60 * 60; // Get the first two digits - hours.
-	if (tempZoneString[0] == '-')
+	if (tempZoneString[0] == '+')
 		zoneDeltaTime = 0 - zoneDeltaTime;
 	dateAsTime += zoneDeltaTime;
 	
