@@ -160,6 +160,7 @@ April 5 2003 - v2.0.1b2
 - Removed 128 item leash on the pop-up email address choice menu, also avoid deadlock when choosing hundreds of names (which used to exceed the message queue size) by batching them up into one operation.
 - Add All People menu item, now only people not in any group are listed at the bottom of the pop-up address menu.
 - Fixed a PPC (PowerPC CPU version of BeOS) bug in AGMSBayesianSpamServer (atoll wasn't working so word database wasn't read), and changed sound effect format so they work for PPC.
+- Also, besides double quotes, don't encode <>,@() in the headers so that the mail system can see them.
 
 February 20 2003 - v2.0.1b1
 - Yet more Japanese translations, courtesy of Jun Suzki this time.

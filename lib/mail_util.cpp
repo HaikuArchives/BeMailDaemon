@@ -416,15 +416,16 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 
 	// Break the header into words.  White space characters (including tabs and
 	// newlines) separate the words.  Each word includes any space before it as
-	// part of the word.  Actually, quotes are treated as separate words of
-	// their own so that they don't get encoded (because MIME headers get the
-	// quotes parsed before character set unconversion is done).  The reader is
-	// supposed to ignore all white space between encoded words, which can be
-	// inserted so that older mail parsers don't have overly long line length
-	// problems.
+	// part of the word.  Actually, quotes and other special characters
+	// (",()<>@) are treated as separate words of their own so that they don't
+	// get encoded (because MIME headers get the quotes parsed before character
+	// set unconversion is done).  The reader is supposed to ignore all white
+	// space between encoded words, which can be inserted so that older mail
+	// parsers don't have overly long line length problems.
 
 	const char *source = *bufp;
 	const char *bufEnd = *bufp + length;
+	const char *specialChars = "\"()<>@,";
 
 	while (source < bufEnd) {
 		currentWord = new struct word;
@@ -436,14 +437,18 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 		while (source + wordEnd < bufEnd && isspace (source[wordEnd]))
 			wordEnd++;
 
-		if (source + wordEnd < bufEnd && source[wordEnd] == '"') {
-			// Got a quote mark, which is treated as a word in itself.
+		if (source + wordEnd < bufEnd &&
+			strchr (specialChars, source[wordEnd]) != NULL) {
+			// Got a quote mark or other special character, which is treated as
+			// a word in itself since it shouldn't be encoded, which would hide
+			// it from the mail system.
 			wordEnd++;
 		} else {
 			// Find the end of the word.  Leave wordEnd pointing just after the
 			// last character in the word.
 			while (source + wordEnd < bufEnd) {
-				if (isspace(source[wordEnd]) || (source[wordEnd] == '"'))
+				if (isspace(source[wordEnd]) ||
+					strchr (specialChars, source[wordEnd]) != NULL)
 					break;
 				if (wordEnd > 51 /* Makes Base64 ISO-2022-JP "word" a multiple of 4 bytes */ &&
 					0xC0 == (0xC0 & (unsigned int) source[wordEnd])) {
