@@ -395,7 +395,8 @@ void IMAP4Client::SyncAllBoxes() {
 	StringList to_dl;
 	unique_ids->NotThere(*manifest,&to_dl);
 	
-	runner->GetMessages(&to_dl,-1);
+	if (to_dl.CountItems() > 0)
+		runner->GetMessages(&to_dl,-1);
 	
 	folders.MakeEmpty();
 	temp.MakeEmpty();
