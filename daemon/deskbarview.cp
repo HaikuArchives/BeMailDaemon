@@ -114,8 +114,10 @@ void DeskbarView::AttachedToWindow()
 		fNewMailQuery->Fetch();
 		
 		BEntry entry;
-		for (fNewMessages = 0; fNewMailQuery->GetNextEntry(&entry) == B_OK; fNewMessages++);
-	
+		for (fNewMessages = 0; fNewMailQuery->GetNextEntry(&entry) == B_OK;)
+			if (entry.InitCheck() == B_OK)
+				fNewMessages++;
+
 		ChangeIcon((fNewMessages > 0) ? NEW_MAIL : NO_MAIL);
 	}
 	else
@@ -393,21 +395,12 @@ BPopUpMenu *DeskbarView::BuildMenu()
 			count++;
 
 			path.SetTo(&ref);
+			//the true here dereferences the symlinks all the way :)
 			BEntry entry(&ref, true);
 
 			// do we want to use the NavMenu, or just an ordinary BMenuItem?
 			// we are using the NavMenu only for directories and queries
 			bool useNavMenu = false;
-
-			// dereference symlinks further (links to links should also work)
-			while (entry.IsSymLink())
-			{
-				entry.GetRef(&ref);
-				if (entry.SetTo(&ref, true) < B_OK)
-					break;
-			}
-			// update entry_ref
-			entry.GetRef(&ref);
 
 			if (entry.InitCheck() == B_OK)
 			{
@@ -423,6 +416,9 @@ BPopUpMenu *DeskbarView::BuildMenu()
 						&& strcmp(mimeString, "application/x-vnd.Be-query") == 0)
 						useNavMenu = true;
 				}
+				//clobber the existing ref only if the symlink derefernces completely, 
+				//otherwise we'll stick with what we have
+				entry.GetRef(&ref);
 			}
 
 			msg = new BMessage(B_REFS_RECEIVED);
@@ -437,6 +433,8 @@ BPopUpMenu *DeskbarView::BuildMenu()
 				item = new BMenuItem(path.Leaf(), msg);
 
 			menu->AddItem(item);
+			if(entry.InitCheck() != B_OK)
+				item->SetEnabled(false);
 		}
 		if (count > 0)
 			menu->AddSeparatorItem();
