@@ -581,7 +581,7 @@ status_t IMAP4Client::Select(const char *mb, bool reselect, bool queue_new_messa
 				if (tag == expected)
 					break;
 				
-				uid = real_mb;
+				uid = mb;
 				uid << '/' << response[2][1]();
 				if (!unique_ids->HasItem(uid.String()))
 					list.AddItem(uid.String());
