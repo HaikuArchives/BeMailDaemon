@@ -17,10 +17,10 @@ BUGS:
 
 IT'S NOT A BUG, IT'S A FEATURE:
 
-1) If you were using IMAP before, and use IMAP now, it will redownload all your messages. There's nothing I can do to stop it. But it will only do it once. And you can set it to only download the headers now, which is a good thing, right? I mean, you don't need to redownload the 15 MB of baby pictures from your Aunt Martha again, now do you?
+1) If you were using IMAP before version 2.1, and use IMAP now, it will redownload all your messages. There's nothing I can do to stop it. But it will only do it once. And you can set it to only download the headers now, which is a good thing, right? I mean, you don't need to redownload the 15 MB of baby pictures from your Aunt Martha again, now do you?
 
-2) The settings in things like Postmaster and the old e-mail prefs that used the settings of the old mail daemon will no longer be able to save settings. They will however be able to read them, since we were nice and added that feature. But what are you doing using Postmaster anyway?
+2) Also with regard to IMAP, partial messages moved into an IMAP account from another account will only be partially uploaded. And, as moving them into the IMAP account usually involves moving them *from* another account, which may result in their deletion, you may lose the body of the message entirely. So download them first. This does not apply to partial messages moved to another folder of the same account.
 
-3) There may be some difficulties with using multiple filters. This is an unconfirmed issue, so we won't actually say that it exists. It might, though. And if it does exist, we'll fix by the next release. Probably.
+3) The settings in things like Postmaster and the old e-mail prefs that used the settings of the old mail daemon will no longer be able to save settings. They will however be able to read them, since we were nice and added that feature. But what are you doing using Postmaster anyway?
 
 THANK YOU FOR LISTENING. WE WILL NOW RETURN TO OUR REGULARLY SCHEDULED PROGRAM. BEEP!

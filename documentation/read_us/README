@@ -141,13 +141,23 @@ ADDON INSTALLATION.
    text boxes. Or, to put it messages from BeUserTalk in ~/mail/beusertalk:
    If |Subject| is |*BeUserTalk*| Then |Move To| |/boot/home/mail/beusertalk|
    This works for any header field. Also, THREAD is a special header
-   containing (you guessed it!) the message thread.
+   containing (you guessed it!) the message thread. Note that [ and ] are
+   special characters. If you wish to include these in your test value, you
+   need to put a \ before them, which causes the regex engine to interpret
+   them as [ and ] characters instead of marking a set of values. For more
+   info on this, read up on regular expressions.
 
  AGMS Bayesian Spam Filter
    This filters out spam. If you want to know more (and you may) more
    documentation can be found in the directory with no spaces in its
    name: AGMSBayesianSpamDocumentation. It even has, unlike this, lots of
    pretty pictures.  Also see the note about SampleSpamDatabase.
+
+WHAT HAPPENS WHEN YOUR E-MAIL IS FETCHED:
+
+For POP3, this is entirely straightforward. New e-mail is fetched into the directory you've identified in Inbox. If you've enabled partial downloading, they appear as partial e-mails, which have a blue and white striped icon. If you double-click them, they download and then open in BeMail (or your chosen mail reader).
+
+For IMAP, things are slightly more complicated. The IMAP folder structure is duplicated in your inbox. So if you chose /boot/home/mail/in as your inbox, you will end up with IMAP folders like /boot/home/mail/in/INBOX. Further, you should note that what happens in IMAP folders is bidirectional. That is, if you move a file inside the folder hierarchy, it moves on the server. If you duplicate one, it's duplicated on the server. If you move in an e-mail from another account, it's uploaded to the server (this also means that you can have it store sent mail on the server). You can also create and delete mail folders in Tracker. Pretty cool, huh? As a final note on IMAP, because it stays connected to the server, the "fetch mail every x" option is irrelevant, except as a way to start the connection, as it only connects when you first press "Check Mail Now". A final note: moving partial messages from one account to another causes the message (1) not to be transferred and (2) to be deleted. Unpleasant. So download them first.
 
 HISTORY:
 
