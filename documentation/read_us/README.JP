@@ -1,0 +1,383 @@
+BEOS Mail Daemon Replacement v2.0.1 Beta 1
+
+概要：
+
+これはBeOS付属の標準メールデーモン(BeOS Mail Daemon)を置き換えるものです。
+これは、機能を追加すると同時に100%独自のメールデーモン（mail_daemon）と
+することを目的としています。
+このパッケージには以下のファイルが含まれています。
+
+ README
+   説明書（英語版）
+
+ README.JP
+   説明書（日本語版）
+　あなたが読んでいるこのファイルです。
+
+ LICENSE
+   使用/配付するための条件が書かれています。（英語）
+
+ DANGER, WILL ROBINSON
+   これは最終版ではありません。読んでおくべきだと思います。（英語）
+
+ AGMSBayesianSpamDocumentation
+    この空白を含まない美しいフォルダ名の中に、Alexander G. M. Smith (略して AGMS)の
+ 　光り輝くスパムフィルターソフトの文書が入っています。
+　 私は一度もつかったことはありませんが、とってもクールに見えます。
+　（私はスパムを読むのが好きなのです。それはささやかな楽しみなのです。）
+　楽しんでください。そして（説明する）スペースが無くてごめんなさい。
+　
+ SampleSpamDatabase
+　これにはサンプルのスパムデータベースが含まれています。
+　これはスパムサーバに行き、以前見たスパムを判断材料としてメールがスパムかどうかを決めるのを支援します。
+　あなたがこれをインストールする場合、それが明らかにスパムだというメールをまだ見ていないので、
+　いくつかを機械がわかる様式でプレゼントします。
+
+　最高裁判所長官のレーンクイスト(Rehnquist)曰く:
+　「私はそれを定義することができないが、見ればわかります。」
+
+　ファイル・サイズの関係でそれは今非常に小さな(スパム10個、10の純粋なメッセージ例)データ・ベースなので、
+　うまく動くようになるには、学習させる必要があるでしょう。
+　バージョン2.0.0ベータ8以降からは、大きな(976KB、スパム484個、1009の純粋なメッセージ)
+　データベースが利用できます。
+
+    http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/*checkout*/bemaildaemon/AGMSBayesianSpamServer/SampleDatabase?rev=release-2-0-0-beta8
+
+ libmail.so
+　新しいメールデーモンのバックエンドを提供するライブラリです。
+　/boot/beos/system/lib
+　にインストールされます。
+
+ mail_daemon
+　新しいメールデーモンです。
+　/boot/beos/system/servers
+　にオリジナルのメールデーモン(mail_daemon)の上書きとしてインストールされます。
+
+ BeMail
+　新しいBeMailです。Be社の限りない知恵によってオープンソースとなったオリジナルが元になっています。
+　完全マルチアカウントをはじめ，様々な機能を提供します。重要な部品です。
+　/boot/beos/apps/BeMail
+　にインストールされます。
+
+ E-mail
+　新しい電子メールの設定パネルです。
+   /boot/beos/preferences
+　にオリジナルの(preferences)の上書きとしてインストールされます。
+
+ addons
+　アドオンのフォルダです。メールデーモンと相性の良いたくさんのアドオンがあります。
+　/boot/home/config/add-ons/mail_daemon
+　にインストールされます。
+
+
+***********
+
+  警告：
+
+　これや他のメールデーモン（mail_daemon）の実行形式をあなたのHDDに置かないでください！
+　オリジナルのメールキット（Mail Kit）がメールデーモンを探す際、
+　MIME識別子を元に検索するため、バージョンが異なる複数のメールデーモンが存在すると、
+　新しいバージョンの代わりに古いバージョンを検出した際、動作が不安定になります。
+　このソフトウェアはβ版です！
+　詳細をお知りになりたい場合、LICENSEファイルをお読みください。
+
+***********
+
+インストール：
+
+　インストールパッケージはZIP形式で、PPCとx86用があります。
+　あなたのシステムと一致する正しいバージョンをダウンロードしてください。
+
+　任意の場所にZIPファイルを解凍して、
+　install.japanese.sh
+　ファイルをダブルクリックしてください。
+
+　インストーラが起動し、古いメールデーモンについてバックアップをとるか
+　とらないの選択が要求されます。
+
+　「私たちはこのどちらかを選択することを強く推奨します。」
+
+　この手続きは、あなたのシステムにある外からやって来たメールデーモンを
+　全て削除します。
+　（訳注：本来のメールデーモンがインストールされている場所以外に存在しているコピー等のこと）
+
+　新メールデーモンを設定するためには、インストール後に
+　デスクバーのPreferenceからE-mailを起動してください。
+
+使用方法：
+
+　BeOSメニュー/Preference/E-mailを実行して、あなたのアカウントを作成してください。
+　「追加」ボタンを押すことでアカウントが作成されます。
+　変更をすべて保存するためには、「保存」ボタンをクリックしてウィンドウを閉じてください。
+　アカウントを削除するためには、選択してからDELキーを押すか、「削除」ボタンを使用してください。
+　デスクバーのメール・アイコンを右クリックすることで、様々なオプションを備えた
+　メニューにアクセスできます。
+　アイコンを左シングルクリックすることで、受信箱が開きます。
+　あなたが新しいメッセージを作成したければ、「新規メッセージの作成」でBeMailが、
+　メッセージの検索をする場合は「E-Mail from」でクエリが起動するので、
+　検索したメッセージが表示されます。
+　「終了」でメールデーモンを修了することが出来ます。
+　「SHIFT」キーを押しながら右クリックすることで、
+　メールの送受信に関する項目が選択可能になります。
+
+アドオンのインストール：
+
+　アドオンはインストール時に自動的に作成される
+　/boot/home/config/add-ons/mail_daemon/
+　以下のサブディレクトリにインストールされます。
+
+　現行パッケージでは
+　POP3 (APOPもサポート）　IMAP　SMTP （SMTP-Auth）
+　のプロトコルが含まれています。
+　同様にAdd Fortune, R5 Daemon Filter, and Match Header フィルタも含まれています。
+
+フィルタ：
+
+　このリリースは4つのフィルタ・アドオンを含んでいます。
+　フィルタを有効にするには、E-Mailのフィルタ設定の項目で送信方向/受信方向にあわせて設定してください。
+　同じフィルタを複数追加することが可能ですが、複数追加するのはルール・フィルのみにすることを推奨します。
+　アドオンは、リストに現われているものだけでなく、ドラッグ・アンド・ドロップによって
+　追加することも可能です。
+　新しいフィルタをインストールするためには、下記の説明に指示にしたがってください。
+
+　Add Fortune
+　　このフィルタ・アドオンは全ての送信メールの末尾に、ランダム・フォーチュン（予言）を追加します。
+　　Terminalからfortuneとタイプすると、効果が解ります。
+　　データベースはconfigで指定できますが、デフォルトのデータベースを使用することを強く推奨します。
+　　フォーチュンの詳細な情報とデータベースフォーマットはウェブのどこかにあります。
+
+　R5 Daemon Filter
+   　このフィルタは旧バージョンのメールデーモン相当の受信用フィルタです。
+　　詳細は以下のアドレスをご確認ください。
+　　　http://www.betips.net/chunga.php?ID=511
+
+　Match Header
+
+　　あなたが定義した任意のヘッダーや値に基づいて、メッセージをろ過することを可能にします。
+　　値はregexで指定できます。
+
+　　Subjectに"get rich quick"（あっというまにお金持ちに！）などの
+　　言葉を含んでいるメッセージを捨てるためには、
+　　　If |Subject| is |*get rich quick*|
+   　　Then |Delete Message|
+　　のようにします。||は、もちろんテキストボックスの端です。
+
+　　BeUserTalkからのメッセージを~/mail/beusertalkに移動する場合は、
+　　If |Subject| is |*BeUserTalk*| Then |Move To| |/boot/home/mail/beusertalk|
+　　にょうにします。
+　　これはヘッダ情報内の全てにおいて動作します。
+　　さらにTHREADは（ご存知のとおり！）メッセージスレッドに含まれる特別なヘッダです。
+
+　AGMS Bayesian Spam Filter
+
+　　このフィルタはスパムを追っ払います。
+　　（あなたもきっとそうでしょうが）さらに詳細を知りたい場合、空白が含まれていない　　
+　　AGMSBayesianSpamDocumentationというフォルダ内にさらに文書があります。
+　　それはこれと異なり、多くのきれいな絵が入っています。
+　　さらに、SampleSpamDatabaseに関する注釈を参照してください。
+
+履歴：
+
+February 12 2003 - v2.0.1b1
+- Yet more Japanese translations, courtesy of Jun Suzki this time.
+- Added an international install script feature.
+- Fixed crash bug when using Open With…BeMail on people files (was a buffer size bug).
+
+February 6 2003 - v2.0.0b9
+- Use quoted printable for the headers to avoid base64 extra CRLF insertion which makes a mess if the header (like Subject) is too long to fit on a line.
+- Added 7bit and 8bit encoding to the library, and made BeMail use 7bit for ISO-2022-JP (base64 for other Japanese character sets).
+- If a header field (CC, Subject, etc) is made empty in BeMail, also remove that header.  Was causing a reply (with an automatically generated CC) to get sent to extra people even though the CC seemed to have been erased.  Library code changed to accept NULL and empty value strings as meaning remove the header.
+- Made install script into a one use script, so you can't accidentally run it twice (it won't work since it moved a lot of the installation files to their final resting places).
+- Reduced the size of the spam database from around 1500 messages to just 10 spam and 10 genuine examples (after complaints it was too big).  Accuracy will be reduced, but then you can quickly make up for it by training it when it gets it wrong (and even faster with auto-train).
+- As requested by "dolgogi" in the BeBits.com talkback, I've added the ksc5601, ks_c_5601-1987 character sets as an alias for euc-kr in incoming mail (they seem to be subsets of euc-kr).  Outgoing is always EUC-KR.  Also, the output for EUC-KR is sent as 8bit rather than base64 or quoted printable.  Sorry, unable to support iso-2022-kr.
+- Fixed bug in date parsing (affecting the MAIL:when attribute) where it didn't understand the new numeric +0000 style of time zone.
+- Changed file names to be a bit more readable, hopefully avoiding characters which cause problems.
+- Avoid having a single period on a line; fix SMTP protocol to insert an extra period on all lines starting with a period.  POP protocol should do the opposite, but for now the extra period is hidden by the display code!
+- Fixed bug with missing last letter in Japanese headers by forcing it to switch to the Roman character set (could also switch to ASCII, but they are almost the same) at the end of the header.
+- Compensate for Yahoo! address inside the name goofyness, find "Joe" for the name when given: "Joe <joe@yahoo.com>" <joe@yahoo.com>
+- Added Koki's first batch of Japanese translations for text within MDR.
+- Fixed up word wrapping code to fall back to the user's preferred font if the system fixed width font didn't have as many of the characters used in the message.  Doesn't depend on character set choice now.
+- Added some more queries to the pop-up daemon menu and changed it to largely use a zip file so it will be easier to add new ones: Today's mail, mail from someone, mail with a subject containing something.
+
+January 22 2003 - v2.0.0b8
+- Date format changed slightly to make it compliant to RFC-822 (some other mail apps had problems understanding it).
+- decode_base64() should now work with single character line breaks as well.
+- Changed default spam cutoff ratio to 0.95 to correspond to the default Chi-Squared scoring method.
+- Added Uncertain spam classification as suggested by BiPolar.  This also means adding a Genuine cutoff number, a new sound effect, change the prefs window, etc.
+- Fixed up BeMail to use the user's character set choice (was ignoring it).
+- Added a few more character set encodings, including UTF-8 for BeOS native messages.
+- Made the character set choice affect the encoding of the Subject, To, CC and other header lines.  So now your subject can contain international characters.
+- Made it internationalize (using utf-8, no choice) the file attachment headers so file names with weird characters will now work.
+- Don't convert words to lower case for spam checking, the case can be an important clue!
+- Updated sample spam database: now has capitalized words and includes fresh spam.  Old uncapitalized databases won't work as well.  Either replace your existing one with the sample one, or be prepared for worse results until more training corrects it.
+- Headers in ISO-2022-JP should now appear correctly.  Fixed up header encoding so that it also turns on the encoding markers for escapes and control characters, which you see in the 7 bit encodings like ISO-2022-JP (previously it only did them when it found 8 bit characters).
+- Missing Japanese text at the end, or garbage characters at the end bug fixed.  Increased the conversion buffer size calculation so that the ballooning of text due to the excessive number of escape characters in ISO-2022-JP doesn't run it past the end of the buffer (both body text and headers were affected).
+
+December 13 2002 - v2.0.0b7
+- Fixed vman's bug with TABs after the colon in the headers making it ignore the header.
+- Fixed the Forwarding with Attachments bug so it now works with X-BFile type attachments.
+- Added a couple of forwarding menu items, so you get the complete set on the main menu and the right-click on the Forward button menu.
+- Added full set of reply options to the right-click-on-the-reply-button menu.
+- Removed old word wrap menu code from BeMail.
+- Added a preferences option to attach files in BeMail without the attributes, so that users of other operating systems don't get confused by the extra attachment.
+- Fixed some bugs with reading (garbage appended bug) and forwarding text attachments (didn't copy text so it sometimes crashed).
+- Include preamble text when making a reply from selected text in a message.
+- Added ChiSquared (Greek X is called chi, capital is Χ, lower case is χ) statistical error scoring method to AGMSBayesianSpamServer; you lose the shades of gray and get better spam/genuine/don't-know results instead.
+- Reclassifying a message as spam or genuine will now also update the spam ratio attribute (it runs an EvaluateFile on it).
+- Subject prefix of [Spam 99.9%] removed from the subject attribute when you evaluate a message (the number would become incorrect, and we can't tell if it is spam since the cut-off value is in the filter client, not the server).
+- Implemented self-training mode in the spam filter.
+- Load the database when the spam server window is displayed.
+- Hide the spam server window so it doesn't flash briefly onto the screen when the program starts up.
+
+December 1 2002 - v2.0.0b6
+- Fixed Reply-All bug where it would get stuck in an infinite loop when it tried to remove the sender's address from the list of addresses.
+- Forgot to mention spam database was updated in Beta 5 to reflect MIME decoding improvements (base64 text now decoded) and to add new spam examples.
+- Fixed Reply-All CC bug where some CCed addresses weren't included.
+- Added reply preamble options for full name and date, so you can have something like "Joe Who wrote on December 23 2001 18:33:" inserted in your replies.
+- Fixed Draft loading so you get the From, To, CC etc instead of blanks.
+- Changed MAIL:draft attribute type to be Int32 to match the index type, also create the index as INT32 (in daemon and BeMail) hopefully stopping the invisible drafts problem.  You might have to do a "cd /boot ; rmindex MAIL:draft" command to remove a bad old TEXT index from before (use "cd /boot ; lsindex -l" to see what you have).
+
+November 29 2002 - v2.0.0b5
+- Changed readfoldedline and MIME parsing to both handle lines ending in either CRLF (the standard for Internet mail) or LF (sometimes used for local file storage).  Also handles EOF and errors better.
+- Fixed a bug where an empty message sub-part would cause a crash due to BString UnlockBuffer(0) not working for empty strings.  This generally made it crash when it tried to open a malformed message.
+- Check for IO errors while writing generic headers and copying existing MIME components.
+- New "Reply With" option for the Match Header filter.
+- New "Set As Read" option for the Match Header filter.
+- Old style name extraction fixed so that StripGook "joe@foo.com (Joe)" will return "Joe" rather than "Jo".
+- MessageIO fixed so that it doesn't reread the whole message when doing a SEEK_END, doubles performance when checking for spam!
+- Added a close window box in the title bar of the E-mail preferences, acts like the Cancel button.
+- Changed AGMSBayesianSpamFilter so that it checks the server's tokenize mode, and if it is JustHeaders then it will only download the headers for spam testing, rather than the entire message.
+- Updated AGMSBayesianSpam documentation with a trick for spam checking without downloading the whole message, and explained the word display.
+
+November 20 2002 - v2.0.0b4
+ - Zillions of bug fixes. Too much to mention, really
+ - Lots of new features (we will let you have fun discovering them)
+ - Profuse apologies for waiting so long to release this
+ - Bayesian Spam Filter included
+
+February 12 2002 - v2.0.0b1
+  - Serious speed and stability improvements
+  - Friendly addon names
+  - Finalized, beautified, and FBC-protected API
+  - Crash on shutdown bug fixed
+  - Colored quotes
+  - Attachments work now :P
+  - Lots of other things are much better too, but I don't remember them now
+
+November 21 2001 - v2.0.0a2
+  - Attachments that used not to be handled are handled now.
+  - HTML emails are displayed as the HTML source.
+  - Implements all stub functions programs like Postmaster expects (most functions do nothing).
+  - Mail handling is much faster
+  - Various API improvements
+  - Blinking lights support (Notifier)
+  - Really improved Deskbar menu! Uses NavMenu. Check it out!
+  - Right-clicking the deskbar replicant while pressing the SHIFT key gives more options
+  - Central Notification (uses only one Alert for all accounts).
+  - Changed links for bug reporting and others
+  - Button to enable configuration of the Deskbar Replicant menu
+  - Do not crash when opening pre-MDR2 emails
+  - Reply to Sender
+  - Reply to all
+  - Resend/Forward works
+  - Better Notifier Filter
+  - Better RuleFilter (Descriptive filter names)
+  - Better Folder Filter (No more email filename colisions)
+  - SMTP Auth now works for real
+ 
+November 06 2001 - v2.0.0 a1
+  - Complete rewrite from the ground up
+  - Filters
+  - BeMail
+  - IMAP
+  - SMTP Auth
+  - POP3 Auth for SMTP
+  - Sort emails by thread in Tracker
+  - New Mail Kit
+  - All sorts of other cool stuff
+
+July 05 2001 - v1.0.0 b5
+  - Outgoing (SMTP) mail servers are now configured per account.
+  - Leave messages on server now works as expected.
+  - You can select your default acount from the Deskbar menu (fixed).
+  - Add-on loading problem under BONE seems to be fixed now.
+  - Various other bug-fixes and performance improvements.
+
+June 12 2001 - v1.0.0 b4
+  - E-mail preferences app completelly rewritten.  Now it is cleaner,
+    more intuitive, and font sensitive!  Please send us suggestions for
+    improving it.
+  - Added buttons to create/erase accounts.
+  - The Mail Status window now remembers its size and position.
+  - Option to never show the Mail Status window.
+  - More bug fixes. More error checking is now being done.
+  - First version of the filter API.
+  - Some brand new bugs for you to play with. :)
+  - The old mail_daemon icon is back! Thanks to Syn.Terra for it. 
+
+June 08 2001 - v1.0.0 b3
+  - Installation script now creates an index for the MAIL:account
+    attribute.
+  - mail_daemon detects if the MAIL:account exists and creates it
+    if it does not.
+  - Various bug fixes. *ALL* Deskbar crashes should be gone.
+  - Improved Deskbar Icon menu.
+  - Does not check for email immediately after starting.
+
+June 06 2001 - v1.0.0 b2
+  - Fixed lots of bugs!
+  - The status window can now be made persistent.
+  - E-mail preferences app works better (for some definition
+    of better).
+
+June 05 2001 - v1.0.0 b1
+  - First public release.
+
+
+インプリメンテーション：
+
+　最新版の（興味深い）機能
+
+　- アドオン・ベースの設計
+　- 完全マルチスレッド
+　- APOPサポートを備えたPOP3アドオン
+　- SMTPアドオン
+　- サーバー上にメッセージを残すオプション
+　　（ローカルのメッセージを削除した後にサーバーからメッセージを削除する機能付き）
+　- PPP接続検知
+　-マルチアカウント対応
+　- アカウント属性の追加
+　　installスクリプトはそれに索引を付けます。
+　- 電子メールフィルタ
+　- 一定時間毎の電子メール検索
+　- NavMenuを備えたDeskbar replicant
+　- ステータス・ウィンドウは執拗になることができます。
+　- ステータス・ウィンドウのサイズおよび位置を記憶します。
+　- BeMail
+　- スパム・フィルタ
+
+今後の予定：
+
+　これはインプリメントする予定のほんの一部です。提案を歓迎します。
+
+　 - HotMailのサポート
+　 - フィルタ記述フィールド/アトリビュート
+　 - 最初のアカウントを古いE-mailの設定から取得
+　 - 一定容量より大きなメールの場合、ダウンロード前にスキップするか訪ねる
+　 - 等々...
+
+スタッフ：
+
+This program was created by Dr. Zoidberg Enterprises (zoidberg@bug-
+br.org.br). Special thanks goes to Todd Lair, Brad Froehle, David Reid, 
+Rene Gollent and others for helping us with ideas and code. We also would 
+like to thank the BeOS community in general for their support.
+
+The cool new mail-daemon deskbar icon is a courtesy of Syn.Terra.
+
+Copyright (c)2001 by Dr. Zoidberg Enterprises. All rights reserved.
+
+Dr. Zoidberg Enterprises is a joint-venture between Bruno G. Albuquerque
+(bga@bug-br.org.br), Nathan Whitehorn (nwhitehorn@qwest.net), Peter Folk
+(pfolk@uni.uiuc.edu), Stephan Assmus (stippi@yellowbites.com), Alan Ellis, David Reid,
+Axel Dörfler (axeld@pinc-software.de) and Alexander G. M. Smith (agmsmith@rogers.com).
