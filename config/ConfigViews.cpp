@@ -393,6 +393,8 @@ class DragListView : public BListView
 
 				view->UnlockLooper();
 			}
+			fLastDragTarget = -1;
+			fDragIndex = index;
 			fDragging = true;
 
 			BMessage drag(kMsgItemDragged);
@@ -402,15 +404,64 @@ class DragListView : public BListView
 			return true;
 		}
 
-// the list view should display the current insert point -- axeld.
-//		virtual void MouseMoved(BPoint point,uint32 transit,const BMessage *msg)
-//		{
-//			BListView::MouseMoved(point,transit,msg);
-//
-//			if (!fDragging)
-//				return;
-//		}
-		
+		void DrawDragTargetIndicator(int32 target)
+		{
+			PushState();
+			SetDrawingMode(B_OP_INVERT);
+
+			bool last = false;
+			if (target >= CountItems())
+				target = CountItems() - 1, last = true;
+
+			BRect frame = ItemFrame(target);
+			if (last)
+				frame.OffsetBy(0,frame.Height());
+			frame.bottom = frame.top + 1;
+
+			FillRect(frame);
+
+			PopState();
+		}
+
+		virtual void MouseMoved(BPoint point,uint32 transit,const BMessage *msg)
+		{
+			BListView::MouseMoved(point,transit,msg);
+
+			if ((transit != B_ENTERED_VIEW && transit != B_INSIDE_VIEW) || !fDragging)
+				return;
+
+			int32 target = IndexOf(point);
+			if (target == -1)
+				target = CountItems();
+
+			// correct the target insertion index
+			if (target == fDragIndex || target == fDragIndex + 1)
+				target = -1;
+
+			if (target == fLastDragTarget)
+				return;
+
+			// remove old target indicator
+			if (fLastDragTarget != -1)
+				DrawDragTargetIndicator(fLastDragTarget);
+			
+			// draw new one
+			fLastDragTarget = target;
+			if (target != -1)
+				DrawDragTargetIndicator(target);
+		}
+
+		virtual void MouseUp(BPoint point)
+		{
+			if (fDragging)
+			{
+				fDragging = false;
+				if (fLastDragTarget != -1)
+					DrawDragTargetIndicator(fLastDragTarget);
+			}
+			BListView::MouseUp(point);
+		}
+
 		virtual void MessageReceived(BMessage *msg)
 		{
 			switch(msg->what)
@@ -421,6 +472,8 @@ class DragListView : public BListView
 					BPoint point = msg->FindPoint("_drop_point_");
 					ConvertFromScreen(&point);
 					int32 to = IndexOf(point);
+					if (to > fDragIndex)
+						to--;
 					if (to == -1)
 						to = CountItems() - 1;
 
@@ -444,6 +497,7 @@ class DragListView : public BListView
 	
 	private:
 		bool		fDragging;
+		int32		fLastDragTarget,fDragIndex;
 		BMessage	*fItemMovedMessage;
 };
 
