@@ -61,8 +61,12 @@ ifeq ($(CPU), x86)
 	endif
 
 #	SETTING: set the proper optimization level
+#	The GOOD level is the highest that works for STL (standard template library) code.
 	ifeq ($(OPTIMIZE), FULL)
 		OPTIMIZER	:= -O3
+	else
+	ifeq ($(OPTIMIZE), GOOD)
+		OPTIMIZER	:= -O2
 	else
 	ifeq ($(OPTIMIZE), SOME)
 		OPTIMIZER	:= -O1
