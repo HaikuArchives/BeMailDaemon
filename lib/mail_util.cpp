@@ -325,7 +325,7 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, cha
 		for (int32 g = i+1; (run = (struct word *)words.ItemAt(g)) != NULL; g++) {
 			if (run->has_8bit && current->has_8bit) {
 				current->length += run->length+1;
-				delete words.RemoveItem(g);
+				delete (struct word *)words.RemoveItem(g);
 				g--;
 			} else {
 				//i = g;
