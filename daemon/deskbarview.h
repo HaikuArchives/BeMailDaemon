@@ -14,15 +14,16 @@ enum MDDeskbarMessages {
 	MD_OPEN_NEW,
 	MD_OPEN_MAILBOX,
 	MD_OPEN_MAIL_FOLDER,
-	MD_OPEN_PREFS
+	MD_OPEN_PREFS,
+	MD_OPEN_NEW_MAIL_QUERY
 };
 
 class _EXPORT DeskbarView : public BView {
 public:
-					DeskbarView (BRect frame);
-					DeskbarView (BMessage *data);	
-	
-					~DeskbarView();
+				DeskbarView (BRect frame);
+				DeskbarView (BMessage *data);	
+
+				~DeskbarView();
 	
 	void		Draw(BRect updateRect);
 	virtual	void AttachedToWindow();
@@ -33,9 +34,8 @@ public:
 	void		MessageReceived(BMessage *message);
 	void		ChangeIcon(int32 icon);
 	void		Pulse();
-private:
-	void ReInitDefault(void);
 
+private:
 	BBitmap 		*fIcon;
 	int32			fCurrentIconState;
 	BPopUpMenu		*pop_up;

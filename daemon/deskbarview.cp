@@ -13,6 +13,7 @@
 #include <String.h>
 #include <Messenger.h>
 #include <Deskbar.h>
+#include <NodeInfo.h>
 
 #include <stdio.h>
 #include <malloc.h>
@@ -77,15 +78,10 @@ DeskbarView::DeskbarView(BMessage *message)
 	pop_up->AddSeparatorItem();
 	
 	// here should be menus for new and draft messages
-	new_messages_item = new BMenuItem("No new messages",NULL);
+	new_messages_item = new BMenuItem("No new messages",new BMessage(MD_OPEN_NEW_MAIL_QUERY));
 	new_messages_item->SetEnabled(false);
 	pop_up->AddItem(new_messages_item);
 	
-	default_menu = new BMenu("Send mail via...");
-	default_menu->SetFont(be_plain_font);
-	default_menu->SetRadioMode(true);
-	ReInitDefault();
-	pop_up->AddItem(default_menu);
 	pop_up->AddSeparatorItem();
 	
 	pop_up->AddItem(new BMenuItem("Check Mail Now",new BMessage(MD_CHECK_SEND_NOW)));
@@ -100,33 +96,6 @@ DeskbarView::DeskbarView(BMessage *message)
 
 DeskbarView::~DeskbarView() {
 	delete fIcon;
-	
-}
-
-void DeskbarView::ReInitDefault(void) {
-	BList chains;
-	MailSettings().OutboundChains(&chains);
-	
-	default_menu->RemoveItems(0,default_menu->CountItems(),true);
-	
-	BMessage *msg;
-	uint32 id;
-	uint32 default_id = MailSettings().DefaultOutboundChainID();
-	BMenuItem *item;
-	for (int32 i = 0; i < chains.CountItems(); i++) {
-		msg = new BMessage(MD_SET_DEFAULT_ACCOUNT);
-		id = ((MailChain *)(chains.ItemAt(i)))->ID();
-		msg->AddInt32("chain_id",id);
-		item = new BMenuItem(((MailChain *)(chains.ItemAt(i)))->Name(),msg);
-		default_menu->AddItem(item);
-		
-		if (id == default_id)
-			item->SetMarked(true);
-		
-		delete chains.ItemAt(i);
-	}
-	
-	default_menu->SetTargetForItems(this);
 }
 
 void DeskbarView::AttachedToWindow() {
@@ -198,6 +167,46 @@ void OpenFolder(const char* end)
 	tracker.SendMessage(&open_mbox);
 }
 
+void OpenNewMailQuery()
+{
+	BPath path;
+	find_directory(B_USER_SETTINGS_DIRECTORY, &path);
+	path.Append("Mail/New E-mail");
+
+	BEntry query(path.Path());
+	if(!query.Exists())
+	{
+		//create the query file if it doesn't exist
+		BFile file(&query, B_READ_WRITE | B_CREATE_FILE);
+		if(file.InitCheck() != B_OK)
+			return;
+		file.Unset();
+
+		BNode node(&query);
+		if(node.InitCheck() != B_OK)
+			return;
+			
+		// better way to do this???
+		BString string("((MAIL:status==\"[nN][eE][wW]\")&&(BEOS:TYPE==\"text/x-email\"))");
+		node.WriteAttrString("_trk/qrystr",&string);
+		string = "E-mail";
+		node.WriteAttrString("_trk/qryinitmime", &string);
+		BNodeInfo(&node).SetType("application/x-vnd.Be-query");
+		node.Unset();
+	}
+
+	// launch the query
+	entry_ref ref;
+	if (get_ref_for_path(path.Path(),&ref) != B_OK)
+		return;
+
+	BMessage open_query(B_REFS_RECEIVED);
+	open_query.AddRef("refs",&ref);
+	
+	BMessenger tracker("application/x-vnd.Be-TRAK");
+	tracker.SendMessage(&open_query);
+}
+
 void DeskbarView::MessageReceived(BMessage *message) {
 	switch(message->what)
 	{
@@ -206,11 +215,10 @@ void DeskbarView::MessageReceived(BMessage *message) {
 		break;
 	case MD_OPEN_NEW:
 	{
-		char *argv[] =
-		{ "New Message", "mailto:" };
+		char *argv[] = { "New Message", "mailto:" };
 		be_roster->Launch("text/x-email",2,argv);
-	}
 		break;
+	}
 	case MD_OPEN_PREFS:
 		be_roster->Launch("application/x-vnd.Be-mprf");
 		break;
@@ -220,8 +228,11 @@ void DeskbarView::MessageReceived(BMessage *message) {
 	case MD_OPEN_MAIL_FOLDER:
 		OpenFolder("mail");
 		break;
+	case MD_OPEN_NEW_MAIL_QUERY:
+		OpenNewMailQuery();
+		break;
 	case B_QUERY_UPDATE:
-		{
+	{
 		int32 what;
 		message->FindInt32("opcode",&what);
 		switch (what) {
@@ -231,11 +242,10 @@ void DeskbarView::MessageReceived(BMessage *message) {
 			case B_ENTRY_REMOVED:
 				new_messages--;
 				break;
-		}
-		}
-		
+		}	
 		ChangeIcon((new_messages > 0) ? NEW_MAIL : NO_MAIL);
 		break;
+	}
 	case MD_SET_DEFAULT_ACCOUNT:
 	{
 		if (BMenuItem *item = default_menu->FindMarked())
@@ -266,14 +276,12 @@ void DeskbarView::ChangeIcon(int32 icon) {
 	char icon_name[10];
 	
 	switch(icon) {
-		case NO_MAIL: {
-			strcpy(icon_name ,"Read");
+		case NO_MAIL:
+			strcpy(icon_name, "Read");
 			break;
-		}
-		case NEW_MAIL: {
-			strcpy(icon_name , "New");
+		case NEW_MAIL:
+			strcpy(icon_name, "New");
 			break;
-		}
 	}
 	{
 		image_info info;
@@ -315,9 +323,8 @@ void DeskbarView::MouseUp(BPoint pos) {
 
 void DeskbarView::MouseDown(BPoint pos) {
 	Looper()->CurrentMessage()->FindInt32("buttons",&buttons);
-	if (buttons & B_SECONDARY_MOUSE_BUTTON)
-	{
-		ReInitDefault();
+
+	if (buttons & B_SECONDARY_MOUSE_BUTTON) {
 		BString string;
 		if (new_messages > 0)
 			string << new_messages;
@@ -326,6 +333,8 @@ void DeskbarView::MouseDown(BPoint pos) {
 		
 		string << " new message" << ((new_messages != 1) ? "s" : B_EMPTY_STRING);
 		new_messages_item->SetLabel(string.String());
+		new_messages_item->SetEnabled(new_messages > 0);
+
 		ConvertToScreen(&pos);
 		pop_up->SetTargetForItems(this);
 		pop_up->Go(pos,true,true,BRect(pos.x - 2, pos.y - 2, pos.x + 2, pos.y + 2),true);
