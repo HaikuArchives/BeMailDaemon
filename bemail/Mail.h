@@ -93,6 +93,7 @@ enum MENUS {
 	/* file */
 	M_WRAP_TEXT,
 	M_REPLY,
+	M_REPLY_TO_SENDER,
 	M_REPLY_ALL,
 	M_FORWARD,
 	M_RESEND,
@@ -165,34 +166,35 @@ class Words;
 
 //====================================================================
 
-class TMailApp : public BApplication {
-public:
-	TMailApp();
-	~TMailApp();
-	virtual void AboutRequested();
-	virtual void ArgvReceived(int32, char**);
-	virtual void MessageReceived(BMessage*);
-	virtual bool QuitRequested();
-	virtual void ReadyToRun();
-	virtual void RefsReceived(BMessage*);
-	TMailWindow* FindWindow(const entry_ref&);
-	void FontChange();
-	TMailWindow* NewWindow(const entry_ref *rec = NULL, const char *to = NULL,
-		bool resend = false,BMessenger *msg = NULL);
+class TMailApp : public BApplication
+{
+	public:
+		TMailApp();
+		~TMailApp();
+		virtual void AboutRequested();
+		virtual void ArgvReceived(int32, char **);
+		virtual void MessageReceived(BMessage *);
+		virtual bool QuitRequested();
+		virtual void ReadyToRun();
+		virtual void RefsReceived(BMessage *);
+		TMailWindow* FindWindow(const entry_ref &);
+		void FontChange();
+		TMailWindow* NewWindow(const entry_ref *rec = NULL, const char *to = NULL,
+			bool resend = false,BMessenger *msg = NULL);
 
-	BFont fFont;
-	
-private:
-	void ClearPrintSettings();
-	
-	BList fWindowList;
-	int32 fWindowCount;
-	BFile *fPrefs;
-	TPrefsWindow *fPrefsWindow;
-	TSignatureWindow *fSigWindow;
-	BMessenger *fTrackerMessenger;	// Talks to tracker window that
-									// this was launched from.
-	bool fPrevBBPref;
+		BFont fFont;
+
+	private:
+		void ClearPrintSettings();
+		
+		BList fWindowList;
+		int32 fWindowCount;
+		BFile *fPrefs;
+		TPrefsWindow *fPrefsWindow;
+		TSignatureWindow *fSigWindow;
+		BMessenger *fTrackerMessenger;	// Talks to tracker window that
+										// this was launched from.
+		bool fPrevBBPref;
 };
 
 //--------------------------------------------------------------------
@@ -218,8 +220,8 @@ public:
 	void Forward(entry_ref*);
 	void Print();
 	void PrintSetup();
-	void Reply(entry_ref*, TMailWindow*, bool);
-	void CopyMessage( entry_ref *ref, TMailWindow *src );
+	void Reply(entry_ref*, TMailWindow*, uint32);
+	void CopyMessage(entry_ref *ref, TMailWindow *src);
 	status_t Send(bool);
 	status_t SaveAsDraft( void );
 	status_t OpenMessage(entry_ref*);
@@ -232,11 +234,11 @@ public:
 	void SetCurrentMessageRead();
 	void SetTrackerSelectionToCurrent();
 	TMailWindow* FrontmostWindow();
-	void UpdateViews( void );
+	void UpdateViews();
 	
 protected:
 	void AddEnclosure(BMessage *msg);
-	void BuildButtonBar( void );
+	void BuildButtonBar();
 
 private:
 	entry_ref *fRef;			// Reference to currently displayed file
@@ -258,11 +260,11 @@ private:
 	BMenuItem *fSendNow;
 	BMenuItem *fSendLater;
 	BMenuItem *fUndo;
-	BMenuItem *nextMsg;
-	BMenuItem *prevMsg;
-	BMenuItem *deleteNext;
+	BMenuItem *fNextMsg;
+	BMenuItem *fPrevMsg;
+	BMenuItem *fDeleteNext;
 	BMenuItem *fSpelling;
-	BMenu *saveAddrMenu;
+	BMenu *fSaveAddrMenu;
 	ButtonBar *fButtonBar;
 	BmapButton *fSendButton;
 	BmapButton *fSaveButton;
@@ -293,20 +295,21 @@ private:
 
 //====================================================================
 
-class TMenu: public BPopUpMenu {
-public:
-	TMenu(const char*, const char*, int32, bool popup=false);
-	~TMenu();
-					
-	virtual BPoint ScreenLocation(void);
-	virtual void AttachedToWindow();
-	void BuildMenu();
-
-private:
-	char *fAttribute;
-	char *fPredicate;
-	bool fPopup;
-	int32 fMessage;
+class TMenu: public BPopUpMenu
+{
+	public:
+		TMenu(const char *, const char *, int32, bool popup = false);
+		~TMenu();
+						
+		virtual BPoint ScreenLocation(void);
+		virtual void AttachedToWindow();
+		void BuildMenu();
+	
+	private:
+		char *fAttribute;
+		char *fPredicate;
+		bool fPopup;
+		int32 fMessage;
 };
 
 //====================================================================

@@ -393,6 +393,7 @@ void TMailApp::MessageReceived(BMessage* msg)
 					break;
 
 				case M_REPLY:
+				case M_REPLY_TO_SENDER:
 				case M_REPLY_ALL:
 				case M_COPY_TO_NEW:
 				{
@@ -407,7 +408,7 @@ void TMailApp::MessageReceived(BMessage* msg)
 						if (type == M_COPY_TO_NEW)
 							window->CopyMessage(&ref, sourceWindow);
 						else
-							window->Reply(&ref, sourceWindow, type == M_REPLY_ALL);
+							window->Reply(&ref, sourceWindow, type);
 						window->Unlock();
 					}
 					sourceWindow->Unlock();
@@ -422,7 +423,8 @@ void TMailApp::MessageReceived(BMessage* msg)
 		case M_WRAP_TEXT:
 		{
 			BMenuItem *item = NULL;
-			if (msg->FindPointer("source", (void **)&item) == B_NO_ERROR) {
+			if (msg->FindPointer("source", (void **)&item) == B_NO_ERROR)
+			{
 				wrap_mode = !wrap_mode;
 				item->SetMarked(wrap_mode);
 			}
@@ -430,9 +432,10 @@ void TMailApp::MessageReceived(BMessage* msg)
 		}
 
 		case M_PREFS:
-			if (fPrefsWindow) {
+			if (fPrefsWindow)
 				fPrefsWindow->Activate(true);
-			} else {
+			else
+			{
 				fPrefsWindow = new TPrefsWindow(BRect(prefs_window.x, 
 						prefs_window.y, prefs_window.x + PREF_WIDTH,
 						prefs_window.y + PREF_HEIGHT),
@@ -446,11 +449,11 @@ void TMailApp::MessageReceived(BMessage* msg)
 		case PREFS_CHANGED:
 		{
 			// Do we need to update the state of the button bars?
-			if( fPrevBBPref != show_buttonbar )
+			if (fPrevBBPref != show_buttonbar)
 			{
 				// Notify all BeMail windows
 				TMailWindow	*window;
-				for( int32 i=0; (window=(TMailWindow *)fWindowList.ItemAt(i)) != NULL; i++ )
+				for (int32 i = 0; (window=(TMailWindow *)fWindowList.ItemAt(i)) != NULL; i++)
 				{
 					window->Lock();
 					window->UpdateViews();
@@ -464,7 +467,8 @@ void TMailApp::MessageReceived(BMessage* msg)
 		case M_EDIT_SIGNATURE:
 			if (fSigWindow)
 				fSigWindow->Activate(true);
-			else {
+			else
+			{
 				fSigWindow = new TSignatureWindow(signature_window);
 				fSigWindow->Show();
 			}
@@ -1023,7 +1027,8 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 	item->SetTarget(NULL, this);
 	menu->AddItem(new BMenuItem("Find"B_UTF8_ELLIPSIS, new BMessage(M_FIND), 'F'));
 	menu->AddItem(new BMenuItem("Find Again", new BMessage(M_FIND_AGAIN), 'G'));
-	if (!fIncoming) {
+	if (!fIncoming)
+	{
 		menu->AddSeparatorItem();
 		menu->AddItem(fQuote =new BMenuItem("Quote",new BMessage(M_QUOTE),
 			B_RIGHT_ARROW));
@@ -1048,25 +1053,28 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 	//
 	menu = new BMenu("Message");
 	
-	if ((!resending) && (fIncoming)) {
+	if (!resending && fIncoming)
+	{
 		BMenuItem *menuItem;
-		menu->AddItem(new BMenuItem("Reply to Sender",
-						new BMessage(M_REPLY), 'R'));
-		menu->AddItem(new BMenuItem("Reply to All",
-						new BMessage(M_REPLY_ALL), 'R', B_SHIFT_KEY));
-		menu->AddItem(new BMenuItem("Forward", new BMessage(M_FORWARD), 'J'));
-		menu->AddItem(menuItem=new BMenuItem("Resend", new BMessage(M_RESEND)));
-		menu->AddItem(menuItem=new BMenuItem("Copy to New", new BMessage(M_COPY_TO_NEW), 'D'));
-		
-		deleteNext = new BMenuItem("Move to Trash", new BMessage(M_DELETE_NEXT), 'T');
-		menu->AddItem(deleteNext);
+		menu->AddItem(new BMenuItem("Reply", new BMessage(M_REPLY),'R'));
+		menu->AddItem(new BMenuItem("Reply to Sender", new BMessage(M_REPLY_TO_SENDER),'R',B_OPTION_KEY));
+		menu->AddItem(new BMenuItem("Reply to All", new BMessage(M_REPLY_ALL), 'R', B_SHIFT_KEY));
+
 		menu->AddSeparatorItem();
-		prevMsg = new BMenuItem("Previous Message", new BMessage(M_PREVMSG), 
+
+		menu->AddItem(new BMenuItem("Forward", new BMessage(M_FORWARD), 'J'));
+		menu->AddItem(menuItem = new BMenuItem("Resend", new BMessage(M_RESEND)));
+		menu->AddItem(menuItem = new BMenuItem("Copy to New", new BMessage(M_COPY_TO_NEW), 'D'));
+		
+		fDeleteNext = new BMenuItem("Move to Trash", new BMessage(M_DELETE_NEXT), 'T');
+		menu->AddItem(fDeleteNext);
+		menu->AddSeparatorItem();
+		fPrevMsg = new BMenuItem("Previous Message", new BMessage(M_PREVMSG), 
 		 B_UP_ARROW);
-		menu->AddItem(prevMsg);
-		nextMsg = new BMenuItem("Next Message", new BMessage(M_NEXTMSG), 
+		menu->AddItem(fPrevMsg);
+		fNextMsg = new BMenuItem("Next Message", new BMessage(M_NEXTMSG), 
 		  B_DOWN_ARROW);
-		menu->AddItem(nextMsg);
+		menu->AddItem(fNextMsg);
 		menu->AddSeparatorItem();
 		menu->AddItem(fHeader = new BMenuItem("Show Header",
 								new BMessage(M_HEADER), 'H'));
@@ -1075,7 +1083,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 		menu->AddItem(fRaw = new BMenuItem("Show Raw Message",
 								new BMessage(M_RAW)));
 
-		saveAddrMenu = sub_menu = new BMenu("Save Address");
+		fSaveAddrMenu = sub_menu = new BMenu("Save Address");
 		recipients = (char *)malloc(1);
 		recipients[0] = 0;
 		len = header_len(fFile);
@@ -1267,44 +1275,45 @@ void TMailWindow::BuildButtonBar()
 {
 	ButtonBar *bbar;
 	
-	bbar = new ButtonBar( BRect( 0, 0, 100, 100 ), "ButtonBar", 2, 3, 0, 1, 10, 2 );
-	bbar->AddButton( "New", 28, new BMessage( M_NEW ) );
-	bbar->AddDivider( 5 );
+	bbar = new ButtonBar(BRect(0, 0, 100, 100), "ButtonBar", 2, 3, 0, 1, 10, 2);
+	bbar->AddButton("New", 28, new BMessage(M_NEW));
+	bbar->AddDivider(5);
 	
-	if( fResending )
+	if (fResending)
 	{
-		fSendButton = bbar->AddButton( "Send", 8, new BMessage( M_SEND_NOW ) );
-		bbar->AddDivider( 5 );
+		fSendButton = bbar->AddButton("Send", 8, new BMessage(M_SEND_NOW));
+		bbar->AddDivider(5);
 	}
-	else if(!fIncoming )
+	else if (!fIncoming)
 	{
-		fSendButton = bbar->AddButton( "Send", 8, new BMessage( M_SEND_NOW ) );
-		fSendButton->SetEnabled( false );
-		fSaveButton = bbar->AddButton( "Save", 44, new BMessage( M_SAVE_AS_DRAFT ) );
-		fSaveButton->SetEnabled( false );
-		(fSigButton = bbar->AddButton( "Signature", 4, new BMessage( M_SIG_MENU ) ))->InvokeOnButton( B_SECONDARY_MOUSE_BUTTON );
-		bbar->AddDivider( 5 );
-		fPrintButton = bbar->AddButton( "Print", 16, new BMessage( M_PRINT ) );
-		fPrintButton->SetEnabled( false );
-		bbar->AddButton( "Trash", 0, new BMessage( M_DELETE ) );
+		fSendButton = bbar->AddButton("Send", 8, new BMessage(M_SEND_NOW));
+		fSendButton->SetEnabled(false);
+		fSaveButton = bbar->AddButton("Save", 44, new BMessage(M_SAVE_AS_DRAFT));
+		fSaveButton->SetEnabled(false);
+		(fSigButton = bbar->AddButton("Signature", 4,
+			new BMessage(M_SIG_MENU)))->InvokeOnButton(B_SECONDARY_MOUSE_BUTTON);
+		bbar->AddDivider(5);
+		fPrintButton = bbar->AddButton("Print", 16, new BMessage(M_PRINT));
+		fPrintButton->SetEnabled(false);
+		bbar->AddButton("Trash", 0, new BMessage(M_DELETE));
 	}
 	else
 	{
-		(bbar->AddButton( "Reply", 12, new BMessage( M_REPLY ) ))->InvokeOnButton( B_SECONDARY_MOUSE_BUTTON );
-		bbar->AddButton( "Forward", 40, new BMessage( M_FORWARD ) );
-		fPrintButton = bbar->AddButton( "Print", 16, new BMessage( M_PRINT ) );
-		bbar->AddButton( "Trash", 0, new BMessage( M_DELETE_NEXT ) );
-		bbar->AddDivider( 5 );
-		bbar->AddButton( "Next", 24, new BMessage( M_NEXTMSG ) );
-		bbar->AddButton( "Previous", 20, new BMessage( M_PREVMSG ) );
+		(bbar->AddButton("Reply", 12, new BMessage(M_REPLY)))->InvokeOnButton(B_SECONDARY_MOUSE_BUTTON);
+		bbar->AddButton("Forward", 40, new BMessage(M_FORWARD));
+		fPrintButton = bbar->AddButton("Print", 16, new BMessage(M_PRINT));
+		bbar->AddButton("Trash", 0, new BMessage(M_DELETE_NEXT));
+		bbar->AddDivider(5);
+		bbar->AddButton("Next", 24, new BMessage(M_NEXTMSG));
+		bbar->AddButton("Previous", 20, new BMessage(M_PREVMSG));
 	}
-	bbar->AddButton( "Inbox", 36, new BMessage( M_OPEN_MAIL_BOX ) );
-	bbar->AddButton( "Mail", 32, new BMessage( M_OPEN_MAIL_FOLDER ) );
-	bbar->AddDivider( 5 );
+	bbar->AddButton("Inbox", 36, new BMessage(M_OPEN_MAIL_BOX));
+	bbar->AddButton("Mail", 32, new BMessage(M_OPEN_MAIL_FOLDER));
+	bbar->AddDivider(5);
 	
 	bbar->SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
 	bbar->Hide();
-	AddChild( bbar );
+	AddChild(bbar);
 	fButtonBar = bbar;
 }
 
@@ -1316,36 +1325,36 @@ void TMailWindow::UpdateViews( void )
 	float nextY = fMenuBar->Frame().bottom+1;
 	
 	// Show/Hide Button Bar
-	if( show_buttonbar )
+	if (show_buttonbar)
 	{
 		// Create the Button Bar if needed
-		if( !fButtonBar )
+		if (!fButtonBar)
 			BuildButtonBar();
-		fButtonBar->ShowLabels( show_buttonbar & 1 );
-		fButtonBar->Arrange( true );
-		fButtonBar->GetPreferredSize( &bbwidth, &bbheight );
-		fButtonBar->ResizeTo( Bounds().right+3, bbheight+1 );
-		fButtonBar->MoveTo( -1, nextY-1 );
+		fButtonBar->ShowLabels(show_buttonbar & 1);
+		fButtonBar->Arrange(true);
+		fButtonBar->GetPreferredSize( &bbwidth, &bbheight);
+		fButtonBar->ResizeTo(Bounds().right+3, bbheight+1);
+		fButtonBar->MoveTo(-1, nextY-1);
 		nextY += bbheight;
-		if( fButtonBar->IsHidden() )
+		if (fButtonBar->IsHidden())
 			fButtonBar->Show();
 		else
 			fButtonBar->Invalidate();
 	}
-	else if( fButtonBar )
+	else if (fButtonBar)
 		fButtonBar->Hide();
 	
 	// Arange other views to match
-	fHeaderView->MoveTo( 0, nextY );
+	fHeaderView->MoveTo(0, nextY);
 	nextY = fHeaderView->Frame().bottom;
-	if( fEnclosuresView )
+	if (fEnclosuresView)
 	{
-		fEnclosuresView->MoveTo( 0, nextY );
+		fEnclosuresView->MoveTo(0, nextY);
 		nextY = fEnclosuresView->Frame().bottom+1;
 	}
-	BRect bounds( Bounds() );
-	fContentView->MoveTo( 0, nextY-1 );
-	fContentView->ResizeTo( bounds.right-bounds.left, bounds.bottom-nextY+1 );
+	BRect bounds(Bounds());
+	fContentView->MoveTo(0, nextY-1);
+	fContentView->ResizeTo(bounds.right-bounds.left, bounds.bottom-nextY+1);
 }
 
 
@@ -1479,7 +1488,8 @@ void TMailWindow::MenusBeginning()
 	int32		start = 0;
 	BTextView	*text_view;
 
-	if (!fIncoming) {
+	if (!fIncoming)
+	{
 		enable = strlen(fHeaderView->fTo->Text()) ||
 				 strlen(fHeaderView->fBcc->Text());
 		fSendNow->SetEnabled(enable);
@@ -1497,32 +1507,37 @@ void TMailWindow::MenusBeginning()
 		fRemove->SetEnabled((fEnclosuresView != NULL) && 
 							(fEnclosuresView->fList->CurrentSelection() >= 0));
 	}
-	else {
-		if (fResending) {
+	else
+	{
+		if (fResending)
+		{
 			enable = strlen(fHeaderView->fTo->Text());
 			fSendNow->SetEnabled(enable);
 			// fSendLater->SetEnabled(enable);
 			text_view = (BTextView *)fHeaderView->fTo->ChildAt(0);
-			if (text_view->IsFocus()) {
+			if (text_view->IsFocus())
+			{
 				text_view->GetSelection(&start, &finish);
 				fCut->SetEnabled(start != finish);
 				be_clipboard->Lock();
 				fPaste->SetEnabled(be_clipboard->Data()->HasData("text/plain", B_MIME_TYPE));
 				be_clipboard->Unlock();
 			}
-			else {
+			else
+			{
 				fCut->SetEnabled(false);
 				fPaste->SetEnabled(false);
 			}
 		}
-		else {
+		else
+		{
 			fCut->SetEnabled(false);
 			fPaste->SetEnabled(false);
 
 			if (fTrackerMessenger == NULL || !fTrackerMessenger->IsValid())
 			{
-				nextMsg->SetEnabled(false);
-				prevMsg->SetEnabled(false);
+				fNextMsg->SetEnabled(false);
+				fPrevMsg->SetEnabled(false);
 			}
 		}
 	}
@@ -1535,23 +1550,29 @@ void TMailWindow::MenusBeginning()
 	text_view = (BTextView *)fHeaderView->fTo->ChildAt(0);
 	if (text_view->IsFocus())
 		text_view->GetSelection(&start, &finish);
-	else {
+	else
+	{
 		text_view = (BTextView *)fHeaderView->fSubject->ChildAt(0);
 		if (text_view->IsFocus())
 			text_view->GetSelection(&start, &finish);
-		else {
-			if (fContentView->fTextView->IsFocus()) {
+		else
+		{
+			if (fContentView->fTextView->IsFocus())
+			{
 				fContentView->fTextView->GetSelection(&start, &finish);
-				if (!fIncoming) {
+				if (!fIncoming)
+				{
 					fQuote->SetEnabled(true);
 					fRemoveQuote->SetEnabled(true);
 				}
 			}
-			else if (!fIncoming) {
+			else if (!fIncoming)
+			{
 				text_view = (BTextView *)fHeaderView->fCc->ChildAt(0);
 				if (text_view->IsFocus())
 					text_view->GetSelection(&start, &finish);
-				else {
+				else
+				{
 					text_view = (BTextView *)fHeaderView->fBcc->ChildAt(0);
 					if (text_view->IsFocus())
 						text_view->GetSelection(&start, &finish);
@@ -1578,21 +1599,8 @@ void TMailWindow::MenusBeginning()
 
 //--------------------------------------------------------------------
 
-void TMailWindow::MessageReceived(BMessage* msg)
+void TMailWindow::MessageReceived(BMessage *msg)
 {
-	bool			now = false;
-	bool			raw;
-	char			*arg;
-	BEntry			entry;
-	BMenuItem		*menu;
-	BMessage		open(B_REFS_RECEIVED);
-	BQuery			query;
-	BRect			r;
-	BVolume			vol;
-	BVolumeRoster	volume;
-	entry_ref		ref;
-	status_t		result;
-
 	switch (msg->what)
 	{
 		case FIELD_CHANGED:
@@ -1661,19 +1669,13 @@ void TMailWindow::MessageReceived(BMessage* msg)
 				&& buttons == B_SECONDARY_MOUSE_BUTTON)
 			{
 				BPopUpMenu menu("Reply To", false, false);
-				BMenuItem *item;
-				BMessage *message = new BMessage(*msg);
-				message->RemoveName("buttons");
-				message->RemoveName("where");
+				menu.AddItem(new BMenuItem("Reply to Sender",new BMessage(M_REPLY_TO_SENDER)));
+				menu.AddItem(new BMenuItem("Reply to All",new BMessage(M_REPLY_ALL)));
 				
-				menu.AddItem(new BMenuItem("Reply to Sender", message));
-				message = new BMessage(*message);
-				message->what = M_REPLY_ALL;
-				menu.AddItem(new BMenuItem("Reply to All", message));
-				
-				BPoint	where;
+				BPoint where;
 				msg->FindPoint("where", &where);
 
+				BMenuItem *item;
 				if ((item = menu.Go(where, false, false)) != NULL)
 				{
 					item->SetTarget(this);
@@ -1684,6 +1686,7 @@ void TMailWindow::MessageReceived(BMessage* msg)
 		}
 		// Fall Through
 		case M_REPLY_ALL:
+		case M_REPLY_TO_SENDER:
 		case M_FORWARD:
 		case M_RESEND:
 		case M_COPY_TO_NEW:
@@ -1812,8 +1815,9 @@ void TMailWindow::MessageReceived(BMessage* msg)
 				message.AddString("status", str);
 				PostMessage(&message);
 			}
-			else {
-				r = Frame();
+			else
+			{
+				BRect r = Frame();
 				r.left += ((r.Width() - STATUS_WIDTH) / 2);
 				r.right = r.left + STATUS_WIDTH;
 				r.top += 40;
@@ -1827,6 +1831,7 @@ void TMailWindow::MessageReceived(BMessage* msg)
 
 		case M_STATUS:
 		{
+			BMenuItem *menu;
 			msg->FindPointer("source", (void **)&menu);
 			BMessage message(B_CLOSE_REQUESTED);
 			message.AddString("status", menu->Label());
@@ -1845,7 +1850,7 @@ void TMailWindow::MessageReceived(BMessage* msg)
 		}
 		case M_RAW:
 		{
-			raw = !(fRaw->IsMarked());
+			bool raw = !(fRaw->IsMarked());
 			fRaw->SetMarked(raw);
 			BMessage message(M_RAW);
 			message.AddBool("raw", raw);
@@ -1853,10 +1858,8 @@ void TMailWindow::MessageReceived(BMessage* msg)
 			break;
 		}
 		case M_SEND_NOW:
-			now = true;
-			// yes, we are supposed to fall through
 		case M_SAVE_AS_DRAFT:
-			Send(now);
+			Send(msg->what == M_SEND_NOW);
 			break;
 
 		case M_SAVE:
@@ -1864,18 +1867,27 @@ void TMailWindow::MessageReceived(BMessage* msg)
 			char *str;
 			if (msg->FindString("address", (const char **)&str) == B_NO_ERROR)
 			{
-				arg = (char *)malloc(strlen("META:email ") + strlen(str) + 1);
-				volume.GetBootVolume(&vol);
-				query.SetVolume(&vol);
+				char *arg = (char *)malloc(strlen("META:email ") + strlen(str) + 1);
+				BVolumeRoster volumeRoster;
+				BVolume volume;
+				volumeRoster.GetBootVolume(&volume);
+				
+				BQuery query;
+				query.SetVolume(&volume);
 				sprintf(arg, "META:email=%s", str);
 				query.SetPredicate(arg);
 				query.Fetch();
+				
+				BEntry entry;
 				if (query.GetNextEntry(&entry) == B_NO_ERROR)
 				{
 					BMessenger tracker("application/x-vnd.Be-TRAK");
 					if (tracker.IsValid())
 					{
+						entry_ref ref;
 						entry.GetRef(&ref);
+
+						BMessage open(B_REFS_RECEIVED);
 						open.AddRef("refs", &ref);
 						tracker.SendMessage(&open);
 					}
@@ -1883,7 +1895,7 @@ void TMailWindow::MessageReceived(BMessage* msg)
 				else
 				{
 					sprintf(arg, "META:email %s", str);
-					result = be_roster->Launch("application/x-person", 1, &arg);
+					status_t result = be_roster->Launch("application/x-person", 1, &arg);
 					if (result != B_NO_ERROR)
 						(new BAlert("", "Sorry, could not find an application that supports the "
 							"'Person' data type.", "OK"))->Go();
@@ -1919,29 +1931,30 @@ void TMailWindow::MessageReceived(BMessage* msg)
 		
 		case M_RANDOM_SIG:
 		{
-			BEntry			entry;
-			BFile			file;
-			BQuery			query;
-			BVolume			vol;
-			entry_ref		ref;
-			BList			sigList;
-			char			predicate[128];
-			BMessage		*message;
+			BList		sigList;
+			BMessage	*message;
 			
-			BVolumeRoster().GetBootVolume(&vol);
-			query.SetVolume(&vol);
+			BVolume volume;
+			BVolumeRoster().GetBootVolume(&volume);
+
+			BQuery query;
+			query.SetVolume(&volume);
 			
+			char predicate[128];
 			sprintf(predicate, "%s = *", INDEX_SIGNATURE);
-			query.SetPredicate( predicate );
+			query.SetPredicate(predicate);
 			query.Fetch();
 			
+			BEntry entry;
 			while (query.GetNextEntry(&entry) == B_NO_ERROR)
 			{
-				file.SetTo(&entry, O_RDONLY);
+				BFile file(&entry, O_RDONLY);
 				if (file.InitCheck() == B_NO_ERROR)
 				{
-					message = new BMessage(M_SIGNATURE);
+					entry_ref ref;
 					entry.GetRef(&ref);
+
+					message = new BMessage(M_SIGNATURE);
 					message->AddRef("ref", &ref);
 					sigList.AddItem(message);
 				}
@@ -2446,7 +2459,7 @@ void TMailWindow::CopyMessage(entry_ref *ref, TMailWindow *src)
 									 src->fContentView->fTextView->TextLength());
 }
 
-void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, bool all)
+void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 {
 	fRepliedMail = *ref;
 	SetOriginatingWindow(window);
@@ -2458,7 +2471,8 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, bool all)
 	// set reply-to address and subject
 	char *to = NULL;
 	attr_info info;
-	if (file.GetAttrInfo(B_MAIL_ATTR_REPLY, &info) == B_NO_ERROR
+	if (type != M_REPLY_TO_SENDER
+		&& file.GetAttrInfo(B_MAIL_ATTR_REPLY, &info) == B_NO_ERROR
 		&& info.size > 1)
 	{
 		to = (char *)malloc(info.size);
@@ -2534,7 +2548,7 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, bool all)
 	else
 		fContentView->fTextView->LoadMessage(&file, true, NULL);
 
-	if (all)
+	if (type == M_REPLY_ALL)
 	{
 		char *cc = (char *)malloc(1);
 		cc[0] = 0;
@@ -2903,11 +2917,11 @@ status_t TMailWindow::OpenMessage(entry_ref *ref)
 		//
 		//	Put the addresses in the 'Save Address' Menu
 		//
-		BMenuItem *i = saveAddrMenu->RemoveItem(0L);
+		BMenuItem *i = fSaveAddrMenu->RemoveItem(0L);
 		while (i != NULL)
 		{
 			delete i;
-			i = saveAddrMenu->RemoveItem(0L);
+			i = fSaveAddrMenu->RemoveItem(0L);
 		}
 	
 		char *recipients = (char *)malloc(1);
@@ -2931,7 +2945,7 @@ status_t TMailWindow::OpenMessage(entry_ref *ref)
 				else
 					list[index] = 0;
 				int32 index1 = 0;
-				while ((item = saveAddrMenu->ItemAt(index1)) != NULL)
+				while ((item = fSaveAddrMenu->ItemAt(index1)) != NULL)
 				{
 					if (strcmp(list, item->Label()) == 0)
 						goto skip;
@@ -2941,7 +2955,7 @@ status_t TMailWindow::OpenMessage(entry_ref *ref)
 				}
 				msg = new BMessage(M_SAVE);
 				msg->AddString("address", list);
-				saveAddrMenu->AddItem(new BMenuItem(list, msg), index1);
+				fSaveAddrMenu->AddItem(new BMenuItem(list, msg), index1);
 	
 	skip:		if (!done) {
 					list += index + 1;
