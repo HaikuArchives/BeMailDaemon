@@ -32,6 +32,7 @@ namespace Mail {
 #include <ChainRunner.h>
 #include <status.h>
 #include <StringList.h>
+#include "ErrorLogWindow.h"
 
 using namespace Zoidberg;
 using Mail::ChainRunner;
@@ -44,6 +45,8 @@ struct filter_image {
 
 BLocker list_lock("mdr_chainrunner_lock");
 BList running_chains, running_chain_pointers;
+
+ErrorLogWindow *win = NULL;
 
 #if USE_NASTY_SYNC_THREAD_HACK
 	/* There is a memory leak in gethostbyname() that causes structures it
@@ -575,5 +578,8 @@ ChainRunner::ResetProgress(const char *message)
 void
 ChainRunner::ShowError(const char *error)
 {
-	(new BAlert("error", error, "OK"))->Go(NULL);
+	if (win == NULL)
+		win = new ErrorLogWindow(BRect(200,200,400,250),"Mail Daemon Error Log",B_TITLED_WINDOW);
+	
+	win->AddError(B_INFO_ALERT,error);
 }
