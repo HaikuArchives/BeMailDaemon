@@ -326,39 +326,47 @@ status_t MailMessage::RenderToRFC822(BPositionIO *file) {
 		recipients << ',' << _bcc;
 	
 	//----Turn "blorp" <blorp@foo.com>,foo@bar.com into <blorp@foo.com>,<foo@bar.com>
-	StringList rec;
+	const char *flat = recipients.String();
+	StringList recipientsList;
 	BString little;
+	bool string = false;
 	int32 i,j;
-	for (i = 0; i < recipients.Length(); i++) {
-		j = recipients.FindFirst(',',i);
-		if (j < 0)
-			j = recipients.Length();
-			
-		recipients.CopyInto(little,i,j - i);
-		
-		if ((little.FindFirst('(') >= 0) && (little.FindFirst(')') > 0)) {
-			int32 first = little.FindFirst('(');
-			little.Remove(first,little.FindFirst(')') - first);
+	for (i = j = 0; i <= recipients.Length(); i++) {
+		if (flat[i] == '"')
+		{
+			string = !string;
+			if (!string)
+				j = i+1;
 		}
-		
-		TrimWhite(little);
-		rec.AddItem(little.String());
-		i = j;
+		else if (!string && (flat[i] == ',' || flat[i] == '\0')) {
+			little.SetTo(flat + j,i - j);
+			puts(little.String());
+			
+			int32 first,last;
+			if ((first = little.FindFirst('(')) >= 0 && (last = little.FindFirst(')')) > 0)
+				little.Remove(first,last - first);
+
+			TrimWhite(little);
+			recipientsList.AddItem(little.String());
+			j = i;
+		}
 	}
 	recipients = "";
-	for (i = 0; i < rec.CountItems(); i++) {
-		little = rec.ItemAt(i);
-		if ((little.FindFirst('<') >= 0) && (little.FindFirst('>') > 0)) {
-			little.Remove(0,little.FindFirst('<'));
-			little.Remove(little.FindFirst('>') + 1,little.Length() - little.FindFirst('>'));
+	for (i = 0; i < recipientsList.CountItems(); i++) {
+		little = recipientsList.ItemAt(i);
+		int32 first,last;
+		if ((first = little.FindFirst('<')) >= 0 && (last = little.FindFirst('>')) > 0) {
+			little.Remove(0,first);
+			little.Remove(last + 1,little.Length() - last);
 		} else {
 			little.Prepend("<");
 			little.Append(">");
 		}
 		
-		recipients << little << ',';
+		if (i)
+			recipients << ',';
+		recipients << little;
 	}
-	recipients.Truncate(recipients.Length() - 1);
 	
 	if (BFile *attributed = dynamic_cast <BFile *>(file)) {
 		attributed->WriteAttrString(B_MAIL_ATTR_RECIPIENTS,&recipients);
