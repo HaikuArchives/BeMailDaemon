@@ -11,7 +11,7 @@ then
 	| xargs rm
 elif [[ $RETURN = "Backup" ]]
 then 
-	query -a 'BEOS:APP_SIG == "application/x-vnd.Be-POST" || BEOS:APP_SIG == "application/x-vnd.Be-mprf"' \
+	query -a 'BEOS:APP_SIG == "application/x-vnd.Be-POST" || BEOS:APP_SIG == "application/x-vnd.Be-mprf" || name == libmail.so' \
 	| grep -v "`/bin/pwd`" \
 	| xargs zip -ym /boot/home/maildaemon.zip
 else 
@@ -25,8 +25,8 @@ rm -rf ~/config/add-ons/mail_daemon/*
 
 mkdir -p ~/config/add-ons/mail_daemon
 
-rm -f ~/config/lib/libmail2.so
-copyattr -d -m bin/libnumail.so ~/config/lib/libnumail.so
+rm -f ~/config/lib/libmail2.so ~/config/lib/libnumail2.so /boot/system/lib/libmail.so
+copyattr -d -m bin/libmail.so /boot/system/lib/libmail.so
 
 copyattr -d -m -r bin/addons/* ~/config/add-ons/mail_daemon
 
