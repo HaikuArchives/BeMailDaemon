@@ -12,6 +12,8 @@ BUGS:
 
 2) Your inbox *must* be on your boot disk. We'll have a fix for this soon, but be aware of this. If you don't, you will soon start seeing errors about cross-device links and all your mail will be deleted. Don't say we didn't warn you. The e-mail monster is hiding in a cross-device link. Don't bring him out!
 
+3) You can't copy the To: field of a received message to the clipboard. This is a really bizarre bug, and we can't figure it why it's there. It's not that we don't care. Really. Or that we're stupid. A prize of, um, something to whoever fixes this!
+
 IT'S NOT A BUG, IT'S A FEATURE:
 
 1) The settings file format has changed since the last release, and drastically since version 1. Therefore you will be obliged to re-enter your settings. Sorry. But you had to for the last release, too, and since this is a bug fix for that, it will never happen again. We promise.
