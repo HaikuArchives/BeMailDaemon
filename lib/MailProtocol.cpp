@@ -13,8 +13,11 @@
 #include <NodeInfo.h>
 #include <Directory.h>
 #include <NodeMonitor.h>
+#include <Node.h>
 
 #include <stdio.h>
+#include <fs_attr.h>
+#include <malloc.h>
 #include <assert.h>
 
 #include <MDRLanguage.h>
@@ -130,7 +133,26 @@ Protocol::Protocol(BMessage *settings, ChainRunner *run)
 	Protocol::settings = settings;
 
 	manifest = new StringList;
-	runner->Chain()->MetaData()->FindFlat("manifest", manifest); //---no error checking, because if it doesn't exist, it will stay empty anyway
+	
+	{
+		BString attr_name = "MAIL:";
+		attr_name << runner->Chain()->ID() << ":manifest"; //--- In case someone puts multiple accounts in the same directory
+		
+		if (runner->Chain()->MetaData()->HasString("path")) {
+			BNode node(runner->Chain()->MetaData()->FindString("path"));
+			if (node.InitCheck() >= B_OK) {
+				attr_info info;
+				if (node.GetAttrInfo(attr_name.String(),&info) < B_OK) {
+					runner->Chain()->MetaData()->FindFlat("manifest", manifest); //---no error checking, because if it doesn't exist, it will stay empty anyway
+				} else {
+					void *flatmanifest = malloc(info.size);
+					node.ReadAttr(attr_name.String(),manifest->TypeCode(),0,flatmanifest,info.size);
+					manifest->Unflatten(manifest->TypeCode(),flatmanifest,info.size);
+					free(flatmanifest);
+				}
+			} else runner->ShowError("Error while reading account manifest: cannot use destination directory.");
+		} else runner->ShowError("Error while reading account manifest: no destination directory exists.");
+	}
 	
 	uids_on_disk = new StringList;
 	BVolumeRoster volumes;
@@ -178,10 +200,24 @@ Protocol::~Protocol()
 	if (manifest != NULL) {
 		BMessage *meta_data = runner->Chain()->MetaData();
 		meta_data->RemoveName("manifest");
-		//if (settings->FindBool("leave_mail_on_server"))
-			meta_data->AddFlat("manifest", manifest);
+		BString attr_name = "MAIL:";
+		attr_name << runner->Chain()->ID() << ":manifest"; //--- In case someone puts multiple accounts in the same directory
+		if (meta_data->HasString("path")) {
+			BNode node(meta_data->FindString("path"));
+			if (node.InitCheck() >= B_OK) {
+				node.RemoveAttr(attr_name.String());
+				ssize_t manifestsize = manifest->FlattenedSize();
+				void *flatmanifest = malloc(manifestsize);
+				manifest->Flatten(flatmanifest,manifestsize);
+				if (status_t err = node.WriteAttr(attr_name.String(),manifest->TypeCode(),0,flatmanifest,manifestsize) < B_OK) {
+					BString error = "Error while saving account manifest: ";
+					error << strerror(err);
+					runner->ShowError(error.String());
+				}
+				free(flatmanifest);
+			} else runner->ShowError("Error while saving account manifest: cannot use destination directory.");
+		} else runner->ShowError("Error while saving account manifest: no destination directory exists.");
 	}
-
 	delete unique_ids;
 	delete manifest;
 	delete trash_monitor;

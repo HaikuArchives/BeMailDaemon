@@ -432,7 +432,7 @@ MailDaemonApp::RunChains(BList &list, BMessage *msg)
 			chain = (Chain *)list.ItemAt(i);
 
 			if (chain->ID() == id) {
-				chain->RunChain(status, true, true, true);
+				chain->RunChain(status, true, false, true);
 				list.RemoveItem(i);	// the chain runner deletes the chain
 				break;
 			}
@@ -444,7 +444,7 @@ MailDaemonApp::RunChains(BList &list, BMessage *msg)
 		for (int32 i = 0; i < list.CountItems(); i++) {
 			chain = (Chain *)list.ItemAt(i);
 
-			chain->RunChain(status, true, true, true);
+			chain->RunChain(status, true, false, true);
 		}
 	} else {
 		// delete unused chains

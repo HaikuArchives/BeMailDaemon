@@ -90,7 +90,7 @@ Mail::GetRunner(int32 chain_id, Mail::StatusWindow *status, bool selfDestruct)
 	list_lock.Unlock();
 
 	ChainRunner *runner = new ChainRunner(Mail::GetChain(chain_id), status,
-		selfDestruct, true, selfDestruct);
+		selfDestruct, false, selfDestruct);
 
 	runner->RunChain();
 	return runner;

@@ -33,7 +33,7 @@ class ChainCallback {
 class ChainRunner : public BLooper {
 	public:
 		ChainRunner(Mail::Chain *chain, Mail::StatusWindow *status,
-			bool self_destruct_when_done = true, bool save_chain_when_done = true,
+			bool self_destruct_when_done = true, bool save_chain_when_done = false,
 			bool destruct_chain_when_done = false);
 		~ChainRunner();
 
