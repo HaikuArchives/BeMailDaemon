@@ -519,6 +519,7 @@ void IMAP4Client::SyncAllBoxes() {
 			
 			snoodle.WriteAttrString("MAIL:unique_id",&uid);
 			(*manifest) += uid.String();
+			(*unique_ids) += uid.String();
 			chain = runner->Chain()->ID();
 			snoodle.WriteAttr("MAIL:chain",B_INT32_TYPE,0,&chain,sizeof(chain));
 		}
