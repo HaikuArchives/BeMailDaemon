@@ -11,6 +11,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <sys/utsname.h>
+#include <ctype.h>
 
 class _EXPORT MailMessage;
 
@@ -18,6 +19,7 @@ class _EXPORT MailMessage;
 #include <MailAttachment.h>
 #include <MailSettings.h>
 #include <MailDaemon.h>
+#include <StringList.h>
 
 //-------Change the following!----------------------
 #define mime_boundary "----------Zoidberg-BeMail-temp--------"
@@ -263,6 +265,21 @@ status_t MailMessage::Instantiate(BPositionIO *mail_file, size_t length) {
 	return B_OK;
 }
 
+inline void TrimWhite(BString &string) {
+	int32 i;
+	for (i = 0; string.ByteAt(i) != 0; i++) {
+		if (!isspace(string.ByteAt(i)))
+			break;
+	}
+	string.Remove(0,i);
+	
+	for (i = string.Length() - 1; i > 0; i--) {
+		if (!isspace(string.ByteAt(i)))
+			break;
+	}
+	string.Truncate(i+1);
+}
+
 status_t MailMessage::Render(BPositionIO *file) {
 	if (_body == NULL)
 		return B_MAIL_INVALID_MAIL;
@@ -282,30 +299,33 @@ status_t MailMessage::Render(BPositionIO *file) {
 		recipients << ',' << _bcc;
 	
 	//----Turn "blorp" <blorp@foo.com>,foo@bar.com into <blorp@foo.com>,<foo@bar.com>
-	int32 last_i = 0;
-	for (int32 i = 0; (recipients.ByteAt(i) != 0) && (last_i >= 0); i++) {		
-		if ((recipients.FindFirst(',',i) < recipients.FindFirst('<',i)) || (recipients.FindFirst('<',i) < 0)) {
-			recipients.Insert("<",i);
-			i = last_i = recipients.FindFirst(',',i) + 1;
+	StringList rec;
+	BString little;
+	int32 i,j;
+	for (i = 0; i < recipients.Length(); i++) {
+		j = recipients.FindFirst(',',i);
+		if (j < 0)
+			j = recipients.Length();
 			
-			if (i <= 0) {
-				i = recipients.Length()+1;
-				last_i = -1;
-			}
-			
-			recipients.Insert(">",i-1);
-			continue;
-		}
-			
-		if (recipients.ByteAt(i) == '<') {
-			//-----subtract name
-			recipients.Remove(last_i,i-last_i);
-			//-----subtract any white space afters
-			recipients.Remove(recipients.FindFirst('>',i)+1,recipients.FindFirst(',',i) - recipients.FindFirst('>',i) - 1);
-			//-----move to next
-			i = last_i = recipients.FindFirst(',',i) + 1;
-		}
+		recipients.CopyInto(little,i,j - i);
+		TrimWhite(little);
+		rec.AddItem(little.String());
+		i = j;
 	}
+	recipients = "";
+	for (i = 0; i < rec.CountItems(); i++) {
+		little = rec.ItemAt(i);
+		if ((little.FindFirst('<') >= 0) && (little.FindFirst('>') > 0)) {
+			little.Remove(0,little.FindFirst('<'));
+			little.Remove(little.FindFirst('>') + 1,little.Length() - little.FindFirst('>'));
+		} else {
+			little.Prepend("<");
+			little.Append(">");
+		}
+		
+		recipients << little << ',';
+	}
+	recipients.Truncate(recipients.Length() - 1);
 	
 	if (BFile *attributed = dynamic_cast <BFile *>(file)) {
 		attributed->WriteAttrString(B_MAIL_ATTR_RECIPIENTS,&recipients);
