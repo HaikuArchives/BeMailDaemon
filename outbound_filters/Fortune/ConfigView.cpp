@@ -24,7 +24,7 @@ ConfigView::ConfigView()
 
 	BRect rect(5,4,250,25);
 	rect.bottom = rect.top - 2 + itemHeight;
-	FileConfigView *fview = new FileConfigView("Fortune File:","fortune_file",false,"/boot/beos/etc/fortunes/default");
+	FileConfigView *fview = new FileConfigView("Fortune File:","fortune_file",false,"/boot/beos/etc/fortunes/default",B_FILE_NODE);
 	AddChild(fview);
 	
 	rect.top = rect.bottom + 8;
@@ -39,12 +39,14 @@ ConfigView::ConfigView()
 
 void ConfigView::SetTo(BMessage *archive)
 {
+	archive->PrintToStream();
+	
 	BString path = archive->FindString("fortune_file");
 	if (path == B_EMPTY_STRING)
 		path = "/boot/beos/etc/fortunes/default";
 	
-	if (BTextControl *control = (BTextControl *)FindView("fortune_file"))
-		control->SetText(path.String());
+	if (FileConfigView *control = (FileConfigView *)FindView("fortune_file"))
+		control->SetTo(archive,NULL);
 		
 	path = archive->FindString("tag_line");
 	if (!archive->HasString("tag_line"))
@@ -58,10 +60,10 @@ void ConfigView::SetTo(BMessage *archive)
 
 status_t ConfigView::Archive(BMessage *into,bool) const
 {
-	if (BTextControl *control = (BTextControl *)FindView("fortune_file"))
+	into->PrintToStream();
+	if (FileConfigView *control = (FileConfigView *)FindView("fortune_file"))
 	{
-		if (into->ReplaceString("fortune_file",control->Text()) != B_OK)
-			into->AddString("fortune_file",control->Text());
+		control->Archive(into);
 	}
 	
 	if (BTextControl *control = (BTextControl *)FindView("tag_line"))
@@ -73,6 +75,7 @@ status_t ConfigView::Archive(BMessage *into,bool) const
 			into->AddString("tag_line",line.String());
 	}
 
+	into->PrintToStream();
 	return B_OK;
 }
 

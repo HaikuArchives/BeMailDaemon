@@ -16,7 +16,7 @@ class BButton;
 class FileControl : public BView
 {
 	public:
-		FileControl(BRect rect,const char *label,const char *pathOfFile = NULL,uint32 flavors = B_DIRECTORY_NODE);
+		FileControl(BRect rect,const char *name,const char *label,const char *pathOfFile = NULL,uint32 flavors = B_DIRECTORY_NODE);
 		~FileControl();
 
 		virtual void AttachedToWindow();

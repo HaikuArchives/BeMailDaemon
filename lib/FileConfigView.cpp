@@ -10,6 +10,8 @@
 #include <Message.h>
 #include <Path.h>
 
+#include <stdio.h>
+
 class _EXPORT FileControl;
 class _EXPORT FileConfigView;
 
@@ -18,8 +20,8 @@ class _EXPORT FileConfigView;
 const uint32 kMsgSelectButton = 'fsel';
 
 
-FileControl::FileControl(BRect rect,const char *label,const char *pathOfFile,uint32 flavors)
-		:	BView(rect,"file_config",B_FOLLOW_LEFT | B_FOLLOW_TOP,0)
+FileControl::FileControl(BRect rect,const char *name,const char *label,const char *pathOfFile,uint32 flavors)
+		:	BView(rect,name,B_FOLLOW_LEFT | B_FOLLOW_TOP,0)
 {
 	SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
 
@@ -127,7 +129,7 @@ void FileControl::GetPreferredSize(float *width, float *height)
 
 
 FileConfigView::FileConfigView(const char *label,const char *name,bool useMeta,const char *defaultPath,uint32 flavors)
-		:	FileControl(BRect(0,0,255,10),label,defaultPath,flavors),
+		:	FileControl(BRect(0,0,255,10),name,label,defaultPath,flavors),
 		fUseMeta(useMeta),
 		fName(name)
 {
