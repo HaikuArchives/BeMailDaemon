@@ -3,7 +3,9 @@
 class BMessage;
 class BView;
 class BPositionIO;
+class BEntry;
 class BPath;
+class BView;
 class BString;
 class BPositionIO;
 class BEntry;

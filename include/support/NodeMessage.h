@@ -15,12 +15,12 @@
    item is the one writen to the node.
 */
 
+#include <Node.h>
+#include <Message.h>
+
 #ifdef B_BEOS_VERSION_DANO
 #define _IMPEXP_MAIL
 #endif
-
-#include <Node.h>
-#include <Message.h>
 
 _IMPEXP_MAIL BNode& operator<<(BNode& n, const BMessage& m);
 _IMPEXP_MAIL BNode& operator>>(BNode& n, BMessage& m);

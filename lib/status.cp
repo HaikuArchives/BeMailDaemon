@@ -33,17 +33,22 @@ StatusWindow::StatusWindow(BRect rect, const char *name, uint32 s)
 								  B_FOLLOW_LEFT_RIGHT,
 								  B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE | B_NAVIGABLE);
 	button->ResizeToPreferred();
+	frame = button->Frame();
+	
 	button->ResizeTo(button->Bounds().Width(),25);
 	button->SetTarget(be_app_messenger);
 
-	frame = button->Frame();
-	frame.OffsetBy(0.0, 12.0);
+	frame.OffsetBy(0.0, frame.Height());
 	frame.InsetBy(-90.0, 0.0);
 	
 	message_view = new BStringView(frame, "message_view", "",
 								   B_FOLLOW_LEFT_RIGHT, B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE);
 	message_view->SetAlignment(B_ALIGN_CENTER);
 	message_view->SetText("No new messages.");
+	float framewidth = frame.Width();
+	message_view->ResizeToPreferred();
+	message_view->ResizeTo(framewidth,message_view->Bounds().Height());
+	frame = message_view->Frame();
 
 	frame.InsetBy(-5.0, -5.0);
 	frame.top = 0.0;
@@ -57,7 +62,6 @@ StatusWindow::StatusWindow(BRect rect, const char *name, uint32 s)
 
 	min_width = default_view->Bounds().Width();
 	min_height = default_view->Bounds().Height();
-	min_height = 40;
 	ResizeTo(min_width, min_height);
 	SetSizeLimits(min_width, 2.0 * min_width, min_height, min_height);
 

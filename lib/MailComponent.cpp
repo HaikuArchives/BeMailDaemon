@@ -101,7 +101,8 @@ status_t MailComponent::Instantiate(BPositionIO *data, size_t length) {
 status_t MailComponent::Render(BPositionIO *render_to) {
 	int32 charset;
 	int8 encoding;
-	char *key, *value, *allocd;
+	const char *key, *value;
+	char *allocd;
 	
 	BString concat;
 	

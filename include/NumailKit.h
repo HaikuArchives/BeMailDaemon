@@ -11,6 +11,15 @@
 #include <MailAddon.h>
 #include <MailSettings.h>
 
+#if _BUILDING_mail
+#define _IMPEXP_MAIL
+#else
+#define _IMPEXP_MAIL
+#endif
+
+BMessenger*& mail_daemon_messenger_func();
+#define mail_daemon_messenger (mail_daemon_messenger_func())
+
 //
 // Notification states:
 //

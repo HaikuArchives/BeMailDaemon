@@ -4,12 +4,29 @@
 #include <File.h>
 #include <Path.h>
 #include <Directory.h>
+#include <Locker.h>
+#include <Autolock.h>
 
 #include <stdio.h>
 
 #include <NumailKit.h>
 
 #define timeout 5e5
+
+BMessenger *mail_daemon_messenger_ptr = NULL;
+BMessenger *&mail_daemon_messenger_func()
+{
+	if (mail_daemon_messenger_ptr)
+		return mail_daemon_messenger_ptr;
+	
+	static BLocker foo;
+	BAutolock foolock(foo);
+	
+	if (mail_daemon_messenger_ptr == NULL)
+		mail_daemon_messenger_ptr = new BMessenger("application/x-vnd.Be-POST");
+	return mail_daemon_messenger_ptr;
+}
+
 
 status_t WriteMessageFile(const BMessage& archive, const BPath& path, const char* name)
 {

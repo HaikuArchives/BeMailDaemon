@@ -52,7 +52,7 @@ class MailChain: public BArchivable
 	status_t Path(BPath *path) const;
 	status_t Load(BMessage*);
 
-	uint32 id;
+	int32 id;
 	char name[B_FILE_NAME_LENGTH];
 	BMessage *meta_data;
 
