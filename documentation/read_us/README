@@ -150,7 +150,7 @@ ADDON INSTALLATION.
 
 HISTORY:
 
-February 4 2003 - v2.0.0b9
+February 6 2003 - v2.0.0b9
 - Use quoted printable for the headers to avoid base64 extra CRLF insertion which makes a mess if the header (like Subject) is too long to fit on a line.
 - Added 7bit and 8bit encoding to the library, and made BeMail use 7bit for ISO-2022-JP (base64 for other Japanese character sets).
 - If a header field (CC, Subject, etc) is made empty in BeMail, also remove that header.  Was causing a reply (with an automatically generated CC) to get sent to extra people even though the CC seemed to have been erased.  Library code changed to accept NULL and empty value strings as meaning remove the header.
@@ -163,6 +163,7 @@ February 4 2003 - v2.0.0b9
 - Fixed bug with missing last letter in Japanese headers by forcing it to switch to the Roman character set (could also switch to ASCII, but they are almost the same) at the end of the header.
 - Compensate for Yahoo! address inside the name goofyness, find "Joe" for the name when given: "Joe <joe@yahoo.com>" <joe@yahoo.com>
 - Added Koki's first batch of Japanese translations for text within MDR.
+- Fixed up word wrapping code to fall back to the user's preferred font if the system fixed width font didn't have as many of the characters used in the message.  Doesn't depend on character set choice now.
 
 January 22 2003 - v2.0.0b8
 - Date format changed slightly to make it compliant to RFC-822 (some other mail apps had problems understanding it).

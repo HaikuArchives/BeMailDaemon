@@ -1955,8 +1955,8 @@ TTextView::AddAsContent(Mail::Message *mail, bool wrap, uint32 charset, mail_enc
 	if (mail == NULL)
 		return;
 
-	const char	*text = Text();
 	int32		textLen = TextLength();
+	const char	*text = Text();
 
 	Mail::TextComponent *body = mail->Body();
 	if (body == NULL)
@@ -1983,44 +1983,37 @@ TTextView::AddAsContent(Mail::Message *mail, bool wrap, uint32 charset, mail_enc
 		if (hScroller != NULL)
 			hScroller->SetTarget((BView *)NULL);
 
-		// temporarily set the font to be_fixed_font
-		SetFontAndColor(0, textLen, be_fixed_font);
+		// Temporarily set the font to a fixed width font for line wrapping
+		// calculations.  If the font doesn't have as many of the symbols as
+		// the preferred font, go back to using the user's preferred font.
 
-		if (charset == B_JIS_CONVERSION ||
-			charset == B_SJIS_CONVERSION ||
-			charset == B_EUC_CONVERSION)
-		{
-			// this is truly evil...  I'm ashamed of myself (Hiroshi)
-			int32	lastMarker = 0;
-			bool 	inKanji = false;
-			BFont	kanjiFont(be_fixed_font);
-			kanjiFont.SetSize(kanjiFont.Size() * 2);
+		bool	*boolArray;
+		int		 missingCharactersFixedWidth = 0;
+		int		 missingCharactersPreferredFont = 0;
+		int32	 numberOfCharacters;
+		BString	 textAsBString (text);
 
-			for (int32 i = 0; i < textLen; i++)
-			{
-				if (ByteAt(i) > 0x7F)
-				{
-					if (!inKanji)
-					{
-						SetFontAndColor(lastMarker, i, be_fixed_font, B_FONT_SIZE);
-						lastMarker = i;
-						inKanji = true;
-					}
-				}
-				else
-				{
-					if (inKanji)
-					{
-						SetFontAndColor(lastMarker, i, &kanjiFont, B_FONT_SIZE);
-						lastMarker = i;
-						inKanji = false;
-					}
-				}	
-			}
-
-			if (inKanji)
-				SetFontAndColor(lastMarker, textLen, &kanjiFont, B_FONT_SIZE);
+		numberOfCharacters = textAsBString.CountChars();
+		if (numberOfCharacters > 0 && (boolArray = (bool *)
+			malloc (sizeof (bool) * numberOfCharacters)) != NULL) {
+			int i;
+			memset (boolArray, 0, sizeof (bool) * numberOfCharacters);
+			be_fixed_font->GetHasGlyphs (text, numberOfCharacters, boolArray);
+			for (i = 0; i < numberOfCharacters; i++)
+				if (!boolArray[i])
+					missingCharactersFixedWidth += 1;
+			memset (boolArray, 0, sizeof (bool) * numberOfCharacters);
+			fFont.GetHasGlyphs (text, numberOfCharacters, boolArray);
+			for (i = 0; i < numberOfCharacters; i++)
+				if (!boolArray[i])
+					missingCharactersPreferredFont += 1;
+			free (boolArray);
 		}
+
+		if (missingCharactersFixedWidth > missingCharactersPreferredFont)
+			SetFontAndColor(0, textLen, &fFont);
+		else // All things being equal, the fixed font is better for wrapping.
+			SetFontAndColor(0, textLen, be_fixed_font);
 
 		// calculate a text rect that is 72 columns wide
 		BRect newTextRect = saveTextRect;
@@ -2044,7 +2037,7 @@ TTextView::AddAsContent(Mail::Message *mail, bool wrap, uint32 charset, mail_enc
 				contentLen += lineLen;
 
 				// add a newline to every line except for the ones
-				// that already end in newlines, and the last line 
+				// that already end in newlines, and the last line
 				if ((text[endOffset - 1] != '\n') && (i < (numLines - 1)))
 				{
 					content[contentLen++] = '\n';
