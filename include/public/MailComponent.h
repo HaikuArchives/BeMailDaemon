@@ -14,12 +14,20 @@ typedef enum {
 	no_encoding			= -1
 } mail_encoding;
 
+enum component_type {
+	MC_PLAIN_TEXT_BODY = 0,
+	MC_SIMPLE_ATTACHMENT,
+	MC_ATTRIBUTED_ATTACHMENT,
+	MC_MULTIPART_CONTAINER
+};
+
 class MailComponent {
 	public:
 		MailComponent();
 		virtual ~MailComponent();
 		
 		//------Info on this component
+		uint32 ComponentType();
 		MailComponent *WhatIsThis();
 			// Takes any generic MailComponent, and returns an instance
 			// of a MailComponent subclass that applies to this case,
