@@ -24,29 +24,38 @@ struct CharsetConversionEntry
 extern const CharsetConversionEntry charsets[21];
 
 MailComponent::MailComponent() {}
-		
-MailComponent *MailComponent::WhatIsThis() {
+
+uint32 MailComponent::ComponentType()
+{
 	BMimeType type, super;
 	MIMEType(&type);
 	type.GetSupertype(&super);
-	
-	puts(type.Type());
-	
-	MailComponent *piece;
+
 	//---------ATT-This code *desperately* needs to be improved
 	if (super == "multipart") {
 		if (type == "multipart/x-bfile")
-			piece = new AttributedMailAttachment;
+			return MC_ATTRIBUTED_ATTACHMENT;
 		else
-			piece = new MIMEMultipartContainer;
-	} else {
-		if (IsAttachment())
-			piece = new SimpleMailAttachment;
-		else
-			piece = new PlainTextBodyComponent;
+			return MC_MULTIPART_CONTAINER;
+	} else if (IsAttachment())
+		return MC_SIMPLE_ATTACHMENT;
+	else
+		return MC_PLAIN_TEXT_BODY;
+}
+
+MailComponent *MailComponent::WhatIsThis() {
+	switch (ComponentType())
+	{
+		case MC_SIMPLE_ATTACHMENT:
+			return new SimpleMailAttachment;
+		case MC_ATTRIBUTED_ATTACHMENT:
+			return new AttributedMailAttachment;
+		case MC_MULTIPART_CONTAINER:
+			return new MIMEMultipartContainer;
+		case MC_PLAIN_TEXT_BODY:
+		default:
+			return new PlainTextBodyComponent;
 	}
-	
-	return piece;
 }
 
 bool MailComponent::IsAttachment() {
@@ -182,7 +191,9 @@ const char *MailComponent::HeaderAt(int32 index) {
 status_t MailComponent::GetDecodedData(BPositionIO *) {return B_OK;}
 status_t MailComponent::SetDecodedData(BPositionIO *) {return B_OK;}
 
-status_t MailComponent::Instantiate(BPositionIO *data, size_t length) {
+status_t MailComponent::Instantiate(BPositionIO *data, size_t /*length*/) {
+	// Remove the warning. Is length necessary at all?
+	
 	headers.MakeEmpty();
 	
 	BString string,piece;
@@ -212,11 +223,8 @@ status_t MailComponent::Instantiate(BPositionIO *data, size_t length) {
 		
 		headers.AddString(piece.String(),string.String() + piece.Length() + 2);
 	}
-		
 	free(buf);
 
-	length = 0; // Remove the warning. Is length necessary at all?
-	
 	return B_OK;
 }
 	

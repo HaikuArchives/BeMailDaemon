@@ -19,8 +19,8 @@ typedef struct message_part {
 	int32 end;
 } message_part;
 
-MIMEMultipartContainer::MIMEMultipartContainer(const char *boundary, const char *this_is_an_MIME_message_text) :
-	MailComponent(), 
+MIMEMultipartContainer::MIMEMultipartContainer(const char *boundary, const char *this_is_an_MIME_message_text)
+	:
 	_boundary(NULL),
 	_MIME_message_warning(this_is_an_MIME_message_text),
 	_io_data(NULL) {		
@@ -40,16 +40,12 @@ MIMEMultipartContainer::MIMEMultipartContainer(const char *boundary, const char 
 	}*/
 
 MIMEMultipartContainer::~MIMEMultipartContainer() {
-	void *data;
-	for (int32 i = 0; i < _components_in_raw.CountItems(); i++) {
-		if ((data = _components_in_raw.ItemAt(i)) != NULL)
-			delete data;
-	}
-	for (int32 i = 0; i < _components_in_code.CountItems(); i++) {
-		if ((data = _components_in_code.ItemAt(i)) != NULL)
-			delete data;
-	}
-	
+	for (int32 i = 0; i < _components_in_raw.CountItems(); i++)
+		delete (message_part *)_components_in_raw.ItemAt(i);
+
+	for (int32 i = 0; i < _components_in_code.CountItems(); i++)
+		delete (MailComponent *)_components_in_code.ItemAt(i);
+
 	if (_boundary != NULL)
 		free((void *)_boundary);
 }
@@ -60,13 +56,11 @@ void MIMEMultipartContainer::SetBoundary(const char *boundary) {
 	BMessage structured;
 	HeaderField("Content-Type",&structured);
 	
-	if (boundary == NULL) {
+	if (boundary == NULL)
 		structured.RemoveName("boundary");
-	} else {
-		if (structured.ReplaceString("boundary",_boundary) != B_OK)
-			structured.AddString("boundary",_boundary);
-	}
-		
+	else if (structured.ReplaceString("boundary",_boundary) != B_OK)
+		structured.AddString("boundary",_boundary);
+	
 	SetHeaderField("Content-Type",&structured);
 }
 
@@ -74,15 +68,20 @@ void MIMEMultipartContainer::SetThisIsAnMIMEMessageText(const char *text) {
 	_MIME_message_warning = text;
 }
 
-void MIMEMultipartContainer::AddComponent(MailComponent *component) {
-	_components_in_code.AddItem(component);
-	_components_in_raw.AddItem(NULL);
+status_t MIMEMultipartContainer::AddComponent(MailComponent *component) {
+	if (!_components_in_code.AddItem(component))
+		return B_ERROR;
+	if (_components_in_raw.AddItem(NULL))
+		return B_OK;
+
+	_components_in_code.RemoveItem(component);
+	return B_ERROR;
 }
 
 MailComponent *MIMEMultipartContainer::GetComponent(int32 index) {
-	if (_components_in_code.ItemAt(index) != NULL)
-		return (MailComponent *)(_components_in_code.ItemAt(index)); //--- Handle easy case
-		
+	if (MailComponent *component = (MailComponent *)_components_in_code.ItemAt(index))
+		return component;	//--- Handle easy case
+
 	message_part *part = (message_part *)(_components_in_raw.ItemAt(index));
 	if (part == NULL)
 		return NULL;
@@ -116,16 +115,12 @@ int32 MIMEMultipartContainer::CountComponents() const {
 }
 
 status_t MIMEMultipartContainer::RemoveComponent(int32 index) {
-	void *data;
-	
 	if (index >= CountComponents())
 		return B_BAD_INDEX;
-	
-	if ((data = _components_in_code.RemoveItem(index)) != NULL)
-		delete data;
-	if ((data = _components_in_raw.RemoveItem(index)) != NULL)
-		delete data;
-		
+
+	delete (MailComponent *)_components_in_code.RemoveItem(index);
+	delete (message_part *)_components_in_raw.RemoveItem(index);
+
 	return B_OK;
 }
 
@@ -136,7 +131,7 @@ status_t MIMEMultipartContainer::ManualGetComponent(MailComponent *component, in
 	message_part *part = (message_part *)(_components_in_raw.ItemAt(index));
 	if (part == NULL)
 		return B_BAD_INDEX;
-		
+	
 	_io_data->Seek(part->start,SEEK_SET);
 	
 	return component->Instantiate(_io_data,part->end - part->start);
@@ -152,14 +147,12 @@ status_t MIMEMultipartContainer::SetDecodedData(BPositionIO *) {
 
 status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length)
 {
-	MailComponent *old;
-	while ((old = (MailComponent *)_components_in_code.RemoveItem(0L)) != NULL)
-		delete old;
-		
-	message_part *old2;
-	while ((old2 = (message_part *)_components_in_raw.RemoveItem(0L)) != NULL)
-		delete old2;
-	
+	for (int32 i = _components_in_code.CountItems();i-- > 0;)
+		delete (MailComponent *)_components_in_code.RemoveItem(i);
+
+	for (int32 i = _components_in_raw.CountItems();i-- > 0;)
+		delete (message_part *)_components_in_raw.RemoveItem(i);
+
 	_io_data = data;
 	
 	off_t position = data->Position();
@@ -230,8 +223,6 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length)
 }
 
 status_t MIMEMultipartContainer::Render(BPositionIO *render_to) {
-	
-	
 	MailComponent::Render(render_to);
 	
 	BString delimiter;
@@ -241,7 +232,6 @@ status_t MIMEMultipartContainer::Render(BPositionIO *render_to) {
 		render_to->Write(_MIME_message_warning,strlen(_MIME_message_warning));
 		render_to->Write("\r\n",2);
 	}
-	
 	
 	for (int32 i = 0; i < _components_in_code.CountItems() /* both have equal length, so pick one at random */; i++) {
 		render_to->Write(delimiter.String(),delimiter.Length());

@@ -45,8 +45,7 @@ MailMessage::~MailMessage() {
 	if (_bcc != NULL)
 		free(_bcc);
 		
-	if (_body != NULL)
-		delete _body;
+	delete _body;
 }
 
 const char *MailMessage::To() {
@@ -120,34 +119,52 @@ void MailMessage::SendViaAccount(int32 chain_id) {
 	SetFrom(from.String());
 }
 
-void MailMessage::AddComponent(MailComponent *component) {
+status_t MailMessage::AddComponent(MailComponent *component) {
+	status_t status = B_OK;
+
 	if (_num_components == 0)
 		_body = component;
 	else if (_num_components == 1) {
 		MIMEMultipartContainer *container = new MIMEMultipartContainer(mime_boundary,mime_warning);
-		container->AddComponent(_body);
-		container->AddComponent(component);
+		if ((status = container->AddComponent(_body)) == B_OK)
+			status = container->AddComponent(component);
 		_body = container;
-	} else {
-		((MIMEMultipartContainer *)(_body))->AddComponent(component);
-	}
-	
-	_num_components++;
+	} else
+		status = ((MIMEMultipartContainer *)(_body))->AddComponent(component);
+
+	if (status == B_OK)
+		_num_components++;
+	return status;
 }
 
+status_t MailMessage::RemoveComponent(int32 /*index*/) {
+	// not yet implemented
+	return B_ERROR;
+}
+
+
+status_t MailMessage::ManualGetComponent(MailComponent *component, int32 index) {
+	if (dynamic_cast<MIMEMultipartContainer *>(_body))
+		return ((MIMEMultipartContainer *)(_body))->ManualGetComponent(component, index);
+
+	if (_body)
+		return B_NAME_IN_USE;
+
+	return B_BAD_INDEX;
+}
+
+
 MailComponent *MailMessage::GetComponent(int32 i) {
-	if (!is_instance_of(_body,MIMEMultipartContainer)) {
-		if (i >= _num_components)
-			return NULL;
-		else return _body;
-	} else {
+	if (dynamic_cast<MIMEMultipartContainer *>(_body))
 		return ((MIMEMultipartContainer *)(_body))->GetComponent(i);
-	}
-	
+
+	if (i < _num_components)
+		return _body;
+
 	return NULL;
 }
 
-int32 MailMessage::CountComponents() {
+int32 MailMessage::CountComponents() const {
 	return _num_components;
 }
 
@@ -186,10 +203,20 @@ void MailMessage::SetBodyTextTo(const char *text) {
 	_text_body->SetText(text);
 }	
 	
-const char *MailMessage::BodyText() {
+
+PlainTextBodyComponent *MailMessage::Body()
+{
 	if (_text_body == NULL)
+		_text_body = RetrieveTextBody(_body);
+
+	return _text_body;
+}
+
+
+const char *MailMessage::BodyText() {
+	if (Body() == NULL)
 		return NULL;
-		
+
 	return _text_body->Text();
 }
 
@@ -206,6 +233,35 @@ status_t MailMessage::SetBody(PlainTextBodyComponent *body) {
 
 	return B_OK;
 }
+
+
+PlainTextBodyComponent *MailMessage::RetrieveTextBody(MailComponent *component)
+{
+	PlainTextBodyComponent *body = dynamic_cast<PlainTextBodyComponent *>(component);
+	if (body != NULL)
+		return body;
+
+	MIMEMultipartContainer *container = dynamic_cast<MIMEMultipartContainer *>(component);
+	if (container != NULL) {
+		for (int32 i = 0; i < container->CountComponents(); i++) {
+			MailComponent c;
+			if (container->ManualGetComponent(&c,i) == B_OK)
+				component = &c;
+			else if ((component = container->GetComponent(i)) == NULL)
+				continue;
+
+			switch (component->ComponentType())
+			{
+				case MC_PLAIN_TEXT_BODY:
+					return (PlainTextBodyComponent *)container->GetComponent(i);
+				case MC_MULTIPART_CONTAINER:
+					return RetrieveTextBody(component = container->GetComponent(i));
+			}
+		}
+	}
+	return NULL;
+}
+
 
 status_t MailMessage::Instantiate(BPositionIO *mail_file, size_t length) {
 	if (BFile *file = dynamic_cast<BFile *>(mail_file))
@@ -247,25 +303,6 @@ status_t MailMessage::Instantiate(BPositionIO *mail_file, size_t length) {
 	
 	_num_components = (cont == NULL) ? 1 : cont->CountComponents();
 	
-	_text_body = dynamic_cast<PlainTextBodyComponent *> (_body);
-	
-	if ((_text_body == NULL) && (cont != NULL)) {
-		MailComponent component, *it_is;
-		for (int32 i = 0; i < cont->CountComponents(); i++) {
-			cont->ManualGetComponent(&component,i);
-			it_is = component.WhatIsThis();
-			_text_body = dynamic_cast<PlainTextBodyComponent *> (it_is);
-			
-			if (_text_body != NULL) {
-				_text_body = (PlainTextBodyComponent *)cont->GetComponent(i);
-				delete it_is;
-				break;
-			 }
-			 
-			 delete it_is;
-		}
-	}
-
 	// what about a better error handling/checking?
 	_status = B_OK;	
 	return B_OK;
@@ -431,13 +468,12 @@ status_t MailMessage::Send(bool send_now) {
 	}
 	
 	create_directory(via->MetaData()->FindString("path"),0777);
-	BDirectory *dir = new BDirectory(via->MetaData()->FindString("path"));
+	BDirectory directory(via->MetaData()->FindString("path"));
 
-	status_t status = RenderTo(dir);
+	status_t status = RenderTo(&directory);
 	if (status >= B_OK && send_now)
 		status = MailDaemon::SendQueuedMail();
-		
-	delete dir;	
+	
 	delete via;
 	
 	return status;
