@@ -245,7 +245,8 @@ void AttributedMailAttachment::SetTo(BFile *file, bool delete_file_when_done) {
 	
 void AttributedMailAttachment::SetTo(entry_ref *ref) {
 	char buffer[512];
-	_attributes << BNode(ref);
+	BNode node(ref);
+	_attributes << node;
 	
 	BFile *file = new BFile(ref,B_READ_ONLY);
 	_data->SetDecodedDataAndDeleteWhenDone(file);
