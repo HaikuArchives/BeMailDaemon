@@ -107,7 +107,11 @@ status_t MDR_convert_from_utf8 (
 	int32 *state,
 	char substitute)
 {
-	int32 copyAmount;
+	int32		copyAmount;
+	status_t	errorCode;
+	int32		originalDstLen = *dstLen;
+	int32		tempDstLen;
+	int32		tempSrcLen;
 
 	if (dstEncoding == MDR_UTF8_CONVERSION)
 	{
@@ -120,8 +124,32 @@ status_t MDR_convert_from_utf8 (
 		return B_OK;
 	}
 
-	return convert_from_utf8 (dstEncoding, src, srcLen, dst, dstLen, state,
-		substitute);
+	errorCode = convert_from_utf8 (dstEncoding, src, srcLen, dst, dstLen, state, substitute);
+	if (errorCode != B_OK)
+		return errorCode;
+
+	if (dstEncoding != B_JIS_CONVERSION)
+		return B_OK;
+
+	// B_JIS_CONVERSION (ISO-2022-JP) works by shifting between different
+	// character subsets.  For E-mail headers (and other uses), it needs to be
+	// switched back to ASCII at the end (otherwise the last character gets
+	// lost or other weird things happen in the headers).  Note that we can't
+	// just append the escape code since the convert_from_utf8 "state" will be
+	// wrong.  So we append an ASCII letter and throw it away, leaving just the
+	// escape code.  Well, it actually switches to the Roman character set, not
+	// ASCII, but that should be OK.
+
+	tempDstLen = originalDstLen - *dstLen;
+	if (tempDstLen < 3) // Not enough space remaining in the output.
+		return B_OK; // Sort of an error, but we did convert the rest OK.
+	tempSrcLen = 1;
+	errorCode = convert_from_utf8 (dstEncoding, "a", &tempSrcLen,
+		dst + *dstLen, &tempDstLen, state, substitute);
+	if (errorCode != B_OK)
+		return errorCode;
+	*dstLen += tempDstLen - 1 /* don't include the ASCII letter */;
+	return B_OK;
 }
 
 
@@ -950,7 +978,7 @@ _EXPORT time_t ParseDateWithTimeZone (const char *DateString)
 	if (tempZoneString[0] == '+')
 		zoneDeltaTime = 0 - zoneDeltaTime;
 	dateAsTime += zoneDeltaTime;
-	
+
 	return dateAsTime;
 }
 
