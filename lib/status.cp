@@ -11,6 +11,8 @@
 #include <Screen.h>
 #include <String.h>
 #include <StatusBar.h>
+#include <Roster.h>
+#include <E-mail.h>
 
 #include <stdio.h>
 #include <assert.h>
@@ -194,6 +196,10 @@ void StatusWindow::MessageReceived(BMessage *msg)
 				SetWorkspaces(workspaces);
 			break;
 		}
+		case 'DATA':
+			msg->what = B_REFS_RECEIVED;
+			be_roster->Launch(B_MAIL_TYPE,msg);
+			break;			
 		default:
 			BWindow::MessageReceived(msg);
 	}
