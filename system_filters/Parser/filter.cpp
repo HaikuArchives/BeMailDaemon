@@ -72,7 +72,7 @@ ParseFilter::ProcessMailMessage(BPositionIO **data, BEntry */*entry*/, BMessage 
 
 	// name
 	if (headers->FindString(fNameField.String(), 0, &string) == B_OK) {
-		Mail::StripGook(&string);
+		Mail::extract_address_name(&string);
 		headers->AddString("NAME", string);
 	}
 

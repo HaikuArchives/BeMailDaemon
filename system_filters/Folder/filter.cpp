@@ -275,11 +275,11 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	// sorting by file name will give all the messages with the same subject in
 	// order of date.
 	dateAsTime = 0;
-	if (attributes.FindData (B_MAIL_ATTR_WHEN, B_TIME_TYPE,
+	if (attributes.FindData(B_MAIL_ATTR_WHEN, B_TIME_TYPE,
 		(const void **) &datePntr, &dateSize) == B_OK)
 		dateAsTime = *datePntr;
-	localtime_r (&dateAsTime, &timeFields);
-	sprintf (numericDateString, "%04d%02d%02d%02d%02d%02d",
+	localtime_r(&dateAsTime, &timeFields);
+	sprintf(numericDateString, "%04d%02d%02d%02d%02d%02d",
 		timeFields.tm_year + 1900,
 		timeFields.tm_mon + 1,
 		timeFields.tm_mday,
@@ -288,8 +288,8 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		timeFields.tm_sec);
 	name << " " << numericDateString;
 
-	worker = attributes.FindString ("MAIL:from");
-	Mail::StripGook (&worker);
+	worker = attributes.FindString("MAIL:from");
+	Mail::extract_address_name(&worker);
 	name << " " << worker;
 
 	name.Truncate(222);	// reserve space for the uniquer
@@ -300,8 +300,8 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	name.ReplaceAll('"','_');
 	name.ReplaceAll('<','_');
 	name.ReplaceAll('>','_');
-	while (name.FindFirst ("  ") >= 0) // Remove multiple spaces.
-		name.Replace ("  " /* Old */, " " /* New */, 1024 /* Count */);
+	while (name.FindFirst("  ") >= 0) // Remove multiple spaces.
+		name.Replace("  " /* Old */, " " /* New */, 1024 /* Count */);
 
 	int32 uniquer = time(NULL);
 	worker = name;
