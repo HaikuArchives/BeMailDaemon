@@ -51,7 +51,7 @@ All rights reserved.
 #define PREF_HEIGHT			330
 
 #define SIG_NONE			MDR_DIALECT_CHOICE ("None", "無し")
-#define SIG_RANDOM			MDR_DIALECT_CHOICE ("Random", "ランダム")
+#define SIG_RANDOM			MDR_DIALECT_CHOICE ("Random", "自動選択")
 
 class Button;
 

@@ -84,21 +84,21 @@ All rights reserved.
 #include "Words.h"
 
 const char *kUndoStrings[] = {
-	MDR_DIALECT_CHOICE ("Undo","取り消し"),
-	MDR_DIALECT_CHOICE ("Undo Typing","取り消し（入力）"),
-	MDR_DIALECT_CHOICE ("Undo Cut","取り消し（切り取り）"),
-	MDR_DIALECT_CHOICE ("Undo Paste","取り消し（貼り付け）"),
-	MDR_DIALECT_CHOICE ("Undo Clear","取り消し（消去）"),
-	MDR_DIALECT_CHOICE ("Undo Drop","取り消し（ドロップ）")
+	MDR_DIALECT_CHOICE ("Undo","Z) 取り消し"),
+	MDR_DIALECT_CHOICE ("Undo Typing","Z) 取り消し（入力）"),
+	MDR_DIALECT_CHOICE ("Undo Cut","Z) 取り消し（切り取り）"),
+	MDR_DIALECT_CHOICE ("Undo Paste","Z) 取り消し（貼り付け）"),
+	MDR_DIALECT_CHOICE ("Undo Clear","Z) 取り消し（消去）"),
+	MDR_DIALECT_CHOICE ("Undo Drop","Z) 取り消し（ドロップ）")
 };
 
 const char *kRedoStrings[] = {
-	MDR_DIALECT_CHOICE ("Redo", "やり直し"),
-	MDR_DIALECT_CHOICE ("Redo Typing", "やり直し（入力）"),
-	MDR_DIALECT_CHOICE ("Redo Cut", "やり直し（切り取り）"),
-	MDR_DIALECT_CHOICE ("Redo Paste", "やり直し（貼り付け）"),
-	MDR_DIALECT_CHOICE ("Redo Clear", "やり直し（消去）"),
-	MDR_DIALECT_CHOICE ("Redo Drop", "やり直し（ドロップ）")
+	MDR_DIALECT_CHOICE ("Redo", "Z) やり直し"),
+	MDR_DIALECT_CHOICE ("Redo Typing", "Z) やり直し（入力）"),
+	MDR_DIALECT_CHOICE ("Redo Cut", "Z) やり直し（切り取り）"),
+	MDR_DIALECT_CHOICE ("Redo Paste", "Z) やり直し（貼り付け）"),
+	MDR_DIALECT_CHOICE ("Redo Clear", "Z) やり直し（消去）"),
+	MDR_DIALECT_CHOICE ("Redo Drop", "Z) やり直し（ドロップ）")
 };
 
 bool		gHelpOnly = false;
@@ -991,16 +991,16 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 	//
 	//	File Menu
 	//
-	menu = new BMenu(MDR_DIALECT_CHOICE ("File", "ファイル"));
+	menu = new BMenu(MDR_DIALECT_CHOICE ("File","ファイル"));
 
 	msg = new BMessage(M_NEW);
 	msg->AddInt32("type", M_NEW);
 	menu->AddItem(item = new BMenuItem(MDR_DIALECT_CHOICE (
-		"New Mail Message", "新規メッセージ作成"), msg, 'N'));
+		"New Mail Message", "N) 新規メッセージ作成"), msg, 'N'));
 	item->SetTarget(be_app);
 	
 	QueryMenu *qmenu;
-	qmenu = new QueryMenu(MDR_DIALECT_CHOICE ("Open Draft", "ドラフトを開く"), false);
+	qmenu = new QueryMenu(MDR_DIALECT_CHOICE ("Open Draft", "O) ドラフトを開く"), false);
 	qmenu->SetTargetForItems(be_app);
 	
 	qmenu->SetPredicate("MAIL:draft==1");
@@ -1010,7 +1010,7 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 
 	if (!resending && fIncoming)
 	{
-		sub_menu = new BMenu(MDR_DIALECT_CHOICE ("Close","閉じる"));
+		sub_menu = new BMenu(MDR_DIALECT_CHOICE ("Close","C) 閉じる"));
 		if (fFile->GetAttrInfo(B_MAIL_ATTR_STATUS, &info) == B_NO_ERROR)
 			fFile->ReadAttr(B_MAIL_ATTR_STATUS, B_STRING_TYPE, 0, str, info.size);
 		else
@@ -1021,62 +1021,62 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 		if (!strcmp(str, "New"))
 		{
 			sub_menu->AddItem(item = new BMenuItem(
-				MDR_DIALECT_CHOICE ("Leave as 'New'", "新規<New>のままにする"),
+				MDR_DIALECT_CHOICE ("Leave as 'New'", "N) 新規<New>のままにする"),
 				new BMessage(M_CLOSE_SAME), 'W', B_SHIFT_KEY));
 			sub_menu->AddItem(item = new BMenuItem(
-				MDR_DIALECT_CHOICE ("Set to 'Read'", "開封済<Read>に設定"),
+				MDR_DIALECT_CHOICE ("Set to 'Read'", "R) 開封済<Read>に設定"),
 				new BMessage(M_CLOSE_READ), 'W'));
 			message = M_CLOSE_READ;
 		}
 		else
 		{
 			if (strlen(str))
-				sprintf(status, MDR_DIALECT_CHOICE ("Leave as '%s'","属性を<%s>にする"), str);
+				sprintf(status, MDR_DIALECT_CHOICE ("Leave as '%s'","W) 属性を<%s>にする"), str);
 			else
-				sprintf(status, MDR_DIALECT_CHOICE ("Leave same","属性はそのまま"));
+				sprintf(status, MDR_DIALECT_CHOICE ("Leave same","W) 属性はそのまま"));
 			sub_menu->AddItem(item = new BMenuItem(status,
 							new BMessage(M_CLOSE_SAME), 'W'));
 			message = M_CLOSE_SAME;
 			AddShortcut('W', B_COMMAND_KEY | B_SHIFT_KEY, new BMessage(M_CLOSE_SAME));
 		}
 		sub_menu->AddItem(new BMenuItem(
-			MDR_DIALECT_CHOICE ("Set to 'Saved'", "属性を<Saved>に設定"),
+			MDR_DIALECT_CHOICE ("Set to 'Saved'", "S) 属性を<Saved>に設定"),
 			new BMessage(M_CLOSE_SAVED), 'W', B_CONTROL_KEY));
 		sub_menu->AddItem(new BMenuItem(new TMenu(
-			MDR_DIALECT_CHOICE ("Set to", "他の属性に変更")B_UTF8_ELLIPSIS,
+			MDR_DIALECT_CHOICE ("Set to", "X) 他の属性に変更")B_UTF8_ELLIPSIS,
 			INDEX_STATUS, M_STATUS, false, false), new BMessage(M_CLOSE_CUSTOM)));
 		menu->AddItem(sub_menu);
 
 		sub_menu->AddItem(new BMenuItem(
-			MDR_DIALECT_CHOICE ("Move to Trash", "削除"),
+			MDR_DIALECT_CHOICE ("Move to Trash", "T) 削除"),
 			new BMessage(M_DELETE), 'T', B_CONTROL_KEY));
 		AddShortcut('T', B_SHIFT_KEY | B_COMMAND_KEY, new BMessage(M_DELETE_NEXT));	
 	}
 	else
 	{
 		menu->AddItem(fSendLater = new BMenuItem(
-			MDR_DIALECT_CHOICE ("Save as Draft", "ドラフトとして保存"),
+			MDR_DIALECT_CHOICE ("Save as Draft", "S)ドラフトとして保存"),
 			new BMessage(M_SAVE_AS_DRAFT), 'S'));
 		menu->AddItem(new BMenuItem(
-			MDR_DIALECT_CHOICE ("Close", "閉じる"),
+			MDR_DIALECT_CHOICE ("Close", "W) 閉じる"),
 			new BMessage(B_CLOSE_REQUESTED), 'W'));
 	}
 
 	menu->AddSeparatorItem();
 	menu->AddItem(fPrint = new BMenuItem(
-		MDR_DIALECT_CHOICE ("Page Setup", "ページ設定") B_UTF8_ELLIPSIS,
+		MDR_DIALECT_CHOICE ("Page Setup", "S) ページ設定") B_UTF8_ELLIPSIS,
 		new BMessage(M_PRINT_SETUP)));
 	menu->AddItem(fPrint = new BMenuItem(
-		MDR_DIALECT_CHOICE ("Print", "印刷") B_UTF8_ELLIPSIS,
+		MDR_DIALECT_CHOICE ("Print", "P) 印刷") B_UTF8_ELLIPSIS,
 		new BMessage(M_PRINT), 'P'));
 	menu->AddSeparatorItem();
 	menu->AddItem(item = new BMenuItem(
-		MDR_DIALECT_CHOICE ("About BeMail", "BeMailについて") B_UTF8_ELLIPSIS,
+		MDR_DIALECT_CHOICE ("About BeMail", "A) BeMailについて") B_UTF8_ELLIPSIS,
 		new BMessage(B_ABOUT_REQUESTED)));
 	item->SetTarget(be_app);
 	menu->AddSeparatorItem();
 	menu->AddItem(item = new BMenuItem(
-		MDR_DIALECT_CHOICE ("Quit", "終了"),
+		MDR_DIALECT_CHOICE ("Quit", "Q) 終了"),
 		new BMessage(B_QUIT_REQUESTED), 'Q'));
 	item->SetTarget(be_app);
 	menu_bar->AddItem(menu);
@@ -1084,46 +1084,46 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 	//
 	//	Edit Menu
 	//
-	menu = new BMenu(MDR_DIALECT_CHOICE ("Edit", "編集"));
-	menu->AddItem(fUndo = new BMenuItem(MDR_DIALECT_CHOICE ("Undo","やり直し"), new BMessage(B_UNDO), 'Z'));
+	menu = new BMenu(MDR_DIALECT_CHOICE ("Edit","編集"));
+	menu->AddItem(fUndo = new BMenuItem(MDR_DIALECT_CHOICE ("Undo","Z) やり直し"), new BMessage(B_UNDO), 'Z'));
 	fUndo->SetTarget(NULL, this);
 	menu->AddSeparatorItem();
-	menu->AddItem(fCut = new BMenuItem(MDR_DIALECT_CHOICE ("Cut","切り取り"), new BMessage(B_CUT), 'X'));
+	menu->AddItem(fCut = new BMenuItem(MDR_DIALECT_CHOICE ("Cut","X) 切り取り"), new BMessage(B_CUT), 'X'));
 	fCut->SetTarget(NULL, this);
-	menu->AddItem(fCopy = new BMenuItem(MDR_DIALECT_CHOICE ("Copy","コピー"), new BMessage(B_COPY), 'C'));
+	menu->AddItem(fCopy = new BMenuItem(MDR_DIALECT_CHOICE ("Copy","C) コピー"), new BMessage(B_COPY), 'C'));
 	fCopy->SetTarget(NULL, this);
-	menu->AddItem(fPaste = new BMenuItem(MDR_DIALECT_CHOICE ("Paste","貼り付け"), new BMessage(B_PASTE), 'V'));
+	menu->AddItem(fPaste = new BMenuItem(MDR_DIALECT_CHOICE ("Paste","V) 貼り付け"), new BMessage(B_PASTE), 'V'));
 	fPaste->SetTarget(NULL, this);
-	menu->AddItem(item = new BMenuItem(MDR_DIALECT_CHOICE ("Select All", "全文選択"), new BMessage(M_SELECT), 'A'));
+	menu->AddItem(item = new BMenuItem(MDR_DIALECT_CHOICE ("Select All", "A) 全文選択"), new BMessage(M_SELECT), 'A'));
 	menu->AddSeparatorItem();
 	item->SetTarget(NULL, this);
-	menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Find", "検索") B_UTF8_ELLIPSIS, new BMessage(M_FIND), 'F'));
-	menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Find Again", "次を検索"), new BMessage(M_FIND_AGAIN), 'G'));
+	menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Find", "F) 検索") B_UTF8_ELLIPSIS, new BMessage(M_FIND), 'F'));
+	menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Find Again", "G) 次を検索"), new BMessage(M_FIND_AGAIN), 'G'));
 	if (!fIncoming)
 	{
 		menu->AddSeparatorItem();
 		menu->AddItem(fQuote =new BMenuItem(
-			MDR_DIALECT_CHOICE ("Quote","引用符をつける"),
+			MDR_DIALECT_CHOICE ("Quote","Q) 引用符をつける"),
 			new BMessage(M_QUOTE), B_RIGHT_ARROW));
 		menu->AddItem(fRemoveQuote = new BMenuItem(
-			MDR_DIALECT_CHOICE ("Remove Quote","引用符を削除"),
+			MDR_DIALECT_CHOICE ("Remove Quote","R) 引用符を削除"),
 			new BMessage(M_REMOVE_QUOTE), B_LEFT_ARROW));
 		fSignature = new TMenu(
-			MDR_DIALECT_CHOICE ("Add Signature", "署名を追加"),
+			MDR_DIALECT_CHOICE ("Add Signature", "D) 署名を追加"),
 			INDEX_SIGNATURE, M_SIGNATURE);
 		menu->AddItem(new BMenuItem(fSignature));
 		fSpelling = new BMenuItem(
-			MDR_DIALECT_CHOICE ("Check Spelling","スペルチェック"),
+			MDR_DIALECT_CHOICE ("Check Spelling","H) スペルチェック"),
 			new BMessage( M_CHECK_SPELLING ), ';' );
 		menu->AddItem(fSpelling);
 	}
 	menu->AddSeparatorItem();
 	menu->AddItem(item = new BMenuItem(
-		MDR_DIALECT_CHOICE ("Preferences","BeMailの設定")B_UTF8_ELLIPSIS,
+		MDR_DIALECT_CHOICE ("Preferences","P) BeMailの設定")B_UTF8_ELLIPSIS,
 		new BMessage(M_PREFS)));
 	item->SetTarget(be_app);
 	menu->AddItem(item = new BMenuItem(
-		MDR_DIALECT_CHOICE ("Signatures","署名の編集") B_UTF8_ELLIPSIS,
+		MDR_DIALECT_CHOICE ("Signatures","S) 署名の編集") B_UTF8_ELLIPSIS,
 		new BMessage(M_EDIT_SIGNATURE)));
 	item->SetTarget(be_app);
 	menu_bar->AddItem(menu);
@@ -1136,33 +1136,33 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 	if (!resending && fIncoming)
 	{
 		BMenuItem *menuItem;
-		menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Reply","返信"), new BMessage(M_REPLY),'R'));
-		menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Reply to Sender","送信者に返信"), new BMessage(M_REPLY_TO_SENDER),'R',B_OPTION_KEY));
-		menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Reply to All","全員に返信"), new BMessage(M_REPLY_ALL), 'R', B_SHIFT_KEY));
+		menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Reply","R) 返信"), new BMessage(M_REPLY),'R'));
+		menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Reply to Sender","S) 送信者に返信"), new BMessage(M_REPLY_TO_SENDER),'R',B_OPTION_KEY));
+		menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Reply to All","P) 全員に返信"), new BMessage(M_REPLY_ALL), 'R', B_SHIFT_KEY));
 
 		menu->AddSeparatorItem();
 
-		menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Forward","転送"), new BMessage(M_FORWARD), 'J'));
-		menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Forward with Attachments","添付ファイルを含めて転送"), new BMessage(M_FORWARD_WITH_ATTACHMENTS)));
-		menu->AddItem(menuItem = new BMenuItem(MDR_DIALECT_CHOICE ("Resend","再送信"), new BMessage(M_RESEND)));
-		menu->AddItem(menuItem = new BMenuItem(MDR_DIALECT_CHOICE ("Copy to New","新規メッセージへコピー"), new BMessage(M_COPY_TO_NEW), 'D'));
+		menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Forward","J) 転送"), new BMessage(M_FORWARD), 'J'));
+		menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Forward with Attachments","F) 添付ファイルを含めて転送"), new BMessage(M_FORWARD_WITH_ATTACHMENTS)));
+		menu->AddItem(menuItem = new BMenuItem(MDR_DIALECT_CHOICE ("Resend","   再送信"), new BMessage(M_RESEND)));
+		menu->AddItem(menuItem = new BMenuItem(MDR_DIALECT_CHOICE ("Copy to New","D) 新規メッセージへコピー"), new BMessage(M_COPY_TO_NEW), 'D'));
 		
-		fDeleteNext = new BMenuItem(MDR_DIALECT_CHOICE ("Move to Trash","削除"), new BMessage(M_DELETE_NEXT), 'T');
+		fDeleteNext = new BMenuItem(MDR_DIALECT_CHOICE ("Move to Trash","T) 削除"), new BMessage(M_DELETE_NEXT), 'T');
 		menu->AddItem(fDeleteNext);
 		menu->AddSeparatorItem();
-		fPrevMsg = new BMenuItem(MDR_DIALECT_CHOICE ("Previous Message","前のメッセージ"), new BMessage(M_PREVMSG), 
+		fPrevMsg = new BMenuItem(MDR_DIALECT_CHOICE ("Previous Message","+) 前のメッセージ"), new BMessage(M_PREVMSG), 
 		 B_UP_ARROW);
 		menu->AddItem(fPrevMsg);
-		fNextMsg = new BMenuItem(MDR_DIALECT_CHOICE ("Next Message","次のメッセージ"), new BMessage(M_NEXTMSG), 
+		fNextMsg = new BMenuItem(MDR_DIALECT_CHOICE ("Next Message","-) 次のメッセージ"), new BMessage(M_NEXTMSG), 
 		  B_DOWN_ARROW);
 		menu->AddItem(fNextMsg);
 		menu->AddSeparatorItem();
-		menu->AddItem(fHeader = new BMenuItem(MDR_DIALECT_CHOICE ("Show Header","ヘッダーを表示"),	new BMessage(M_HEADER), 'H'));
+		menu->AddItem(fHeader = new BMenuItem(MDR_DIALECT_CHOICE ("Show Header","H) ヘッダーを表示"),	new BMessage(M_HEADER), 'H'));
 		if (header_flag)
 			fHeader->SetMarked(true);
-		menu->AddItem(fRaw = new BMenuItem(MDR_DIALECT_CHOICE ("Show Raw Message","メッセージを生で表示"), new BMessage(M_RAW)));
+		menu->AddItem(fRaw = new BMenuItem(MDR_DIALECT_CHOICE ("Show Raw Message","   メッセージを生で表示"), new BMessage(M_RAW)));
 
-		fSaveAddrMenu = sub_menu = new BMenu(MDR_DIALECT_CHOICE ("Save Address", "アドレスを保存"));
+		fSaveAddrMenu = sub_menu = new BMenu(MDR_DIALECT_CHOICE ("Save Address", "   アドレスを保存"));
 
 		recipients = (char *)calloc(1,1);
 		get_recipients(&recipients, fMail, true);
@@ -1212,7 +1212,7 @@ skip:			if (!done)
 	}
 	else {
 		menu->AddItem(fSendNow = new BMenuItem(
-			MDR_DIALECT_CHOICE ("Send Message", "メッセージを送信"),
+			MDR_DIALECT_CHOICE ("Send Message", "M) メッセージを送信"),
 			new BMessage(M_SEND_NOW), 'M'));
 		if (!fResending)
 		{
@@ -1233,9 +1233,9 @@ skip:			if (!done)
 	//
 	if (!fIncoming)
 	{
-		menu = new BMenu(MDR_DIALECT_CHOICE ("Enclosures", "添付ファイル"));
-		menu->AddItem(fAdd = new BMenuItem(MDR_DIALECT_CHOICE ("Add","追加")B_UTF8_ELLIPSIS, new BMessage(M_ADD), 'E'));
-		menu->AddItem(fRemove = new BMenuItem(MDR_DIALECT_CHOICE ("Remove","削除"), new BMessage(M_REMOVE), 'T'));
+		menu = new BMenu(MDR_DIALECT_CHOICE ("Enclosures","添付ファイル"));
+		menu->AddItem(fAdd = new BMenuItem(MDR_DIALECT_CHOICE ("Add","E) 追加")B_UTF8_ELLIPSIS, new BMessage(M_ADD), 'E'));
+		menu->AddItem(fRemove = new BMenuItem(MDR_DIALECT_CHOICE ("Remove","T) 削除"), new BMessage(M_REMOVE), 'T'));
 		menu_bar->AddItem(menu);
 	}
 
@@ -1739,10 +1739,10 @@ void TMailWindow::MessageReceived(BMessage *msg)
 			if (msg->FindInt32("buttons", (int32 *)&buttons) == B_OK
 				&& buttons == B_SECONDARY_MOUSE_BUTTON)
 			{
-				BPopUpMenu menu(MDR_DIALECT_CHOICE ("Reply To","返信"), false, false);
-				menu.AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Reply","返信"),new BMessage(M_REPLY)));
-				menu.AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Reply to Sender","送信者に返信"),new BMessage(M_REPLY_TO_SENDER)));
-				menu.AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Reply to All","全員に返信"),new BMessage(M_REPLY_ALL)));
+				BPopUpMenu menu("Reply To", false, false);
+				menu.AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Reply","R) 返信"),new BMessage(M_REPLY)));
+				menu.AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Reply to Sender","S) 送信者に返信"),new BMessage(M_REPLY_TO_SENDER)));
+				menu.AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Reply to All","P) 全員に返信"),new BMessage(M_REPLY_ALL)));
 
 				BPoint where;
 				msg->FindPoint("where", &where);
@@ -1762,9 +1762,9 @@ void TMailWindow::MessageReceived(BMessage *msg)
 			if (msg->FindInt32("buttons", (int32 *)&buttons) == B_OK
 				&& buttons == B_SECONDARY_MOUSE_BUTTON)
 			{
-				BPopUpMenu menu(MDR_DIALECT_CHOICE ("Forward","転送"), false, false);
-				menu.AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Forward","転送"),new BMessage(M_FORWARD)));
-				menu.AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Forward with Attachments","添付ファイルを含む転送"),new BMessage(M_FORWARD_WITH_ATTACHMENTS)));
+				BPopUpMenu menu("Forward", false, false);
+				menu.AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Forward","J) 転送"),new BMessage(M_FORWARD)));
+				menu.AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Forward with Attachments","F) 添付ファイルを含む転送"),new BMessage(M_FORWARD_WITH_ATTACHMENTS)));
 
 				BPoint where;
 				msg->FindPoint("where", &where);
@@ -3372,9 +3372,9 @@ TMenu::BuildMenu()
 		//AddSeparatorItem();
 		BMessage *msg = new BMessage(M_RANDOM_SIG);
 		if (!fPopup)
-			AddItem(new BMenuItem("Random", msg, '0'), 0);
+			AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Random","R) 自動決定"), msg, '0'), 0);
 		else
-			AddItem(new BMenuItem("Random", msg), 0);
+			AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Random","R) 自動決定"), msg), 0);
 	}
 }
 

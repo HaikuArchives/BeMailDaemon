@@ -741,15 +741,13 @@ TTextView::TTextView(BRect frame, BRect text, bool incoming, Mail::Message *mail
 	//
 	fEnclosureMenu = new BPopUpMenu("Enclosure", false, false);
 	fEnclosureMenu->SetFont(&menuFont);
-	fEnclosureMenu->AddItem(new BMenuItem("Save Enclosure"B_UTF8_ELLIPSIS,new BMessage(M_SAVE)));
-	fEnclosureMenu->AddItem(new BMenuItem("Open Enclosure", new BMessage(M_OPEN)));
+	fEnclosureMenu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Save Enclosure","添付ファイルを保存") B_UTF8_ELLIPSIS,new BMessage(M_SAVE)));
+	fEnclosureMenu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE ("Open Enclosure","添付ファイルを開く"), new BMessage(M_OPEN)));
 
 	//
 	//	Hyperlink pop up menu
 	//
-	fLinkMenu = new BPopUpMenu(
-		MDR_DIALECT_CHOICE ("Link","リンク"),
-		false, false);
+	fLinkMenu = new BPopUpMenu("Link",false, false);
 	fLinkMenu->SetFont(&menuFont);
 	fLinkMenu->AddItem(new BMenuItem(
 		MDR_DIALECT_CHOICE ("Open This Link","リンク先を開く"),

@@ -383,7 +383,7 @@ DeskbarView::BuildMenu()
 	menu->SetFont(be_plain_font);
 	
 	menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE (
-		"Create New Message","新規メッセージ作成")B_UTF8_ELLIPSIS,
+		"Create New Message","N) 新規メッセージ作成")B_UTF8_ELLIPSIS,
 		new BMessage(MD_OPEN_NEW)));
 	menu->AddSeparatorItem();
 
@@ -490,7 +490,7 @@ DeskbarView::BuildMenu()
 		Mail::InboundChains(&list);
 
 		BMenu *chainMenu = new BMenu(
-			MDR_DIALECT_CHOICE ("Check For Mails Only","メール受信のみ"));
+			MDR_DIALECT_CHOICE ("Check For Mails Only","R) メール受信のみ"));
 		BFont font;
 		menu->GetFont(&font);
 		chainMenu->SetFont(&font);
@@ -511,20 +511,20 @@ DeskbarView::BuildMenu()
 		// menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE (
 		// "Check For Mails Only","メール受信のみ"), new BMessage(MD_CHECK_FOR_MAILS)));
 		menu->AddItem(new BMenuItem(
-			MDR_DIALECT_CHOICE ("Send Pending Mails","保留メールを送信"),
+			MDR_DIALECT_CHOICE ("Send Pending Mails","M) 保留メールを送信"),
 		new BMessage(MD_SEND_MAILS)));
 	}
 	else
 		menu->AddItem(new BMenuItem(
-			MDR_DIALECT_CHOICE ("Check For Mail Now","メールチェック"),
+			MDR_DIALECT_CHOICE ("Check For Mail Now","C) メールチェック"),
 			new BMessage(MD_CHECK_SEND_NOW)));
 
 	menu->AddSeparatorItem();
 	menu->AddItem(new BMenuItem(
-		MDR_DIALECT_CHOICE ("Edit Preferences","メール環境設定") B_UTF8_ELLIPSIS,
+		MDR_DIALECT_CHOICE ("Edit Preferences","P) メール環境設定") B_UTF8_ELLIPSIS,
 		new BMessage(MD_OPEN_PREFS)));
 	menu->AddItem(new BMenuItem(
-		MDR_DIALECT_CHOICE ("Quit","終了"),
+		MDR_DIALECT_CHOICE ("Quit","Q) 終了"),
 		new BMessage(B_QUIT_REQUESTED)));
 
 	// Reset Item Targets (only those which aren't already set)
