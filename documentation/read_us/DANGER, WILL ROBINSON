@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v2.0.0 Beta 8
+BEOS Mail Daemon Replacement v2.0.0 Beta 9
 
 BEEP! THIS IS A TEST OF THE EMERGENCY BROADCAST SYSTEM.
 
@@ -8,13 +8,11 @@ There are a few bugs in this version of the Mail Daemon Replacement. (Would this
 
 BUGS:
 
-1) Japanese and Chinese characters aren't handled correctly. Maybe some other things aren't as well, but for now anything not translatable into UTF8 doesn't work. We're working on this. Honest.
+1) Your inbox *must* be on your boot disk. We'll have a fix for this soon, but be aware of this. If you don't, you will soon start seeing errors about cross-device links (it initially creates the mail files in /tmp and then moves them to inbox) and all your mail will be deleted. Don't say we didn't warn you. The e-mail monster is hiding in a cross-device link. Don't bring him out!
 
-2) Your inbox *must* be on your boot disk. We'll have a fix for this soon, but be aware of this. If you don't, you will soon start seeing errors about cross-device links (it initially creates the mail files in /tmp and then moves them to inbox) and all your mail will be deleted. Don't say we didn't warn you. The e-mail monster is hiding in a cross-device link. Don't bring him out!
+2) Sometimes the new message count is wrong.  Quit and restart the daemon if this upsets you.  This seems to be due to a BeOS BFS queries bug.
 
-3) Sometimes the new message count is wrong.  Quit and restart the daemon if this upsets you.  This seems to be due to a BeOS BFS queries bug.
-
-4) The soonness of the dates mentioned in this file is greatly exaggerated. Please volunteer to fix bugs to correct this.
+3) The soonness of the dates mentioned in this file is greatly exaggerated. Please volunteer to fix bugs to correct this.
 
 
 IT'S NOT A BUG, IT'S A FEATURE:
