@@ -164,18 +164,18 @@ class UpdateHandler : public BHandler {
 						if (!is_dir)
 							_prot->SyncMailbox(nodes[directory]);
 						else {
-							BPath mb;
+							BString mb;
 							if (directory == dest_node)
 								mb = msg->FindString("name");
 							else {
-								mb.SetTo(nodes[directory]);
-								mb.Append(msg->FindString("name"));
+								mb = nodes[directory];
+								mb << '/' << msg->FindString("name");
 							}
-							if (_prot->CreateMailbox(mb.Path()) < B_OK)
+							if (_prot->CreateMailbox(mb.String()) < B_OK)
 								break;
-							nodes[node] = strdup(mb.Path());
-							_prot->mailboxes += mb.Path();
-							_prot->SyncMailbox(mb.Path());
+							nodes[node] = strdup(mb.String());
+							_prot->mailboxes += mb.String();
+							_prot->SyncMailbox(mb.String());
 							node_ref ref;
 							ref.device = device;
 							ref.node = node;
@@ -184,7 +184,7 @@ class UpdateHandler : public BHandler {
 						break;
 					case B_ENTRY_REMOVED:
 						_prot->CheckForDeletedMessages();
-						if (is_dir) {
+						if ((is_dir) && (nodes[node] != NULL)) {
 							_prot->DeleteMailbox(nodes[node]);
 							_prot->mailboxes -= nodes[node];
 							free((void *)nodes[node]);
@@ -254,7 +254,7 @@ status_t RemoteStorageProtocol::GetMessage(
 			raw.CopyInto(id,raw.FindLast('/') + 1,raw.Length());
 		}
 		
-		out_folder_location->SetTo(folder.String());
+		*out_folder_location = folder.String();
 		return GetMessage(folder.String(),id.String(),out_file,out_headers);
 	}
 	
@@ -274,8 +274,6 @@ status_t RemoteStorageProtocol::DeleteMessage(const char* uid) {
 	(*unique_ids) -= uid;
 	return B_OK;
 }
-
-#include <NodeMessage.h>
 
 void RemoteStorageProtocol::SyncMailbox(const char *mailbox) {
 	BPath path(runner->Chain()->MetaData()->FindString("path"));
