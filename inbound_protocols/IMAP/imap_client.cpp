@@ -6,6 +6,7 @@
 #include <Debug.h>
 #include <StringList.h>
 #include <MessageRunner.h>
+#include <Path.h>
 #include <crypt.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,6 +49,7 @@ class IMAP4Client : public Mail::Protocol {
 	
 	private:
 		friend class SyncHandler;
+		friend class SyncCallback;
 		
 		int32 commandCount;
 		BNetEndpoint *net;
@@ -56,24 +58,39 @@ class IMAP4Client : public Mail::Protocol {
 		status_t err;
 };
 
+class SyncHandler;
+
+class SyncCallback : public Mail::ChainCallback {
+	public:
+		SyncCallback(SyncHandler *a) : handler(a) {}
+		void Callback(status_t);
+		
+	private:
+		SyncHandler *handler;
+};
+
 class SyncHandler : public BHandler {
 	public:
 		SyncHandler(IMAP4Client *us) : BHandler(), client(us) {}
 		~SyncHandler() { delete runner; }
 		void MessageReceived(BMessage *msg) {
+			delete runner;
 			if (msg->what != 'imps' /*IMaP Sync */)
 				return;
 			
 			StringList list;
 			list += "//!newmsgcheck";
+			client->runner->RegisterProcessCallback(new SyncCallback(this));
 			client->runner->GetMessages(&list,0);
 		}
 	
 		BMessageRunner *runner;
-		
-	private:
 		IMAP4Client *client;
 };
+
+void SyncCallback::Callback(status_t) {
+	handler->runner = new BMessageRunner(BMessenger(handler,handler->client->runner),new BMessage('imps'),30e6,1);
+}
 
 IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Protocol(settings,run), commandCount(1), net(NULL), selected_mb("") {
 	err = B_OK;
@@ -127,10 +144,10 @@ IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Pro
 	
 	SyncHandler *sync = new SyncHandler(this);
 	runner->AddHandler(sync);
-	sync->runner = new BMessageRunner(BMessenger(sync,runner),new BMessage('imps'),30e6);
+	sync->runner = new BMessageRunner(BMessenger(sync,runner),new BMessage('imps'),30e6,1);
 }
 
-IMAP4Client::~IMAP4Client() {
+IMAP4Client::~IMAP4Client() {	
 	if (selected_mb != "")
 		SendCommand("CLOSE");
 	SendCommand("LOGOUT");
@@ -187,6 +204,8 @@ void IMAP4Client::SyncAllBoxes() {
 			NestedString response;
 			GetResponse(tag,&response);
 			
+			//response.PrintToStream();
+			
 			if (tag == expected)
 				break;
 			
@@ -202,6 +221,7 @@ void IMAP4Client::SyncAllBoxes() {
 		}
 		if (num_messages == 0) {
 			SendCommand("CLOSE");
+			WasCommandOkay(uid);
 			continue;
 		}
 		
@@ -245,7 +265,9 @@ status_t IMAP4Client::GetMessage(
 			BString command(uid), folder(uid), id;
 			folder.Truncate(command.FindLast('/'));
 			command.CopyInto(id,command.FindLast('/') + 1,command.Length());
-						
+			
+			*out_folder_location = folder.String();
+			
 			command = "UID FETCH ";
 			command << id << " (FLAGS RFC822)";
 			
@@ -256,9 +278,10 @@ status_t IMAP4Client::GetMessage(
 					WasCommandOkay(trash);
 					selected_mb = "";
 				}
-				BString cmd = "SELECT ";
-				cmd << folder;
+				BString cmd = "SELECT \"";
+				cmd << folder << '\"';
 				SendCommand(cmd.String());
+				
 				if (!WasCommandOkay(cmd)) {
 					runner->ShowError(cmd.String());
 					return B_ERROR;
@@ -269,12 +292,16 @@ status_t IMAP4Client::GetMessage(
 			
 			SendCommand(command.String());
 			static char cmd[255];
-			::sprintf(cmd,"a%.7ld %s"CRLF,++commandCount,command.String());
+			::sprintf(cmd,"a%.7ld"CRLF,++commandCount);
 			NestedString response;
-			if (GetResponse(command,&response,true) != NOT_COMMAND_RESPONSE)
+			if (GetResponse(command,&response,true,false,true) != NOT_COMMAND_RESPONSE && command == cmd)
 				return B_ERROR;
 				
-			//response.PrintToStream();
+			for (int32 i = 0; i < response[1].CountItems(); i++) {
+				if (strcmp(response[1][i](),"\\Seen") == 0) {
+					out_headers->AddString("STATUS","READ");
+				}
+			}
 			WasCommandOkay(command);
 			(*out_file)->Write(response[2][5](),strlen(response[2][5]()));
 			return B_OK;
@@ -297,8 +324,8 @@ status_t IMAP4Client::DeleteMessage(const char* uid) {
 			WasCommandOkay(trash);
 			selected_mb = "";
 		}
-		BString cmd = "SELECT ";
-		cmd << folder;
+		BString cmd = "SELECT \"";
+		cmd << folder << '\"';
 		SendCommand(cmd.String());
 		if (!WasCommandOkay(cmd)) {
 			runner->ShowError(cmd.String());
@@ -412,12 +439,15 @@ int IMAP4Client::GetResponse(BString &tag, NestedString *parsed_response, bool r
 						out = "";
 						char *buffer = new char[octets_to_read+1];
 						buffer[octets_to_read] = 0;
-						if ((!report_fetch_results || strcmp(parsed_response[0](), "FETCH")) && !always_report)
-							net->Receive(buffer,octets_to_read);
-						else {
+						printf("Reading a %d byte string literal...\n",octets_to_read);
+						if ((!report_fetch_results || strcmp(parsed_response[0](), "FETCH")) && !always_report) {
+							int read_octets = 0;
+							while (read_octets < octets_to_read)
+								read_octets += net->Receive(buffer + read_octets,octets_to_read - read_octets);
+						} else {
 							int read_bytes;
 							while (octets_to_read > 0) {
-								read_bytes = net->Receive(buffer,(octets_to_read > 255) ? 255 : octets_to_read);
+								read_bytes = net->Receive(buffer + read_bytes,(octets_to_read > 255) ? 255 : octets_to_read);
 								/*if (read_bytes < 0)
 									return read_bytes;*/
 								

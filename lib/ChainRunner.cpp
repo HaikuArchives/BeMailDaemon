@@ -183,8 +183,10 @@ void ChainRunner::MessageReceived(BMessage *msg) {
 				image->filter = (*instantiate)(image->settings,this);
 				addons.AddItem(image);
 				
-				if ((big_err = image->filter->InitCheck()) != B_OK)
+				if ((big_err = image->filter->InitCheck()) != B_OK) {
+					//printf("InitCheck() failed (%s) in add-on %s\n",strerror(big_err),path.Path());
 					break;
+				}
 			}
 			if (big_err == B_OK)
 				break;

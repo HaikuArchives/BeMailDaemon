@@ -112,7 +112,7 @@ status_t SimpleProtocol::GetMessage(
 	*out_file = new Zoidberg::Mail::MessageIO(this,*out_file,to_retrieve);
 	
 	if (out_folder_location != NULL)
-		out_folder_location->SetTo("in");
+		out_folder_location->SetTo("");
 	
 	return B_OK;
 }
