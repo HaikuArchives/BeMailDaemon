@@ -154,7 +154,7 @@ January 28 2003 - v2.0.0b9
 - As requested by "dolgogi" in the BeBits.com talkback, I've added the iso-2022-kr, ksc5601, ks_c_5601-1987 character sets as an alias for euc-kr in incoming mail (they seem to be subsets of euc-kr).  Outgoing is always EUC-KR.  Also, the output for EUC-KR is sent as 8bit rather than base64 or quoted printable.
 - Fixed bug in date parsing (affecting the MAIL:when attribute) where it didn't understand the new numeric +0000 style of time zone.
 - Changed file names to be a bit more readable, hopefully avoiding characters which cause problems.
-- Avoid having a single period on a line (causes some mail servers to think the end of the message has arrived) by encoding it as a hex code in quoted printable encoding (the one we normally use for text).
+- Avoid having a single period on a line; fix SMTP protocol to insert an extra period on all lines starting with a period.
 
 January 22 2003 - v2.0.0b8
 - Date format changed slightly to make it compliant to RFC-822 (some other mail apps had problems understanding it).
