@@ -19,6 +19,7 @@
 #include <String.h>
 #include <VolumeRoster.h>
 #include <Query.h>
+#include <ChainRunner.h>
 #include <NodeMonitor.h>
 
 #include <string.h>
@@ -44,8 +45,7 @@
 	#include <bone_serial_ppp.h>
 	#include <unistd.h>
 #endif
-
-
+	
 namespace Zoidberg {
 namespace Mail {
 
@@ -135,7 +135,8 @@ void MailDaemonApp::ReadyToRun() {
 
 MailDaemonApp::~MailDaemonApp()
 {
-	delete auto_check;
+	if (auto_check != NULL)
+		delete auto_check;
 	delete query;
 	delete led;
 }
@@ -247,6 +248,10 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 			if (new_messages > 0)
 				led->Start();
 			break;
+		case 'enda': //-----End Auto Check
+			delete auto_check;
+			auto_check = NULL;
+			break;
 		case 'numg':
 			{
 			int32 num_messages = msg->FindInt32("num_messages");
@@ -336,6 +341,7 @@ bool
 MailDaemonApp::QuitRequested()
 {
 	RemoveDeskbarIcon();
+	
 	return true;
 }
 

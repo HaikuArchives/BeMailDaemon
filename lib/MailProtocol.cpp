@@ -93,7 +93,7 @@ Protocol::~Protocol() {
 	if (manifest != NULL) {
 		BMessage *meta_data = runner->Chain()->MetaData();
 		meta_data->RemoveName("manifest");
-		if (settings->FindBool("leave_mail_on_server"))
+		//if (settings->FindBool("leave_mail_on_server"))
 			meta_data->AddFlat("manifest",manifest);
 	}
 	delete unique_ids;

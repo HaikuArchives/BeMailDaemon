@@ -57,6 +57,7 @@ class ChainRunner : public BLooper {
 		void Stop();
 		void ReportProgress(int bytes, int messages, const char *message = NULL);
 		void GetMessages(StringList *list, size_t bytes);
+		bool QuitRequested();
 		
 		void ShowError(const char *error);
 

@@ -33,7 +33,7 @@ class IMAP4Client : public Mail::Protocol {
 			BPositionIO** out_file, BMessage* out_headers,
 			BPath* out_folder_location);
 			
-		virtual status_t DeleteMessage(const char* uid) { return B_ERROR; }
+		virtual status_t DeleteMessage(const char* uid);
 		
 		status_t ReceiveLine(BString &out);
 		status_t SendCommand(const char *command);
@@ -265,6 +265,10 @@ status_t IMAP4Client::GetMessage(
 			(*out_file)->Write(response[2][5](),strlen(response[2][5]()));
 			return B_OK;
 		}
+
+status_t IMAP4Client::DeleteMessage(const char* uid) {
+	return B_ERROR;
+}
 	
 status_t
 IMAP4Client::SendCommand(const char* command)

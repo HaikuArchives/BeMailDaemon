@@ -14,6 +14,8 @@
 #include <ClassInfo.h>
 #include <Alert.h>
 #include <Directory.h>
+#include <Application.h>
+#include <MessageFilter.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,9 +32,8 @@ namespace Mail {
 #include <status.h>
 #include <StringList.h>
 
-
-namespace Zoidberg {
-namespace Mail {
+using namespace Zoidberg;
+using Mail::ChainRunner;
 
 struct filter_image {
 	BMessage *settings;
@@ -40,13 +41,34 @@ struct filter_image {
 	image_id id;
 };
 
+BList running_chains, running_chain_pointers;
+	
 void unload(void *id);
+
+namespace {
+
+class DeathFilter : public BMessageFilter {
+	public:
+		DeathFilter() : BMessageFilter(B_QUIT_REQUESTED) {}
+		virtual	filter_result Filter(BMessage *, BHandler **) {
+			be_app->MessageReceived(new BMessage('enda')); //---Stop new chains from starting
+			for (int32 i = 0; i < running_chain_pointers.CountItems(); i++)
+				((ChainRunner *)(running_chain_pointers.ItemAt(i)))->Stop();
+			while(running_chains.CountItems() > 0)
+				snooze(100);
+			return B_DISPATCH_MESSAGE;
+		}
+};
 
 ChainRunner::ChainRunner(Mail::Chain *chain, Mail::StatusWindow *status,
 			bool self_destruct_when_done, bool save_chain_when_done,
 			bool destruct_chain_when_done) :
-	BLooper(chain->Name()), _chain(chain), destroy_self(self_destruct_when_done), destroy_chain(destruct_chain_when_done), save_chain(save_chain_when_done), _status(status) {
-	//------do absolutely nothing--------
+	::BLooper(chain->Name()), _chain(chain), destroy_self(self_destruct_when_done), destroy_chain(destruct_chain_when_done), save_chain(save_chain_when_done), _status(status) {
+		static DeathFilter *filter = NULL;
+		if (filter == NULL)
+			be_app->AddFilter(filter = new DeathFilter);
+}
+
 }
 
 ChainRunner::~ChainRunner()
@@ -58,6 +80,9 @@ ChainRunner::~ChainRunner()
 		delete (Mail::ChainCallback *)process_cb.ItemAt(i);
 	for (int32 i = chain_cb.CountItems();i-- > 0;)
 		delete (Mail::ChainCallback *)chain_cb.ItemAt(i);*/
+		
+	running_chains.RemoveItem((void *)(_chain->ID()));
+	running_chain_pointers.RemoveItem(this);
 }
 
 void ChainRunner::RegisterMessageCallback(Mail::ChainCallback *callback) {
@@ -76,7 +101,6 @@ Mail::Chain *ChainRunner::Chain() {
 	return _chain;
 }
 
-BList running_chains;
 
 status_t ChainRunner::RunChain(bool asynchronous) {
 	if (running_chains.HasItem((void *)(_chain->ID())))
@@ -85,6 +109,7 @@ status_t ChainRunner::RunChain(bool asynchronous) {
 	Run();
 	
 	running_chains.AddItem((void *)(_chain->ID()));
+	running_chain_pointers.AddItem(this);
 	
 	PostMessage('INIT');
 	
@@ -197,6 +222,7 @@ void ChainRunner::MessageReceived(BMessage *msg) {
 			}				
 			
 			running_chains.RemoveItem((void *)(_chain->ID()));
+			running_chain_pointers.RemoveItem(this);
 			
 			if (save_chain)
 				_chain->Save();
@@ -220,6 +246,10 @@ void ChainRunner::MessageReceived(BMessage *msg) {
 	}
 }
 
+bool ChainRunner::QuitRequested() {
+	Stop();
+	return true;
+}
 
 void ChainRunner::get_messages(StringList *list) {
 	const char *uid;
@@ -288,6 +318,3 @@ void ChainRunner::ReportProgress(int bytes, int messages, const char *message) {
 void ChainRunner::ShowError(const char *error) {
 	(new BAlert("error",error,"OK"))->Go();
 }
-
-}	// namespace Mail
-}	// namespace Zoidberg
