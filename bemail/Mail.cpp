@@ -1708,10 +1708,10 @@ void TMailWindow::MenusBeginning()
 }
 
 
-void TMailWindow::MessageReceived(BMessage *msg)
+void
+TMailWindow::MessageReceived(BMessage *msg)
 {
-	switch (msg->what)
-	{
+	switch (msg->what) {
 		case FIELD_CHANGED:
 		{
 			int32 prevState = fFieldState, fieldMask = msg->FindInt32("bitmask");
@@ -1907,17 +1907,22 @@ void TMailWindow::MessageReceived(BMessage *msg)
 			// 	If the next file was found, open it.  If it was not,
 			//	we have no choice but to close this window.
 			//
-			if (foundRef)
-			{
-				OpenMessage(&nextRef, fHeaderView->fCharacterSetUserSees);
+			if (foundRef) {
+				TMailWindow *window = static_cast<TMailApp *>(be_app)->FindWindow(nextRef);
+				if (window == NULL)
+					OpenMessage(&nextRef, fHeaderView->fCharacterSetUserSees);
+				else
+					window->Activate();
+
 				SetTrackerSelectionToCurrent();
+
+				if (window == NULL)
+					break;
 			}
-			else
-			{
-				fSent = true;
-				BMessage msg(B_CLOSE_REQUESTED);
-				PostMessage(&msg);
-			}
+
+			fSent = true;
+			BMessage msg(B_CLOSE_REQUESTED);
+			PostMessage(&msg);
 			break;
 		}
 
@@ -2188,10 +2193,19 @@ void TMailWindow::MessageReceived(BMessage *msg)
 			if (fRef)
 			{
 				entry_ref nextRef = *fRef;
-				if (GetTrackerWindowFile(&nextRef, (msg->what == M_NEXTMSG)))
-				{
-					SetCurrentMessageRead();
-					OpenMessage(&nextRef, fHeaderView->fCharacterSetUserSees);
+				if (GetTrackerWindowFile(&nextRef, (msg->what == M_NEXTMSG))) {
+					TMailWindow *window = static_cast<TMailApp *>(be_app)->FindWindow(nextRef);
+					if (window == NULL) {
+						SetCurrentMessageRead();
+						OpenMessage(&nextRef, fHeaderView->fCharacterSetUserSees);
+					} else {
+						window->Activate();
+
+						//fSent = true;
+						BMessage msg(B_CLOSE_REQUESTED);
+						PostMessage(&msg);
+					}
+
 					SetTrackerSelectionToCurrent();
 				}
 				else
@@ -3246,7 +3260,8 @@ void TMailWindow::SetTitleForMessage()
 //	The duplicated code should be in a private initializer method -- axeld.
 //
 
-status_t TMailWindow::OpenMessage(entry_ref *ref, uint32 characterSetForDecoding)
+status_t
+TMailWindow::OpenMessage(entry_ref *ref, uint32 characterSetForDecoding)
 {
 	//
 	//	Set some references to the email file
