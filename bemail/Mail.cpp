@@ -58,6 +58,10 @@ All rights reserved.
 #include <fs_index.h>
 #include <fs_info.h>
 
+#ifndef BONE
+#include <netdb.h>
+#endif
+
 #include "Mail.h"
 #include "Header.h"
 #include "Content.h"
@@ -2602,9 +2606,15 @@ status_t TMailWindow::Send(bool now)
 		message_id << system_time();
 		message_id << "-BeMail@";
 		
-		utsname uinfo;
-		uname(&uinfo);
-		message_id << uinfo.nodename;
+		#if BONE
+			utsname uinfo;
+			uname(&uinfo);
+			message_id << uinfo.nodename;
+		#else
+			char host[255];
+			gethostname(host,255);
+			message_id << host;
+		#endif
 
 		message_id << ">";
 		mail->AddHeaderField(mail_encoding, "Message-Id: ", message_id.String());

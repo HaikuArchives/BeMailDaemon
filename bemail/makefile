@@ -132,6 +132,14 @@ DRIVER_PATH =
 
 INSTALL_DIR=/boot/beos/apps
 
+ifeq ($(shell ls 2>/dev/null -1 /boot/develop/headers/be/bone/bone_api.h), /boot/develop/headers/be/bone/bone_api.h)
+	SYSTEM_INCLUDE_PATHS += /boot/develop/headers/be/bone
+	DEFINES += BONE
+else
+# hack to fix lack of uname on my system
+	LIBS += net
+endif
+
 ## include the makefile-engine
 include $(BUILDHOME)/etc/makefile-engine.MailD
 
