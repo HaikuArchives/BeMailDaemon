@@ -3,6 +3,9 @@
  * settings related to the add-on, but not the server.
  *
  * $Log$
+ * Revision 1.7  2003/07/08 20:56:40  agmsmith
+ * Turn on auto-training for the spam filter by default.
+ *
  * Revision 1.6  2003/02/08 21:54:17  agmsmith
  * Updated the AGMSBayesianSpamServer documentation to match the current
  * version.  Also removed the Beep options from the spam filter, now they
@@ -104,18 +107,18 @@ class AGMSBayesianSpamFilterConfig : public BView {
 AGMSBayesianSpamFilterConfig::AGMSBayesianSpamFilterConfig (BMessage *settings)
 	:	BView (BRect (0,0,260,130), "agmsbayesianspamfilter_config",
 			B_FOLLOW_LEFT | B_FOLLOW_TOP, 0),
-		fAddSpamToSubject (true),
+		fAddSpamToSubject (false),
 		fAddSpamToSubjectCheckBoxPntr (NULL),
 		fAutoTraining (true),
 		fAutoTrainingCheckBoxPntr (NULL),
-		fGenuineCutoffRatio (0.05f),
+		fGenuineCutoffRatio (0.01f),
 		fGenuineCutoffRatioTextBoxPntr (NULL),
 		fNoWordsMeansSpam (true),
 		fNoWordsMeansSpamCheckBoxPntr (NULL),
-		fQuitServerWhenFinished (true),
+		fQuitServerWhenFinished (false),
 		fQuitServerWhenFinishedCheckBoxPntr (NULL),
 		fServerSettingsButtonPntr (NULL),
-		fSpamCutoffRatio (0.95f),
+		fSpamCutoffRatio (0.99f),
 		fSpamCutoffRatioTextBoxPntr (NULL)
 {
 	bool	tempBool;

@@ -154,7 +154,7 @@ July 8 2003 - v2.1.0rc3
 - Added Mark Heeren's alternate new mail deskbar icons to the mail daemon resource.  They're a blue and red envelope, rather than the empty and full mailbox icon.  Use QuickRes to copy them over the existing icons in /boot/beos/system/servers/mail_daemon if you want to use them.
 - Fixed AGMSBayesianSpamServer race bug with the classification choices dialog box coming up mangled due to default sizes of controls being zero.  Happens when the RefsReceived message gets processed before ReadyToRun has finished setting things up.
 - Make Drafts query non-temporary, so it doesn't disappear after a few days.
-- Turn on auto-training by default in the spam filter, at "BiPolar"'s suggestion.
+- Turn on auto-training by default in the spam filter, at "BiPolar"'s suggestion.  Also modified the other default options - spam in subject off (status now shown in window title), leave server running (slow startup with hundreds of thousands of words), cutoffs made more strict (more uncertain messages, less errors).
 
 July 6 2003 - v2.1.0rc2
 - Fixed some IMAP bugs.  Not all IMAP servers are the same, or even standard.

@@ -11,6 +11,9 @@
  * Public Domain 2002, by Alexander G. M. Smith, no warranty.
  *
  * $Log$
+ * Revision 1.16  2003/07/08 20:56:40  agmsmith
+ * Turn on auto-training for the spam filter by default.
+ *
  * Revision 1.15  2003/07/06 13:30:33  agmsmith
  * Make sure that the spam filter doesn't auto-train the message twice
  * when it gets a partially downloaded e-mail (will just train on the
@@ -108,14 +111,14 @@ static const char *kServerSignature =
 
 AGMSBayesianSpamFilter::AGMSBayesianSpamFilter (BMessage *settings)
 	:	Mail::Filter (settings),
-		fAddSpamToSubject (true),
+		fAddSpamToSubject (false),
 		fAutoTraining (true),
-		fGenuineCutoffRatio (0.05f),
+		fGenuineCutoffRatio (0.01f),
 		fHeaderOnly (false),
 		fLaunchAttemptCount (0),
 		fNoWordsMeansSpam (true),
-		fQuitServerWhenFinished (true),
-		fSpamCutoffRatio (0.95f)
+		fQuitServerWhenFinished (false),
+		fSpamCutoffRatio (0.99f)
 {
 	bool		tempBool;
 	float		tempFloat;
@@ -431,9 +434,9 @@ descriptive_name (
 	BMessage *settings,
 	char *buffer)
 {
-	bool		addMarker = true;
+	bool		addMarker = false;
 	bool		autoTraining = true;
-	float		cutoffRatio = 0.95f;
+	float		cutoffRatio = 0.99f;
 	bool		tempBool;
 	float		tempFloat;
 
