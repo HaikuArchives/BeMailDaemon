@@ -109,7 +109,7 @@ const BBitmap *BmapButton::RetrieveBitmap(int32 id)
 	
 	// Check for the bitmap in the cache first
 	BitmapItem *item;
-	for (int32 i=0; (item=(BitmapItem *)fBitmapCache.ItemAt(i)); i++) {
+	for (int32 i=0; (item=(BitmapItem *)fBitmapCache.ItemAt(i)) != NULL; i++) {
 		if (item->id == id) {
 			item->openCount++;
 			return item->bm;
@@ -151,7 +151,7 @@ status_t BmapButton::ReleaseBitmap(const BBitmap *bm)
 		
 	// Find the bitmap
 	BitmapItem *item;
-	for (int32 i=0; (item=(BitmapItem *)fBitmapCache.ItemAt(i)); i++) {
+	for (int32 i=0; (item=(BitmapItem *)fBitmapCache.ItemAt(i)) != NULL; i++) {
 		if (item->bm == bm) {
 			// If it's no longer in use by any objects, free the resources
 			if (--item->openCount <= 0) {

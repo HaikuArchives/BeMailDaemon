@@ -94,7 +94,7 @@ void ButtonBar::Arrange(bool fixedWidth)
 	BmapButton *button;
 	
 	// Determine Largest button dimensions
-	for (i = 0; (button = (BmapButton *)fButtonList.ItemAt(i)); i++)
+	for (i = 0; (button = (BmapButton *)fButtonList.ItemAt(i)) != NULL; i++)
 	{
 		button->GetPreferredSize(&width, &height);
 		if (height > fMaxHeight)
@@ -104,7 +104,7 @@ void ButtonBar::Arrange(bool fixedWidth)
 	}
 	
 	// Arrange buttons
-	for (i = 0; (button = (BmapButton *)fButtonList.ItemAt(i)); i++)
+	for (i = 0; (button = (BmapButton *)fButtonList.ItemAt(i)) != NULL; i++)
 	{
 		button->MoveTo(fNextXOffset, fVMargin);
 		if (fixedWidth) {
@@ -179,7 +179,7 @@ void ButtonBar::ShowLabels(bool show)
 	BmapButton *button;
 	
 	// Set show label flags on buttons
-	for (int32 i=0; (button = (BmapButton *)fButtonList.ItemAt(i)); i++)
+	for (int32 i=0; (button = (BmapButton *)fButtonList.ItemAt(i)) != NULL; i++)
 		button->ShowLabel(show);
 	fShowLabels = show;
 }

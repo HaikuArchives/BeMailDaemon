@@ -44,7 +44,7 @@ enum {
 	FIELD_SUBJECT = 0x02,
 	FIELD_CC = 0x04,
 	FIELD_BCC = 0x08,
-	FIELD_BODY = 0x10,
+	FIELD_BODY = 0x10
 };
 
 #endif // #ifndef _FIELD_MSG_H

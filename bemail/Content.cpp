@@ -1032,7 +1032,7 @@ void TTextView::MouseDown(BPoint where)
 				if (matches.CountItems())
 				{
 					sort_word_list(&matches, srcWord.String());
-					for (int32 i=0; (string=(BString *)matches.ItemAt(i)); i++)
+					for (int32 i=0; (string=(BString *)matches.ItemAt(i)) != NULL; i++)
 					{
 						menu.AddItem((menuItem = new BMenuItem(string->String(),
 							NULL)));
@@ -1059,7 +1059,7 @@ void TTextView::MouseDown(BPoint where)
 				}
 				
 				point = ConvertToScreen(where);
-				if ((menuItem = menu.Go(point, false, false)))
+				if ((menuItem = menu.Go(point, false, false)) != NULL)
 				{
 					if (menuItem == addItem)
 					{
@@ -1758,7 +1758,7 @@ void TTextView::StopLoad()
 	thread_id	thread;
 	thread_info	info;
 
-	if ((thread = fThread) && (get_thread_info(fThread, &info) == B_NO_ERROR)) {
+	if (((thread = fThread) != 0) && (get_thread_info(fThread, &info) == B_NO_ERROR)) {
 		acquire_sem(fStopSem);
 		wait_for_thread(thread, &result);
 		fThread = 0;
@@ -2457,7 +2457,7 @@ void TTextView::DeleteText(int32 start, int32 finish)
 void TTextView::ContentChanged(void)
 {
 	BLooper *looper;
-	if ((looper=Looper()))
+	if ((looper=Looper()) != NULL)
 	{
 		BMessage msg(FIELD_CHANGED);
 		msg.AddInt32("bitmask", FIELD_BODY);

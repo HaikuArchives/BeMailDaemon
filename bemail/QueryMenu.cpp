@@ -267,7 +267,7 @@ void QueryMenu::EntryRemoved( ino_t node )
 	int64		inode;
 			
 	// Search for item in menu
-	for( int32 i=0; (item=ItemAt(i)); i++)
+	for( int32 i=0; (item=ItemAt(i)) != NULL; i++)
 	{
 		// Is it our item?
 		if( ((item->Message())->FindInt64( "node", &inode ) == B_OK)&&

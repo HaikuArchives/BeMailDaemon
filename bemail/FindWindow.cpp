@@ -46,6 +46,8 @@ All rights reserved.
 #include <String.h>
 #include <Box.h>
 
+void TextBevel(BView& view, BRect r);
+
 // ============================================================================
 void TextBevel(BView& view, BRect r)
 {

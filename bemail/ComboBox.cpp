@@ -97,7 +97,9 @@ static const float kButtonWidth = (float)15.0;
 #define TV_MARGIN 3.0
 #define TV_DIVIDER_MARGIN 6.0
 
-rgb_color create_color(uchar r, uchar g, uchar b, uchar a = 255) {
+rgb_color create_color(uchar r, uchar g, uchar b, uchar a = 255);
+
+rgb_color create_color(uchar r, uchar g, uchar b, uchar a) {
 	rgb_color col;
 	col.red = r;
 	col.green = g;
@@ -1522,7 +1524,7 @@ void BComboBox::AttachedToWindow()
 	rgb_color	base;
 	BFont		textFont;
 
-	if (base.red == 255 && base.green == 255 && base.blue == 255)
+	if (mc.red == 255 && mc.green == 255 && mc.blue == 255) //----mc used to be base in this line
 		base = ViewColor();
 	else
 		base = LowColor();

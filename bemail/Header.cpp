@@ -917,7 +917,7 @@ void QPopupMenu::EntryCreated(const entry_ref &ref, ino_t node)
 			int32 i;
 			for (i=0; i<items; i++)
 			{
-				if ((sub=SubmenuAt(i)))
+				if ((sub=SubmenuAt(i)) != NULL)
 				{
 					superItem = sub->Superitem();
 					if (strcmp(superItem->Label(), str) == 0)

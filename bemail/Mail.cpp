@@ -412,7 +412,7 @@ void TMailApp::MessageReceived(BMessage* msg)
 			{
 				// Notify all BeMail windows
 				TMailWindow	*window;
-				for( int32 i=0; (window=(TMailWindow *)fWindowList.ItemAt(i)); i++ )
+				for( int32 i=0; (window=(TMailWindow *)fWindowList.ItemAt(i)) != NULL; i++ )
 				{
 					window->Lock();
 					window->UpdateViews();
@@ -1674,7 +1674,7 @@ void TMailWindow::MessageReceived(BMessage* msg)
 					BPoint	where;
 					
 					msg->FindPoint( "where", &where );
-					if( (item = menu.Go( where, false, false )) )
+					if( (item = menu.Go( where, false, false ))  != NULL)
 					{
 						item->SetTarget( this );
 						PostMessage( item->Message() );
@@ -1941,7 +1941,7 @@ void TMailWindow::MessageReceived(BMessage* msg)
 				srand(time (0));
 				message = (BMessage *)sigList.ItemAt( rand() % sigList.CountItems() );
 				PostMessage( message );
-				for( int32 i=0; (message=(BMessage *)sigList.ItemAt(i)); i++ )
+				for( int32 i=0; (message=(BMessage *)sigList.ItemAt(i)) != NULL; i++ )
 					delete message;
 			}
 			break;
@@ -1970,7 +1970,7 @@ void TMailWindow::MessageReceived(BMessage* msg)
 			else if( msg->FindInt32( "buttons" ) == B_SECONDARY_MOUSE_BUTTON )
 				open_anyway = false;	
 			
-			if( (item = menu->Go( where, false, open_anyway )) )
+			if( (item = menu->Go( where, false, open_anyway ))  != NULL)
 			{
 				item->SetTarget( this );
 				(dynamic_cast<BInvoker *>(item))->Invoke();
@@ -2751,9 +2751,9 @@ status_t TMailWindow::SaveAsDraft( void )
 					eofn = fileName + strlen(fileName);
 					
 					// convert /, \ and : to -
-					for (char *bad = fileName; (bad = strchr(bad, '/')); ++bad) *bad = '-';
-					for (char *bad = fileName; (bad = strchr(bad, '\\'));++bad) *bad = '-';
-					for (char *bad = fileName; (bad = strchr(bad, ':')); ++bad) *bad = '-';
+					for (char *bad = fileName; (bad = strchr(bad, '/')) != NULL; ++bad) *bad = '-';
+					for (char *bad = fileName; (bad = strchr(bad, '\\')) != NULL;++bad) *bad = '-';
+					for (char *bad = fileName; (bad = strchr(bad, ':')) != NULL; ++bad) *bad = '-';
 
 					// Create the file; if the name exists, find a unique name
 					flags = B_WRITE_ONLY | B_CREATE_FILE | B_FAIL_IF_EXISTS;
@@ -2800,7 +2800,7 @@ status_t TMailWindow::SaveAsDraft( void )
 		BPath path;
 		BString pathStr;
 		
-		for( int32 i=0; (item = (TListItem *)fEnclosuresView->fList->ItemAt(i)); i++ )
+		for( int32 i=0; (item = (TListItem *)fEnclosuresView->fList->ItemAt(i)) != NULL; i++ )
 		{
 			if( i )
 				pathStr.Append( ":" );
