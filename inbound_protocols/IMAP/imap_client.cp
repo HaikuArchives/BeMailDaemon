@@ -249,7 +249,19 @@ IMAP4Client::UniqueIDs()
 		}
 		
 		pos = out.FindFirst("(UID ") + 5;
+		
+		if( B_ERROR == pos )
+		{
+			// Problem with input.
+			return B_ERROR;
+		}
+		
 		i = out.FindFirst(')',pos);
+		if( B_ERROR == i )
+		{
+			// another parsing problem
+			return B_ERROR;
+		}
 		
 		temp = "";
 		out.CopyInto(temp,pos,i-pos);
