@@ -3,6 +3,7 @@
 #include <Button.h>
 #include <StringView.h>
 #include <Screen.h>
+#include <String.h>
 
 #include <stdio.h>
 #include <assert.h>
