@@ -79,7 +79,6 @@ StatusWindow::StatusWindow(BRect rect, const char *name, uint32 s)
 	min_width = default_view->Bounds().Width();
 	min_height = default_view->Bounds().Height();
 	ResizeTo(min_width, min_height);
-	window_frame = Frame();
 	SetSizeLimits(min_width, 2.0 * min_width, min_height, min_height);
 
 	Mail::Settings general;
@@ -115,8 +114,9 @@ StatusWindow::StatusWindow(BRect rect, const char *name, uint32 s)
 
 		SetBorderStyle(general.StatusWindowLook());
 	}
-
 	AddChild(default_view);
+
+	window_frame = Frame();
 
 	if (show == MD_SHOW_STATUS_WINDOW_ALWAYS)
 		Show();
