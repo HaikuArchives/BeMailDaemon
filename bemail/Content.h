@@ -66,6 +66,7 @@ class TTextView;
 class BFile;
 class BList;
 class BPopupMenu;
+class MailMessage;
 
 struct text_run_array;
 
@@ -158,7 +159,7 @@ public:
 	status_t Save(BMessage*, bool makeNewFile = true);
 	void SaveBeFile(BFile*, char*, ssize_t);
 	void StopLoad();
-	void AddAsContent(BMailMessage*, bool);
+	void AddAsContent(MailMessage*, bool);
 	void CheckSpelling(int32 start, int32 end,
 		int32 flags = S_CLEAR_ERRORS | S_SHOW_ERRORS);
 	void FindSpellBoundry(int32 length, int32 offset, int32 *start,

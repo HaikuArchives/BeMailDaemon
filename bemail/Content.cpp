@@ -62,6 +62,9 @@ All rights reserved.
 #include <MenuItem.h>
 #include <Roster.h>
 
+#include <MailMessage.h>
+#include <base64.h>
+
 #include "Mail.h"
 #include "Content.h"
 #include "Utilities.h"
@@ -69,7 +72,7 @@ All rights reserved.
 #include "Words.h"
 
 extern	bool	header_flag;
-extern	uint32	mail_encoding;
+extern	uint32	gMailEncoding;
 
 
 inline bool
@@ -122,11 +125,11 @@ static char* unqp(const char *data, int32 *dataLen)
 
 #define	DEC(Char) (((Char) - ' ') & 077)
 
-static int32 decode(char *encoding, void *data, int32 size, bool isText)
+static int32 decode(char *encoding, void *data, int32 size, bool /*isText*/)
 {
 	if (!encoding) return size;
 	if (cistrstr(encoding,"base64")) {
-		return decode_base64((char*)data,(char*)data,size,isText);
+		return decode_base64((char*)data,(char*)data,size /*,isText*/);
 	} else if (cistrstr(encoding,"quoted-printable")) {
 		char *newStuff = unqp((char*)data,&size);
 		memcpy(data,newStuff,size);
@@ -1504,7 +1507,7 @@ status_t TTextView::Reader(reader *info)
 		int32	dst_len = 4 * src_len;
 		char	*utf8 = (char *)malloc(dst_len);
 
-		convert_to_utf8(mail_encoding, msg + len, &src_len, utf8, &dst_len,
+		convert_to_utf8(gMailEncoding, msg + len, &src_len, utf8, &dst_len,
 			&convState);
 
 		bool result = strip_it(utf8, dst_len, info);
@@ -1765,7 +1768,7 @@ void TTextView::StopLoad()
 
 //--------------------------------------------------------------------
 
-void TTextView::AddAsContent(BMailMessage *mail, bool wrap)
+void TTextView::AddAsContent(MailMessage *mail, bool wrap)
 {
 	if ((mail == NULL) || (TextLength() < 1))
 		return;
@@ -1773,8 +1776,15 @@ void TTextView::AddAsContent(BMailMessage *mail, bool wrap)
 	const char	*text = Text();
 	int32		textLen = TextLength();
 	
+	PlainTextBodyComponent *body = mail->Body();
+	if (body == NULL)
+	{
+		if (mail->SetBody(body = new PlainTextBodyComponent()) < B_OK)
+			return;
+		body->SetEncoding(quoted_printable,gMailEncoding);
+	}
 	if (!wrap)
-		mail->AddContent(text, textLen, mail_encoding);
+		body->AppendText(text); //, textLen, mail_encoding);
 	else {
 		BWindow	*window = Window();
 		BRect	saveTextRect = TextRect();
@@ -1795,7 +1805,7 @@ void TTextView::AddAsContent(BMailMessage *mail, bool wrap)
 		SetStylable(true);
 		SetFontAndColor(0, textLen, be_fixed_font);
 		
-		if (mail_encoding == B_JIS_CONVERSION) {
+		if (gMailEncoding == B_JIS_CONVERSION) {
 			// this is truly evil...  I'm ashamed of myself (Hiroshi)
 			int32	lastMarker = 0;
 			bool 	inKanji = false;
@@ -1849,7 +1859,7 @@ void TTextView::AddAsContent(BMailMessage *mail, bool wrap)
 			}
 			content[contentLen] = '\0';
 
-			mail->AddContent(content, contentLen, mail_encoding);
+			body->AppendText(content); //, contentLen, mail_encoding);
 			free(content);
 		}
 
@@ -2134,7 +2144,7 @@ bool parse_header(char *base, char *data, off_t size, char *boundary,
 
 					utf8 = (char *)malloc(4 * len);
 					dst_len = 4 * len;
-					convert_to_utf8(mail_encoding, offset, &len, utf8, &dst_len,
+					convert_to_utf8(gMailEncoding, offset, &len, utf8, &dst_len,
 						&convState);
 					len = dst_len;
 				}

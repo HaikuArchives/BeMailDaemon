@@ -6,7 +6,6 @@
 #include <String.h>
 
 class BMimeType;
-//class MailComponent;
 
 typedef enum {
 	base64 				= 'b',

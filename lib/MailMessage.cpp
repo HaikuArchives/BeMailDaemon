@@ -235,6 +235,8 @@ bool MailMessage::IsComponentAttachment(int32 i) {
 void MailMessage::SetBodyTextTo(const char *text) {
 	if (_text_body == NULL) {
 		_text_body = new PlainTextBodyComponent;
+		if (_body == NULL)
+			_body = _text_body;
 		AddComponent(_text_body);
 	}
 	
@@ -257,19 +259,27 @@ status_t MailMessage::SetBody(PlainTextBodyComponent *body) {
 //		delete _text_body;
 	}
 	_text_body = body;
+	if (_body == NULL)
+		_body = body;
 
 	return B_OK;
 }
 
 
 status_t MailMessage::RenderTo(BFile *file) {
+	// FIXME: please return an apropriate error code
+	if (_body == NULL) {
+		puts("no body!");
+		return B_ERROR;
+	}
+
 	//------Copy in headers from _header_kludge_yikes
 	if (_header_kludge_yikes != NULL) {
 		type_code type;
 		char *name, *data;
-		for (int32 i = 0; _header_kludge_yikes->GetInfo(B_STRING_TYPE,i,&name,&type); i++) {
-			_header_kludge_yikes->FindString(name,(const char **)&data);
-			_body->AddHeaderField(name,data);
+		for (int32 i = 0; _header_kludge_yikes->GetInfo(B_STRING_TYPE,i,&name,&type) >= B_OK; i++) {
+			if (_header_kludge_yikes->FindString(name,(const char **)&data) >= B_OK)
+				_body->AddHeaderField(name,data);
 		}
 		
 		delete _header_kludge_yikes;
@@ -366,7 +376,7 @@ status_t MailMessage::RenderTo(BDirectory *dir) {
 	return RenderTo(&file);
 }
 	
-void MailMessage::Send(bool send_now) {
+status_t MailMessage::Send(bool send_now) {
 	MailChain *via = new MailChain(_chain_id);
 	if ((via->InitCheck() != B_OK) || (via->ChainDirection() != outbound)) {
 		delete via;
@@ -374,14 +384,14 @@ void MailMessage::Send(bool send_now) {
 	}
 	
 	BDirectory dir(via->MetaData()->FindString("path"));
-	RenderTo(&dir);
-	
-	if (send_now)
-		MailDaemon::SendQueuedMail();
+
+	status_t status = RenderTo(&dir);
+	if (status >= B_OK && send_now)
+		status = MailDaemon::SendQueuedMail();
 		
 	delete via;
 	
-	return B_OK;
+	return status;
 }
 
 

@@ -58,6 +58,8 @@ All rights reserved.
 #include <fs_index.h>
 #include <fs_info.h>
 
+#include <MailMessage.h>
+
 #ifndef BONE
 #include <netdb.h>
 #endif
@@ -107,7 +109,7 @@ BPoint		prefs_window;
 BRect		signature_window;
 BRect		mail_window;
 BRect		last_window;
-uint32		mail_encoding = B_MS_WINDOWS_CONVERSION;
+uint32		gMailEncoding = B_MS_WINDOWS_CONVERSION;
 Words 		*gWords[MAX_DICTIONARIES], *gExactWords[MAX_DICTIONARIES];
 int32 		gUserDict;
 BFile 		*gUserDictFile;
@@ -187,7 +189,7 @@ TMailApp::TMailApp()
 				fPrefs->Read(signature, len);
 			}
 
-			fPrefs->Read(&mail_encoding, sizeof(int32));
+			fPrefs->Read(&gMailEncoding, sizeof(int32));
 
 			if (fPrefs->Read(&len, sizeof(int32)) > 0) {
 				char *findString = (char *)malloc(len+1);
@@ -388,7 +390,7 @@ void TMailApp::MessageReceived(BMessage* msg)
 				fPrefsWindow = new TPrefsWindow(BRect(prefs_window.x, 
 				  prefs_window.y, prefs_window.x + PREF_WIDTH, 
 				  prefs_window.y + PREF_HEIGHT), &fFont, &level, &wrap_mode, 
-				  &signature, &mail_encoding, &show_buttonbar);
+				  &signature, &gMailEncoding, &show_buttonbar);
 				fPrefsWindow->Show();
 				fPrevBBPref = show_buttonbar;
 			}
@@ -502,7 +504,7 @@ bool TMailApp::QuitRequested()
 			len = strlen(signature) + 1;
 			fPrefs->Write(&len, sizeof(int32));
 			fPrefs->Write(signature, len);
-			fPrefs->Write(&mail_encoding, sizeof(int32));
+			fPrefs->Write(&gMailEncoding, sizeof(int32));
 			const char *findString = FindWindow::GetFindString();
 			len = strlen(findString);
 			fPrefs->Write(&len, sizeof(int32));
@@ -2573,61 +2575,66 @@ status_t TMailWindow::Send(bool now)
 	char			mime[256];
 	int32			index = 0;
 	int32			len;
-	BMailMessage	*mail;
+	MailMessage		*mail;
 	status_t		result;
 	TListItem		*item;
 
 	if (fResending)
-		result = forward_mail(fRef, fHeaderView->fTo->Text(), now);
-	else {
-		mail = new BMailMessage();
+	{
+		puts("forwarding not yet implemented!");
+//		result = forward_mail(fRef, fHeaderView->fTo->Text(), now);
+		result = B_ERROR;
+	}
+	else
+	{
+		mail = new MailMessage();
 				
 		if ((len = strlen(fHeaderView->fTo->Text())) != 0)
-			mail->AddHeaderField(mail_encoding, B_MAIL_TO, fHeaderView->fTo->Text());
+			mail->SetTo(fHeaderView->fTo->Text());
 
 		if ((len = strlen(fHeaderView->fSubject->Text())) != 0)
-			mail->AddHeaderField(mail_encoding, B_MAIL_SUBJECT, 
-			  fHeaderView->fSubject->Text());
+			mail->SetSubject(fHeaderView->fSubject->Text());
 
 		if ((len = strlen(fHeaderView->fCc->Text())) != 0)
-			mail->AddHeaderField(mail_encoding, B_MAIL_CC, 
-			  fHeaderView->fCc->Text());
+			mail->SetCC(fHeaderView->fCc->Text());
 
 		if ((len = strlen(fHeaderView->fBcc->Text())) != 0)
-			mail->AddHeaderField(mail_encoding, B_MAIL_BCC, 
-			  fHeaderView->fBcc->Text());
+			mail->SetBCC(fHeaderView->fBcc->Text());
 
 		/* add a message-id */
-		BString message_id;
-		/* empirical evidence indicates message id must be enclosed in
-		** angle brackets and there must be an "at" symbol in it
-		*/
-		message_id << "<";
-		message_id << system_time();
-		message_id << "-BeMail@";
-		
-		#if BONE
-			utsname uinfo;
-			uname(&uinfo);
-			message_id << uinfo.nodename;
-		#else
-			char host[255];
-			gethostname(host,255);
-			message_id << host;
-		#endif
+//		BString message_id;
+//		/* empirical evidence indicates message id must be enclosed in
+//		** angle brackets and there must be an "at" symbol in it
+//		*/
+//		message_id << "<";
+//		message_id << system_time();
+//		message_id << "-BeMail@";
+//		
+//		#if BONE
+//			utsname uinfo;
+//			uname(&uinfo);
+//			message_id << uinfo.nodename;
+//		#else
+//			char host[255];
+//			gethostname(host,255);
+//			message_id << host;
+//		#endif
+//
+//		message_id << ">";
+//		mail->SetHeaderField("Message-ID", message_id.String());
 
-		message_id << ">";
-		mail->AddHeaderField(mail_encoding, "Message-ID: ", message_id.String());
 		/****/
 		
 		if ((len = fContentView->fTextView->TextLength()) != 0)
 			fContentView->fTextView->AddAsContent(mail, wrap_mode);
 
-		if (fEnclosuresView != NULL) {
-			while ((item = (TListItem *)fEnclosuresView->fList->ItemAt(index++)) != NULL){
-				mail->AddEnclosure(item->Ref());
-			}
+		if (fEnclosuresView != NULL)
+		{
+			while ((item = (TListItem *)fEnclosuresView->fList->ItemAt(index++)) != NULL)
+				mail->Attach(item->Ref());
 		}
+		mail->SendViaAccount(fChain);
+
 		result = mail->Send(now);
 		delete mail;
 	}
@@ -2652,15 +2659,15 @@ status_t TMailWindow::Send(bool now)
 				"queued and will be sent when the mail_daemon is started.");
 			break;
 
-		case B_MAIL_UNKNOWN_HOST:
-		case B_MAIL_ACCESS_ERROR:
-			sprintf(mime, "An error occurred trying to connect with the SMTP "
-				"host.  Check your SMTP host name.");
-			break;
-
-		case B_MAIL_NO_RECIPIENT:
-			sprintf(mime, "You must have either a \"To\" or \"Bcc\" recipient.");
-			break;
+//		case B_MAIL_UNKNOWN_HOST:
+//		case B_MAIL_ACCESS_ERROR:
+//			sprintf(mime, "An error occurred trying to connect with the SMTP "
+//				"host.  Check your SMTP host name.");
+//			break;
+//
+//		case B_MAIL_NO_RECIPIENT:
+//			sprintf(mime, "You must have either a \"To\" or \"Bcc\" recipient.");
+//			break;
 
 		default:
 			sprintf(mime, "An error occurred trying to send mail (0x%.8lx).",
