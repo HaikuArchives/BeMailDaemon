@@ -7,6 +7,10 @@
 <META NAME="description" CONTENT="Documentation for AGMSBayesianSpam, for classifying incoming e-mail messages as spam (junk mail) or genuine.">
 <!--
 ; $Log$
+; Revision 1.5  2002/11/28 21:19:41  agmsmith
+; Updated to explain how to check for spam without downloading the
+; whole message.
+;
 ; Revision 1.4  2002/11/10 20:56:39  agmsmith
 ; Updated documentation to include MDR installer effects, and added a
 ; section on the tokenizing experiments.
@@ -102,11 +106,10 @@ renaissance of Spam detection methods.
 <H1><A NAME="Installation"></A>Installation</H1>
 
 <OL TYPE="1">
-  <LI>Install the Mail Daemon Replacement (MDR) version 2.0 beta 1 or later
-    (use AGMSBayesianSpam version 1.60.1.1 for MDR 2.0.0b1).  Beta 3 and later
-    include AGMSBayesianSpam so you don't need to worry about incompatible
-    versions, and the MDR will even do some of the installation for you.  You
-    can get MDR from <A
+  <LI>Install the Mail Daemon Replacement (MDR) version 2.0.0 beta 3 or later.
+    Beta 3 and later include AGMSBayesianSpam so you don't need to worry about
+    incompatible versions, and the MDR will even do some of the installation
+    for you.  You can get MDR from <A
     HREF="http://www.bebits.com/app/2289">http://www.bebits.com/app/2289</A> or
     get the latest source code and compile it yourself from <A
     HREF="http://sourceforge.net/projects/bemaildaemon"
@@ -501,7 +504,8 @@ what would work best.
 
 <P>The Database:
 <BR>341 training genuine messages, 406 training spam messages (or 398 when
-parsing due to a bug with messages that don't have body text).
+parsing due to a bug (fixed later on in 2.0.0b5) with messages that don't have
+body text).
 <BR>40 test genuine messages, 40 test spam messages, all more recent than the
 training ones.
 <BR>Spam threshold is 0.56, Gary-combining method.
