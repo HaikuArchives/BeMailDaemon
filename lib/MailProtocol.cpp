@@ -40,14 +40,17 @@ namespace Mail {
 
 class ManifestAdder : public Mail::ChainCallback {
 	public:
-		ManifestAdder(StringList *list, const char *id) : manifest(list), uid(id) {}
+		ManifestAdder(StringList *list,StringList **list2, const char *id) : manifest(list), uids_on_disk(list2), uid(id) {}
 		virtual void Callback(status_t result) {
-			if (result == B_OK)
+			if (result == B_OK) {
 				(*manifest) += uid;
+				if (*uids_on_disk != NULL)
+					(**uids_on_disk) += uid;
+			}
 		}
 		
 	private:
-		StringList *manifest;
+		StringList *manifest,**uids_on_disk;
 		const char *uid;
 };
 
@@ -193,7 +196,6 @@ Protocol::Protocol(BMessage *settings, ChainRunner *run)
 		trash_monitor = new TrashMonitor(this);
 		runner->AddHandler(trash_monitor);
 		runner->PostMessage('INIT',trash_monitor);
-		
 	}
 }
 
@@ -253,7 +255,7 @@ Protocol::ProcessMailMessage(BPositionIO **io_message, BEntry *io_entry,
 		return B_MAIL_END_FETCH;
 	}
 
-	runner->RegisterMessageCallback(new ManifestAdder(manifest, io_uid));
+	runner->RegisterMessageCallback(new ManifestAdder(manifest, &uids_on_disk, io_uid));
 	runner->RegisterMessageCallback(new MessageDeletion(this, io_uid, io_entry, !settings->FindBool("leave_mail_on_server")));
 
 	return B_OK;
