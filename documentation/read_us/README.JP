@@ -193,6 +193,7 @@ July 15 2003 - v2.1.0rc3
 - Added an option to start with spell checking on.
 - Added people's names to the auto-complete word list.  So if you want to send e-mail to Dane, type a double quote then the first few letters of his name; typing "Da… will expand to "Dane Scott" <dane@somewhere.com>.  The usual pure e-mail address expansion is unchanged, typing da… without the quote mark will expand to only dane@somewhere.com.  We don't have it include the name since the auto-complete is simple text substitution - would need a fancy post processing stage to figure out the right addresses and full names.
 - Found some buffer overwrite bugs in SMTP which prevented some authentication methods from working.
+- Moved the Save button furthur from the Send button; "Skiver" didn't like accidentally hitting Send.
 
 July 6 2003 - v2.1.0rc2
 - Fixed some IMAP bugs.  Not all IMAP servers are the same, or even standard.
