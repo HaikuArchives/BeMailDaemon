@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v2.2.0 Beta 1
+BEOS Mail Daemon Replacement v2.2.0
 
 ABOUT:
 
@@ -12,9 +12,6 @@ files:
 
   LICENSE
    Conditions for using/distributing this package.
-
-  DANGER, WILL ROBINSON
-   The reasons this is not a final release. You really should read this.
 
   AGMSBayesianSpamDocumentation
     This lovely folder with no spaces in its name contains the documentation for
@@ -67,8 +64,8 @@ files:
   to find it, having more than one version will cause things to
   randomly fail, when it finds the old version instead of the new.
 
-  This software is beta quality! See the LICENSE file for more 	
-  information.
+  Also, your inbox MUST be on your boot disk. You will get thousands
+  of error messages if it isn't, and it might delete all your e-mail.
 
 ***********
 
@@ -161,7 +158,7 @@ For IMAP, things are slightly more complicated. The IMAP folder structure is dup
 
 HISTORY:
 
-July 26 2003 - v2.2.0b1
+July 30 2003 - v2.2.0
 - Starting a new version for Nathan's second overhaul of the architecture: adding a fancy RemoteStorageProtocol for better IMAP (and others in the future) local vs remote mail folder synchronization.
 - Fixed recently added bug in AGMSBayesianSpamServer which wouldn't let you double classify a message, even if the IgnorePreviousClassification option was on.
 - Added hack to wait for spell checking dictionaries to load when you start up BeMail with the command line options to create a new message.  Avoids the warning about not finding the dictionaries.
