@@ -208,7 +208,7 @@ class UpdateHandler : public BHandler {
 		RemoteStorageProtocol *_prot;
 		BDirectory _dest;
 		
-		map<int64, const char *mb_name> nodes;
+		map<int64, const char *> nodes;
 		ino_t dest_node;
 };
 
@@ -285,7 +285,7 @@ void RemoteStorageProtocol::SyncMailbox(const char *mailbox) {
 	BEntry entry;
 	BFile snoodle;
 	BString string;
-	int32 chain;
+	uint32 chain;
 	bool append;
 	
 	while (folder.GetNextEntry(&entry) == B_OK) {
@@ -293,7 +293,7 @@ void RemoteStorageProtocol::SyncMailbox(const char *mailbox) {
 			continue;
 		snoodle.SetTo(&entry,B_READ_WRITE);
 		append = false;
-		snooze(1e5);
+		snooze(1000000);
 		while (snoodle.Lock() != B_OK) snooze(100);
 		if (snoodle.ReadAttr("MAIL:chain",B_INT32_TYPE,0,&chain,sizeof(chain)) < B_OK)
 			append = true;
