@@ -326,7 +326,7 @@ void MailDaemonApp::SendPendingMessages() {
 	BList *list = new BList;
 	settings_file.OutboundChains(list);
 	MailChain *chain;
-	
+
 	for (int32 i = 0; i < list->CountItems(); i++) {
 		chain = (MailChain *)(list->ItemAt(i));
 		

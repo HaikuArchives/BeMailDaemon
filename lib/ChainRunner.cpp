@@ -121,9 +121,9 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 					return -1;
 				}
 				
-				get_image_symbol(image->id,"instantiate_mailfilter",B_SYMBOL_TYPE_TEXT,(void **)&instantiate);
+				status_t err = get_image_symbol(image->id,"instantiate_mailfilter",B_SYMBOL_TYPE_TEXT,(void **)&instantiate);
 				on_exit_thread(&unload,(void *)(image->id));
-				if (instantiate == NULL) {
+				if (err < B_OK) {
 					BString error;
 					error << "Error loading the mail addon " << path.Path() << " from chain " << chain->Name() << ": the addon does not seem to be a mail addon (missing symbol instantiate_mailfilter).";
 					

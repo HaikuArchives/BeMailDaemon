@@ -111,7 +111,6 @@ StatusWindow::~StatusWindow()
 	if (general.InitCheck() == B_OK)
 	{
 		general.SetStatusWindowFrame(Frame());
-		printf("workspace: %ld\n",Workspaces());
 		general.SetStatusWindowWorkspaces((int32)Workspaces());
 		general.Save();
 	}
