@@ -11,6 +11,9 @@
  * Public Domain 2002, by Alexander G. M. Smith, no warranty.
  *
  * $Log$
+ * Revision 1.17  2003/07/08 21:12:47  agmsmith
+ * Changed other spam filter defaults to values I find useful.
+ *
  * Revision 1.16  2003/07/08 20:56:40  agmsmith
  * Turn on auto-training for the spam filter by default.
  *
@@ -424,7 +427,7 @@ ErrorExit:
 	fprintf (stderr, "Error exit from "
 		"AGMSBayesianSpamFilter::ProcessMailMessage, code maybe %ld (%s).\n",
 		errorCode, strerror (errorCode));
-	delete stringBuffer;
+	delete [] stringBuffer;
 	return B_OK; // Not MD_ERROR so the message doesn't get left on server.
 }
 
