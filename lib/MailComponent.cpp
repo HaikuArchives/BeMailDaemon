@@ -313,7 +313,7 @@ status_t Component::RenderToRFC822(BPositionIO *render_to) {
 #ifndef B_BEOS_VERSION_DANO
 	(char**)
 #endif
-				&key,&stupidity_personified,&count) == B_OK; index++) {
+			&key,&stupidity_personified,&count) == B_OK; index++) {
 		for (int32 g = 0; g < count; g++) {
 			headers.FindString(key,g,(const char **)&value);
 			allocd = (char *)malloc(strlen(value) + 1);
@@ -323,10 +323,8 @@ status_t Component::RenderToRFC822(BPositionIO *render_to) {
 			concat.CapitalizeEachWord();
 
 			concat.Append(allocd,utf8_to_rfc2047(&allocd, strlen(value), charset, encoding));
-
-			concat << "\r\n";
-
 			free(allocd);
+			FoldLineAtWhiteSpaceAndAddCRLF (concat);
 
 			amountWritten = render_to->Write(concat.String(), concat.Length());
 			if (amountWritten < 0)

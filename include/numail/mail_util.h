@@ -53,6 +53,11 @@ ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, char encodi
 // Unidentified charsets and conversion errors cause
 // the offending text to be skipped.
 
+void FoldLineAtWhiteSpaceAndAddCRLF (BString &string);
+// Insert CRLF at various spots in the given string (before white space) so
+// that the line length is mostly under 78 bytes.  Also makes sure there is a
+// CRLF at the very end.
+
 ssize_t nextfoldedline(const char** header, char **buffer, size_t *buflen);
 ssize_t readfoldedline(FILE *file, char **buffer, size_t *buflen);
 ssize_t readfoldedline(BPositionIO &in, char **buffer, size_t *buflen);

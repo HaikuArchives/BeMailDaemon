@@ -22,6 +22,7 @@
 
 #include <mail_util.h>
 
+#define CRLF   "\r\n"
 
 namespace Zoidberg {
 namespace Mail {
@@ -542,6 +543,85 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 	(*bufp)[finalLength] = 0;
 
 	return finalLength;
+}
+
+
+//====================================================================
+
+void FoldLineAtWhiteSpaceAndAddCRLF (BString &string)
+{
+	int			inputLength = string.Length();
+	int			lineStartIndex;
+	const int	maxLineLength = 78; // Doesn't include CRLF.
+	BString		output;
+	int			splitIndex;
+	int			tempIndex;
+
+	lineStartIndex = 0;
+	while (true) {
+		// If we don't need to wrap the text, just output the remainder, if any.
+
+		if (lineStartIndex + maxLineLength >= inputLength) {
+			if (lineStartIndex < inputLength) {
+				output.Insert (string, lineStartIndex /* source offset */,
+					inputLength - lineStartIndex /* count */,
+					output.Length() /* insert at */);
+				output.Append (CRLF);
+			}
+			break;
+		}
+
+		// Look ahead for a convenient spot to split it, between a comma and
+		// space, which you often see between e-mail addresses like this:
+		// "Joe Who" joe@dot.com, "Someone Else" else@blot.com
+
+		tempIndex = lineStartIndex + maxLineLength;
+		if (tempIndex > inputLength)
+			tempIndex = inputLength;
+		splitIndex = string.FindLast (", ", tempIndex);
+		if (splitIndex >= lineStartIndex)
+			splitIndex++; // Point to the space character.
+
+		// If none of those exist, try splitting at any white space.
+
+		if (splitIndex <= lineStartIndex)
+			splitIndex = string.FindLast (" ", tempIndex);
+		if (splitIndex <= lineStartIndex)
+			splitIndex = string.FindLast ("\t", tempIndex);
+
+		// If none of those exist, allow for a longer word - split at the next
+		// available white space.
+
+		if (splitIndex <= lineStartIndex)
+			splitIndex = string.FindFirst (" ", lineStartIndex + 1);
+		if (splitIndex <= lineStartIndex)
+			splitIndex = string.FindFirst ("\t", lineStartIndex + 1);
+
+		// Give up, the whole rest of the line can't be split, just dump it
+		// out.
+
+		if (splitIndex <= lineStartIndex) {
+			if (lineStartIndex < inputLength) {
+				output.Insert (string, lineStartIndex /* source offset */,
+					inputLength - lineStartIndex /* count */,
+					output.Length() /* insert at */);
+				output.Append (CRLF);
+			}
+			break;
+		}
+
+		// Do the split.  The current line up to but not including the space
+		// gets output, followed by a CRLF.  The space remains to become the
+		// start of the next line (and that tells the message reader that it is
+		// a continuation line).
+
+		output.Insert (string, lineStartIndex /* source offset */,
+			splitIndex - lineStartIndex /* count */,
+			output.Length() /* insert at */);
+		output.Append (CRLF);
+		lineStartIndex = splitIndex;
+	}
+	string.SetTo (output);
 }
 
 
