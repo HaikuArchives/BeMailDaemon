@@ -31,10 +31,10 @@
 
 StatusWindow *status;
 
-class MailDaemon : public BApplication {
+class MailDaemonApp : public BApplication {
 	public:
-		MailDaemon(void);
-		virtual ~MailDaemon();
+		MailDaemonApp(void);
+		virtual ~MailDaemonApp();
 		void MessageReceived(BMessage *msg);
 		void InstallDeskbarIcon();
 		void RemoveDeskbarIcon();
@@ -85,7 +85,7 @@ int main (int argc, const char **argv) {
 		}
 	}
 
-	MailDaemon app;
+	MailDaemonApp app;
 	
 	// Add MAIL:account attribute if necessary
 	BMimeType email_mime_type("text/x-email");
@@ -146,7 +146,7 @@ int main (int argc, const char **argv) {
 }
 
 
-MailDaemon::MailDaemon(void)
+MailDaemonApp::MailDaemonApp(void)
   : BApplication("application/x-vnd.Be-POST" /* mail daemon sig */ )
 {	
 	InstallDeskbarIcon();
@@ -183,12 +183,12 @@ MailDaemon::MailDaemon(void)
 	status->SetDefaultMessage(strdup(string.String())); /* Memory Leak!!!!!! How to fix? */
 }
 
-MailDaemon::~MailDaemon()
+MailDaemonApp::~MailDaemonApp()
 {
 	delete auto_check;
 }
 
-void MailDaemon::MessageReceived(BMessage *msg) {
+void MailDaemonApp::MessageReceived(BMessage *msg) {
 	switch (msg->what) {
 		case 'moto':
 			if (settings_file.CheckOnlyIfPPPUp()) {
@@ -264,7 +264,7 @@ void MailDaemon::MessageReceived(BMessage *msg) {
 	}
 }
 
-void MailDaemon::InstallDeskbarIcon() {
+void MailDaemonApp::InstallDeskbarIcon() {
 	BDeskbar deskbar;
 
 	if(deskbar.HasItem( "mail_daemon" ) == false) {
@@ -288,18 +288,18 @@ void MailDaemon::InstallDeskbarIcon() {
 	}
 }
 
-void MailDaemon::RemoveDeskbarIcon() {
+void MailDaemonApp::RemoveDeskbarIcon() {
 	BDeskbar deskbar;
 	if( deskbar.HasItem( "mail_daemon" ))
 		deskbar.RemoveItem( "mail_daemon" );
 }
 
-bool MailDaemon::QuitRequested() {
+bool MailDaemonApp::QuitRequested() {
 	RemoveDeskbarIcon();
 	return true;
 }
 
-void MailDaemon::GetNewMessages() {
+void MailDaemonApp::GetNewMessages() {
 	BList *list = new BList;
 	settings_file.InboundChains(list);
 	MailChain *chain;
@@ -313,7 +313,7 @@ void MailDaemon::GetNewMessages() {
 	clean_up.AddList(list);
 }
 
-void MailDaemon::SendPendingMessages() {
+void MailDaemonApp::SendPendingMessages() {
 	BList *list = new BList;
 	settings_file.OutboundChains(list);
 	MailChain *chain;
