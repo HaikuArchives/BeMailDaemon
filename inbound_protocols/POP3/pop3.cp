@@ -199,7 +199,9 @@ status_t POP3Protocol::Retrieve(int32 message, BPositionIO *write_to)
 {
 	BString cmd;
 	cmd << "RETR " << message + 1 << CRLF;
-	return RetrieveInternal(cmd.String(),message,write_to, true);
+	status_t result = RetrieveInternal(cmd.String(),message,write_to, true);
+	runner->ReportProgress(0,1);
+	return result;
 }
 
 
