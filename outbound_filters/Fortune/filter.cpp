@@ -44,7 +44,7 @@ MDStatus FortuneFilter::ProcessMailMessage
 		(*io)->Seek(0, SEEK_END);
 		
 		(*io)->Write("\n", strlen("\n"));
-		(*io)->Write("---------------------------------\n",strlen("---------------------------------\n"));
+		(*io)->Write("--\n",strlen("--\n"));
 		(*io)->Write(settings->FindString("tag_line"),strlen(settings->FindString("tag_line")));
 		
 		while (fgets(buffer, 768, fd)) {
