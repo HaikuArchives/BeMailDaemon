@@ -74,6 +74,11 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
+ * Revision 1.72  2002/12/13 20:26:11  agmsmith
+ * Fixed bug with adding messages in strings to database (was limited to
+ * messages at most 1K long).  Also changed default server mode to true
+ * since that's what people use most.
+ *
  * Revision 1.71  2002/12/11 22:37:30  agmsmith
  * Added commands to train on spam and genuine e-mail messages passed
  * in string arguments rather then via external files.
@@ -633,13 +638,17 @@ static struct property_info g_ScriptingPropertyList [] =
     "if it is spam or not.  Returns the ratio of spam probability vs genuine "
     "probability, 0.0 meaning completely genuine, 1.0 for completely spam.  "
     "Normally you should safely be able to consider it as spam if it is over "
-    "0.56.  It attaches a MAIL:ratio_spam attribute with the ratio as its "
+    "0.56 for the Robinson scoring method.  For the ChiSquared method, the "
+    "numbers are near 0 for genuine, near 1 for spam, and anywhere in the "
+    "middle means it can't decide.  The program attaches a MAIL:ratio_spam "
+    "attribute with the ratio as its "
     "float32 value to the file.  Also returns the top few interesting words "
     "in \"words\" and the associated per-word probability ratios in "
     "\"ratios\".", PN_EVALUATE, {}, {}, {}},
   {g_PropertyNames[PN_EVALUATE_STRING], {B_SET_PROPERTY, 0},
-    {B_DIRECT_SPECIFIER, 0}, "Like Evaluate, but rather than a file, it "
-    "evaluates the string argument directly.", PN_EVALUATE_STRING, {}, {}, {}},
+    {B_DIRECT_SPECIFIER, 0}, "Like Evaluate, but rather than a file name, "
+    "the string argument contains the entire text of the message to be "
+    "evaluated.", PN_EVALUATE_STRING, {}, {}, {}},
   {g_PropertyNames[PN_RESET_TO_DEFAULTS], {B_EXECUTE_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "Resets all the configuration options to the "
     "default values, including the database name.", PN_RESET_TO_DEFAULTS,
@@ -681,10 +690,10 @@ static struct property_info g_ScriptingPropertyList [] =
     "see shades of spaminess.  The cutoff point between spam and genuine "
     "varies depending on your database of words (0.56 was one point in "
     "some experiments).  \"ChiSquared\" mode will use chi-squared "
-    "statistics to evaluate the probability that the lists of word ratios "
-    "are random.  The result is very close to 0 for genuine and very close "
-    "to 1 for spam, and near the middle if it is uncertain.", PN_SCORING_MODE,
-    {}, {}, {}},
+    "statistics to evaluate the difference in probabilities that the lists "
+    "of word ratios are random.  The result is very close to 0 for genuine "
+    "and very close to 1 for spam, and near the middle if it is uncertain.",
+    PN_SCORING_MODE, {}, {}, {}},
   {g_PropertyNames[PN_SCORING_MODE], {B_GET_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "Gets the method used for combining the "
     "individual word ratios into an overall score.", PN_SCORING_MODE,
