@@ -64,6 +64,11 @@
  * rule chain can delete the message or otherwise manipulate it.
  *
  * $Log$
+ * Revision 1.84  2003/07/04 19:59:29  agmsmith
+ * Now with a GUI option to let you declassify messages (set them back
+ * to uncertain, rather than spam or genuine).  Required a BAlert
+ * replacement since BAlerts can't do four buttons.
+ *
  * Revision 1.83  2003/07/03 20:40:36  agmsmith
  * Added Uncertain option for declassifying messages.
  *
@@ -493,6 +498,12 @@ static int g_QuitCountdown = -1;
   where there are multiple e-mail accounts all requesting spam identification,
   and one finishes first and tells the server to quit.  It also checks to see
   that there is no more work to do before trying to quit. */
+
+static volatile bool g_AppReadyToRunCompleted = false;
+  /* The BApplication starts processing messages before ReadyToRun finishes,
+  which can lead to initialisation problems (button heights not determined).
+  So wait for this to turn TRUE in code that might run early, like
+  RefsReceived. */
 
 static class CommanderLooper *g_CommanderLooperPntr = NULL;
 static BMessenger *g_CommanderMessenger = NULL;
@@ -4333,6 +4344,7 @@ void ABSApp::ReadyToRun ()
     else
       DatabaseWindowPntr->Show (); /* Starts the window's message loop. */
   }
+  g_AppReadyToRunCompleted = true;
 }
 
 
@@ -5362,6 +5374,14 @@ void CommanderLooper::ProcessRefs (BMessage *MessagePntr)
   int32                        TempInt32;
   char                         TempString [PATH_MAX + 1024];
   type_code                    TypeCode;
+
+  // Wait for ReadyToRun to finish initializing the globals with the sizes of
+  // the controls, since they are needed when we show the custom alert box for
+  // choosing the message type.
+
+  TempInt32 = 0;
+  while (!g_AppReadyToRunCompleted && TempInt32++ < 10)
+    snooze (200000);
 
   ErrorCode = MessagePntr->GetInfo ("refs", &TypeCode, &NumberOfRefs);
   if (ErrorCode != B_OK || TypeCode != B_REF_TYPE || NumberOfRefs <= 0)
