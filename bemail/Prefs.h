@@ -60,7 +60,7 @@ class Button;
 class TPrefsWindow : public BWindow
 {
 	public:
-		TPrefsWindow(BRect rect,BFont *font,int32 *level,bool *warp,uint32 *account,
+		TPrefsWindow(BRect rect,BFont *font,int32 *level,bool *warp,bool *cquotes,uint32 *account,
 				int32 *replyTo,char **sig,uint32 *encoding,bool *buttonBar);
 		~TPrefsWindow();
 	
@@ -73,14 +73,18 @@ class TPrefsWindow : public BWindow
 		BPopUpMenu *BuildSignatureMenu(char*);
 		BPopUpMenu *BuildSizeMenu(BFont*);
 		BPopUpMenu *BuildWrapMenu(bool);
+		BPopUpMenu *BuildColoredQuotesMenu(bool quote);
 		BPopUpMenu *BuildEncodingMenu(uint32 encoding);
 		BPopUpMenu *BuildButtonBarMenu(bool show);
 
 	private:
+		BPopUpMenu *BuildBoolMenu(uint32 msg, const char *boolItem, bool isTrue);
+
 		bool	fWrap;
 		bool	*fNewWrap;
 		bool	fButtonBar;
 		bool	*fNewButtonBar;
+		bool	fColoredQuotes, *fNewColoredQuotes;
 		uint32	fAccount;
 		uint32	*fNewAccount;
 		int32	fReplyTo;
@@ -98,7 +102,7 @@ class TPrefsWindow : public BWindow
 		BPopUpMenu *fFontMenu;
 		BPopUpMenu *fSizeMenu;
 		BPopUpMenu *fLevelMenu;
-		BPopUpMenu *fWrapMenu;
+		BPopUpMenu *fWrapMenu, *fColoredQuotesMenu;
 		BPopUpMenu *fAccountMenu, *fReplyToMenu;
 		BPopUpMenu *fSignatureMenu;
 		BPopUpMenu *fEncodingMenu;

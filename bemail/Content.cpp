@@ -71,8 +71,23 @@ All rights reserved.
 #include "FieldMsg.h"
 #include "Words.h"
 
-extern	bool	header_flag;
-extern	uint32	gMailEncoding;
+
+const rgb_color kNormalTextColor = { 0, 0, 0, 0};
+const rgb_color kHyperLinkColor = {0, 0, 255, 0};
+const rgb_color kHeaderColor = {72, 72, 72, 0};
+
+const rgb_color kQuoteColors[] =
+{
+	{0, 0, 0x80, 0},		// 3rd, 6th, ... quote level color
+	{0, 0x80, 0, 0},		// 1st, 4th, ... quote level color
+	{0x80, 0, 0, 0}			// 2nd, ...
+};
+const int32 kNumQuoteColors = 3;
+
+
+extern bool		header_flag;
+extern uint32	gMailEncoding;
+extern bool		gColoredQuotes;
 
 
 inline bool IsInitialUTF8Byte(uchar b)	
@@ -81,7 +96,7 @@ inline bool IsInitialUTF8Byte(uchar b)
 }
 
 
-inline bool FilterHTMLTag(char *first,char **t,char *end)
+bool FilterHTMLTag(char *first,char **t,char *end)
 {
 	const char *newlineTags[] = {
 		"br",
@@ -146,15 +161,109 @@ inline bool FilterHTMLTag(char *first,char **t,char *end)
 }
 
 
+void FillInQouteTextRuns(BTextView *view,const char *line,int32 length,BFont &font,text_run_array *style,int32 maxStyles = 5)
+{
+	if (!gColoredQuotes)
+		return;
+
+	text_run *runs = style->runs;
+	int32 index = style->count;
+	bool begin = view->TextLength() == 0 || view->ByteAt(view->TextLength() - 1) == '\n';
+	int32 start = view->OffsetAt(view->CurrentLine());
+	int32 end,pos = 0;
+	view->GetSelection(&end,&end);
+	int32 level = 0;
+	char *quote = QUOTE;
+
+	// get number of nested qoutes for current line
+
+	if (!begin && start < end)
+	{
+		const char *text = view->Text();
+		begin = true;	// if there was no text in this line, there may come more nested quotes
+
+		for (int32 i = start;i < end;i++)
+		{
+			if (text[i] == *quote)
+				level++;
+			else if (isalnum(text[i]))
+			{
+				begin = false;
+				break;
+			}
+		}
+		if (begin)
+			while (line[pos] == ' ')
+				pos++;
+	}
+
+	// set styles for all qoute levels in the text to be inserted
+
+	for (int32 pos = 0;pos < length;)
+	{
+		int32 next;
+		if (begin && line[pos] == *quote)
+		{
+			while (pos < length && line[pos] != '\n')
+			{
+				level++;
+
+				bool search = true;
+				for (next = pos + 1;next < length;next++)
+				{
+					if (search && line[next] == '>'
+						|| line[next] == '\n')
+						break;
+					else if (isalnum(line[next]))
+						search = false;
+				}
+
+				runs[index].offset = pos;
+				runs[index].font = font;
+				runs[index].color = level > 0 ? kQuoteColors[level % kNumQuoteColors] : kNormalTextColor;
+				
+				pos = next;
+				if (++index >= maxStyles)
+					break;
+			}
+		}
+		else
+		{
+			runs[index].offset = pos;
+			runs[index].font = font;
+			runs[index].color = level > 0 ? kQuoteColors[level % kNumQuoteColors] : kNormalTextColor;
+			index++;
+			
+			for (next = pos;next < length;next++)
+			{
+				if (line[next] == '\n')
+					break;
+			}
+			pos = next;
+		}
+		if (index >= maxStyles)
+			break;
+
+		level = 0;
+
+		if (line[pos] == '\n')
+		{
+			pos++;
+			begin = true;
+		}
+	}
+	style->count = index;
+}
+
+
 //====================================================================
 //	#pragma mark -
 
 
 TContentView::TContentView(BRect rect, bool incoming, BFile *file, BFont *font)
-			 :BView(rect, "m_content", B_FOLLOW_ALL, B_WILL_DRAW |
-													B_FULL_UPDATE_ON_RESIZE),
-			fFocus(false),
-			fIncoming(incoming)
+	:	BView(rect, "m_content", B_FOLLOW_ALL, B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE),
+	fFocus(false),
+	fIncoming(incoming)
 {
 	SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
 
@@ -431,21 +540,21 @@ void TContentView::FrameResized(float /* width */, float /* height */)
 
 TTextView::TTextView(BRect frame, BRect text, bool incoming, BFile *file,
                       TContentView *view, BFont *font)
-          :BTextView(frame, "", text, B_FOLLOW_ALL, B_WILL_DRAW | B_NAVIGABLE),
-			fHeader(header_flag),
-			fReady(false),
-			fYankBuffer(NULL),
-			fLastPosition(-1),
-			fFile(NULL),
-			fMail(NULL),
-			fFont(font),
-			fParent(view),
-			fThread(0),
-			fPanel(NULL),
-			fIncoming(incoming),
-			fSpellCheck(false),
-			fRaw(false),
-			fCursor(false)
+	:	BTextView(frame, "", text, B_FOLLOW_ALL, B_WILL_DRAW | B_NAVIGABLE),
+	fHeader(header_flag),
+	fReady(false),
+	fYankBuffer(NULL),
+	fLastPosition(-1),
+	fFile(NULL),
+	fMail(NULL),
+	fFont(font),
+	fParent(view),
+	fThread(0),
+	fPanel(NULL),
+	fIncoming(incoming),
+	fSpellCheck(false),
+	fRaw(false),
+	fCursor(false)
 {
 	if (file)
 		fFile = new BFile(*file);
@@ -1645,10 +1754,12 @@ void TTextView::AddAsContent(MailMessage *mail, bool wrap)
 		// hard-wrap, based on TextView's soft-wrapping
 		int32	numLines = CountLines();
 		char	*content = (char *)malloc(textLen + numLines);	// most we'll ever need
-		if (content != NULL) {
+		if (content != NULL)
+		{
 			int32 contentLen = 0;
 
-			for (int32 i = 0; i < numLines; i++) {
+			for (int32 i = 0; i < numLines; i++)
+			{
 				int32 startOffset = OffsetAt(i);
 				int32 endOffset = OffsetAt(i + 1);
 				int32 lineLen = endOffset - startOffset;
@@ -1689,15 +1800,16 @@ void TTextView::AddAsContent(MailMessage *mail, bool wrap)
 
 TTextView::Reader::Reader(bool header, bool raw, bool quote, bool incoming, bool mime, 
 				TTextView *view, BFile *file, BList *list, sem_id sem)
-	:	fHeader(header),
-		fRaw(raw),
-		fQuote(quote),
-		fIncoming(incoming),
-		fMime(mime),
-		fView(view),
-		fFile(file),
-		fEnclosures(list),
-		fStopSem(sem)
+	:
+	fHeader(header),
+	fRaw(raw),
+	fQuote(quote),
+	fIncoming(incoming),
+	fMime(mime),
+	fView(view),
+	fFile(file),
+	fEnclosures(list),
+	fStopSem(sem)
 {
 }
 
@@ -1908,22 +2020,25 @@ bool TTextView::Reader::Insert(const char *line, int32 count, bool isHyperLink, 
 	if (!count)
 		return true;
 
-	const rgb_color hyper_color = {0, 0, 255, 0};
-	const rgb_color header_color = {72,72,72, 0};
-	const rgb_color normal_color = { 0, 0, 0, 0};
-
 	BFont font(fView->fFont);
-	text_run_array style;
-	style.count = 1;
-	style.runs[0].offset = 0;	
-	if (isHeader)
-	{
-		style.runs[0].color = isHyperLink ? hyper_color : header_color;
-		font.SetSize(font.Size() * 0.9);
-	}
+	struct text_runs : text_run_array { text_run _runs[63]; } style;
+	style.count = 0;
+
+	if (!isHeader && !isHyperLink)
+		FillInQouteTextRuns(fView,line,count,font,&style,64);
 	else
-		style.runs[0].color = isHyperLink ? hyper_color : normal_color;
-	style.runs[0].font = font;
+	{
+		style.count = 1;
+		style.runs[0].offset = 0;
+		if (isHeader)
+		{
+			style.runs[0].color = isHyperLink ? kHyperLinkColor : kHeaderColor;
+			font.SetSize(font.Size() * 0.9);
+		}
+		else
+			style.runs[0].color = isHyperLink ? kHyperLinkColor : kNormalTextColor;
+		style.runs[0].font = font;
+	}
 
 	if (!Lock())
 		return false;
@@ -2130,8 +2245,11 @@ void TTextView::InsertText(const char *text, int32 length, int32 offset,
 		GetFontAndColor(offset-1, NULL, &color);
 		const char *text = Text();
 		
-		if ((length > 1) || isalpha(text[offset+1]) || ((!isalpha(text[offset]))
-				&& (text[offset]!='\'')) || (color.red != 0)) {
+		if (length > 1
+			|| isalpha(text[offset+1])
+			|| (!isalpha(text[offset]) && text[offset] != '\'')
+			|| color.red != 0)
+		{
 			int32 start, end;
 			FindSpellBoundry(length, offset, &start, &end);
 			//printf("Offset %ld, start %ld, end %ld\n", offset, start, end);
@@ -2141,6 +2259,7 @@ void TTextView::InsertText(const char *text, int32 length, int32 offset,
 	else
 		BTextView::InsertText(text, length, offset, runs);
 }
+
 
 void TTextView::DeleteText(int32 start, int32 finish)
 {
@@ -2154,6 +2273,7 @@ void TTextView::DeleteText(int32 start, int32 finish)
 	}
 }
 
+
 void TTextView::ContentChanged(void)
 {
 	BLooper *looper;
@@ -2165,6 +2285,7 @@ void TTextView::ContentChanged(void)
 		looper->PostMessage(&msg);
 	}
 }
+
 
 void TTextView::CheckSpelling(int32 start, int32 end, int32 flags)
 {
@@ -2189,7 +2310,8 @@ void TTextView::CheckSpelling(int32 start, int32 end, int32 flags)
 		// Alpha signifies the start of a word
 		isAlpha = isalpha(*next);
 		isApost = (*next=='\'');
-		if (!word && isAlpha) {
+		if (!word && isAlpha)
+		{
 			//printf("Found word start\n");
 			word = next;
 			wordLength++;
@@ -2197,29 +2319,35 @@ void TTextView::CheckSpelling(int32 start, int32 end, int32 flags)
 		}
 		// Word continues check
 		else if (word && (isAlpha || isApost) && !(isApost && !isalpha(next[1]))
-				&& !(isCap && isApost && (next[1]=='s'))) {
+				&& !(isCap && isApost && (next[1]=='s')))
+		{
 			wordLength++;
 			//printf("Word continues...\n");
 		}
 		// End of word reached
-		else if (word) {
+		else if (word)
+		{
 			//printf("Word End\n");
 			// Don't check single characters
-			if (wordLength > 1) {
+			if (wordLength > 1)
+			{
 				bool isUpper = true;
 				
 				// Look for all uppercase
-				for (int32 i=0; i<wordLength; i++) {
+				for (int32 i = 0; i < wordLength; i++)
+				{
 					if (word[i] == '\'')
 						break;
-					if (islower(word[i])) {
+					if (islower(word[i]))
+					{
 						isUpper = false;
 						break;
 					}
 				}
 				
 				// Don't check all uppercase words
-				if (!isUpper) {
+				if (!isUpper)
+				{
 					bool foundMatch = false;
 					wordOffset = word-text;
 					testWord.SetTo(word, wordLength);
@@ -2231,16 +2359,19 @@ void TTextView::CheckSpelling(int32 start, int32 end, int32 flags)
 						key = gExactWords[0]->GetKey(testWord.String());
 					
 					// Search all dictionaries
-					for (int32 i=0; i<gDictCount; i++) {
+					for (int32 i=0; i<gDictCount; i++)
+					{
 						// printf("Looking for %s in dict %ld\n", testWord.String(),
 						// i); Is it in the words index?
-						if (gExactWords[i]->Lookup(key) >= 0) {
+						if (gExactWords[i]->Lookup(key) >= 0)
+						{
 							foundMatch = true;
 							break;
 						}
 					}
 					
-					if (!foundMatch) {
+					if (!foundMatch)
+					{
 						if (flags & S_CLEAR_ERRORS)
 							SetFontAndColor(nextHighlight, wordOffset, NULL,
 								B_FONT_ALL, &plainColor);
@@ -2265,6 +2396,7 @@ void TTextView::CheckSpelling(int32 start, int32 end, int32 flags)
 		SetFontAndColor(nextHighlight, end, NULL, B_FONT_ALL, &plainColor);
 }
 
+
 void TTextView::FindSpellBoundry(int32 length, int32 offset, int32 *s, int32 *e)
 {
 	int32 start, end, textLength;
@@ -2277,18 +2409,24 @@ void TTextView::FindSpellBoundry(int32 length, int32 offset, int32 *s, int32 *e)
 	*e = end;
 }
 
+
 void TTextView::EnableSpellCheck(bool enable)
 {
-	if (fSpellCheck != enable) {
+	if (fSpellCheck != enable)
+	{
 		fSpellCheck = enable;
 		int32 textLength = TextLength();
-		if (fSpellCheck) {
+		if (fSpellCheck)
+		{
 			SetStylable(true);
 			CheckSpelling(0, textLength);
-		} else {
-			rgb_color plainColor = { 0, 0, 0, 255 };
+		}
+		else
+		{
+			rgb_color plainColor = {0, 0, 0, 255};
 			SetFontAndColor(0, textLength, NULL, B_FONT_ALL, &plainColor);
 			SetStylable(false);
 		}
 	}
 }
+

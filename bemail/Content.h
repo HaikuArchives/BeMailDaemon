@@ -132,84 +132,85 @@ enum {
 	S_SHOW_ERRORS = 2
 };
 
-class TTextView : public BTextView {
-public:
-	TTextView(BRect, BRect, bool, BFile*, TContentView*,BFont*);
-	~TTextView();
-	virtual	void AttachedToWindow();
-	virtual void KeyDown(const char*, int32);
-	virtual void MakeFocus(bool);
-	virtual void MessageReceived(BMessage*);
-	virtual void MouseDown(BPoint);
-	virtual void MouseMoved(BPoint, uint32, const BMessage*);
-	virtual void InsertText( const char *text, int32 length, int32 offset,
-		const text_run_array *runs );
-	virtual void  DeleteText(int32 start, int32 finish);
-            
-	void ClearList();
-	void LoadMessage(BFile *file, bool quoteIt, const char *insertText);
-	void Open(hyper_text*);
-	status_t Save(BMessage *, bool makeNewFile = true);
-	void StopLoad();
-	void AddAsContent(MailMessage*, bool);
-	void CheckSpelling(int32 start, int32 end,
-		int32 flags = S_CLEAR_ERRORS | S_SHOW_ERRORS);
-	void FindSpellBoundry(int32 length, int32 offset, int32 *start,
-		int32 *end);
-	void EnableSpellCheck(bool enable);
-
-	bool fHeader;
-	bool fReady;
-
-private:
-	void ContentChanged( void );
-
-	class Reader;
-	friend TTextView::Reader;
-
-	char *fYankBuffer;
-	int32 fLastPosition;
-	BFile *fFile;
-	MailMessage *fMail;	// for incoming mails only
-	BFont fFont;
-	TContentView *fParent;
-	sem_id fStopSem;
-	thread_id fThread;
-	BList *fEnclosures;
-	BPopUpMenu *fEnclosureMenu;
-	BPopUpMenu *fLinkMenu;
-	TSavePanel *fPanel;
-	bool fIncoming;
-	bool fSpellCheck;
-	bool fRaw;
-	bool fCursor;
+class TTextView : public BTextView
+{
+	public:
+		TTextView(BRect, BRect, bool, BFile*, TContentView*,BFont*);
+		~TTextView();
+		virtual	void AttachedToWindow();
+		virtual void KeyDown(const char*, int32);
+		virtual void MakeFocus(bool);
+		virtual void MessageReceived(BMessage*);
+		virtual void MouseDown(BPoint);
+		virtual void MouseMoved(BPoint, uint32, const BMessage*);
+		virtual void InsertText(const char *text, int32 length, int32 offset,
+			const text_run_array *runs);
+		virtual void  DeleteText(int32 start, int32 finish);
+	            
+		void ClearList();
+		void LoadMessage(BFile *file, bool quoteIt, const char *insertText);
+		void Open(hyper_text*);
+		status_t Save(BMessage *, bool makeNewFile = true);
+		void StopLoad();
+		void AddAsContent(MailMessage*, bool);
+		void CheckSpelling(int32 start, int32 end,
+			int32 flags = S_CLEAR_ERRORS | S_SHOW_ERRORS);
+		void FindSpellBoundry(int32 length, int32 offset, int32 *start,
+			int32 *end);
+		void EnableSpellCheck(bool enable);
 	
-	class Reader
-	{
-		public:
-			Reader(bool header,bool raw,bool quote,bool incoming,bool mime,
-				TTextView *view,BFile *file,BList *list,sem_id sem);
-
-			static status_t Run(void *);
-
-		private:
-			bool ParseMail(MailContainer *container,PlainTextBodyComponent *ignore);
-			bool Process(const char *data, int32 len, bool isHeader = false);
-			bool Insert(const char *line, int32 count, bool isHyperLink, bool isHeader = false);
-
-			bool Lock();
-			status_t Unlock();
-
-			bool fHeader;
-			bool fRaw;
-			bool fQuote;
-			bool fIncoming;
-			bool fMime;
-			TTextView *fView;
-			BFile *fFile;
-			BList *fEnclosures;
-			sem_id fStopSem;
-	};
+		bool fHeader;
+		bool fReady;
+	
+	private:
+		void ContentChanged( void );
+	
+		class Reader;
+		friend TTextView::Reader;
+	
+		char *fYankBuffer;
+		int32 fLastPosition;
+		BFile *fFile;
+		MailMessage *fMail;	// for incoming mails only
+		BFont fFont;
+		TContentView *fParent;
+		sem_id fStopSem;
+		thread_id fThread;
+		BList *fEnclosures;
+		BPopUpMenu *fEnclosureMenu;
+		BPopUpMenu *fLinkMenu;
+		TSavePanel *fPanel;
+		bool fIncoming;
+		bool fSpellCheck;
+		bool fRaw;
+		bool fCursor;
+		
+		class Reader
+		{
+			public:
+				Reader(bool header,bool raw,bool quote,bool incoming,bool mime,
+					TTextView *view,BFile *file,BList *list,sem_id sem);
+	
+				static status_t Run(void *);
+	
+			private:
+				bool ParseMail(MailContainer *container,PlainTextBodyComponent *ignore);
+				bool Process(const char *data, int32 len, bool isHeader = false);
+				bool Insert(const char *line, int32 count, bool isHyperLink, bool isHeader = false);
+	
+				bool Lock();
+				status_t Unlock();
+	
+				bool fHeader;
+				bool fRaw;
+				bool fQuote;
+				bool fIncoming;
+				bool fMime;
+				TTextView *fView;
+				BFile *fFile;
+				BList *fEnclosures;
+				sem_id fStopSem;
+		};
 };
 
 

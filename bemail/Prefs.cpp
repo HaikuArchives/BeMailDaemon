@@ -51,80 +51,35 @@ All rights reserved.
 #include "Mail.h"
 #include "Prefs.h"
 
-#define BUTTON_WIDTH		 70
-#define BUTTON_HEIGHT		 20
+#define BUTTON_WIDTH		70
+#define BUTTON_HEIGHT		20
+#define ITEM_SPACE			6
 
-#define FONT_X1				 20
-#define FONT_Y1				 8
-#define FONT_X2				(PREF_WIDTH - FONT_X1)
-#define FONT_Y2				(FONT_Y1 + 20)
 #define FONT_TEXT			"Font:"
-
-#define SIZE_X1				FONT_X1
-#define SIZE_Y1				(FONT_Y2 + 10)
-#define SIZE_X2				(PREF_WIDTH - SIZE_X1)
-#define SIZE_Y2				(SIZE_Y1 + 20)
 #define SIZE_TEXT			"Size:"
-
-#define LEVEL_X1			FONT_X1
-#define LEVEL_Y1			(SIZE_Y2 + 10)
-#define LEVEL_X2			(PREF_WIDTH - LEVEL_X1)
-#define LEVEL_Y2			(LEVEL_Y1 + 20)
 #define LEVEL_TEXT			"User Level:"
-
-#define WRAP_X1				FONT_X1
-#define WRAP_Y1				(LEVEL_Y2 + 10)
-#define WRAP_X2				(PREF_WIDTH - WRAP_X1)
-#define WRAP_Y2				(WRAP_Y1 + 20)
 #define WRAP_TEXT			"Text Wrapping:"
-
-#define ACCOUNT_X1			FONT_X1
-#define ACCOUNT_Y1			(WRAP_Y2 + 10)
-#define ACCOUNT_X2			(PREF_WIDTH - FONT_X1)
-#define ACCOUNT_Y2			(ACCOUNT_Y1 + 20)
+#define QUOTES_TEXT			"Colored Quotes:"
 #define ACCOUNT_TEXT		"Default Account:"
-
-#define REPLYTO_X1			FONT_X1
-#define REPLYTO_Y1			(ACCOUNT_Y2 + 10)
-#define REPLYTO_X2			(PREF_WIDTH - FONT_X1)
-#define REPLYTO_Y2			(REPLYTO_Y1 + 20)
 #define REPLYTO_TEXT		"Reply Account:"
 #define REPLYTO_USE_DEFAULT_TEXT	"Use Default Account"
 #define REPLYTO_FROM_MAIL_TEXT		"Account From Mail"
-
-#define SIG_X1				FONT_X1
-#define SIG_Y1				(REPLYTO_Y2 + 10)
-#define SIG_X2				(PREF_WIDTH - SIG_X1)
-#define SIG_Y2				(SIG_Y1 + 20)
 #define SIGNATURE_TEXT		"Auto Signature:"
-
-#define ENC_X1				FONT_X1
-#define ENC_Y1				(SIG_Y2 + 10)
-#define ENC_X2				(PREF_WIDTH - ENC_X1)
-#define ENC_Y2				(ENC_Y1 + 20)
 #define ENCODING_TEXT		"Encoding:"
-
-#define BAR_X1				FONT_X1
-#define BAR_Y1				(ENC_Y2 + 10)
-#define BAR_X2				(PREF_WIDTH - BAR_X1)
-#define BAR_Y2				(BAR_Y1 + 20)
 #define BUTTONBAR_TEXT		"Button Bar:"
 
 #define OK_BUTTON_X1		(PREF_WIDTH - BUTTON_WIDTH - 6)
-#define OK_BUTTON_Y1		(PREF_HEIGHT - (BUTTON_HEIGHT + 10))
 #define OK_BUTTON_X2		(OK_BUTTON_X1 + BUTTON_WIDTH)
-#define OK_BUTTON_Y2		(OK_BUTTON_Y1 + BUTTON_HEIGHT)
 #define OK_BUTTON_TEXT		"Done"
 
-#define REVERT_BUTTON_X1	(10)
-#define REVERT_BUTTON_Y1	OK_BUTTON_Y1
+#define REVERT_BUTTON_X1	8
 #define REVERT_BUTTON_X2	(REVERT_BUTTON_X1 + BUTTON_WIDTH)
-#define REVERT_BUTTON_Y2	OK_BUTTON_Y2
 #define REVERT_BUTTON_TEXT	"Revert"
 
 enum	P_MESSAGES			{P_OK = 128, P_CANCEL, P_REVERT, P_FONT,
 							 P_SIZE, P_LEVEL, P_WRAP, P_SIG, P_ENC, 
-							 P_BUTTON_BAR, P_ACCOUNT, P_REPLYTO};
+							 P_BUTTON_BAR, P_ACCOUNT, P_REPLYTO,
+							 P_COLORED_QUOTES};
 
 extern BPoint	prefs_window;
 
@@ -137,7 +92,8 @@ struct EncodingItem
 const EncodingItem kEncodings[] =
 {
 	// B_MS_WINDOWS is a superset of B_ISO1, MS mailers lie and send Windows chars as ISO-1
-	// we still don't want to pretend we would use the Windows 1252 codetable, axeld.
+	// we still don't want to pretend we would use the Windows 1252 codetable;
+	// this should only be done at decoding stage, axeld.
 	// {"ISO-8859-1", B_MS_WINDOWS_CONVERSION},
 	{"ISO-8859-1", B_ISO1_CONVERSION},
 	{"ISO-8859-2", B_ISO2_CONVERSION},
@@ -161,18 +117,17 @@ const EncodingItem kEncodings[] =
 
 //====================================================================
 
-TPrefsWindow::TPrefsWindow(BRect rect,BFont *font,int32 *level,bool *wrap,
+TPrefsWindow::TPrefsWindow(BRect rect,BFont *font,int32 *level,bool *wrap,bool *cquotes,
 		uint32 *account,int32 *replyTo,char **sig, uint32 *encoding, bool *buttonBar)
 		:	BWindow(rect, "BeMail Preferences", B_TITLED_WINDOW,B_NOT_RESIZABLE |B_NOT_ZOOMABLE)
 {
 	BMenuField *menu;
-	BFont menu_font;
-	BBox *box;
 	BRect r;
 
 	fNewFont = font;			fFont = *fNewFont;
 	fNewLevel = level;			fLevel = *fNewLevel;
 	fNewWrap = wrap;			fWrap = *fNewWrap;
+	fNewColoredQuotes = cquotes;	fColoredQuotes = *fNewColoredQuotes;
 	fNewAccount = account;		fAccount = *fNewAccount;
 	fNewReplyTo = replyTo;		fReplyTo = *fNewReplyTo;
 	fNewEncoding = encoding;	fEncoding = *fNewEncoding;
@@ -184,98 +139,134 @@ TPrefsWindow::TPrefsWindow(BRect rect,BFont *font,int32 *level,bool *wrap,
 
 	r = Bounds();
 //	r.InsetBy(-1, -1);
-	box = new BBox(r, NULL, B_FOLLOW_ALL, B_WILL_DRAW | B_FRAME_EVENTS | 	
-	  B_NAVIGABLE_JUMP, B_NO_BORDER);
-	AddChild(box);
+	BView *view = new BView(r,NULL,B_FOLLOW_ALL,B_FRAME_EVENTS);
+	view->SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
+	AddChild(view);
 
-	r.Set(OK_BUTTON_X1, OK_BUTTON_Y1, OK_BUTTON_X2, OK_BUTTON_Y2);
+	// determine font height
+	font_height fontHeight;
+	view->GetFontHeight(&fontHeight);
+	int32 height = (int32)(fontHeight.ascent + fontHeight.descent + fontHeight.leading) + 6;
+	int32 labelWidth = (int32)view->StringWidth(ACCOUNT_TEXT) + SEPARATOR_MARGIN;
+
+	// group boxes
+
+	r.Set(8,4,Bounds().right - 8,4 + 7 * (height + ITEM_SPACE));
+	BBox *interfaceBox = new BBox(r,NULL,B_FOLLOW_LEFT_RIGHT | B_FOLLOW_TOP);
+	interfaceBox->SetLabel("User Interface");
+	view->AddChild(interfaceBox);
+
+	r.top = r.bottom + 8;  r.bottom = r.top + 5 * (height + ITEM_SPACE);
+	BBox *mailBox = new BBox(r,NULL,B_FOLLOW_LEFT_RIGHT | B_FOLLOW_TOP);
+	mailBox->SetLabel("Mailing");
+	view->AddChild(mailBox);
+
+	// revert, ok & cancel
+
+	r.top = r.bottom + 10;  r.bottom = r.top + height;
+	r.left = OK_BUTTON_X1;  r.right = OK_BUTTON_X2;
 	fOK = new BButton(r, "ok", OK_BUTTON_TEXT, new BMessage(P_OK));
 	fOK->MakeDefault(true);
-	box->AddChild(fOK);
+	view->AddChild(fOK);
 
 	r.OffsetBy( -(OK_BUTTON_X2 - OK_BUTTON_X1 + 10), 0);
 	fCancel = new BButton(r, "cancel", "Cancel", new BMessage(P_CANCEL));
-	box->AddChild(fCancel);
+	view->AddChild(fCancel);
 
-
-	r.Set(REVERT_BUTTON_X1, REVERT_BUTTON_Y1, REVERT_BUTTON_X2, REVERT_BUTTON_Y2);
+	r.left = REVERT_BUTTON_X1;  r.right = REVERT_BUTTON_X2;
 	fRevert = new BButton(r, "revert", REVERT_BUTTON_TEXT, new BMessage(P_REVERT));
 	fRevert->SetEnabled(false);
-	box->AddChild(fRevert);
+	view->AddChild(fRevert);
 
-	r.Set(FONT_X1, FONT_Y1, FONT_X2, FONT_Y2);
-	fFontMenu = BuildFontMenu(font);
-	menu = new BMenuField(r, "font", FONT_TEXT, fFontMenu,B_FOLLOW_ALL,
-				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
-	menu->GetFont(&menu_font);
-	menu->SetDivider(menu_font.StringWidth(ACCOUNT_TEXT) + 7);
-	menu->SetAlignment(B_ALIGN_RIGHT);
-	box->AddChild(menu);
+	// User Interface
 
-	r.Set(SIZE_X1, SIZE_Y1, SIZE_X2, SIZE_Y2);
-	fSizeMenu = BuildSizeMenu(font);
-	menu = new BMenuField(r, "size", SIZE_TEXT, fSizeMenu,B_FOLLOW_ALL,
-				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
-	menu->SetDivider(menu_font.StringWidth(ACCOUNT_TEXT) + 7);
-	menu->SetAlignment(B_ALIGN_RIGHT);
-	box->AddChild(menu);
-
-	r.Set(LEVEL_X1, LEVEL_Y1, LEVEL_X2, LEVEL_Y2);
-	fLevelMenu = BuildLevelMenu(*level);
-	menu = new BMenuField(r, "level", LEVEL_TEXT, fLevelMenu,B_FOLLOW_ALL,
-				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
-	menu->SetDivider(menu_font.StringWidth(ACCOUNT_TEXT) + 7);
-	menu->SetAlignment(B_ALIGN_RIGHT);
-	box->AddChild(menu);
-
-	r.Set(WRAP_X1, WRAP_Y1, WRAP_X2, WRAP_Y2);
-	fWrapMenu = BuildWrapMenu(*wrap);
-	menu = new BMenuField(r, "wrap", WRAP_TEXT, fWrapMenu,B_FOLLOW_ALL,
-				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
-	menu->SetDivider(menu_font.StringWidth(ACCOUNT_TEXT) + 7);
-	menu->SetAlignment(B_ALIGN_RIGHT);
-	box->AddChild(menu);
-
-	r.Set(ACCOUNT_X1, ACCOUNT_Y1, ACCOUNT_X2, ACCOUNT_Y2);
-	fAccountMenu = BuildAccountMenu(fAccount);
-	menu = new BMenuField(r, "account", ACCOUNT_TEXT, fAccountMenu,B_FOLLOW_ALL,
-				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
-	menu->SetDivider(menu_font.StringWidth(ACCOUNT_TEXT) + 7);
-	menu->SetAlignment(B_ALIGN_RIGHT);
-	box->AddChild(menu);
-
-	r.Set(REPLYTO_X1, REPLYTO_Y1, REPLYTO_X2, REPLYTO_Y2);
-	fReplyToMenu = BuildReplyToMenu(fReplyTo);
-	menu = new BMenuField(r, "replyTo", REPLYTO_TEXT, fReplyToMenu,B_FOLLOW_ALL,
-				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
-	menu->SetDivider(menu_font.StringWidth(ACCOUNT_TEXT) + 7);
-	menu->SetAlignment(B_ALIGN_RIGHT);
-	box->AddChild(menu);
-
-	r.Set(SIG_X1, SIG_Y1, SIG_X2, SIG_Y2);
-	fSignatureMenu = BuildSignatureMenu(*sig);
-	menu = new BMenuField(r, "sig", SIGNATURE_TEXT, fSignatureMenu,B_FOLLOW_ALL,
-				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
-	menu->SetDivider(menu_font.StringWidth(ACCOUNT_TEXT) + 7);
-	menu->SetAlignment(B_ALIGN_RIGHT);
-	box->AddChild(menu);
-
-	r.Set(ENC_X1, ENC_Y1, ENC_X2, ENC_Y2);
-	fEncodingMenu = BuildEncodingMenu(fEncoding);
-	menu = new BMenuField(r, "enc", ENCODING_TEXT, fEncodingMenu,B_FOLLOW_ALL,
-				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
-	menu->SetDivider(menu_font.StringWidth(ACCOUNT_TEXT) + 7);
-	menu->SetAlignment(B_ALIGN_RIGHT);
-	box->AddChild(menu);
-	
-	r.Set(BAR_X1, BAR_Y1, BAR_X2, BAR_Y2);
+	r = interfaceBox->Bounds();
+	r.left += 8;  r.right -= 8;  r.top = height;  r.bottom = r.top + height - 3;
 	fButtonBarMenu = BuildButtonBarMenu(*buttonBar);
 	menu = new BMenuField(r, "bar", BUTTONBAR_TEXT, fButtonBarMenu,B_FOLLOW_ALL,
 				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
-	menu->SetDivider(menu_font.StringWidth(ACCOUNT_TEXT) + 7);
+	menu->SetDivider(labelWidth);
 	menu->SetAlignment(B_ALIGN_RIGHT);
-	box->AddChild(menu);	
+	interfaceBox->AddChild(menu);	
 
+	r.OffsetBy(0,height + ITEM_SPACE);
+	fFontMenu = BuildFontMenu(font);
+	menu = new BMenuField(r, "font", FONT_TEXT, fFontMenu,B_FOLLOW_ALL,
+				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
+	menu->SetDivider(labelWidth);
+	menu->SetAlignment(B_ALIGN_RIGHT);
+	interfaceBox->AddChild(menu);
+
+	r.OffsetBy(0,height + ITEM_SPACE);
+	fSizeMenu = BuildSizeMenu(font);
+	menu = new BMenuField(r, "size", SIZE_TEXT, fSizeMenu,B_FOLLOW_ALL,
+				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
+	menu->SetDivider(labelWidth);
+	menu->SetAlignment(B_ALIGN_RIGHT);
+	interfaceBox->AddChild(menu);
+
+	r.OffsetBy(0,height + ITEM_SPACE);
+	fWrapMenu = BuildWrapMenu(*wrap);
+	menu = new BMenuField(r, "wrap", WRAP_TEXT, fWrapMenu,B_FOLLOW_ALL,
+				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
+	menu->SetDivider(labelWidth);
+	menu->SetAlignment(B_ALIGN_RIGHT);
+	interfaceBox->AddChild(menu);
+
+	r.OffsetBy(0,height + ITEM_SPACE);
+	fColoredQuotesMenu = BuildColoredQuotesMenu(fColoredQuotes);
+	menu = new BMenuField(r, "cquotes", QUOTES_TEXT, fColoredQuotesMenu,B_FOLLOW_ALL,
+				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
+	menu->SetDivider(labelWidth);
+	menu->SetAlignment(B_ALIGN_RIGHT);
+	interfaceBox->AddChild(menu);
+
+	r.OffsetBy(0,height + ITEM_SPACE);
+	fLevelMenu = BuildLevelMenu(*level);
+	menu = new BMenuField(r, "level", LEVEL_TEXT, fLevelMenu,B_FOLLOW_ALL,
+				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
+	menu->SetDivider(labelWidth);
+	menu->SetAlignment(B_ALIGN_RIGHT);
+	interfaceBox->AddChild(menu);
+
+	// Mail Accounts
+
+	r = mailBox->Bounds();
+	r.left += 8;  r.right -= 8;  r.top = height;  r.bottom = r.top + height - 3;
+	fAccountMenu = BuildAccountMenu(fAccount);
+	menu = new BMenuField(r, "account", ACCOUNT_TEXT, fAccountMenu,B_FOLLOW_ALL,
+				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
+	menu->SetDivider(labelWidth);
+	menu->SetAlignment(B_ALIGN_RIGHT);
+	mailBox->AddChild(menu);
+
+	r.OffsetBy(0,height + ITEM_SPACE);
+	fReplyToMenu = BuildReplyToMenu(fReplyTo);
+	menu = new BMenuField(r, "replyTo", REPLYTO_TEXT, fReplyToMenu,B_FOLLOW_ALL,
+				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
+	menu->SetDivider(labelWidth);
+	menu->SetAlignment(B_ALIGN_RIGHT);
+	mailBox->AddChild(menu);
+
+	// Mail Contents
+
+	r.OffsetBy(0,height + ITEM_SPACE);
+	fSignatureMenu = BuildSignatureMenu(*sig);
+	menu = new BMenuField(r, "sig", SIGNATURE_TEXT, fSignatureMenu,B_FOLLOW_ALL,
+				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
+	menu->SetDivider(labelWidth);
+	menu->SetAlignment(B_ALIGN_RIGHT);
+	mailBox->AddChild(menu);
+
+	r.OffsetBy(0,height + ITEM_SPACE);
+	fEncodingMenu = BuildEncodingMenu(fEncoding);
+	menu = new BMenuField(r, "enc", ENCODING_TEXT, fEncodingMenu,B_FOLLOW_ALL,
+				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
+	menu->SetDivider(labelWidth);
+	menu->SetAlignment(B_ALIGN_RIGHT);
+	mailBox->AddChild(menu);
+	
+	ResizeTo(Frame().Width(), fRevert->Frame().bottom + 8);
 	Show();
 }
 
@@ -325,17 +316,20 @@ void TPrefsWindow::MessageReceived(BMessage *msg)
 			fNewFont->GetFamilyAndStyle(&new_family, &new_style);
 			old_size = (int32) fFont.Size();
 			new_size = (int32) fNewFont->Size();
-			if ((strcmp(old_family, new_family)) || (strcmp(old_style, new_style)) ||
-				(old_size != new_size)) {
+			if (strcmp(old_family, new_family) || strcmp(old_style, new_style)
+				|| old_size != new_size)
+			{
 				fNewFont->SetFamilyAndStyle(old_family, old_style);
-				if (revert) {
+				if (revert)
+				{
 					sprintf(label, "%s %s", old_family, old_style);
 					item = fFontMenu->FindItem(label);
 					item->SetMarked(true);
 				}
 			
 				fNewFont->SetSize(old_size);
-				if (revert) {
+				if (revert)
+				{
 					sprintf(label, "%ld", old_size);
 					item = fSizeMenu->FindItem(label);
 					item->SetMarked(true);
@@ -346,7 +340,8 @@ void TPrefsWindow::MessageReceived(BMessage *msg)
 			*fNewLevel = fLevel;
 			*fNewWrap = fWrap;
 			
-			if (strcmp(fSignature, *fNewSignature)) {
+			if (strcmp(fSignature, *fNewSignature))
+			{
 				free(*fNewSignature);
 				*fNewSignature = (char *)malloc(strlen(fSignature) + 1);
 				strcpy(*fNewSignature, fSignature);
@@ -357,11 +352,13 @@ void TPrefsWindow::MessageReceived(BMessage *msg)
 			
 			be_app->PostMessage( PREFS_CHANGED );
 			
-			if (revert) {
+			if (revert)
+			{
 				if (fLevel == L_EXPERT)
 					strcpy(label, "Expert");
 				else
 					strcpy(label, "Beginner");
+
 				item = fLevelMenu->FindItem(label);
 				if (item)
 					item->SetMarked(true);
@@ -373,28 +370,27 @@ void TPrefsWindow::MessageReceived(BMessage *msg)
 							item->SetMarked(true);
 				}
 
-				if (fReplyTo == ACCOUNT_USE_DEFAULT)
-					strcpy(label,REPLYTO_USE_DEFAULT_TEXT);
-				else
-					strcpy(label,REPLYTO_USE_DEFAULT_TEXT);
+				strcpy(label,fReplyTo == ACCOUNT_USE_DEFAULT ? REPLYTO_USE_DEFAULT_TEXT
+															 : REPLYTO_FROM_MAIL_TEXT);
 				if ((item = fReplyToMenu->FindItem(label)) != NULL)
 					item->SetMarked(true);
 
-				if (fWrap)
-					strcpy(label, "On");
-				else
-					strcpy(label, "Off");
-				item = fWrapMenu->FindItem(label);
-				if (item)
+				strcpy(label, fWrap ? "On" : "Off");
+				if ((item = fWrapMenu->FindItem(label)) != NULL)
+					item->SetMarked(true);
+
+				strcpy(label, fColoredQuotes ? "On" : "Off");
+				if ((item = fColoredQuotesMenu->FindItem(label)) != NULL)
 					item->SetMarked(true);
 
 				item = fSignatureMenu->FindItem(fSignature);
 				if (item)
 					item->SetMarked(true);
 
-				for (uint32 index = 0; index < sizeof(kEncodings) / 
-					sizeof(kEncodings[0]); index++) {
-					if (kEncodings[index].flavor == *fNewEncoding) {
+				for (uint32 index = 0; index < sizeof(kEncodings) / sizeof(kEncodings[0]); index++)
+				{
+					if (kEncodings[index].flavor == *fNewEncoding)
+					{
 						item = fEncodingMenu->FindItem(kEncodings[index].name);
 						if (item)
 							item->SetMarked(true);
@@ -422,6 +418,7 @@ void TPrefsWindow::MessageReceived(BMessage *msg)
 			if(msg->FindInt32("parent_index", &family_menu_index) == B_OK)
 				fFontMenu->ItemAt(family_menu_index)->SetMarked(true);
 			break;
+
 		case P_SIZE:
 			old_size = (int32) fNewFont->Size();
 			msg->FindInt32("size", &new_size);
@@ -432,11 +429,15 @@ void TPrefsWindow::MessageReceived(BMessage *msg)
 				be_app->PostMessage(&message);
 			}
 			break;
+
 		case P_LEVEL:
 			msg->FindInt32("level", fNewLevel);
 			break;
 		case P_WRAP:
 			msg->FindBool("wrap", fNewWrap);
+			break;
+		case P_COLORED_QUOTES:
+			msg->FindBool("cquotes", fNewColoredQuotes);
 			break;
 		case P_ACCOUNT:
 			msg->FindInt32("id",(int32 *)fNewAccount);
@@ -446,11 +447,13 @@ void TPrefsWindow::MessageReceived(BMessage *msg)
 			break;
 		case P_SIG:
 			free(*fNewSignature);
-			if (msg->FindString("signature", &signature) == B_NO_ERROR) {
+			if (msg->FindString("signature", &signature) == B_NO_ERROR)
+			{
 				*fNewSignature = (char *)malloc(strlen(signature) + 1);
 				strcpy(*fNewSignature, signature);
 			}
-			else {
+			else
+			{
 				*fNewSignature = (char *)malloc(strlen(SIG_NONE) + 1);
 				strcpy(*fNewSignature, SIG_NONE);
 			}
@@ -466,6 +469,7 @@ void TPrefsWindow::MessageReceived(BMessage *msg)
 		default:
 			BWindow::MessageReceived(msg);
 	}
+
 	fFont.GetFamilyAndStyle(&old_family, &old_style);
 	fNewFont->GetFamilyAndStyle(&new_family, &new_style);
 	old_size = (int32) fFont.Size();
@@ -473,6 +477,7 @@ void TPrefsWindow::MessageReceived(BMessage *msg)
 	changed =	((old_size != new_size) ||
 				(fLevel != *fNewLevel) ||
 				(fWrap != *fNewWrap) ||
+				(fColoredQuotes != *fNewColoredQuotes) ||
 				(fAccount != *fNewAccount) ||
 				(fReplyTo != *fNewReplyTo) ||
 				(strcmp(old_family, new_family)) ||
@@ -687,31 +692,41 @@ BPopUpMenu *TPrefsWindow::BuildSizeMenu(BFont *font)
 	return menu;
 }
 
-//--------------------------------------------------------------------
 
-BPopUpMenu *TPrefsWindow::BuildWrapMenu(bool wrap)
+BPopUpMenu *TPrefsWindow::BuildBoolMenu(uint32 what,const char *boolItem,bool isTrue)
 {
 	BMenuItem	*item;
 	BMessage	*msg;
 	BPopUpMenu	*menu;
 
 	menu = new BPopUpMenu("");
-	msg = new BMessage(P_WRAP);
-	msg->AddBool("wrap", true);
+	msg = new BMessage(what);
+	msg->AddBool(boolItem, true);
 	menu->AddItem(item = new BMenuItem("On", msg));
-	if (wrap)
+	if (isTrue)
 		item->SetMarked(true);
 
-	msg = new BMessage(P_WRAP);
-	msg->AddInt32("wrap", false);
+	msg = new BMessage(what);
+	msg->AddInt32(boolItem, false);
 	menu->AddItem(item = new BMenuItem("Off", msg));
-	if (!wrap)
+	if (!isTrue)
 		item->SetMarked(true);
 
 	return menu;
 }
 
-//--------------------------------------------------------------------
+
+BPopUpMenu *TPrefsWindow::BuildWrapMenu(bool wrap)
+{
+	return BuildBoolMenu(P_WRAP,"wrap",wrap);
+}
+
+
+BPopUpMenu *TPrefsWindow::BuildColoredQuotesMenu(bool quote)
+{
+	return BuildBoolMenu(P_COLORED_QUOTES,"cquotes",quote);
+}
+
 
 BPopUpMenu *TPrefsWindow::BuildEncodingMenu(uint32 encoding)
 {

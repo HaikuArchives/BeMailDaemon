@@ -99,6 +99,7 @@ const char *kRedoStrings[] = {
 
 bool		header_flag = false;
 bool		wrap_mode = true;
+bool		gColoredQuotes = true;
 bool		show_buttonbar = true;
 char		*signature;
 int32		level = L_BEGINNER;
@@ -172,11 +173,11 @@ int32 header_len(BFile *file)
 
 TMailApp::TMailApp()
 	:	BApplication("application/x-vnd.Be-MAIL"),
-		fFont(*be_plain_font),
-		fWindowCount(0),
-		fPrefsWindow(NULL),	
-		fSigWindow(NULL),
-		fTrackerMessenger(NULL)
+	fFont(*be_plain_font),
+	fWindowCount(0),
+	fPrefsWindow(NULL),	
+	fSigWindow(NULL),
+	fTrackerMessenger(NULL)
 {
 	fFont.SetSize(FONT_SIZE);
 	signature = (char*) malloc(strlen(SIG_NONE) + 1);
@@ -193,9 +194,11 @@ TMailApp::TMailApp()
 	BPath path;
 	find_directory(B_USER_SETTINGS_DIRECTORY, &path, true);
 	dir.SetTo(path.Path());
-	if (dir.FindEntry("Mail_data", &entry) == B_NO_ERROR) {
+	if (dir.FindEntry("Mail_data", &entry) == B_NO_ERROR)
+	{
 		fPrefs = new BFile(&entry, O_RDWR);
-		if (fPrefs->InitCheck() == B_NO_ERROR) {
+		if (fPrefs->InitCheck() == B_NO_ERROR)
+		{
 			fPrefs->Read(&mail_window, sizeof(BRect));
 			fPrefs->Read(&level, sizeof(level));
 
@@ -216,7 +219,8 @@ TMailApp::TMailApp()
 			fPrefs->Read(&wrap_mode, sizeof(bool));
 			fPrefs->Read(&prefs_window, sizeof(BPoint));
 			int32 len;
-			if (fPrefs->Read(&len, sizeof(int32)) > 0) {
+			if (fPrefs->Read(&len, sizeof(int32)) > 0)
+			{
 				free(signature);
 				signature = (char *)malloc(len);
 				fPrefs->Read(signature, len);
@@ -224,7 +228,8 @@ TMailApp::TMailApp()
 
 			fPrefs->Read(&gMailEncoding, sizeof(int32));
 
-			if (fPrefs->Read(&len, sizeof(int32)) > 0) {
+			if (fPrefs->Read(&len, sizeof(int32)) > 0)
+			{
 				char *findString = (char *)malloc(len+1);
 				fPrefs->Read(findString, len);
 				findString[len] = 0;
@@ -237,18 +242,23 @@ TMailApp::TMailApp()
 				|| gUseAccountFrom < ACCOUNT_USE_DEFAULT
 				|| gUseAccountFrom > ACCOUNT_FROM_MAIL)
 				gUseAccountFrom = ACCOUNT_USE_DEFAULT;
+			if (fPrefs->Read(&gColoredQuotes, sizeof(bool)) <= 0)
+				gColoredQuotes = true;
 			
 			MailSettings settings;
 			gDefaultChain = settings.DefaultOutboundChainID();
 		}
-		else {
+		else
+		{
 			delete fPrefs;
 			fPrefs = NULL;
 		}
 	}
-	else {
+	else
+	{
 		fPrefs = new BFile();
-		if (dir.CreateFile("Mail_data", fPrefs) != B_NO_ERROR) {
+		if (dir.CreateFile("Mail_data", fPrefs) != B_NO_ERROR)
+		{
 			delete fPrefs;
 			fPrefs = NULL;
 		}
@@ -294,16 +304,20 @@ void TMailApp::ArgvReceived(int32 argc, char **argv)
 	// an empty message even when BeMail is already running)
 	bool gotmailto = false;
 	
-	for (int32 loop = 1; loop < argc; loop++) {
+	for (int32 loop = 1; loop < argc; loop++)
+	{
 		if (strcmp(argv[loop], "-h") == 0
-			|| strcmp(argv[loop], "--help") == 0) {
+			|| strcmp(argv[loop], "--help") == 0)
+		{
 			printf(" usage: %s [ mailto:<address> ] [ -subject \"<text>\" ] [ ccto:<address> ] [ bccto:<address> ] "
 				"[ -body \"<body text\" ] [ enclosure:<path> ] [ <message to read> ...] \n",
 				argv[0]);
 			helpOnly = true;
 			be_app->PostMessage(B_QUIT_REQUESTED);
 			return;
-		} else if (strncmp(argv[loop], "mailto:", 7) == 0) {
+		}
+		else if (strncmp(argv[loop], "mailto:", 7) == 0)
+		{
 			if (names.Length())
 				names += ", ";
 			char *options;
@@ -316,26 +330,35 @@ void TMailApp::ArgvReceived(int32 argc, char **argv)
 			else
 				names += argv[loop] + 7;
 			gotmailto = true;
-		} else if (strncmp(argv[loop], "ccto:", 5) == 0) {
+		}
+		else if (strncmp(argv[loop], "ccto:", 5) == 0)
+		{
 			if (ccNames.Length())
 				ccNames += ", ";
 			ccNames += argv[loop] + 5;
-		} else if (strncmp(argv[loop], "bccto:", 6) == 0) {
+		}
+		else if (strncmp(argv[loop], "bccto:", 6) == 0)
+		{
 			if (bccNames.Length())
 				bccNames += ", ";
 			bccNames += argv[loop] + 6;
-		} else if (strcmp(argv[loop], "-subject") == 0) 
+		}
+		else if (strcmp(argv[loop], "-subject") == 0) 
 			subject = argv[++loop];
 		else if (strcmp(argv[loop], "-body") == 0 && argv[loop + 1])
 			body = argv[++loop];
-		else if (strncmp(argv[loop], "enclosure:", 10) == 0) {
+		else if (strncmp(argv[loop], "enclosure:", 10) == 0)
+		{
 			BEntry tmp(argv[loop] + 10, true);
-			if (tmp.InitCheck() == B_OK && tmp.Exists()) {
+			if (tmp.InitCheck() == B_OK && tmp.Exists())
+			{
 				entry_ref ref;
 				tmp.GetRef(&ref);
 				enclosure.AddRef("refs", &ref);
 			}
-		} else if (entry.SetTo(argv[loop]) == B_NO_ERROR) {
+		}
+		else if (entry.SetTo(argv[loop]) == B_NO_ERROR)
+		{
 			BMessage msg(B_REFS_RECEIVED);
 			entry_ref ref;
 			entry.GetRef(&ref);
@@ -345,7 +368,8 @@ void TMailApp::ArgvReceived(int32 argc, char **argv)
 	}
 
 	if (gotmailto || names.Length() || ccNames.Length() || bccNames.Length() || subject.Length()
-		|| body.Length() || enclosure.HasRef("refs")) {
+		|| body.Length() || enclosure.HasRef("refs"))
+	{
 		TMailWindow	*window = NewWindow(NULL, names.String());
 		window->SetTo(names.String(), subject.String(), ccNames.String(), bccNames.String(),
 			&body, &enclosure);
@@ -439,7 +463,7 @@ void TMailApp::MessageReceived(BMessage* msg)
 				fPrefsWindow = new TPrefsWindow(BRect(prefs_window.x, 
 						prefs_window.y, prefs_window.x + PREF_WIDTH,
 						prefs_window.y + PREF_HEIGHT),
-						&fFont,&level,&wrap_mode,&gDefaultChain,&gUseAccountFrom,
+						&fFont,&level,&wrap_mode,&gColoredQuotes,&gDefaultChain,&gUseAccountFrom,
 						&signature, &gMailEncoding, &show_buttonbar);
 				fPrefsWindow->Show();
 				fPrevBBPref = show_buttonbar;
