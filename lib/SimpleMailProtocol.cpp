@@ -14,11 +14,6 @@ class _EXPORT SimpleMailProtocol;
 #include "MessageIO.h"
 #include "status.h"
 
-inline void error_alert(const char *process, status_t error) {
-	BString string;
-	string << "Error while " << process << ": " << strerror(error);
-	(new BAlert("error_alert",string.String(),"OK",NULL,NULL,B_WIDTH_AS_USUAL,B_WARNING_ALERT))->Go(NULL);
-}
 
 SimpleMailProtocol::SimpleMailProtocol(BMessage *settings, StatusView *view) :
 	MailProtocol(settings),

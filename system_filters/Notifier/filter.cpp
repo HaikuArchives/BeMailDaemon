@@ -6,6 +6,7 @@
 
 #include <MailAddon.h>
 #include <ChainRunner.h>
+#include <status.h>
 
 enum {
 	do_beep = 1,
@@ -69,9 +70,10 @@ void NotifyCallback::Callback(MDStatus result) {
 		system_beep("New E-mail");
 		
 	if (strategy & alert) {
-		BString msg;
-		msg << "You have " << num_messages << " new " << ((num_messages > 1) ? "messages" : "message") << " for " << chain->Name() << ".";
-		(new BAlert("new_messages",msg.String(),"OK"))->Go(NULL);
+		BString text;
+		text << "You have " << num_messages << " new message" << ((num_messages != 1) ? "s" : "")
+			 << " for " << chain->Name() << ".";
+		ShowAlert("New Messages", text.String());
 	}
 	
 	if (strategy & blink_leds) {

@@ -372,3 +372,14 @@ void StatusView::AddSelfToWindow() {
 	
 	window->ActuallyAddStatusView(this);
 }
+
+//--------------------------------------------------------------------------
+//	#pragma mark -
+
+void ShowAlert(const char *title, const char *body, const char *button, alert_type type)
+{
+	BAlert *alert = new BAlert(title,body,button,NULL,NULL,B_WIDTH_AS_USUAL,type);
+	alert->SetFeel(B_NORMAL_WINDOW_FEEL);
+	alert->Go(NULL);
+}
+

@@ -6,6 +6,7 @@
 #include <Window.h>
 #include <Box.h>
 #include <List.h>
+#include <Alert.h>
 #include <StatusBar.h>
 
 class StatusView;
@@ -61,5 +62,8 @@ class StatusView : public BBox {
 		int32			items_now;
 		int32			total_items;
 };
+
+extern void ShowAlert(const char *title, const char *body, const char *button = "Ok",
+		alert_type type = B_INFO_ALERT);
 
 #endif // STATUS_WINDOW_H

@@ -10,6 +10,8 @@ class _EXPORT MailProtocol;
 #include "MailProtocol.h"
 #include "StringList.h"
 #include "ChainRunner.h"
+#include "status.h"
+
 
 class DeletePass : public MailCallback {
 	public:
@@ -33,7 +35,7 @@ class MessageDeletion : public MailCallback {
 inline void error_alert(const char *process, status_t error) {
 	BString string;
 	string << "Error while " << process << ": " << strerror(error);
-	(new BAlert("error_alert",string.String(),"OK",NULL,NULL,B_WIDTH_AS_USUAL,B_WARNING_ALERT))->Go(NULL);
+	ShowAlert("error_alert",string.String(),"Ok",B_WARNING_ALERT);
 }
 
 MailProtocol::MailProtocol(BMessage* settings) : MailFilter(settings) {

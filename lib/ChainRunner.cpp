@@ -139,8 +139,8 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 				if (image->id < B_OK) {
 					BString error;
 					error << "Error loading the mail addon " << path.Path() << " from chain " << chain->Name() << ": " << strerror(image->id);
-					
-					(new BAlert("add-on error",error.String(),"OK",NULL,NULL,B_WIDTH_AS_USUAL,B_WARNING_ALERT))->Go(NULL);
+					ShowAlert("add-on error",error.String(),"Ok",B_WARNING_ALERT);
+
 					return -1;
 				}
 				
@@ -149,8 +149,8 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 				if (err < B_OK) {
 					BString error;
 					error << "Error loading the mail addon " << path.Path() << " from chain " << chain->Name() << ": the addon does not seem to be a mail addon (missing symbol instantiate_mailfilter).";
-					
-					(new BAlert("add-on error",error.String(),"OK",NULL,NULL,B_WIDTH_AS_USUAL,B_WARNING_ALERT))->Go(NULL);
+					ShowAlert("add-on error",error.String(),"Ok",B_WARNING_ALERT);
+
 					return -1;
 				}
 				
