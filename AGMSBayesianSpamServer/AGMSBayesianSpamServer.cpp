@@ -74,6 +74,10 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
+ * Revision 1.81  2003/04/08 20:27:04  agmsmith
+ * AGMSBayesianSpamServer now shuts down immediately and returns true if
+ * it is asked to quit by the registrar.
+ *
  * Revision 1.80  2003/04/07 19:20:27  agmsmith
  * Ooops, int64 doesn't exist, use long long instead.
  *
@@ -424,7 +428,7 @@ static long long atoll (const char *str) {
 directory, available from http://sourceforge.net/projects/bemaildaemon/ */
 
 #include <MailMessage.h>
-
+#include <MailAttachment.h>
 
 
 /******************************************************************************
@@ -4244,20 +4248,23 @@ status_t ABSApp::RecursivelyTokenizeMailComponent (
   char *ErrorMessage,
   int RecursionLevel)
 {
-  BMimeType                  ComponentMIMEType;
-  Zoidberg::Mail::Container *ContainerPntr;
-  BMallocIO                  ContentsIO;
-  const char                *ContentsBufferPntr;
-  size_t                     ContentsBufferSize;
-  status_t                   ErrorCode;
-  bool                       ExamineComponent;
-  const char                *HeaderKeyPntr;
-  const char                *HeaderValuePntr;
-  int                        i;
-  int                        j;
-  int                        NumComponents;
-  BMimeType                  TextAnyMIMEType ("text");
-  BMimeType                  TextPlainMIMEType ("text/plain");
+  char                        AttachmentName [B_FILE_NAME_LENGTH];
+  Zoidberg::Mail::Attachment *AttachmentPntr;
+  BMimeType                   ComponentMIMEType;
+  Zoidberg::Mail::Container  *ContainerPntr;
+  BMallocIO                   ContentsIO;
+  const char                 *ContentsBufferPntr;
+  size_t                      ContentsBufferSize;
+  status_t                    ErrorCode;
+  bool                        ExamineComponent;
+  const char                 *HeaderKeyPntr;
+  const char                 *HeaderValuePntr;
+  int                         i;
+  int                         j;
+  const char                 *NameExtension;
+  int                         NumComponents;
+  BMimeType                   TextAnyMIMEType ("text");
+  BMimeType                   TextPlainMIMEType ("text/plain");
 
   if (ComponentPntr == NULL)
     return B_OK;
@@ -4304,6 +4311,25 @@ status_t ABSApp::RecursivelyTokenizeMailComponent (
 
     if (NULL != dynamic_cast<Zoidberg::Mail::TextComponent *>(ComponentPntr))
       ComponentMIMEType.SetType ("text/plain");
+  }
+  if (!TextAnyMIMEType.Contains (&ComponentMIMEType) &&
+  NULL != (AttachmentPntr =
+  dynamic_cast<Zoidberg::Mail::Attachment *>(ComponentPntr)))
+  {
+    /* Sometimes spam doesn't give a text MIME type for text when they do an
+    attachment (which is often base64 encoded).  Use the file name extension to
+    see if it really is text. */
+    NameExtension = NULL;
+    if (AttachmentPntr->FileName (AttachmentName) >= 0)
+      NameExtension = strrchr (AttachmentName, '.');
+    if (NameExtension != NULL)
+    {
+      if (strcasecmp (NameExtension, ".txt") == 0)
+        ComponentMIMEType.SetType ("text/plain");
+      else if (strcasecmp (NameExtension, ".htm") == 0 ||
+      strcasecmp (NameExtension, ".html") == 0)
+        ComponentMIMEType.SetType ("text/html");
+    }
   }
 
   switch (m_TokenizeMode)
