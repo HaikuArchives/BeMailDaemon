@@ -1247,9 +1247,34 @@ _EXPORT time_t ParseDateWithTimeZone (const char *DateString)
 	// See if we can remove the time zone portion.  parsedate understands time
 	// zone 3 letter names, but doesn't understand the numeric +9999 time zone
 	// format.  To do: see if a newer parsedate exists.
+
 	strncpy (tempDateString, DateString, sizeof (tempDateString));
 	tempDateString[sizeof (tempDateString) - 1] = 0;
 
+	// Remove trailing spaces.
+	zonePntr = tempDateString + strlen (tempDateString) - 1;
+	while (zonePntr >= tempDateString && isspace (*zonePntr))
+		*zonePntr-- = 0;
+	if (zonePntr < tempDateString)
+		return -1; // Empty string.
+
+	// Remove the trailing time zone in round brackets, like in
+	// Fri, 22 Feb 2002 15:22:42 EST (-0500)
+	// Thu, 25 Apr 1996 11:44:19 -0400 (EDT)
+	if (tempDateString[strlen(tempDateString)-1] == ')')
+	{
+		zonePntr = strrchr (tempDateString, '(');
+		if (zonePntr != NULL)
+		{
+			*zonePntr-- = 0; // Zap the '(', then remove trailing spaces.
+			while (zonePntr >= tempDateString && isspace (*zonePntr))
+				*zonePntr-- = 0;
+			if (zonePntr < tempDateString)
+				return -1; // Empty string.
+		}
+	}
+	
+	// Look for a numeric time zone like  Tue, 30 Dec 2003 05:01:40 +0000
 	for (zoneIndex = strlen (tempDateString); zoneIndex >= 0; zoneIndex--)
 	{
 		zonePntr = tempDateString + zoneIndex;
