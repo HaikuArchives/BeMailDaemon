@@ -51,7 +51,7 @@ RSRCS= AGMSBayesianSpamServer.rsrc
 #		naming scheme you need to specify the path to the library
 #		and it's name
 #		library: my_lib.a entry: my_lib.a or path/my_lib.a
-LIBS= root be tracker stdc++.r4 mail
+LIBS= root be tracker mail
 
 #	specify additional paths to directories following the standard
 #	libXXX.so or libXXX.a naming scheme.  You can specify full paths
@@ -119,8 +119,10 @@ DRIVER_PATH =
 MACHINE=$(shell uname -m)
 ifneq ($(MACHINE),BePC)
 	COMPILER_FLAGS += -w iserr
+	LIBS += libmslcpp_4_0.a
 else
 	COMPILER_FLAGS += -Werror
+	LIBS += stdc++.r4
 endif
 
 #   Custom overrides that can be set from the command line.

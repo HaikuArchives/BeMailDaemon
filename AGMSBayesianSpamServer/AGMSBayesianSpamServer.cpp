@@ -71,6 +71,9 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
+ * Revision 1.62  2002/11/04 01:03:33  agmsmith
+ * Fixed warnings so it compiles under the bemaildaemon system.
+ *
  * Revision 1.61  2002/11/03 23:00:37  agmsmith
  * Added to the bemaildaemon project on SourceForge.  Hmmmm, seems to switch to
  * a new version if I commit and specify a message, but doesn't accept the
@@ -280,6 +283,17 @@
 #include <stdio.h>
 #include <errno.h>
 
+#if __POWERPC__
+long long atoll(const char *str);
+
+long long atoll(const char *str) {
+	long long val;
+	sscanf(str,"%d",&val); //--- Trust me, this works. -nwhitehorn
+	return val;
+}
+
+#endif
+
 /* STL (Standard Template Library) headers. */
 
 #include <map>
@@ -287,6 +301,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <iostream>
 
 /* BeOS (Be Operating System) headers. */
 
@@ -1225,6 +1240,7 @@ static void WrapTextToStream (ostream& OutputStream, char *TextPntr)
 /******************************************************************************
  * Print the usage info to the stream.  Includes a list of all commands.
  */
+ostream& PrintUsage (ostream& OutputStream);
 
 ostream& PrintUsage (ostream& OutputStream)
 {
@@ -1235,42 +1251,40 @@ ostream& PrintUsage (ostream& OutputStream)
   OutputStream << "Released to the public domain.\n\n";
   WrapTextToStream (OutputStream, "Compiled on " __DATE__ " at " __TIME__
    ".  $Revision$  $Header$");
-  OutputStream << "
-This is a program for classifying e-mail messages as spam (junk mail which you
-don't want to read) and regular genuine messages.  It can learn what's spam and
-what's genuine.  You just give it a bunch of spam messages and a bunch of
-non-spam ones.  It uses them to make a list of the words from the messages with
-the probability that each word is from a spam message or from a genuine
-message.  Later on, it can use those probabilities to classify new messages as
-spam or not spam.  If the classifier stops working well (because the spammers
-have changed their writing style and vocabulary, or your regular correspondants
-are writing like spammers), you can use this program to update the list of
-words to identify the new messages correctly.
+  OutputStream <<
+"This is a program for classifying e-mail messages as spam (junk mail which you"
+"don't want to read) and regular genuine messages.  It can learn what's spam and"
+"what's genuine.  You just give it a bunch of spam messages and a bunch of"
+"non-spam ones.  It uses them to make a list of the words from the messages with"
+"the probability that each word is from a spam message or from a genuine"
+"message.  Later on, it can use those probabilities to classify new messages as"
+"spam or not spam.  If the classifier stops working well (because the spammers"
+"have changed their writing style and vocabulary, or your regular correspondants"
+"are writing like spammers), you can use this program to update the list of"
+"words to identify the new messages correctly.\n\n"
 
-The original idea was from Paul Graham's algorithm, which has an excellent
-writeup at: http://www.paulgraham.com/spam.html
+"The original idea was from Paul Graham's algorithm, which has an excellent"
+"writeup at: http://www.paulgraham.com/spam.html\n\n"
 
-Gary Robinson came up with the improved algorithm, which you can read about at:
-http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html
+"Gary Robinson came up with the improved algorithm, which you can read about at:"
+"http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html\n\n"
 
-Thanks go to Isaac Yonemoto for providing a better icon.
+"Thanks go to Isaac Yonemoto for providing a better icon.\n\n"
 
-Usage: Specify the operation as the first argument followed by more information
-as appropriate.  The program's configuration will affect the actual operation
-(things like the name of the database file to use, or whether it should allow
-non-email messages to be added).  In command line mode it will do the operation
-and exit.  In GUI/server mode a command line invocation will just send the
-command to the server.  You can also use BeOS scripting (see the \"Hey\"
-command which you can get from http://www.bebits.com/app/2042 ) to control the
-Spam updater.  And finally, there's also a GUI interface which shows up if you
-start it without any command line arguments.
+"Usage: Specify the operation as the first argument followed by more information"
+"as appropriate.  The program's configuration will affect the actual operation"
+"(things like the name of the database file to use, or whether it should allow"
+"non-email messages to be added).  In command line mode it will do the operation"
+"and exit.  In GUI/server mode a command line invocation will just send the"
+"command to the server.  You can also use BeOS scripting (see the \"Hey\""
+"command which you can get from http://www.bebits.com/app/2042 ) to control the"
+"Spam updater.  And finally, there's also a GUI interface which shows up if you"
+"start it without any command line arguments.\n\n"
 
-Commands:
+"Commands:\n\n"
 
-Quit
-Stop the program.  Useful if it's running as a server.
-
-";
+"Quit\n"
+"Stop the program.  Useful if it's running as a server.\n\n";
 
   /* Go through all our scripting commands and add a description of each one to
   the usage text. */
@@ -1568,26 +1582,26 @@ void ABSApp::AboutRequested ()
   BAlert *AboutAlertPntr;
 
   AboutAlertPntr = new BAlert ("About",
-"AGMSBayesianSpamServer
+"AGMSBayesianSpamServer\n\n"
 
-This is a BeOS program for classifying e-mail messages as spam (unwanted \
+"This is a BeOS program for classifying e-mail messages as spam (unwanted \
 junk mail) or as genuine mail using a Bayesian statistical approach.  There \
 is also a Mail Daemon Replacement add-on to filter mail using the \
-classification statistics collected earlier.
+classification statistics collected earlier.\n\n"
 
-Written by Alexander G. M. Smith, fall 2002.
+"Written by Alexander G. M. Smith, fall 2002.\n\n"
 
-The original idea was from Paul Graham's algorithm, which has an excellent \
-writeup at: http://www.paulgraham.com/spam.html
+"The original idea was from Paul Graham's algorithm, which has an excellent \
+writeup at: http://www.paulgraham.com/spam.html\n\n"
 
-Gary Robinson came up with the improved algorithm, which you can read about \
-at: http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html
+"Gary Robinson came up with the improved algorithm, which you can read about \
+at: http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html\n\n"
 
-Icon courtesy of Isaac Yonemoto.
+"Icon courtesy of Isaac Yonemoto.\n\n"
 
-Released to the public domain, with no warranty.
-$Revision$
-Compiled on " __DATE__ " at " __TIME__ ".", "Done");
+"Released to the public domain, with no warranty.\n"
+"$Revision$\n"
+"Compiled on " __DATE__ " at " __TIME__ ".", "Done");
   if (AboutAlertPntr != NULL)
   {
     AboutAlertPntr->SetShortcut (0, B_ESCAPE);
@@ -4538,7 +4552,7 @@ void CommanderLooper::ProcessRefs (BMessage *MessagePntr)
 
     ErrorCode = Entry.SetTo (&EntryRef, true /* traverse symbolic links */);
     if (ErrorCode != B_OK ||
-    ((ErrorCode = /* assignment */ B_ENTRY_NOT_FOUND) && !Entry.Exists ()) ||
+    ((ErrorCode = /* assignment */ B_ENTRY_NOT_FOUND) != 0 /* this pacifies mwcc -nwhitehorn */ && !Entry.Exists ()) ||
     ((ErrorCode = Entry.GetPath (&Path)) != B_OK))
     {
       DisplayErrorMessage ("Bad entry reference encountered, will skip it",
