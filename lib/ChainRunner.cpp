@@ -10,6 +10,7 @@
 #include <Directory.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 
 class _EXPORT ChainRunner;
 
@@ -95,7 +96,8 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 	bool self_destruct;
 	bool destroy_chain;
 	bool save_chain;
-	
+	status_t err = 0;
+		
 	{
 		BString desc;
 		
@@ -122,9 +124,10 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 	BDirectory tmp("/tmp");
 	
 	while (last_result != MD_NO_MORE_MESSAGES) { //------Message loop. Break with a MD_NO_MORE_MESSAGES
-		char *path = tempnam("/tmp","mail_temp_"); // do we need to free() tempnam()'s value?
+		char *path = tempnam("/tmp","mail_temp_");
 		BPositionIO *file = new BFile(path, B_READ_WRITE | B_CREATE_FILE);
 		BEntry *entry = new BEntry(path);
+		free(path);
 		BPath *folder = new BPath;
 		BMessage *headers = new BMessage;
 		BString uid = B_EMPTY_STRING;
@@ -142,7 +145,8 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 					error << "Error loading the mail addon " << path.Path() << " from chain " << chain->Name() << ": " << strerror(image->id);
 					ShowAlert("add-on error",error.String(),"Ok",B_WARNING_ALERT);
 
-					return -1;
+					err = -1;
+					goto err;
 				}
 				
 				status_t err = get_image_symbol(image->id,"instantiate_mailfilter",B_SYMBOL_TYPE_TEXT,(void **)&instantiate);
@@ -152,7 +156,8 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 					error << "Error loading the mail addon " << path.Path() << " from chain " << chain->Name() << ": the addon does not seem to be a mail addon (missing symbol instantiate_mailfilter).";
 					ShowAlert("add-on error",error.String(),"Ok",B_WARNING_ALERT);
 
-					return -1;
+					err = -1;
+					goto err;
 				}
 				
 				image->settings = new BMessage(settings);
@@ -176,6 +181,7 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 			}
 		}
 		
+		err:
 		MailCallback *cb;
 		for (int32 i = 0; i < runner->message_cb.CountItems(); i++) {
 			cb = (MailCallback *)(runner->message_cb.ItemAt(i));
@@ -195,6 +201,8 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 		delete entry;
 		delete headers;
 		delete folder;
+		if(err)
+			break;
 	}
 	
 	MailCallback *cb;
