@@ -3,14 +3,7 @@
 ** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
 */
 
-
-#include <TextControl.h>
-#include <Button.h>
-#include <String.h>
-#include <Message.h>
-#include <Path.h>
-
-#include <stdio.h>
+#include <BeBuild.h>
 
 namespace Zoidberg {
 	class _EXPORT FileControl;
@@ -21,13 +14,21 @@ namespace Zoidberg {
 	}
 }
 
-#include "FileConfigView.h"
+#include <TextControl.h>
+#include <Button.h>
+#include <String.h>
+#include <Message.h>
+#include <Path.h>
+
+#include <stdio.h>
+
+#include <FileConfigView.h>
 
 const uint32 kMsgSelectButton = 'fsel';
 
 
-namespace Zoidberg {
-namespace Mail {
+using Zoidberg::FileControl;
+using namespace Zoidberg::Mail;
 
 
 FileControl::FileControl(BRect rect,const char *name,const char *label,const char *pathOfFile,uint32 flavors)
@@ -145,7 +146,6 @@ void FileControl::GetPreferredSize(float *width, float *height)
 //--------------------------------------------------------------------------
 //	#pragma mark -
 
-
 FileConfigView::FileConfigView(const char *label,const char *name,bool useMeta,const char *defaultPath,uint32 flavors)
 		:	FileControl(BRect(5,0,255,10),name,label,defaultPath,flavors),
 		fUseMeta(useMeta),
@@ -175,6 +175,3 @@ status_t FileConfigView::Archive(BMessage *into, bool /*deep*/) const
 	return B_OK;
 }
 
-
-}	// namespace Mail
-}	// namespace Zoidberg
