@@ -3390,6 +3390,7 @@ status_t TMailWindow::TrainMessageAs (const char *CommandWord)
 		|| errorCode != B_OK)
 		goto ErrorExit; // Classification failed in one of many ways.
 
+	SetTitleForMessage(); // Update window title to show new spam classification.
 	return B_OK;
 
 ErrorExit:
@@ -3416,6 +3417,28 @@ void TMailWindow::SetTitleForMessage()
 			title << ": \"" << fMail->Subject() << "\"";
 		else
 			title = fMail->Subject();
+
+		if (gShowSpamGUI && fRef != NULL) {
+			BString	classification;
+			BNode	node (fRef);
+			char	numberString [30];
+			BString oldTitle (title);
+			float	spamRatio;
+			if (node.InitCheck() != B_OK || node.ReadAttrString
+				("MAIL:classification", &classification) != B_OK)
+				classification = "Unrated";
+			if (classification != "Spam" && classification != "Genuine") {
+				// Uncertain, Unrated and other unknown classes, show the ratio.
+				if (node.InitCheck() == B_OK && sizeof (spamRatio) ==
+					node.ReadAttr("MAIL:ratio_spam", B_FLOAT_TYPE, 0,
+					&spamRatio, sizeof (spamRatio))) {
+					sprintf (numberString, "%.4f", spamRatio);
+					classification << " " << numberString;
+				}
+			}
+			title = "";
+			title << "[" << classification << "] " << oldTitle;
+		}
 	}
 	SetTitle(title.String());
 }
