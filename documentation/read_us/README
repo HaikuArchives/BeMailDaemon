@@ -44,7 +44,7 @@ files:
   Do not keep this and other mail_daemon executables on your HD!
   Because the original Mail Kit uses the mail_daemon's signature
   to find it, having more than one version will cause things to
-  randomly fail, when it fins the old version instead of the new.
+  randomly fail, when it finds the old version instead of the new.
 
   This software is alpha quality! See the LICENSE file for more 	
   information.
@@ -89,8 +89,8 @@ ADDON INSTALLATION:
 Add-ons should be installed in /boot/home/config/add-ons/
 mail_daemon/ in the subdirectory specified in the add on documentation.
 This directory will be automatically created by the installation process.
-The distribution contains POP3 (with APOP support), IMAP and SMTP protocols,
-as well as Fortune, Compatibility, and RuleFilter filters.
+The distribution contains POP3 (with APOP support), IMAP and SMTP (including 
+SMTP-Auth) protocols, as well as Fortune, Compatibility, and RuleFilter filters.
 
 FILTERS:
 
@@ -128,6 +128,9 @@ November 06 2001 - v2.0.0 a1
   - Filters
   - BeMail
   - IMAP
+  - SMTP Auth
+  - POP3 Auth for SMTP
+  - Sort emails by thread in Tracker
   - New Mail Kit
   - All sorts of other cool stuff
 
