@@ -387,7 +387,25 @@ status_t Message::RenderToRFC822(BPositionIO *file) {
 			recipients << ',';
 		recipients << little;
 	}
-	
+
+	// add the date field	
+	int32 creationTime = time(NULL);
+	{
+		char date[128];
+		struct tm tm;
+		localtime_r(&creationTime,&tm);
+
+		strftime(date,128,"%a, %d %b %Y %H:%M:%S %Z",&tm);
+
+		// GMT offsets are full hours, yes, but you never know :-)
+		if (tm.tm_gmtoff)
+			sprintf(date + strlen(date)," (%+03d%02d)",tm.tm_gmtoff / 3600,(tm.tm_gmtoff / 60) % 60);
+
+		SetHeaderField("Date", date);
+	}
+
+	// setting the file's attributes
+
 	if (BFile *attributed = dynamic_cast <BFile *>(file)) {
 		attributed->WriteAttrString(B_MAIL_ATTR_RECIPIENTS,&recipients);
 		
@@ -410,12 +428,9 @@ status_t Message::RenderToRFC822(BPositionIO *file) {
 		attr = Mail::Chain(_chain_id).Name();
 		attributed->WriteAttrString("MAIL:account",&attr);
 		
-		int32 int_attr;
-		
-		int_attr = time(NULL);
-		attributed->WriteAttr(B_MAIL_ATTR_WHEN,B_TIME_TYPE,0,&int_attr,sizeof(int32));
-		int_attr = B_MAIL_PENDING | B_MAIL_SAVE;
-		attributed->WriteAttr(B_MAIL_ATTR_FLAGS,B_INT32_TYPE,0,&int_attr,sizeof(int32));
+		attributed->WriteAttr(B_MAIL_ATTR_WHEN,B_TIME_TYPE,0,&creationTime,sizeof(int32));
+		int32 flags = B_MAIL_PENDING | B_MAIL_SAVE;
+		attributed->WriteAttr(B_MAIL_ATTR_FLAGS,B_INT32_TYPE,0,&flags,sizeof(int32));
 		
 		attributed->WriteAttr("MAIL:chain",B_INT32_TYPE,0,&_chain_id,sizeof(int32));
 		

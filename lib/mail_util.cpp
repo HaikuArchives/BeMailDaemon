@@ -83,7 +83,7 @@ static int handle_non_rfc2047_encoding(char **buffer,size_t *sourceLength)
 			i++;
 		}
 	}
-printf("singletons = %ld, doubles = %ld\n",singletons,doubles);
+
 	if (singletons != 0)	// can't be valid UTF-8 anymore, so we assume ISO-Latin-1
 	{
 		int32 state = 0;
@@ -95,17 +95,14 @@ printf("singletons = %ld, doubles = %ld\n",singletons,doubles);
 
 		if (convert_to_utf8(B_ISO1_CONVERSION,string,&length,dest,&destLength,&state) == B_OK)
 		{
-			printf("NON-COMPLIANT-RFC2047: converted from Latin-1: %s\n",string);
 			free(*buffer);
 			*buffer = dest;
 			*sourceLength = destLength;
 			return true;
 		}
-		printf("NON-COMPLIANT-RFC2047: Latin-1 conversion failed for: %s\n",string);
 		free(dest);
 		return false;
 	}
-	printf("NON-COMPLIANT-RFC2047: seems to be UTF-8: %s\n",string);
 
 	// we assume a valid UTF-8 string here, but yes, we don't check it
 	return true;
