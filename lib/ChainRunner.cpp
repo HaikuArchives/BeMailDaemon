@@ -49,7 +49,10 @@ MailChain *ChainRunner::Chain() {
 }
 
 status_t ChainRunner::RunChain(StatusWindow *status,bool self_destruct_when_done) {
-	if (find_thread(_chain->Name()) >= 0)
+	BString thread_name(_chain->Name());
+	thread_name += (_chain->ChainDirection() == inbound) ? "_inbound" : "_outbound";
+	
+	if (find_thread(thread_name.String()) >= 0)
 		return B_NAME_IN_USE;
 	
 	struct async_args *args = new struct async_args;
@@ -58,7 +61,7 @@ status_t ChainRunner::RunChain(StatusWindow *status,bool self_destruct_when_done
 	args->self_destruct = self_destruct_when_done;
 	args->status = status;
 	
-	thread_id thread = spawn_thread(&async_chain_runner,_chain->Name(),10,args);
+	thread_id thread = spawn_thread(&async_chain_runner,thread_name.String(),10,args);
 	if (thread < 0) {
 		delete args;
 		return thread;
