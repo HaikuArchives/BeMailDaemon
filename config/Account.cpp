@@ -271,24 +271,24 @@ void Account::CreateInbound()
 	BEntry(path.Path()).GetRef(&ref);
 	fInbound->AddFilter(msg,ref);
 
-	// Parser	
+	// Message Parser	
 	path = addOnPath;
 	path.Append(kSystemFilterAddOnPath);
-	path.Append("Parser");
+	path.Append("Message Parser");
 	BEntry(path.Path()).GetRef(&ref);
 	fInbound->AddFilter(msg,ref);
 
-	// Notifier	
+	// New Mail Notification
 	path = addOnPath;
 	path.Append(kSystemFilterAddOnPath);
-	path.Append("Notifier");
+	path.Append("New Mail Notification");
 	BEntry(path.Path()).GetRef(&ref);
 	fInbound->AddFilter(msg,ref);
 
-	// Folder
+	// Inbox
 	path = addOnPath;
 	path.Append(kSystemFilterAddOnPath);
-	path.Append("Folder");
+	path.Append("Inbox");
 	BEntry(path.Path()).GetRef(&ref);
 	fInbound->AddFilter(msg,ref);
 
@@ -315,7 +315,7 @@ void Account::CreateOutbound()
 		
 	path = addOnPath;
 	path.Append(kSystemFilterAddOnPath);
-	path.Append("OutFolder");
+	path.Append("Outbox");
 	BEntry(path.Path()).GetRef(&ref);
 	fOutbound->AddFilter(msg,ref);
 

@@ -137,11 +137,6 @@ extern "C" _EXPORT Zoidberg::Mail::Filter* instantiate_mailfilter(BMessage *sett
 // Note that a MailProtocol is a MailFilter, so use
 // instantiate_mailfilter to start things up.
 
-extern "C" _EXPORT const char *pretty_name;
-// This is the name that config associates with your addon.
-// If you do not define it, config simply uses your addon's
-// leaf name.
-
 extern "C" _EXPORT status_t descriptive_name(BMessage *msg, char *buffer);
 // the config panel will show this name in the chains filter
 // list if this function returns B_OK.

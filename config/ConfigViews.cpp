@@ -175,16 +175,8 @@ FilterConfigView::FilterConfigView(Mail::Chain *chain,int32 index,BMessage *msg,
 		fEntryRef(ref)
 {
 	Load(msg,ref);
-
-	const char **pretty_name = NULL;
-	if (get_image_symbol(fImage,"pretty_name",B_SYMBOL_TYPE_DATA,(void **)&pretty_name) < B_OK
-		|| !pretty_name)
-	{
-		BPath addon(ref);
-		SetLabel(addon.Leaf());
-	}
-	else
-		SetLabel(*pretty_name);
+	BPath addon(ref);
+	SetLabel(addon.Leaf());
 }
 
 
@@ -518,10 +510,6 @@ void GetPrettyDescriptiveName(BPath &path, char *name, BMessage *msg = NULL)
 	image_id image = load_add_on(path.Path());
 	if (image < B_OK)
 		return;
-
-	const char **pretty_name = NULL;
-	if (get_image_symbol(image,"pretty_name",B_SYMBOL_TYPE_DATA,(void **)&pretty_name) == B_OK)
-		strcpy(name, *pretty_name);
 
 	if (msg)
 	{

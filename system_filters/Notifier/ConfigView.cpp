@@ -15,9 +15,6 @@
 
 #include <MailAddon.h>
 
-
-_EXPORT const char *pretty_name = "New Mail Notification";
-
 const uint32 kMsgNotifyMethod = 'nomt';
 
 
