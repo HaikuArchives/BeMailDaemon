@@ -316,7 +316,7 @@ CheckForURL(const char *string, size_t &urlLength, BString *url = NULL)
 	//
 	//	Not a URL? check for "mailto:" or "www."
 	//
-	if (type == 0 && !cistrncmp(string, "mailto:", strlen("mailto:")))
+	if (type == 0 && !cistrncmp(string, "mailto:", 7))
 		type = TYPE_MAILTO;
 	if (type == 0 && !strncmp(string, "www.", 4)) {
 		// this type will be special cased later (and a http:// is added
@@ -324,7 +324,18 @@ CheckForURL(const char *string, size_t &urlLength, BString *url = NULL)
 		type = TYPE_URL;
 	}
 	if (type == 0) {
-		// ToDo: check for email addresses
+		// check for valid eMail addresses
+		const char *at = strchr(string, '@');
+		if (at) {
+			const char *pos = string;
+			for (; pos < at; pos++) {
+				// ToDo: are these all allowed characters?
+				if (!isalnum(pos[0]) && pos[0] != '_' && pos[0] != '.')
+					break;
+			}
+			if (pos == at)
+				type = TYPE_MAILTO;
+		}
 	}
 
 	if (type == 0)
@@ -367,8 +378,11 @@ CheckForURL(const char *string, size_t &urlLength, BString *url = NULL)
 		// copy the address to the specified string
 		if (type == TYPE_URL && string[0] == 'w') {
 			// URL starts with "www.", so add the protocol to it
-
 			url->SetTo("http://");
+			url->Append(string, index);
+		} else if (type == TYPE_MAILTO && cistrncmp(string, "mailto:", 7)) {
+			// eMail address had no "mailto:" prefix
+			url->SetTo("mailto:");
 			url->Append(string, index);
 		} else
 			url->SetTo(string, index);
