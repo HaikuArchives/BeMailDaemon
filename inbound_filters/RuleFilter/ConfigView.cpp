@@ -39,6 +39,8 @@ class RuleFilterConfig : public BView {
 		int32 chain;
 };
 
+#include <stdio.h>
+
 RuleFilterConfig::RuleFilterConfig(BMessage *settings) : BView(BRect(0,0,260,85),"rulefilter_config", B_FOLLOW_LEFT | B_FOLLOW_TOP, 0) {
 	SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
 	attr = new BTextControl(BRect(5,5,100,20),"attr","If","header (e.g. Subject)",NULL);
@@ -62,10 +64,15 @@ RuleFilterConfig::RuleFilterConfig(BMessage *settings) : BView(BRect(0,0,260,85)
 	outbound = new BPopUpMenu("<Choose Account>");
 	BList list;
 	Mail::OutboundChains(&list);
-	if (settings->HasInt32("argument"))
+	if (settings->HasInt32("do_what"))
+		staging = settings->FindInt32("do_what");
+	else
+		staging = -1;
+	if (staging == 3)
 		chain = settings->FindInt32("argument");
 	else
 		chain = -1;
+	printf("Chain: %d\n",chain);
 	for (int32 i = 0; i < list.CountItems(); i++) {
 		BMenuItem *item = new BMenuItem(((Mail::Chain *)(list.ItemAt(i)))->Name(), new BMessage(((Mail::Chain *)(list.ItemAt(i)))->ID()));
 		outbound->AddItem(item);
@@ -73,10 +80,6 @@ RuleFilterConfig::RuleFilterConfig(BMessage *settings) : BView(BRect(0,0,260,85)
 			item->SetMarked(true);
 		delete (Mail::Chain *)(list.ItemAt(i));
 	}
-	if (settings->HasInt32("do_what"))
-		staging = settings->FindInt32("do_what");
-	else
-		staging = -1;
 		
 }
 	
@@ -110,9 +113,10 @@ status_t RuleFilterConfig::Archive(BMessage *into, bool deep) const {
 	into->AddInt32("do_what",menu->IndexOf(menu->FindMarked()));
 	into->AddString("attribute",attr->Text());
 	into->AddString("regex",regex->Text());
-	if (into->FindInt32("do_what") == kMsgReplyWith)
-		into->AddInt32("argument",outbound->IndexOf(outbound->FindMarked()));
-	else
+	if (into->FindInt32("do_what") == 3) {
+		printf("foo!");
+		into->AddInt32("argument",outbound->FindMarked()->Message()->what);
+	} else
 		into->AddString("argument",arg->Text());
 	
 	return B_OK;
