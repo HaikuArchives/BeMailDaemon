@@ -2265,6 +2265,7 @@ status_t TTextView::Reader::Run(void *_this)
 		if (!reader->Process((const char *)msg + len, size - len))
 			goto done;
 	}
+//	our mail kit should handle any problems which may occur because of this, axeld.
 //	else if (!reader->fMime)
 //	{
 //		// convert to user's preferred encoding if charset not specified in MIME

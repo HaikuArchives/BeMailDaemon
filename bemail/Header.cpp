@@ -94,21 +94,21 @@ struct evil
 
 //====================================================================
 
-THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
-			BFile *file, bool resending)
+THeaderView::THeaderView(BRect rect,BRect windowRect,bool incoming,BFile *file,bool resending)
 	:	BBox(rect, "m_header", B_FOLLOW_LEFT_RIGHT, B_WILL_DRAW, B_PLAIN_BORDER),
-	fAccountMenu(NULL),
-	fChain(gDefaultChain),
-	fAccount(NULL),
-	fBcc(NULL),
-	fCc(NULL),
-	fIncoming(incoming),
-	fResending(resending),
-	fBccMenu(NULL),
-	fCcMenu(NULL),
-	fToMenu(NULL),
-	fFile(NULL),
-	fDate(NULL)
+		fAccountMenu(NULL),
+		fChain(gDefaultChain),
+		fAccountTo(NULL),
+		fAccount(NULL),
+		fBcc(NULL),
+		fCc(NULL),
+		fIncoming(incoming),
+		fResending(resending),
+		fBccMenu(NULL),
+		fCcMenu(NULL),
+		fToMenu(NULL),
+		fFile(NULL),
+		fDate(NULL)
 {
 	BFont font = *be_plain_font;
 	font.SetSize(FONT_SIZE);
@@ -141,7 +141,7 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 
 	if (!fIncoming)
 	{
-		fTo->SetChoiceList(&emailList);
+		fTo->SetChoiceList(&fEmailList);
 		fTo->SetAutoComplete(true);
 	}
 	AddChild(fTo);
@@ -167,6 +167,7 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 	{
 		fAccountMenu = new BPopUpMenu(B_EMPTY_STRING);
 		//fAccountMenu->SetRadioMode(true);
+
 		BList chains;
 		if (Mail::OutboundChains(&chains) >= B_OK)
 		{
@@ -221,14 +222,26 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 		//menu->SetAlignment(B_ALIGN_RIGHT);
 		AddChild(field);
 	}
-	else if (count_pop_accounts() > 0)	// To: account
+	else	// To: account
 	{
+		bool account = count_pop_accounts() > 0;
+
 		r.Set(x - font.StringWidth(TO_TEXT) - 11, y,
 			  windowRect.Width() - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT);
+		if (account)
+			r.right -= SEPARATOR_MARGIN + ACCOUNT_FIELD_WIDTH;
+		fAccountTo = new TTextControl(r, TO_TEXT, NULL, fIncoming, false, B_FOLLOW_LEFT_RIGHT);
+		fAccountTo->SetEnabled(false);
+		AddChild(fAccountTo);
+
+		if (account)
+		{
+			r.left = r.right + 6;  r.right = windowRect.Width() - SEPARATOR_MARGIN;
+			fAccount = new TTextControl(r, ACCOUNT_TEXT, NULL, fIncoming, false, B_FOLLOW_RIGHT | B_FOLLOW_TOP);
+			fAccount->SetEnabled(false);
+			AddChild(fAccount);
+		}
 		y += FIELD_HEIGHT;
-		fAccount = new TTextControl(r, TO_TEXT, NULL, fIncoming, false, B_FOLLOW_LEFT_RIGHT);
-		fAccount->SetEnabled(false);
-		AddChild(fAccount);
 	}
 
 	--y;
@@ -249,7 +262,7 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 	{
 		r.Set(x - 11, y, CC_FIELD_H + CC_FIELD_WIDTH, y + CC_FIELD_HEIGHT);
 		fCc = new TTextControl(r, "", new BMessage(CC_FIELD), fIncoming, false);
-		fCc->SetChoiceList(&emailList);
+		fCc->SetChoiceList(&fEmailList);
 		fCc->SetAutoComplete(true);
 		AddChild(fCc);
 		(msg = new BMessage(FIELD_CHANGED))->AddInt32("bitmask", FIELD_CC);
@@ -270,7 +283,7 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 		y += FIELD_HEIGHT;
 		fBcc = new TTextControl(r, "", new BMessage(BCC_FIELD),
 						fIncoming, false, B_FOLLOW_LEFT_RIGHT);
-		fBcc->SetChoiceList(&emailList);
+		fBcc->SetChoiceList(&fEmailList);
 		fBcc->SetAutoComplete(true);
 		AddChild(fBcc);
 		(msg = new BMessage(FIELD_CHANGED))->AddInt32("bitmask", FIELD_BCC);
@@ -328,7 +341,7 @@ THeaderView::InitEmailCompletion()
 		{
 			BString email;
 			if (file.ReadAttrString("META:email", &email) >= B_OK)
-				emailList.AddChoice(email.String());
+				fEmailList.AddChoice(email.String());
 
 			// support for 3rd-party People apps
 			for (int16 i = 2;i < 6;i++)
@@ -336,7 +349,7 @@ THeaderView::InitEmailCompletion()
 				char attr[16];
 				sprintf(attr,"META:email%d",i);
 				if (file.ReadAttrString(attr,&email) >= B_OK)
-					emailList.AddChoice(email.String());
+					fEmailList.AddChoice(email.String());
 			}
 		}
 	}
@@ -420,7 +433,7 @@ THeaderView::InitGroupCompletion()
 		BString *grp = iter->first;
 		BString *addr = iter->second;
 		addr->Append(">");
-		emailList.AddChoice(addr->String());
+		fEmailList.AddChoice(addr->String());
 		++iter;
 		group_map.erase(grp);
 		delete grp;
@@ -749,23 +762,24 @@ void THeaderView::SetAddress(BMessage *msg)
 
 			BString address;
 			/* if we have no Name, just use the email address */
-			if (name.Length() == 0) {
+			if (name.Length() == 0)
 				address = email;
-			/* otherwise, pretty-format it */
-			} else {
+			else
+				/* otherwise, pretty-format it */
 				address.SetTo("") << "\"" << name << "\" <" << email << ">";
-			}
 			
-			if ((end = text->TextLength()) != 0) {
+			if ((end = text->TextLength()) != 0)
+			{
 				text->Select(end, end);
 				text->Insert(", ");
 			}	
 			text->Insert(address.String());
 		}
 	}
-
-	else {
-		if ((end = text->TextLength()) != 0) {
+	else
+	{
+		if ((end = text->TextLength()) != 0)
+		{
 			text->Select(end, end);
 			text->Insert(", ");
 		}
@@ -821,7 +835,8 @@ status_t THeaderView::LoadMessage(BFile *file)
 	//	
 	//	Set contents of header fields
 	//
-	if (fIncoming && !fResending) {
+	if (fIncoming && !fResending)
+	{
 		if (fBcc != NULL)
 			fBcc->SetEnabled(false);
 
@@ -831,38 +846,32 @@ status_t THeaderView::LoadMessage(BFile *file)
 		if (fAccount != NULL)
 			fAccount->SetEnabled(false);
 
+		if (fAccountTo != NULL)
+			fAccountTo->SetEnabled(false);
+
 		fSubject->SetEnabled(false);
 		fTo->SetEnabled(false);
 	}
 
 	//	Set Subject
 	BString string;
-	if (fFile->ReadAttrString(B_MAIL_ATTR_SUBJECT, &string) == B_OK)
-		fSubject->SetText(string.String());
-	else
-		fSubject->SetText("");
+	ReadAttrString(fFile, B_MAIL_ATTR_SUBJECT, &string);
+	fSubject->SetText(string.String());
 
 	//	Set From Field
-	if (fFile->ReadAttrString(B_MAIL_ATTR_FROM, &string) == B_OK)
-		fTo->SetText(string.String());
-	else
-		fTo->SetText("");
+	ReadAttrString(fFile, B_MAIL_ATTR_FROM, &string);
+	fTo->SetText(string.String());
 
 	//	Set Account/To Field
+	if (fAccountTo != NULL)
+	{
+		ReadAttrString(fFile, B_MAIL_ATTR_TO, &string);
+		fAccountTo->SetText(string.String());
+	}
 	if (fAccount != NULL)
 	{
-		if (fFile->ReadAttrString(B_MAIL_ATTR_TO, &string) == B_OK)
-		{
-			BString account;
-			if (fFile->ReadAttrString("MAIL:account", &account) == B_OK)
-			{
-				account << ":  ";
-				string.Prepend(account);
-			}
-			fAccount->SetText(string.String());
-		}
-		else
-			fAccount->SetText("");
+		ReadAttrString(fFile, "MAIL:account", &string);
+		fAccount->SetText(string.String());
 	}
 
 	return B_OK;
@@ -875,7 +884,7 @@ status_t THeaderView::LoadMessage(BFile *file)
 
 TTextControl::TTextControl(BRect rect, char *label, BMessage *msg, 
 	bool incoming, bool resending, int32 resizingMode)
-	:BComboBox(rect, "happy", label, msg, resizingMode)
+	:	BComboBox(rect, "happy", label, msg, resizingMode)
 	//:BTextControl(rect, "happy", label, "", msg, resizingMode)
 {
 	strcpy(fLabel, label);
@@ -992,13 +1001,13 @@ void TTextControl::MessageReceived(BMessage *msg)
 
 QPopupMenu::QPopupMenu(const char *title)
 	:	QueryMenu(title, true),
-	fGroups(0)
+		fGroups(0)
 {
 }
 
 
 void QPopupMenu::AddPersonItem(const entry_ref *ref, ino_t node, BString &name, BString &email,
-		const char *attr, BMenu *groupMenu, BMenuItem *superItem)
+	const char *attr, BMenu *groupMenu, BMenuItem *superItem)
 {
 	BString label;
 	

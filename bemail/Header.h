@@ -61,6 +61,9 @@ All rights reserved.
 #define TO_FIELD_HEIGHT		 16
 #define FIELD_HEIGHT		 24
 
+#define ACCOUNT_TEXT		"Account:"
+#define ACCOUNT_FIELD_WIDTH	165
+
 #define SUBJECT_TEXT		"Subject:"
 #define SUBJECT_FIELD_H		 18
 #define SUBJECT_FIELD_V		 33
@@ -101,6 +104,7 @@ class THeaderView : public BBox
 	
 		BPopUpMenu		*fAccountMenu;
 		uint32			fChain;
+		TTextControl	*fAccountTo;
 		TTextControl	*fAccount;
 		TTextControl	*fBcc;
 		TTextControl	*fCc;
@@ -118,7 +122,7 @@ class THeaderView : public BBox
 		QPopupMenu *fToMenu;
 		BFile *fFile;
 		BStringView *fDate;
-		BDefaultChoiceList emailList;
+		BDefaultChoiceList fEmailList;
 };
 
 //====================================================================
