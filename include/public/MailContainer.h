@@ -19,6 +19,7 @@ namespace Mail {
 class Container : public Component {
 	public:
 		virtual status_t AddComponent(Component *component) = 0;
+		virtual status_t RemoveComponent(Component *component) = 0;
 		virtual status_t RemoveComponent(int32 index) = 0;
 
 		virtual Component *GetComponent(int32 index) = 0;
@@ -42,6 +43,7 @@ class MIMEMultipartContainer : public Container {
 
 		// MailContainer
 		virtual status_t AddComponent(Component *component);
+		virtual status_t RemoveComponent(Component *component);
 		virtual status_t RemoveComponent(int32 index);
 
 		virtual Mail::Component *GetComponent(int32 index);

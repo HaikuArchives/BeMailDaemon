@@ -33,8 +33,8 @@ class Message : public Container {
 		BPositionIO *Data() const { return fData; }
 			// is only set if the message owns the data
 
-		Message *ReplyMessage(reply_to_mode replyTo, bool AccountFromMail, const char *quote_style = "> ");
-		Message *ForwardMessage(bool include_attachments = false);
+		Message *ReplyMessage(reply_to_mode replyTo, bool accountFromMail, const char *quote_style = "> ");
+		Message *ForwardMessage(bool accountFromMail, bool includeAttachments = false);
 			// These return messages with the body quoted and
 			// ready to send via the appropriate channel. ReplyMessage()
 			// addresses the message appropriately, but ForwardMessage()
@@ -59,6 +59,7 @@ class Message : public Container {
 		status_t GetName(char *name,int32 maxLength) const;
 		status_t GetName(BString *name) const;
 
+		void SendViaAccountFrom(Mail::Message *message);
 		void SendViaAccount(const char *account_name);
 		void SendViaAccount(int32 chain_id);
 		int32 Account() const;
@@ -66,6 +67,7 @@ class Message : public Container {
 		status_t GetAccountName(BString *account) const;
 
 		virtual status_t AddComponent(Mail::Component *component);
+		virtual status_t RemoveComponent(Mail::Component *component);
 		virtual status_t RemoveComponent(int32 index);
 
 		virtual Mail::Component *GetComponent(int32 index);
