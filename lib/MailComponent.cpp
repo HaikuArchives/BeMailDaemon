@@ -605,7 +605,8 @@ TextComponent::RenderToRFC822(BPositionIO *render_to)
 		}
 		modified.UnlockBuffer(len);
 
-		modified.ReplaceAll("\n","\r\n");
+		if (encoding != base64) // encode_base64 already does CRLF line endings.
+			modified.ReplaceAll("\n","\r\n");
 
 		// There seem to be a possibility of NULL bytes in the text, so lets
 		// filter them out, shouldn't be any after the encoding stage.
