@@ -514,6 +514,7 @@ bool TMailApp::QuitRequested()
 {
 	if (!BApplication::QuitRequested())
 		return false;
+    mail_window = last_window; /* Last closed window becomes standard window size. */
 	LoadSavePrefs (false /* TRUE to load them */);
 	return true;
 }
@@ -1148,7 +1149,7 @@ TMailApp::NewWindow(const entry_ref *ref, const char *to, bool resend, BMessenge
 	BRect screen_frame = screen.Frame();
 
 	BRect r;
-	if ((mail_window.Width()) && (mail_window.Height()))
+	if ((mail_window.Width() > 1) && (mail_window.Height() > 1))
 		r = mail_window;
 	else
 		r.Set(6, TITLE_BAR_HEIGHT, 6 + WIND_WIDTH, TITLE_BAR_HEIGHT + WIND_HEIGHT);
