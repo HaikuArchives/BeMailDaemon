@@ -57,10 +57,23 @@ status_t SimpleMailAttachment::FileName(char *text) {
 	BMessage content_type;
 	HeaderField("Content-Type",&content_type);
 	
-	if (!content_type.HasString("name"))
+	const char *fileName = content_type.FindString("name");
+	if (!fileName)
+	{
+		content_type.MakeEmpty();
+		HeaderField("Content-Disposition",&content_type);
+		fileName = content_type.FindString("name");
+	}
+	if (!fileName)
+	{
+		content_type.MakeEmpty();
+		HeaderField("Content-Location",&content_type);
+		fileName = content_type.FindString("unlabeled");
+	}
+	if (!fileName)
 		return B_NAME_NOT_FOUND;
-	
-	strncpy(text,content_type.FindString("name"),B_FILE_NAME_LENGTH);
+
+	strncpy(text,fileName,B_FILE_NAME_LENGTH);
 	return B_OK;
 }
 

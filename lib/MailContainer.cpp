@@ -171,12 +171,12 @@ status_t MIMEMultipartContainer::SetToRFC822(BPositionIO *data, size_t length, b
 
 	BMessage content_type;
 	HeaderField("Content-Type",&content_type);
-	if (strncmp(content_type.FindString("unlabeled"),"multipart",9) != 0)
+	if (strncasecmp(content_type.FindString("unlabeled"),"multipart",9) != 0)
 		return B_BAD_TYPE;
-		
+
 	if (!content_type.HasString("boundary"))
 		return B_BAD_TYPE;
-		
+
 	_boundary = strdup(content_type.FindString("boundary"));
 	
 	//

@@ -28,17 +28,17 @@ uint32 MailComponent::ComponentType()
 	BMimeType type, super;
 	MIMEType(&type);
 	type.GetSupertype(&super);
-		
+
 	//---------ATT-This code *desperately* needs to be improved
 	if (super == "multipart") {
 		if (type == "multipart/x-bfile")
 			return MC_ATTRIBUTED_ATTACHMENT;
 		else
 			return MC_MULTIPART_CONTAINER;
-	} else if (IsAttachment())
-		return MC_SIMPLE_ATTACHMENT;
-	else
+	} else if (!IsAttachment() && super == "text")
 		return MC_PLAIN_TEXT_BODY;
+	else
+		return MC_SIMPLE_ATTACHMENT;
 }
 
 MailComponent *MailComponent::WhatIsThis() {
@@ -65,7 +65,10 @@ bool MailComponent::IsAttachment() {
 	HeaderField("Content-Type",&header);
 	if (header.HasString("name"))
 		return true;
-		
+	
+	if (HeaderField("Content-Location",&header) == B_OK)
+		return true;
+
 	BMimeType type;
 	MIMEType(&type);
 	if (type == "multipart/x-bfile")
