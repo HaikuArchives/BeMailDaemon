@@ -107,6 +107,7 @@ mimeset -F -apps ~/config/bin/AGMSBayesianSpamServer
 # different columns.
 rm ~/config/settings/beos_mime/text/x-email
 rm ~/config/settings/beos_mime/text/x-partial-email
+rm ~/config/settings/beos_mime/text/x-vnd.agmsmith.spam_probability_database
 
 sleep 1
 /system/Deskbar &
