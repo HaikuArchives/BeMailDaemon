@@ -211,8 +211,11 @@ status_t MIMEMultipartContainer::SetToRFC822(BPositionIO *data, size_t length, b
 	Mail::Component::SetToRFC822(data,length);
 
 	BMessage content_type;
+	const char *content_type_string;
 	HeaderField("Content-Type",&content_type);
-	if (strncasecmp(content_type.FindString("unlabeled"),"multipart",9) != 0)
+	content_type_string = content_type.FindString("unlabeled");
+	if (content_type_string == NULL /* Probably won't happen due to constructor but... */
+		|| strncasecmp(content_type_string,"multipart",9) != 0)
 		return B_BAD_TYPE;
 
 	if (!content_type.HasString("boundary"))
