@@ -110,6 +110,34 @@ MDStatus Protocol::ProcessMailMessage
 			}
 			parent->RegisterProcessCallback(new DeletePass(this));
 			PrepareStatusWindow(manifest);
+			
+			if (settings->FindBool("delete_remote_when_local")) {
+				StringList query_contents;
+				BQuery fido;
+				BVolume boot;
+				entry_ref entry;
+				BVolumeRoster().GetBootVolume(&boot);
+				
+				fido.SetVolume(&boot);
+				fido.PushAttr("MAIL:chain");
+				fido.PushInt32(settings->FindInt32("chain"));
+				fido.PushOp(B_EQ);
+				fido.Fetch();
+				
+				BString uid;
+				while (fido.GetNextRef(&entry) == B_OK) {
+					BNode(&entry).ReadAttrString("MAIL:unique_id",&uid);
+					query_contents.AddItem(uid.String());
+				}
+				
+				StringList to_delete;
+				query_contents.NotHere(*(manifest),&to_delete);
+				
+				for (int32 i = 0; i < to_delete.CountItems(); i++)
+					DeleteMessage(to_delete[i]);
+				
+				*manifest -= to_delete;
+			}
 		}
 				
 		error = GetNextNewUid(io_uid,manifest,0); // Added 0 for timeout. Is it correct?
@@ -160,33 +188,6 @@ DeletePass::DeletePass(Protocol *home) : us(home) {
 }
 
 void DeletePass::Callback(MDStatus /*status*/) {
-	if (us->settings->FindBool("delete_remote_when_local")) {
-		StringList query_contents;
-		BQuery fido;
-		BVolume boot;
-		entry_ref entry;
-		BVolumeRoster().GetBootVolume(&boot);
-		
-		fido.SetVolume(&boot);
-		fido.PushAttr("MAIL:chain");
-		fido.PushInt32(us->settings->FindInt32("chain"));
-		fido.PushOp(B_EQ);
-		fido.Fetch();
-		
-		BString uid;
-		while (fido.GetNextRef(&entry) == B_OK) {
-			BNode(&entry).ReadAttrString("MAIL:unique_id",&uid);
-			query_contents.AddItem(uid.String());
-		}
-		
-		StringList to_delete;
-		query_contents.NotHere(*(us->manifest),&to_delete);
-		
-		for (int32 i = 0; i < to_delete.CountItems(); i++)
-			us->DeleteMessage(to_delete[i]);
-		
-		*(us->unique_ids) -= to_delete;
-	}
 	if ((us->unique_ids != NULL) && (us->InitCheck() == B_OK)) {
 		BMessage *meta_data = us->parent->Chain()->MetaData();
 		meta_data->RemoveName("manifest");
