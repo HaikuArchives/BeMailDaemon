@@ -1,10 +1,11 @@
 /* mail util - header parsing
 **
-** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+** Copyright 2001-2003 Dr. Zoidberg Enterprises. All rights reserved.
 */
 
 
 #include <UTF8.h>
+#include <Message.h>
 #include <String.h>
 #include <Locker.h>
 #include <DataIO.h>
@@ -1290,6 +1291,46 @@ _EXPORT time_t ParseDateWithTimeZone (const char *DateString)
 
 	return dateAsTime;
 }
+
+
+/** Parses a mail header and fills the headers BMessage
+ */
+
+status_t
+parse_header(BMessage &headers, BPositionIO &input)
+{
+	char *buffer = NULL;
+	size_t bufferSize = 0;
+	int32 length;
+
+	while ((length = readfoldedline(input, &buffer, &bufferSize)) >= 2) {
+		--length;
+			// Don't include the \n at the end of the buffer.
+
+		// convert to UTF-8 and null-terminate the buffer
+		length = rfc2047_to_utf8(&buffer, &bufferSize, length);
+		buffer[length] = '\0';
+
+		const char *delimiter = strstr(buffer, ":");
+		if (delimiter == NULL)
+			continue;
+
+		BString header(buffer, delimiter - buffer);
+		header.CapitalizeEachWord();
+			// unified case for later fetch
+
+		delimiter++; // Skip the colon.
+		while (isspace (*delimiter))
+			delimiter++; // Skip over leading white space and tabs.  To do: (comments in brackets).
+
+		// ToDo: implement joining of multiple header tags (i.e. multiple "Cc:"s)
+		headers.AddString(header.String(), delimiter);
+	}
+	free(buffer);
+
+	return B_OK;
+}
+
 
 }	// namespace Mail
 }	// namespace Zoidberg
