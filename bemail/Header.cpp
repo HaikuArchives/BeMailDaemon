@@ -121,12 +121,12 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 	if (fIncoming && !resending)
 	{
 		r.Set(x - font.StringWidth(FROM_TEXT) - 11, y,
-			  windowRect.Width() - SEPERATOR_MARGIN, y + TO_FIELD_HEIGHT);
+			  windowRect.Width() - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT);
 		sprintf(string, FROM_TEXT);
 	}
 	else
 	{
-		r.Set(x - 11, y, windowRect.Width() - SEPERATOR_MARGIN, y + TO_FIELD_HEIGHT);
+		r.Set(x - 11, y, windowRect.Width() - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT);
 		string[0] = 0;
 	}
 	y += FIELD_HEIGHT;
@@ -207,7 +207,7 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 			}
 		}
 		r.Set(x - font.StringWidth(FROM_TEXT) - 11, y - 1,
-			  windowRect.Width() - SEPERATOR_MARGIN, y + TO_FIELD_HEIGHT);
+			  windowRect.Width() - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT);
 		y += FIELD_HEIGHT;
 		field = new BMenuField(r, "account", "From:", fAccountMenu,B_FOLLOW_TOP,
 								B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
@@ -219,7 +219,7 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 	else if (count_pop_accounts() > 0)	// To: account
 	{
 		r.Set(x - font.StringWidth(TO_TEXT) - 11, y,
-			  windowRect.Width() - SEPERATOR_MARGIN, y + TO_FIELD_HEIGHT);
+			  windowRect.Width() - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT);
 		y += FIELD_HEIGHT;
 		fAccount = new TTextControl(r, TO_TEXT, NULL, fIncoming, false, B_FOLLOW_LEFT_RIGHT);
 		fAccount->SetEnabled(false);
@@ -228,7 +228,7 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 
 	--y;
 	r.Set(x - font.StringWidth(SUBJECT_TEXT) - 11, y,
-		  windowRect.Width() - SEPERATOR_MARGIN, y + TO_FIELD_HEIGHT);
+		  windowRect.Width() - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT);
 	y += FIELD_HEIGHT;
 	fSubject = new TTextControl(r, SUBJECT_TEXT, new BMessage(SUBJECT_FIELD),
 				fIncoming, false, B_FOLLOW_LEFT_RIGHT);
@@ -261,7 +261,7 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 		AddChild(field);
 
 		r.Set(BCC_FIELD_H + be_plain_font->StringWidth(BCC_TEXT), y,
-			  windowRect.Width() - SEPERATOR_MARGIN, y + BCC_FIELD_HEIGHT);
+			  windowRect.Width() - SEPARATOR_MARGIN, y + BCC_FIELD_HEIGHT);
 		y += FIELD_HEIGHT;
 		fBcc = new TTextControl(r, "", new BMessage(BCC_FIELD),
 						fIncoming, false, B_FOLLOW_LEFT_RIGHT);
