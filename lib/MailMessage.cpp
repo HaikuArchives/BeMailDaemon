@@ -235,8 +235,6 @@ bool MailMessage::IsComponentAttachment(int32 i) {
 void MailMessage::SetBodyTextTo(const char *text) {
 	if (_text_body == NULL) {
 		_text_body = new PlainTextBodyComponent;
-		if (_body == NULL)
-			_body = _text_body;
 		AddComponent(_text_body);
 	}
 	
@@ -259,8 +257,7 @@ status_t MailMessage::SetBody(PlainTextBodyComponent *body) {
 //		delete _text_body;
 	}
 	_text_body = body;
-	if (_body == NULL)
-		_body = body;
+	AddComponent(_text_body);
 
 	return B_OK;
 }
