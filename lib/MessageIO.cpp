@@ -78,3 +78,7 @@ void MessageIO::ResetSize(void) {
 	
 	slave->Seek(old,SEEK_SET);
 }
+
+MessageIO::~MessageIO() {
+	delete slave;
+}

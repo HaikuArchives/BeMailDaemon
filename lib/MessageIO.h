@@ -7,6 +7,7 @@ class SimpleMailProtocol;
 class MessageIO : public BPositionIO {
 	public:
 		MessageIO(SimpleMailProtocol *protocol, BPositionIO *dump_to, int32 seq_id);
+		~MessageIO();
 		
 		//----BPositionIO
 		virtual	ssize_t		ReadAt(off_t pos, void *buffer, size_t size);

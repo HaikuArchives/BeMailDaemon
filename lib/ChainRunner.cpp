@@ -100,7 +100,7 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 		char *path = tempnam("/tmp","mail_temp_"); // do we need to free() tempnam()'s value?
 		BPositionIO *file = new BFile(path, B_READ_WRITE | B_CREATE_FILE);
 		BEntry *entry = new BEntry(path);
-		BPath *folder = NULL;
+		BPath *folder = new BPath;
 		BMessage *headers = new BMessage;
 		BString uid = B_EMPTY_STRING;
 
