@@ -74,6 +74,13 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
+ * Revision 1.70  2002/12/10 22:12:41  agmsmith
+ * Adding a message to the database now uses a BPositionIO rather than a
+ * file and file name (for future string rather than file additions).  Also
+ * now re-evaluate a file after reclassifying it so that the user can see
+ * the new ratio.  Also remove the [Spam 99.9%] subject prefix when doing
+ * a re-evaluation or classification (the number would be wrong).
+ *
  * Revision 1.69  2002/12/10 01:46:04  agmsmith
  * Added the Chi-Squared scoring method.
  *
@@ -454,7 +461,9 @@ typedef enum PropertyNumbersEnum
 {
   PN_DATABASE_FILE = 0,
   PN_SPAM,
+  PN_SPAM_STRING,
   PN_GENUINE,
+  PN_GENUINE_STRING,
   PN_IGNORE_PREVIOUS_CLASSIFICATION,
   PN_SERVER_MODE,
   PN_FLUSH,
@@ -475,7 +484,9 @@ static char * g_PropertyNames [PN_MAX] =
 {
   "DatabaseFile",
   "Spam",
+  "SpamString",
   "Genuine",
+  "GenuineString",
   "IgnorePreviousClassification",
   "ServerMode",
   "Flush",
@@ -523,7 +534,9 @@ static struct property_info g_ScriptingPropertyList [] =
     "the database.  The words in the files will be added to the list of words "
     "in the database that identify spam messages.  The files processed will "
     "also have the attribute MAIL:classification added with a value of "
-    "\"Spam\" or \"Genuine\" as specified.  If they already have that "
+    "\"Spam\" or \"Genuine\" as specified.  They also have their spam ratio "
+    "attribute updated, as if you had also used the Evaluate command on "
+    "them.  If they already have the MAIL:classification "
     "attribute and it matches the new classification then they won't get "
     "processed (and if it is different, they will get removed from the "
     "statistics for the old class and added to the statistics for the new "
@@ -533,12 +546,20 @@ static struct property_info g_ScriptingPropertyList [] =
   {g_PropertyNames[PN_SPAM], {B_COUNT_PROPERTIES, 0}, {B_DIRECT_SPECIFIER, 0},
     "Returns the number of spam messages in the database.", PN_SPAM,
     {}, {}, {}},
+  {g_PropertyNames[PN_SPAM_STRING], {B_SET_PROPERTY, 0},
+    {B_DIRECT_SPECIFIER, 0}, "Adds the spam in the given string (assumed to "
+    "be the text of a whole e-mail message, not just a file name) to the "
+    "database.", PN_SPAM_STRING, {}, {}, {}},
   {g_PropertyNames[PN_GENUINE], {B_SET_PROPERTY, 0}, {B_DIRECT_SPECIFIER, 0},
-    "Similar to adding spam except that the messages are added to the genuine "
-    "statistics.", PN_GENUINE, {}, {}, {}},
+    "Similar to adding spam except that the message file is added to the "
+    "genuine statistics.", PN_GENUINE, {}, {}, {}},
   {g_PropertyNames[PN_GENUINE], {B_COUNT_PROPERTIES, 0},
     {B_DIRECT_SPECIFIER, 0}, "Returns the number of genuine messages in the "
     "database.", PN_GENUINE, {}, {}, {}},
+  {g_PropertyNames[PN_GENUINE_STRING], {B_SET_PROPERTY, 0},
+    {B_DIRECT_SPECIFIER, 0}, "Adds the genuine message in the given string "
+    "(assumed to be the text of a whole e-mail message, not just a file name) "
+    "to the database.", PN_GENUINE_STRING, {}, {}, {}},
   {g_PropertyNames[PN_IGNORE_PREVIOUS_CLASSIFICATION], {B_SET_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "If set to true then the previous classification "
     "(which was saved as an attribute of the e-mail message file) will be "
@@ -1062,8 +1083,12 @@ public:
 
 private:
   /* Our member functions. */
+  status_t AddFileToDatabase (bool IsSpam,
+    const char *FileName, char *ErrorMessage);
   status_t AddPositionIOToDatabase (bool IsSpam, BPositionIO *MessageIOPntr,
     const char *OptionalFileName, char *ErrorMessage);
+  status_t AddStringToDatabase (bool IsSpam,
+    const char *String, char *ErrorMessage);
   void AddWordsToSet (const char *InputString,
     size_t NumberOfBytes, set<string> &WordSet);
   status_t CreateDatabaseFile (char *ErrorMessage);
@@ -1773,7 +1798,7 @@ writeup at: http://www.paulgraham.com/spam.html\n\n"
 at: http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html\n\n"
 
 "Mr. Robinson, Tim Peters and the SpamBayes mailing list people then \
-developed the chi-squared scoring method.\n\n"
+developed the even better chi-squared scoring method.\n\n"
 
 "Icon courtesy of Isaac Yonemoto.\n\n"
 
@@ -1785,6 +1810,37 @@ developed the chi-squared scoring method.\n\n"
     AboutAlertPntr->SetShortcut (0, B_ESCAPE);
     AboutAlertPntr->Go ();
   }
+}
+
+
+/* Add the text in the given file to the database as an example of a spam or
+genuine message.  Also resets the spam ratio attribute to show the effect of
+the database change. */
+
+status_t ABSApp::AddFileToDatabase (
+  bool IsSpam,
+  const char *FileName,
+  char *ErrorMessage)
+{
+  status_t ErrorCode;
+  BFile    MessageFile;
+  BMessage TempBMessage;
+
+  ErrorCode = MessageFile.SetTo (FileName, B_READ_ONLY);
+  if (ErrorCode != B_OK)
+  {
+    sprintf (ErrorMessage, "Unable to open file \"%s\" for reading", FileName);
+    return ErrorCode;
+  }
+
+  ErrorCode =
+    AddPositionIOToDatabase (IsSpam, &MessageFile, FileName, ErrorMessage);
+  MessageFile.Unset ();
+  if (ErrorCode != B_OK)
+    return ErrorCode;
+
+  /* Re-evaluate the file so that the user sees the new ratio attribute. */
+  return EvaluateFile (FileName, &TempBMessage, ErrorMessage);
 }
 
 
@@ -1814,7 +1870,6 @@ status_t ABSApp::AddPositionIOToDatabase (
   bool                               PreviouslyClassified;
   bool                               PreviouslySpam = false;
   StatisticsPointer                  StatisticsPntr;
-  BMessage                           TempBMessage;
   set<string>::iterator              WordEndIter;
   set<string>::iterator              WordIter;
   set<string>                        WordSet;
@@ -1963,6 +2018,21 @@ status_t ABSApp::AddPositionIOToDatabase (
   }
 
   return B_OK;
+}
+
+
+/* Add the text in the string to the database as an example of a spam or
+genuine message. */
+
+status_t ABSApp::AddStringToDatabase (
+  bool IsSpam,
+  const char *String,
+  char *ErrorMessage)
+{
+  BMemoryIO MemoryIO (String, strlen (String));
+
+  return AddPositionIOToDatabase (IsSpam, &MemoryIO,
+   "Memory Buffer" /* OptionalFileName */, ErrorMessage);
 }
 
 
@@ -2142,7 +2212,7 @@ status_t ABSApp::DeleteDatabaseFile (char *ErrorMessage)
 
 /* Evaluate the given file as being a spam message, and tag it with the
 resulting spam probability ratio.  If it also has an e-mail subject attribute,
-remove the [Spam 99.9%] prefix. */
+remove the [Spam 99.9%] prefix since the number usually changes. */
 
 status_t ABSApp::EvaluateFile (
   const char *PathName,
@@ -3344,7 +3414,6 @@ void ABSApp::ProcessScriptingMessage (
   BString     CommandText;
   status_t    ErrorCode;
   int         i;
-  BFile       MessageFile;
   BMessage    ReplyMessage (B_MESSAGE_NOT_UNDERSTOOD);
   ssize_t     StringBufferSize;
   BMessage    TempBMessage;
@@ -3509,13 +3578,16 @@ void ABSApp::ProcessScriptingMessage (
       break;
 
     case PN_SPAM:
+    case PN_SPAM_STRING:
     case PN_GENUINE:
+    case PN_GENUINE_STRING:
       switch (PropInfoPntr->commands[0])
       {
         case B_COUNT_PROPERTIES: /* Get the number of spam/genuine messages. */
           if ((ErrorCode = LoadDatabaseIfNeeded (TempString)) != B_OK)
             goto ErrorExit;
-          if (PropInfoPntr->extra_data == PN_SPAM)
+          if (PropInfoPntr->extra_data == PN_SPAM ||
+          PropInfoPntr->extra_data == PN_SPAM_STRING)
             ReplyMessage.AddInt32 (g_ResultName, m_TotalSpamMessages);
           else
             ReplyMessage.AddInt32 (g_ResultName, m_TotalGenuineMessages);
@@ -3525,23 +3597,28 @@ void ABSApp::ProcessScriptingMessage (
           if (!ArgumentGotString)
           {
             ErrorCode = B_BAD_TYPE;
-            sprintf (TempString, "You need to specify a string (pathname) "
-              "for the SET %s command", PropInfoPntr->name);
+            sprintf (TempString, "You need to specify a string (%s) "
+              "for the SET %s command",
+              (PropInfoPntr->extra_data == PN_GENUINE_STRING ||
+              PropInfoPntr->extra_data == PN_SPAM_STRING)
+              ? "text of the message to be added"
+              : "pathname of the file containing the text to be added",
+              PropInfoPntr->name);
             goto ErrorExit;
           }
           if ((ErrorCode = LoadDatabaseIfNeeded (TempString)) != B_OK)
             goto ErrorExit;
-          sprintf (TempString, "Unable to open file \"%s\"", ArgumentString);
-          if ((ErrorCode = MessageFile.SetTo (ArgumentString, B_READ_ONLY))
-          != B_OK)
+          if (PropInfoPntr->extra_data == PN_GENUINE ||
+          PropInfoPntr->extra_data == PN_SPAM)
+            ErrorCode = AddFileToDatabase (
+              PropInfoPntr->extra_data == PN_SPAM,
+              ArgumentString, TempString /* ErrorMessage */);
+          else
+            ErrorCode = AddStringToDatabase (
+              PropInfoPntr->extra_data == PN_SPAM_STRING,
+              ArgumentString, TempString /* ErrorMessage */);
+          if (ErrorCode != B_OK)
             goto ErrorExit;
-          if ((ErrorCode = AddPositionIOToDatabase (
-          PropInfoPntr->extra_data == PN_SPAM /* IsSpam */, &MessageFile,
-          ArgumentString, TempString /* ErrorMessage */)) != B_OK)
-            goto ErrorExit;
-          MessageFile.Unset ();
-          /* Re-evaluate the file so that the user sees the new ratio. */
-          EvaluateFile (ArgumentString, &TempBMessage, TempString);
           break;
 
         default: /* Unknown operation code, error message already set. */
@@ -4077,7 +4154,7 @@ void ABSApp::ReadyToRun ()
       g_QuitCountdown = 0;
     }
     else
-      DatabaseWindowPntr->Show ();
+      DatabaseWindowPntr->Show (); /* Starts the window's message loop. */
   }
 }
 
@@ -4716,7 +4793,8 @@ void CommanderLooper::ProcessArgs (BMessage *MessagePntr)
     {
       cerr << PrintUsage;
       DisplayErrorMessage ("The property specified isn't known or "
-        "doesn't support the requested action.", -1, ErrorTitle);
+        "doesn't support the requested action (usually means it is an "
+        "unknown command)", -1, ErrorTitle);
       goto ErrorExit; /* Unrecognized command. */
     }
 
