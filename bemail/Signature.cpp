@@ -57,8 +57,8 @@ extern const char	*kRedoStrings[];
 //====================================================================
 
 TSignatureWindow::TSignatureWindow(BRect rect)
-				 :BWindow(rect, "Signatures", B_TITLED_WINDOW, 0),
-				fFile(NULL)
+	: BWindow(rect, "Signatures", B_TITLED_WINDOW, 0),
+	fFile(NULL)
 {
 	BMenu		*menu;
 	BMenuBar	*menu_bar;
@@ -108,16 +108,15 @@ TSignatureWindow::TSignatureWindow(BRect rect)
 	SetSizeLimits(kSigWidth, RIGHT_BOUNDARY, r.top + 100, RIGHT_BOUNDARY);
 }
 
-//--------------------------------------------------------------------
 
 TSignatureWindow::~TSignatureWindow()
 {
 	signature_window = Frame();
 }
 
-//--------------------------------------------------------------------
 
-void TSignatureWindow::MenusBeginning()
+void
+TSignatureWindow::MenusBeginning()
 {
 	int32		finish = 0;
 	int32		start = 0;
@@ -153,9 +152,9 @@ void TSignatureWindow::MenusBeginning()
 	fUndo->SetEnabled(undoState != B_UNDO_UNAVAILABLE);
 }
 
-//--------------------------------------------------------------------
 
-void TSignatureWindow::MessageReceived(BMessage* msg)
+void
+TSignatureWindow::MessageReceived(BMessage* msg)
 {
 	char		*sig;
 	char		name[B_FILE_NAME_LENGTH];
@@ -233,22 +232,20 @@ void TSignatureWindow::MessageReceived(BMessage* msg)
 	}
 }
 
-//--------------------------------------------------------------------
 
-bool TSignatureWindow::QuitRequested()
+bool
+TSignatureWindow::QuitRequested()
 {
-	BMessage	msg(WINDOW_CLOSED);
-
 	if (Clear()) {
+		BMessage msg(WINDOW_CLOSED);
 		msg.AddInt32("kind", SIG_WINDOW);
+
 		be_app->PostMessage(&msg);
 		return true;
 	}
-	else
-		return false;
+	return false;
 }
 
-//--------------------------------------------------------------------
 
 void 
 TSignatureWindow::FrameResized(float width, float height)
@@ -256,9 +253,9 @@ TSignatureWindow::FrameResized(float width, float height)
 	fSigView->FrameResized(width, height);
 }
 
-//--------------------------------------------------------------------
 
-void TSignatureWindow::Show()
+void
+TSignatureWindow::Show()
 {
 	BTextView	*text_view;
 
@@ -271,9 +268,9 @@ void TSignatureWindow::Show()
 	BWindow::Show();
 }
 
-//--------------------------------------------------------------------
 
-bool TSignatureWindow::Clear()
+bool
+TSignatureWindow::Clear()
 {
 	int32		result;
 
@@ -294,9 +291,9 @@ bool TSignatureWindow::Clear()
 	return true;
 }
 
-//--------------------------------------------------------------------
 
-bool TSignatureWindow::IsDirty()
+bool
+TSignatureWindow::IsDirty()
 {
 	char		name[B_FILE_NAME_LENGTH];
 
@@ -313,9 +310,9 @@ bool TSignatureWindow::IsDirty()
 	return false;
 }
 
-//--------------------------------------------------------------------
 
-void TSignatureWindow::Save()
+void
+TSignatureWindow::Save()
 {
 	char			name[B_FILE_NAME_LENGTH];
 	int32			index = 0;
@@ -324,11 +321,6 @@ void TSignatureWindow::Save()
 	BEntry			entry;
 	BNodeInfo		*node;
 	BPath			path;
-	BVolume			vol;
-	BVolumeRoster	roster;
-
-	roster.GetBootVolume(&vol);
-	fs_create_index(vol.Device(), INDEX_SIGNATURE, B_STRING_TYPE, 0);
 
 	if (!fFile) {
 		find_directory(B_USER_SETTINGS_DIRECTORY, &path, true);
@@ -381,13 +373,14 @@ err_exit:
 
 
 //====================================================================
+//	#pragma mark -
+
 
 TSignatureView::TSignatureView(BRect rect)
-			   :BBox(rect, "SigView", B_FOLLOW_ALL, B_WILL_DRAW)
+	: BBox(rect, "SigView", B_FOLLOW_ALL, B_WILL_DRAW)
 {
 }
 
-//--------------------------------------------------------------------
 
 void 
 TSignatureView::AttachedToWindow()
@@ -442,7 +435,10 @@ TSignatureView::AttachedToWindow()
 	scroller->SetResizingMode(B_FOLLOW_ALL);
 }
 
+
 //====================================================================
+//	#pragma mark -
+
 
 TNameControl::TNameControl(BRect rect, const char *label, BMessage *msg)
 			 :BTextControl(rect, "", label, "", msg, B_FOLLOW_LEFT_RIGHT)
@@ -450,9 +446,9 @@ TNameControl::TNameControl(BRect rect, const char *label, BMessage *msg)
 	strcpy(fLabel, label);
 }
 
-//--------------------------------------------------------------------
 
-void TNameControl::AttachedToWindow()
+void
+TNameControl::AttachedToWindow()
 {
 	BTextControl::AttachedToWindow();
 
@@ -460,9 +456,9 @@ void TNameControl::AttachedToWindow()
 	TextView()->SetMaxBytes(B_FILE_NAME_LENGTH - 1);
 }
 
-//--------------------------------------------------------------------
 
-void TNameControl::MessageReceived(BMessage *msg)
+void
+TNameControl::MessageReceived(BMessage *msg)
 {
 	switch (msg->what) {
 		case M_SELECT:
@@ -476,6 +472,8 @@ void TNameControl::MessageReceived(BMessage *msg)
 
 
 //====================================================================
+//	#pragma mark -
+
 
 TSigTextView::TSigTextView(BRect frame, BRect text)
 			 :BTextView(frame, "SignatureView", text, B_FOLLOW_ALL, B_NAVIGABLE | B_WILL_DRAW)
@@ -484,40 +482,35 @@ TSigTextView::TSigTextView(BRect frame, BRect text)
 	SetDoesUndo(true);
 }
 
-//--------------------------------------------------------------------
 
 void 
-TSigTextView::FrameResized(float width, float height)
+TSigTextView::FrameResized(float /*width*/, float /*height*/)
 {
-	// eliminate unused parameter warnings
-	(void)width;
-	(void)height;
-	
 	BRect r(Bounds());
 	r.InsetBy(3, 3);
 	SetTextRect(r);
 }
 
-//--------------------------------------------------------------------
 
-void TSigTextView::DeleteText(int32 offset, int32 len)
+void
+TSigTextView::DeleteText(int32 offset, int32 len)
 {
 	fDirty = true;
 	BTextView::DeleteText(offset, len);
 }
 
-//--------------------------------------------------------------------
 
-void TSigTextView::InsertText(const char *text, int32 len, int32 offset,
-							  const text_run_array *runs)
+void
+TSigTextView::InsertText(const char *text, int32 len, int32 offset,
+	const text_run_array *runs)
 {
 	fDirty = true;
 	BTextView::InsertText(text, len, offset, runs);
 }
 
-//--------------------------------------------------------------------
 
-void TSigTextView::KeyDown(const char *key, int32 count)
+void
+TSigTextView::KeyDown(const char *key, int32 count)
 {
 	bool	up = false;
 	int32	height;
@@ -549,9 +542,9 @@ void TSigTextView::KeyDown(const char *key, int32 count)
 	}
 }
 
-//--------------------------------------------------------------------
 
-void TSigTextView::MessageReceived(BMessage *msg)
+void
+TSigTextView::MessageReceived(BMessage *msg)
 {
 	char		type[B_FILE_NAME_LENGTH];
 	char		*text;
@@ -596,3 +589,4 @@ void TSigTextView::MessageReceived(BMessage *msg)
 			BTextView::MessageReceived(msg);
 	}
 }
+

@@ -136,14 +136,16 @@ static const char *kMetaphone = ".metaphone";
 
 //====================================================================
 
-int main()
+int
+main()
 {
 	TMailApp().Run();	
 	return B_NO_ERROR;
 }
 
 
-int32 header_len(BFile *file)
+int32
+header_len(BFile *file)
 {
 	char	*buffer;
 	int32	len;
@@ -640,6 +642,18 @@ TMailApp::ReadyToRun()
 		window->Show();
 	}
 
+	// Create needed indices for META:group, META:email, MAIL:draft,
+	// INDEX_SIGNATURE, INDEX_STATUS on the boot volume
+
+	BVolume volume;
+	BVolumeRoster().GetBootVolume(&volume);
+
+	fs_create_index(volume.Device(), "META:group", B_STRING_TYPE, 0);
+	fs_create_index(volume.Device(), "META:email", B_STRING_TYPE, 0);
+	fs_create_index(volume.Device(), "MAIL:draft", B_INT32_TYPE, 0);
+	fs_create_index(volume.Device(), INDEX_SIGNATURE, B_STRING_TYPE, 0);
+	fs_create_index(volume.Device(), INDEX_STATUS, B_STRING_TYPE, 0);
+
 	// Load dictionaries
 	BPath indexDir;
 	BPath dictionaryDir;
@@ -993,8 +1007,6 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 	qmenu = new QueryMenu("Open Draft", false);
 	qmenu->SetTargetForItems(be_app);
 	
-	// Make sure file type is indexed
-	fs_create_index( dev_for_path("/boot"), "MAIL:draft", B_INT32_TYPE, 0);
 	qmenu->SetPredicate("MAIL:draft==1");
 	menu->AddItem(qmenu);
 	
@@ -1280,16 +1292,16 @@ skip:			if (!done)
 			//
 			//	Create a query to find this signature
 			//
-			BVolume vol;
-			BVolumeRoster().GetBootVolume(&vol);
+			BVolume volume;
+			BVolumeRoster().GetBootVolume(&volume);
+
 			BQuery query;
-	
-			query.SetVolume(&vol);
+			query.SetVolume(&volume);
 			query.PushAttr(INDEX_SIGNATURE);
 			query.PushString(signature);
 			query.PushOp(B_EQ);
 			query.Fetch();
-	
+
 			//
 			//	If we find the named query, add it to the text.
 			//
@@ -3197,6 +3209,7 @@ TMenu::TMenu(const char *name, const char *attribute, int32 message, bool popup,
 	strcpy(fAttribute, attribute);
 	fPredicate = (char *)malloc(strlen(fAttribute) + 5);
 	sprintf(fPredicate, "%s = *", fAttribute);
+
 	BuildMenu();
 }
 
@@ -3240,7 +3253,7 @@ TMenu::BuildMenu()
 	query.SetVolume(&volume);
 	query.SetPredicate(fPredicate);
 	query.Fetch();
-	
+
 	int32 index = 0;
 	BEntry entry;
 	while (query.GetNextEntry(&entry) == B_NO_ERROR)

@@ -51,11 +51,10 @@ All rights reserved.
 //====================================================================
 
 TStatusWindow::TStatusWindow(BRect rect, BWindow *window, const char *status)
-	:	BWindow(rect, "", B_MODAL_WINDOW, B_NOT_RESIZABLE)
+	: BWindow(rect, "", B_MODAL_WINDOW, B_NOT_RESIZABLE)
 {
-	BRect		r;
+	BRect r(0, 0, STATUS_WIDTH, STATUS_HEIGHT);
 
-	r.Set(0, 0, STATUS_WIDTH, STATUS_HEIGHT);
 	r.InsetBy(-1, -1);
 	fView = new TStatusView(r, window, status);
 	Lock();
@@ -70,41 +69,36 @@ TStatusWindow::TStatusWindow(BRect rect, BWindow *window, const char *status)
 
 
 TStatusView::TStatusView(BRect rect, BWindow *window, const char *status)
-			:BBox(rect, "", B_FOLLOW_ALL, B_WILL_DRAW)
+	: BBox(rect, "", B_FOLLOW_ALL, B_WILL_DRAW)
 {
-	BFont		font = *be_plain_font;
-	rgb_color	c;
-
 	fWindow = window;
 	fString = status;
 
-	c.red = c.green = c.blue = VIEW_COLOR;
-	SetViewColor(c);
+	SetViewColor(VIEW_COLOR, VIEW_COLOR, VIEW_COLOR);
+
+	BFont font = *be_plain_font;
 	font.SetSize(FONT_SIZE);
 	SetFont(&font);
 }
 
-//--------------------------------------------------------------------
 
-void TStatusView::AttachedToWindow()
+void
+TStatusView::AttachedToWindow()
 {
-	BButton		*button;
-	BFont		font = *be_plain_font;
-	BRect		r;
+	BRect r(STATUS_FIELD_H, STATUS_FIELD_V,
+		STATUS_FIELD_WIDTH, STATUS_FIELD_V + STATUS_FIELD_HEIGHT);
 
-	r.Set(STATUS_FIELD_H, STATUS_FIELD_V,
-		  STATUS_FIELD_WIDTH,
-		  STATUS_FIELD_V + STATUS_FIELD_HEIGHT);
-	fStatus = new BTextControl(r, "", STATUS_TEXT, fString,
-							new BMessage(STATUS));
+	fStatus = new BTextControl(r, "", STATUS_TEXT, fString, new BMessage(STATUS));
 	AddChild(fStatus);
+
+	BFont font = *be_plain_font;
 	font.SetSize(FONT_SIZE);
 	fStatus->SetFont(&font);
 	fStatus->SetDivider(StringWidth(STATUS_TEXT) + 6);
 	fStatus->BTextControl::MakeFocus(true);
 
 	r.Set(S_OK_BUTTON_X1, S_OK_BUTTON_Y1, S_OK_BUTTON_X2, S_OK_BUTTON_Y2);
-	button = new BButton(r, "", S_OK_BUTTON_TEXT, new BMessage(OK));
+	BButton *button = new BButton(r, "", S_OK_BUTTON_TEXT, new BMessage(OK));
 	AddChild(button);
 	button->SetTarget(this);
 	button->MakeDefault(true);
@@ -115,9 +109,9 @@ void TStatusView::AttachedToWindow()
 	button->SetTarget(this);
 }
 
-//--------------------------------------------------------------------
 
-void TStatusView::MessageReceived(BMessage *msg)
+void
+TStatusView::MessageReceived(BMessage *msg)
 {
 	char			name[B_FILE_NAME_LENGTH];
 	char			new_name[B_FILE_NAME_LENGTH];
@@ -129,8 +123,6 @@ void TStatusView::MessageReceived(BMessage *msg)
 	BFile			file;
 	BNodeInfo		*node;
 	BPath			path;
-	BVolume			vol;
-	BVolumeRoster	roster;
 
 	switch (msg->what)
 	{
@@ -139,9 +131,6 @@ void TStatusView::MessageReceived(BMessage *msg)
 
 		case OK:
 			if (!Exists(fStatus->Text())) {
-				roster.GetBootVolume(&vol);
-				fs_create_index(vol.Device(), INDEX_STATUS, B_STRING_TYPE, 0);
-	
 				find_directory(B_USER_SETTINGS_DIRECTORY, &path, true);
 				dir.SetTo(path.Path());
 				if (dir.FindEntry("bemail", &entry) == B_NO_ERROR)
@@ -163,7 +152,7 @@ void TStatusView::MessageReceived(BMessage *msg)
 							name[loop] = '\\';
 					}
 					strcpy(new_name, name);
-					while(1) {
+					while (1) {
 						if ((result = dir.CreateFile(new_name, &file, true)) == B_NO_ERROR)
 							break;
 						if (result != EEXIST)
@@ -180,7 +169,7 @@ void TStatusView::MessageReceived(BMessage *msg)
 									 strlen(fStatus->Text()) + 1);
 				}
 			}
-err_exit:;
+err_exit:
 			{
 				BMessage closeCstmMsg(M_CLOSE_CUSTOM);
 				closeCstmMsg.AddString("status", fStatus->Text());
@@ -193,26 +182,24 @@ err_exit:;
 	}
 }
 
-//--------------------------------------------------------------------
 
-bool TStatusView::Exists(const char *status)
+bool
+TStatusView::Exists(const char *status)
 {
-	char			*predicate;
-	BEntry			entry;
-	BQuery			query;
-	BVolume			vol;
-	BVolumeRoster	roster;
+	BVolume volume;
+	BVolumeRoster().GetBootVolume(&volume);
 
-	roster.GetBootVolume(&vol);
-	query.SetVolume(&vol);
-	predicate = (char *)malloc(strlen(INDEX_STATUS) + strlen(status) + 4);
-	sprintf(predicate, "%s = %s", INDEX_STATUS, status);
-	query.SetPredicate(predicate);
+	BQuery query;
+	query.SetVolume(&volume);
+	query.PushAttr(INDEX_STATUS);
+	query.PushString(status);
+	query.PushOp(B_EQ);
 	query.Fetch();
-	free(predicate);
 
+	BEntry entry;
 	if (query.GetNextEntry(&entry) == B_NO_ERROR)
 		return true;
 
 	return false;
 }
+

@@ -325,19 +325,15 @@ void
 THeaderView::InitEmailCompletion()
 {
 	// get boot volume
-	BVolumeRoster roster;
-	BVolume v;
-	roster.GetBootVolume(&v);
-
-	// make sure "META:email" is indexed
-	fs_create_index(dev_for_path("/boot"), "META:email", B_STRING_TYPE, 0);
+	BVolume volume;
+	BVolumeRoster().GetBootVolume(&volume);
 
 	BQuery query;
-	query.SetVolume(&v);
+	query.SetVolume(&volume);
 	query.SetPredicate("META:email=**");
 	query.Fetch();
 	entry_ref ref;
-	
+
 	// The leash is a work-around for when the something in the query breaks
 	// and prevents GetNextRef() from ever returning B_ENTRY_NOT_FOUND
 	for (int32 leash = 0; query.GetNextRef(&ref) == B_OK && leash < 1024; leash++)
@@ -366,17 +362,13 @@ void
 THeaderView::InitGroupCompletion()
 {
 	// get boot volume
-	BVolumeRoster roster;
-	BVolume v;
-	roster.GetBootVolume(&v);
-
-	// make sure "META:group" is indexed
-	fs_create_index(dev_for_path("/boot"), "META:group", B_STRING_TYPE, 0);
+	BVolume volume;
+	BVolumeRoster().GetBootVolume(&volume);
 
 	// build a list of all unique groups and the addresses
 	// they expand to
 	BQuery query;
-	query.SetVolume(&v);
+	query.SetVolume(&volume);
 	query.SetPredicate("META:group=**");
 	query.Fetch();
 
@@ -737,6 +729,7 @@ THeaderView::SetAddress(BMessage *msg)
 
 	if (group)
 	{
+		// get boot volume
 		BVolume volume;
 		BVolumeRoster().GetBootVolume(&volume);
 
@@ -754,9 +747,9 @@ THeaderView::SetAddress(BMessage *msg)
 			BFile file;
 			file.SetTo(&entry, O_RDONLY);
 			BString	name;
-			ReadAttrString(&file,"META:name",&name);
+			ReadAttrString(&file, "META:name", &name);
 			BString email;
-			ReadAttrString(&file,"META:email",&email);
+			ReadAttrString(&file, "META:email", &email);
 
 			BString address;
 			/* if we have no Name, just use the email address */
