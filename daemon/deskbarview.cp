@@ -47,7 +47,6 @@ const char *kTrackerSignature = "application/x-vnd.Be-TRAK";
 
 extern "C" _EXPORT BView* instantiate_deskbar_item();
 
-//status_t our_image(image_info*);
 
 status_t our_image(image_info* image)
 {
@@ -293,8 +292,6 @@ void DeskbarView::Pulse()
 
 void DeskbarView::MouseUp(BPoint pos)
 {
-	Looper()->CurrentMessage()->PrintToStream();
-
 	if (fLastButtons & B_PRIMARY_MOUSE_BUTTON)
 		OpenFolder("mail/mailbox");
 
@@ -389,8 +386,12 @@ BPopUpMenu *DeskbarView::BuildMenu()
 	BDirectory directory;
 	if (CreateMenuLinks(directory,path))
 	{
+		int32 count = 0;
+
 		while (directory.GetNextRef(&ref) == B_OK)
 		{
+			count++;
+
 			path.SetTo(&ref);
 			menu->AddItem(item = new BMenuItem(
 				navMenu = new BNavMenu(path.Leaf(),B_REFS_RECEIVED,tracker),
@@ -405,7 +406,8 @@ BPopUpMenu *DeskbarView::BuildMenu()
 			navMenu->SetNavDir(&ref);
 			msg->AddRef("refs", &ref);
 		}
-		menu->AddSeparatorItem();
+		if (count > 0)
+			menu->AddSeparatorItem();
 	}
 
 	// The New E-mail query
