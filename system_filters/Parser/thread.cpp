@@ -27,33 +27,41 @@ void subject2thread(BString& string)
 {
 	static char translation[256];
 	static re_pattern_buffer *rebuf=NULL, re;
-	static BLocker remakelock;
+	static int32 locker = 0;
 	static size_t nsub = 1;
-	if (rebuf==NULL && remakelock.Lock())
-	{
-		if (rebuf==NULL)
-		{
-			for (int i=0; i<256; ++i) translation[i]=i;
-			for (int i='a'; i<='z'; ++i) translation[i]=toupper(i);
-			
-			re.translate = translation;
-			re.regs_allocated = REGS_FIXED;
-			re_syntax_options = RE_SYNTAX_POSIX_EXTENDED;
 
-			char pattern[] = PATTERN;
-			// count subexpressions in PATTERN
-			for (int i=0; i<sizeof(pattern); ++i)
-			{
-				if (pattern[i] == '\\') ++i;
-				else if (pattern[i] == '(') ++nsub;
-			}
-			
-			const char* err = re_compile_pattern(pattern,sizeof(pattern)-1,&re);
-			if (err == NULL) rebuf = &re;
-			else fprintf(stderr, "Failed to compile the regex: %s\n", err);
+	if (rebuf == NULL && atomic_add(&locker,1) == 0)
+	{
+		// the idea is to compile the regexp once to speed up testing
+
+		for (int i=0; i<256; ++i) translation[i]=i;
+		for (int i='a'; i<='z'; ++i) translation[i]=toupper(i);
+		
+		re.translate = translation;
+		re.regs_allocated = REGS_FIXED;
+		re_syntax_options = RE_SYNTAX_POSIX_EXTENDED;
+
+		char pattern[] = PATTERN;
+		// count subexpressions in PATTERN
+		for (int i=0; i<sizeof(pattern); ++i)
+		{
+			if (pattern[i] == '\\') ++i;
+			else if (pattern[i] == '(') ++nsub;
 		}
-		remakelock.Unlock();
+		
+		const char *err = re_compile_pattern(pattern,sizeof(pattern)-1,&re);
+		if (err == NULL)
+			rebuf = &re;
+		else
+			fprintf(stderr, "Failed to compile the regex: %s\n", err);
 	}
+	else
+	{
+		int32 tries = 200;
+		while (rebuf == NULL && tries-- > 0)
+			snooze(10000);
+	}
+
 	if (rebuf)
 	{
 		struct re_registers regs;

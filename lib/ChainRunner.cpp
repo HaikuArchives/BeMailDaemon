@@ -223,6 +223,7 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 		delete entry;
 		delete headers;
 		delete folder;
+
 		if (err)
 			break;
 	}
@@ -236,19 +237,17 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 	
 	runner->process_cb.MakeEmpty();
 	
-	struct filter_image *img;
 	for (int32 i = 0; i < addons.CountItems(); i++) {
-		img = (struct filter_image *)(addons.ItemAt(i));
-		delete img->filter;
+		filter_image *image = (filter_image *)(addons.ItemAt(i));
+		delete image->filter;
 		
-		img->settings->RemoveName("chain_runner");
-		img->settings->RemoveName("chain");
+		image->settings->RemoveName("chain_runner");
+		image->settings->RemoveName("chain");
 		chain->GetFilter(i,&settings,&addon);
-		chain->SetFilter(i,*(img->settings),addon);
+		chain->SetFilter(i,*(image->settings),addon);
 
-		delete img->settings;
-		
-		delete img;
+		delete image->settings;
+		delete image;
 	}
 	
 	if (status->Window() != NULL)

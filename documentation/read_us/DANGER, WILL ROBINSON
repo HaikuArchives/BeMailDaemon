@@ -4,17 +4,13 @@ BEEP! THIS IS A TEST OF THE EMERGENCY BROADCAST SYSTEM.
 
 KNOWN BUGS AND UPDATE DANGERS
 
-There are a few bugs in this version of the Mail Daemon Replacement. (Would this be a beta otherwise?) We will only admit that four of them are bugs, but the rest are things that you really should be aware of.
+There are a few bugs in this version of the Mail Daemon Replacement. (Would this be a beta otherwise?) We will only admit that two of them are bugs, but the rest are things that you really should be aware of.
 
 BUGS:
 
 1) Japanese and Chinese characters aren't handled correctly. Maybe some other things aren't as well, but for now anything not translatable into UTF8 doesn't work. We're working on this. Honest.
 
 2) Your inbox *must* be on your boot disk. We'll have a fix for this soon, but be aware of this. If you don't, you will soon start seeing errors about cross-device links and all your mail will be deleted. Don't say we didn't warn you. The e-mail monster is hiding in a cross-device link. Don't bring him out!
-
-3) You can't copy the To: field of a received message to the clipboard. This is a really bizarre bug, and we can't figure it why it's there. It's not that we don't care. Really. Or that we're stupid. A prize of, um, something to whoever fixes this!
-
-4) On x86 net_server machines, mail_daemon can crash when you shutdown your system. Although it may be annoying, it doesn't harm your system. This will hopefully be fixed soon. Hopefully.
 
 IT'S NOT A BUG, IT'S A FEATURE:
 
