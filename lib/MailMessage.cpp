@@ -530,9 +530,16 @@ Mail::TextComponent *Message::RetrieveTextBody(Mail::Component *component)
 				case MC_PLAIN_TEXT_BODY:
 					// AttributedAttachment returns the MIME type of its contents, so
 					// we have to use dynamic_cast here
-					return dynamic_cast<Mail::TextComponent *>(container->GetComponent(i));
+					body = dynamic_cast<Mail::TextComponent *>(container->GetComponent(i));
+					if (body != NULL)
+						return body;
+					break;
+					
 				case MC_MULTIPART_CONTAINER:
-					return RetrieveTextBody(component = container->GetComponent(i));
+					body = RetrieveTextBody(container->GetComponent(i));
+					if (body != NULL)
+						return body;
+					break;
 			}
 		}
 	}
