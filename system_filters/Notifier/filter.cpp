@@ -22,7 +22,7 @@ using namespace Zoidberg;
 class NotifyCallback : public Mail::ChainCallback {
 	public:
 		NotifyCallback (int32 notification_method, Mail::Chain *us);
-		virtual void Callback(Mail::MDStatus result);
+		virtual void Callback(MDStatus result);
 		
 		uint32 num_messages;
 	private:
@@ -35,7 +35,7 @@ class NotifyFilter : public Mail::Filter
   public:
 	NotifyFilter(BMessage*);
 	virtual status_t InitCheck(BString *err);
-	virtual Mail::MDStatus ProcessMailMessage
+	virtual MDStatus ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* io_entry,
 		BMessage* io_headers, BPath* io_folder, BString* io_uid
@@ -62,11 +62,11 @@ status_t NotifyFilter::InitCheck(BString* err)
 	return B_OK;
 }
 
-Mail::MDStatus NotifyFilter::ProcessMailMessage(BPositionIO**, BEntry*, BMessage*, BPath*, BString*)
+MDStatus NotifyFilter::ProcessMailMessage(BPositionIO**, BEntry*, BMessage*, BPath*, BString*)
 {
 	callback->num_messages ++;
 	
-	return Mail::MD_OK;
+	return MD_OK;
 }
 
 NotifyCallback::NotifyCallback (int32 notification_method, Mail::Chain *us) : 
@@ -76,7 +76,7 @@ NotifyCallback::NotifyCallback (int32 notification_method, Mail::Chain *us) :
 {
 }
 
-void NotifyCallback::Callback(Mail::MDStatus result) {
+void NotifyCallback::Callback(MDStatus result) {
 	if (strategy & do_beep)
 		system_beep("New E-mail");
 		

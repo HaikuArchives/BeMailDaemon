@@ -34,17 +34,17 @@ status_t RuleFilter::InitCheck(BString* out_message) {
 	return B_OK;
 }
 
-Mail::MDStatus RuleFilter::ProcessMailMessage
+MDStatus RuleFilter::ProcessMailMessage
 (
 	BPositionIO** , BEntry* entry,
 	BMessage* io_headers, BPath* io_folder, BString* 
 ) {
 	const char *data;
 	if (io_headers->FindString(attribute,&data) < B_OK)
-		return Mail::MD_OK; //----That field doesn't exist? NO match
+		return MD_OK; //----That field doesn't exist? NO match
 
 	if (!matcher.Match(data))
-		return Mail::MD_OK; //-----There wasn't an error. We're just not supposed to do anything
+		return MD_OK; //-----There wasn't an error. We're just not supposed to do anything
 		
 	switch (do_what) {
 		case Z_MOVE_TO:
@@ -52,7 +52,7 @@ Mail::MDStatus RuleFilter::ProcessMailMessage
 				io_headers->AddString("DESTINATION",arg);
 			break;
 		case Z_TRASH:
-			return Mail::MD_DISCARD;
+			return MD_DISCARD;
 		case Z_FLAG:
 			{
 			BString string = arg;
@@ -63,7 +63,7 @@ Mail::MDStatus RuleFilter::ProcessMailMessage
 			fprintf(stderr,"Unknown do_what: 0x%04x!\n",do_what);
 	}
 	
-	return Mail::MD_OK;
+	return MD_OK;
 }
 
 status_t descriptive_name(BMessage *settings, char *buffer) {

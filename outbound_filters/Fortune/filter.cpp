@@ -23,7 +23,7 @@ class FortuneFilter : public Mail::Filter
   public:
 	FortuneFilter(BMessage*);
 	virtual status_t InitCheck(BString *err);
-	virtual Mail::MDStatus ProcessMailMessage
+	virtual MDStatus ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* io_entry,
 		BMessage* io_headers, BPath* io_folder, BString* io_uid
@@ -40,7 +40,7 @@ status_t FortuneFilter::InitCheck(BString* err)
 	return B_OK;
 }
 
-Mail::MDStatus FortuneFilter::ProcessMailMessage
+MDStatus FortuneFilter::ProcessMailMessage
 (BPositionIO** io, BEntry* io_entry, BMessage* headers, BPath* , BString*)
 {
 	BString fortune_file;
@@ -71,7 +71,7 @@ Mail::MDStatus FortuneFilter::ProcessMailMessage
 	} else {
 		printf("Damnit!\n");
 	}
-	return Mail::MD_OK;
+	return MD_OK;
 }
 
 Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::StatusView*)

@@ -25,7 +25,7 @@ using namespace Zoidberg;
 class StatusChanger : public Mail::ChainCallback {
 	public:
 		StatusChanger(entry_ref entry);
-		void Callback(Mail::MDStatus result);
+		void Callback(MDStatus result);
 		
 	private:
 		entry_ref to_change;
@@ -43,7 +43,7 @@ class DiskProducer : public Mail::Filter
   public:
 	DiskProducer(BMessage*,Mail::StatusView*);
 	virtual status_t InitCheck(BString *err);
-	virtual Mail::MDStatus ProcessMailMessage
+	virtual MDStatus ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* io_entry,
 		BMessage* io_headers, BPath* io_folder, BString* io_uid
@@ -104,10 +104,10 @@ status_t DiskProducer::InitCheck(BString* err)
 	}
 }
 
-Mail::MDStatus DiskProducer::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* out_headers, BPath*, BString* io_uid)
+::MDStatus DiskProducer::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* out_headers, BPath*, BString* io_uid)
 {
 	if (entries_to_send.CountItems() == 0)
-		return Mail::MD_NO_MORE_MESSAGES;
+		return MD_NO_MORE_MESSAGES;
 		
 	e->Remove();
 	
@@ -124,7 +124,7 @@ Mail::MDStatus DiskProducer::ProcessMailMessage(BPositionIO**io, BEntry* e, BMes
 	
 	delete ref;
 	
-	return Mail::MD_OK;
+	return MD_OK;
 }
 
 StatusChanger::StatusChanger(entry_ref entry)
@@ -132,10 +132,10 @@ StatusChanger::StatusChanger(entry_ref entry)
 {
 }
 
-void StatusChanger::Callback(Mail::MDStatus result) {
+void StatusChanger::Callback(MDStatus result) {
 	BNode node(&to_change);
 	
-	if (result == Mail::MD_HANDLED) {
+	if (result == MD_HANDLED) {
 		mail_flags flags = B_MAIL_SENT;
 		
 		node.WriteAttr(B_MAIL_ATTR_FLAGS,B_INT32_TYPE,0,&flags,4);

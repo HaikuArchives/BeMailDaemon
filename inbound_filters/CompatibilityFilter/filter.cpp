@@ -31,7 +31,7 @@ class CompatibilityFilter : public Mail::Filter
   public:
 	CompatibilityFilter(BMessage*);
 	virtual status_t InitCheck(BString *err);
-	virtual Mail::MDStatus ProcessMailMessage
+	virtual MDStatus ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* io_entry,
 		BMessage* io_headers, BPath* io_folder, BString* io_uid
@@ -54,7 +54,7 @@ status_t CompatibilityFilter::InitCheck(BString* err)
 	return status;
 }
 
-Mail::MDStatus CompatibilityFilter::ProcessMailMessage
+MDStatus CompatibilityFilter::ProcessMailMessage
 	(BPositionIO** , BEntry* io_entry, BMessage* headers, BPath* , BString*)
 {
 	int32 ret;
@@ -81,7 +81,7 @@ Mail::MDStatus CompatibilityFilter::ProcessMailMessage
 		}
 		else fprintf(stderr,"%s\n", strerror(fil));
 	} 
-	return Mail::MD_OK;
+	return MD_OK;
 }
 
 Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::StatusView*)

@@ -95,7 +95,7 @@ status_t SMTPProtocol::InitCheck(BString *verbose) {
 
 
 // Process EMail to be sent
-Mail::MDStatus SMTPProtocol::ProcessMailMessage
+MDStatus SMTPProtocol::ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* /*io_entry*/,
 		BMessage* io_headers, BPath* /*io_folder*/, BString* /*io_uid*/
@@ -108,13 +108,13 @@ Mail::MDStatus SMTPProtocol::ProcessMailMessage
 
 	if (to && from && Send(to,from,*io_message) == B_OK) {
 		status_view->AddItem();
-		return Mail::MD_HANDLED;
+		return MD_HANDLED;
 	} else {
 		BString error;
 		error << "An error occurred while sending the message " << io_headers->FindString("MAIL:subject") << " to " << to << ":\n" << fLog;
 		smtp_errlert(error.String());
 		status_view->AddItem();
-		return Mail::MD_ERROR;
+		return MD_ERROR;
 	}
 }
 

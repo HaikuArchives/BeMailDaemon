@@ -13,11 +13,6 @@
 class BPath;
 
 
-typedef enum {
-	inbound,
-	outbound
-} chain_direction;
-
 typedef enum
 {
 	MD_SHOW_STATUS_WINDOW_NEVER         = 0,
@@ -37,6 +32,11 @@ typedef enum
 
 namespace Zoidberg {
 namespace Mail {
+
+typedef enum {
+	inbound,
+	outbound
+} chain_direction;
 
 class StatusWindow;
 class Chain;

@@ -25,7 +25,7 @@ class RuleFilter : public Zoidberg::Mail::Filter {
 		virtual				~RuleFilter() { }					
 		virtual status_t	InitCheck(BString* out_message = NULL);
 		
-		virtual Zoidberg::Mail::MDStatus ProcessMailMessage(BPositionIO** io_message,
+		virtual MDStatus ProcessMailMessage(BPositionIO** io_message,
 											   BEntry* io_entry,
 											   BMessage* io_headers,
 											   BPath* io_folder,

@@ -61,7 +61,7 @@ class FolderFilter : public Mail::Filter
   public:
 	FolderFilter(BMessage*);
 	virtual status_t InitCheck(BString *err);
-	virtual Mail::MDStatus ProcessMailMessage
+	virtual MDStatus ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* io_entry,
 		BMessage* io_headers, BPath* io_folder, BString* io_uid
@@ -93,7 +93,7 @@ status_t FolderFilter::InitCheck(BString* err)
 	}
 }
 
-Mail::MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* out_headers, BPath*, BString* io_uid)
+MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* out_headers, BPath*, BString* io_uid)
 {
 	BDirectory dir;
 	
@@ -119,7 +119,7 @@ Mail::MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMes
 		
 		Mail::ShowAlert("Folder Error",error.String(),"OK",B_WARNING_ALERT);
 		
-		return Mail::MD_ERROR;
+		return MD_ERROR;
 	} else {
 		BNode node(e);
 		
@@ -184,7 +184,7 @@ Mail::MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMes
 		if (err < B_OK)
 			printf("could not rename mail (%s)! (should be: %s)\n",strerror(err),worker.String());
 
-		return Mail::MD_HANDLED;
+		return MD_HANDLED;
 	}
 }
 
