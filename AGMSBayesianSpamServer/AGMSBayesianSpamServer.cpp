@@ -74,6 +74,9 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
+ * Revision 1.75  2002/12/18 01:54:37  agmsmith
+ * Added uncertain sound effect.
+ *
  * Revision 1.74  2002/12/13 23:53:12  agmsmith
  * Minimize the window before opening it so that it doesn't flash on the
  * screen in server mode.  Also load the database when the window is
@@ -2779,7 +2782,7 @@ status_t ABSApp::InstallThings (char *ErrorMessage)
     Parameters.AddInt32 ("attr:type", B_STRING_TYPE);
     Parameters.AddBool ("attr:viewable", true);
     Parameters.AddBool ("attr:editable", false);
-    Parameters.AddInt32 ("attr:width", 40);
+    Parameters.AddInt32 ("attr:width", 45);
     Parameters.AddInt32 ("attr:alignment", B_ALIGN_LEFT);
     Parameters.AddBool ("attr:extra", false);
   }
