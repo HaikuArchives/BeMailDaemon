@@ -70,7 +70,7 @@ class IMAP4Client : public Mail::RemoteStorageProtocol {
 		
 		int32 commandCount;
 		BNetEndpoint *net;
-		BString selected_mb, inbox_name, hierarchy_delimiter;
+		BString selected_mb, inbox_name, hierarchy_delimiter, mb_root;
 		int32 inbox_index;
 		BList box_info;
 		status_t err;
@@ -163,7 +163,9 @@ class NoopWorker : public BHandler {
 
 IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::RemoteStorageProtocol(settings,run), commandCount(0), net(NULL), selected_mb(""), inbox_index(-1), noop(NULL) {
 	err = B_OK;
-		
+	
+	mb_root = settings->FindString("root");
+	
 	net = new BNetEndpoint;
 	int port = settings->FindInt32("port");
 	if (port <= 0)
@@ -238,7 +240,11 @@ IMAP4Client::~IMAP4Client() {
 }
 
 void IMAP4Client::InitializeMailboxes() {
-	SendCommand("LIST \"\" \"*\"");
+	BString command;
+	command << "LIST \"" << mb_root << "\" \"*\"";
+	
+	SendCommand(command.String());
+	
 	BString tag;
 	char expected[255];
 	::sprintf(expected,"a%.7ld",commandCount);
@@ -261,6 +267,9 @@ void IMAP4Client::InitializeMailboxes() {
 			info->server_mb_name = response[3]();
 			box_info.AddItem(info);
 			BString parsed_name = response[3]();
+			if ((mb_root != "") &&  (strncmp(mb_root.String(),parsed_name.String(),mb_root.Length()) == 0))
+				parsed_name.Remove(0,mb_root.Length());
+			
 			if (strcasecmp(response[2](),"NIL")) {
 				hierarchy_delimiter = response[2]();
 				if (strcmp(response[2](),"/")) {
@@ -273,7 +282,7 @@ void IMAP4Client::InitializeMailboxes() {
 				}
 			}
 			mailboxes += parsed_name.String();
-			if (strcasecmp(response[3](),"INBOX") == 0) {
+			if (strcasecmp(parsed_name.String(),"INBOX") == 0) {
 				inbox_name = response[3]();
 				inbox_index = box_info.CountItems() - 1;
 			}
@@ -293,10 +302,6 @@ void IMAP4Client::InitializeMailboxes() {
 		if (hierarchy_delimiter == "" || hierarchy_delimiter == "NIL")
 			hierarchy_delimiter = "/";
 	}
-	
-	/*puts("Mailboxes:");
-	for (int32 i = 0; i < boxes.CountItems(); i++)
-		printf("\t%s\n",boxes[i]);*/
 }
 
 #define dump_stringlist(a) printf("StringList %s:\n",#a); \
@@ -415,6 +420,7 @@ status_t IMAP4Client::CreateMailbox(const char *mailbox) {
 	info->next_uid = -1;
 	info->server_mb_name = mailbox;
 	info->server_mb_name.ReplaceAll("/",hierarchy_delimiter.String());
+	info->server_mb_name.Prepend(mb_root.String());
 	
 	BString command;
 	command << "CREATE \"" << info->server_mb_name << '\"';
