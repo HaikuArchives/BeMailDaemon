@@ -11,6 +11,7 @@
 #include <MailDaemon.h>
 #include <MailSettings.h>
 
+#include <string.h>
 
 namespace Zoidberg {
 

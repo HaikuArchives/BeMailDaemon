@@ -142,7 +142,7 @@ Message::ReplyMessage(reply_to_mode replyTo, bool accountFromMail,const char *qu
 		for (int32 i = chains.CountItems();i-- > 0;)
 		{
 			Chain *chain = (Chain *)chains.ItemAt(i);
-			if (!strcmp(chain->Name()))
+			if (!strcmp(chain->Name(),name))
 				to_return->SendViaAccount(chain->ID());
 
 			delete chain;
