@@ -15,23 +15,15 @@
 
 #include <stdio.h>
 
-#include <NumailKit.h>
-
 #define timeout 5e5
 
-BMessenger *mail_daemon_messenger_ptr = NULL;
-BMessenger *&mail_daemon_messenger_func()
-{
-	if (mail_daemon_messenger_ptr)
-		return mail_daemon_messenger_ptr;
-	
-	static BLocker foo;
-	BAutolock foolock(foo);
-	
-	if (mail_daemon_messenger_ptr == NULL)
-		mail_daemon_messenger_ptr = new BMessenger("application/x-vnd.Be-POST");
-	return mail_daemon_messenger_ptr;
-}
+namespace Zoidberg {
+namespace Mail {
+
+status_t WriteMessageFile(const BMessage& archive, const BPath& path, const char* name);
+
+}	// namespace Mail
+}	// namespace Zoidberg
 
 
 status_t Zoidberg::Mail::WriteMessageFile(const BMessage& archive, const BPath& path, const char* name)

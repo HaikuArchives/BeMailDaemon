@@ -18,11 +18,12 @@
 namespace Zoidberg {
 namespace Mail {
 	class _EXPORT Chain;
+
+	status_t WriteMessageFile(const BMessage& archive, const BPath& path, const char* name);
 }
 }
 
 #include <MailSettings.h>
-#include <NumailKit.h>
 #include <ChainRunner.h>
 #include <status.h>
 
