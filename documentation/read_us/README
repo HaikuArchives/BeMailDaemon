@@ -155,7 +155,7 @@ For IMAP, things are slightly more complicated. The IMAP folder structure is dup
 
 HISTORY:
 
-October 5 2003 - v2.2.4
+October 8 2003 - v2.2.4
 - Added the X-Mailer header to satisfy Feature Request 788700.
 - Made it so that the message count uses the correct singular/plural form, given the number of messages, in the daemon status window.
 - CHECK_MEM build simply does not work with BONE, changed to get it to partially work.
@@ -164,6 +164,7 @@ October 5 2003 - v2.2.4
 - Fixed a bug that caused thousands of error messages.
 - Fixed a bug that caused RemoteStorageProtocols not to sync on startup.
 - Fixed a bug that caused folder names to be appended to paths set by the Match Header filter.
+- Some memory leaks fixed.
 
 September 20 2003 - v2.2.3
 - Fixed crash in POP3 protocol when the mail server was not reachable (was trying to send a QUIT command over a dead connection).
