@@ -1790,7 +1790,7 @@ void TTextView::StopLoad()
 }
 
 
-void TTextView::AddAsContent(MailMessage *mail, bool wrap)
+void TTextView::AddAsContent(Mail::Message *mail, bool wrap)
 {
 	if (mail == NULL)
 		return;
@@ -1798,10 +1798,10 @@ void TTextView::AddAsContent(MailMessage *mail, bool wrap)
 	const char	*text = Text();
 	int32		textLen = TextLength();
 
-	PlainTextBodyComponent *body = mail->Body();
+	Mail::TextComponent *body = mail->Body();
 	if (body == NULL)
 	{
-		if (mail->SetBody(body = new PlainTextBodyComponent()) < B_OK)
+		if (mail->SetBody(body = new Mail::TextComponent()) < B_OK)
 			return;
 		body->SetEncoding(quoted_printable,gMailEncoding);
 	}
@@ -1955,12 +1955,12 @@ TTextView::Reader::Reader(bool header, bool raw, bool quote, bool incoming, bool
 }
 
 
-bool TTextView::Reader::ParseMail(MailContainer *container,PlainTextBodyComponent *ignore)
+bool TTextView::Reader::ParseMail(Mail::Container *container,Mail::TextComponent *ignore)
 {
 	int32 count = 0;
 	for (int32 i = 0;i < container->CountComponents();i++)
 	{
-		MailComponent *component;
+		Mail::Component *component;
 		if ((component = container->GetComponent(i)) == NULL)
 		{
 			hyper_text *enclosure = (hyper_text *)malloc(sizeof(hyper_text));
@@ -1985,7 +1985,7 @@ bool TTextView::Reader::ParseMail(MailContainer *container,PlainTextBodyComponen
 
 		if (component->ComponentType() == MC_MULTIPART_CONTAINER)
 		{
-			MIMEMultipartContainer *c = (MIMEMultipartContainer *)container->GetComponent(i);
+			Mail::MIMEMultipartContainer *c = (Mail::MIMEMultipartContainer *)container->GetComponent(i);
 			if (!ParseMail(c,ignore))
 				count--;
 		}
@@ -2000,7 +2000,7 @@ bool TTextView::Reader::ParseMail(MailContainer *container,PlainTextBodyComponen
 			BString name;
 			char fileName[B_FILE_NAME_LENGTH];
 			strcpy(fileName,"untitled");
-			if (MailAttachment *attachment = dynamic_cast <MailAttachment *> (component))
+			if (Mail::Attachment *attachment = dynamic_cast <Mail::Attachment *> (component))
 				attachment->FileName(fileName);
 
 			BPath path(fileName);
@@ -2278,10 +2278,10 @@ status_t TTextView::Reader::Run(void *_this)
 	else
 	{
 		reader->fFile->Seek(0, 0);
-		MailMessage *mail = new MailMessage(reader->fFile);
+		Mail::Message *mail = new Mail::Message(reader->fFile);
 
 		// at first, insert the mail body
-		PlainTextBodyComponent *body = NULL;
+		Mail::TextComponent *body = NULL;
 		if (mail->BodyText())
 		{
 			char *bodyText = const_cast<char *>(mail->BodyText());

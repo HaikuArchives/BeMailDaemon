@@ -5,24 +5,28 @@
 
 #include <stdio.h>
 
-class _EXPORT SimpleMailProtocol;
+namespace Mail {
+	class _EXPORT SimpleProtocol;
+}
 
 #include <crypt.h>
 
-#include "MailProtocol.h"
-#include "StringList.h"
+#include <MailProtocol.h>
+#include <StringList.h>
+#include <status.h>
+
 #include "MessageIO.h"
-#include "status.h"
 
+using Mail::SimpleProtocol;
 
-SimpleMailProtocol::SimpleMailProtocol(BMessage *settings, StatusView *view) :
-	MailProtocol(settings),
+SimpleProtocol::SimpleProtocol(BMessage *settings, Mail::StatusView *view) :
+	Mail::Protocol(settings),
 	status_view(view),
 	error(B_OK),
 	last_message(-1) {
 	}
 
-status_t SimpleMailProtocol::Init() {
+status_t SimpleProtocol::Init() {
 	SetStatusReporter(status_view);
 		
 	error = Open(settings->FindString("server"),settings->FindInt32("port"),settings->FindInt32("flavor"));
@@ -41,10 +45,10 @@ status_t SimpleMailProtocol::Init() {
 	return error;
 }
 
-SimpleMailProtocol::~SimpleMailProtocol() {
+SimpleProtocol::~SimpleProtocol() {
 }
 
-void SimpleMailProtocol::PrepareStatusWindow(StringList *manifest) {
+void SimpleProtocol::PrepareStatusWindow(StringList *manifest) {
 	size_t	maildrop_size = 0;
 	int32	num_messages;
 	
@@ -66,7 +70,7 @@ void SimpleMailProtocol::PrepareStatusWindow(StringList *manifest) {
 }
 	
 
-status_t SimpleMailProtocol::GetNextNewUid
+status_t SimpleProtocol::GetNextNewUid
 (
 	BString* out_uid,
 	StringList *manifest,
@@ -89,7 +93,7 @@ status_t SimpleMailProtocol::GetNextNewUid
 	return B_OK;
 }
 
-status_t SimpleMailProtocol::GetMessage(
+status_t SimpleProtocol::GetMessage(
 	const char* uid,
 	BPositionIO** out_file, BMessage* /*out_headers*/,
 	BPath* out_folder_location
@@ -98,7 +102,7 @@ status_t SimpleMailProtocol::GetMessage(
 	if (to_retrieve < 0)
 		return B_NAME_NOT_FOUND;
 		
-	*out_file = new MessageIO(this,*out_file,to_retrieve);
+	*out_file = new Mail::MessageIO(this,*out_file,to_retrieve);
 	
 	if (out_folder_location != NULL)
 		out_folder_location->SetTo("in");
@@ -106,7 +110,7 @@ status_t SimpleMailProtocol::GetMessage(
 	return B_OK;
 }
 
-status_t SimpleMailProtocol::DeleteMessage(const char* uid) {
+status_t SimpleProtocol::DeleteMessage(const char* uid) {
 	#if DEBUG
 	 printf("ID is %d\n", (int)unique_ids->IndexOf(uid)); // What should we use for int32 instead of %d?
 	#endif
@@ -114,6 +118,6 @@ status_t SimpleMailProtocol::DeleteMessage(const char* uid) {
 	return B_OK;
 }
 
-status_t SimpleMailProtocol::InitCheck(BString* /*out_message*/) {
+status_t SimpleProtocol::InitCheck(BString* /*out_message*/) {
 	return error;
 }

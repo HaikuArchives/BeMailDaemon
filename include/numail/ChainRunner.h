@@ -1,9 +1,14 @@
-#include "MailAddon.h"
-#include "MailSettings.h"
+#ifndef MAIL_CHAINRUNNER_H
+#define MAIL_CHAINRUNNER_H
 
+#include <MailAddon.h>
+#include <MailSettings.h>
+
+namespace Mail {
 class StatusWindow;
+class Chain;
 
-class MailCallback {
+class ChainCallback {
 	public:
 		virtual void Callback(MDStatus result) = 0;
 		// Called by the callback routines in ChainRunner
@@ -15,21 +20,21 @@ class MailCallback {
 
 class ChainRunner {
 	public:
-		ChainRunner(MailChain *chain);
+		ChainRunner(Chain *chain);
 		~ChainRunner();
 
 		//----Callback functions. Callback objects will be deleted for you.
 		
-		void RegisterMessageCallback(MailCallback *callback);
+		void RegisterMessageCallback(ChainCallback *callback);
 		// Your callback->Callback() function will be called when
 		// the current message is done being processed.
 		
-		void RegisterProcessCallback(MailCallback *callback);
+		void RegisterProcessCallback(ChainCallback *callback);
 		// Your callback->Callback() function will be called when
 		// a filter returns MD_NO_MORE_MESSAGES and before everything
 		// is unloaded and sent home.
 		
-		MailChain *Chain();
+		Chain *Chain();
 		
 		//----The big, bad asynchronous RunChain() function. Pretty harmless looking, huh?
 		status_t RunChain(StatusWindow *status,
@@ -41,6 +46,10 @@ class ChainRunner {
 	private:
 		static int32 async_chain_runner(void *arg);
 	
-		MailChain *_chain;
+		Mail::Chain *_chain;
 		BList message_cb, process_cb;
 };
+
+}
+
+#endif //MAIL_CHAINRUNNER_H

@@ -18,29 +18,29 @@ struct CharsetConversionEntry
 
 extern const CharsetConversionEntry charsets[];
 
-BMailMessage::BMailMessage(void) : fFields((BList *)(new MailMessage())) {}
+BMailMessage::BMailMessage(void) : fFields((BList *)(new Mail::Message())) {}
 BMailMessage::~BMailMessage(void) {
-	delete ((MailMessage *)(fFields));
+	delete ((Mail::Message *)(fFields));
 }
 
 status_t	BMailMessage::AddContent(const char *text, int32 length,
 		   uint32 encoding,
 		   bool /*clobber*/) {
-				PlainTextBodyComponent *comp = new PlainTextBodyComponent;
+				Mail::TextComponent *comp = new Mail::TextComponent;
 				BMemoryIO io(text,length);
 				comp->SetDecodedData(&io);
 				
 				comp->SetEncoding(quoted_printable,encoding);
 				
 				//if (clobber)
-				((MailMessage *)(fFields))->AddComponent(comp);
+				((Mail::Message *)(fFields))->AddComponent(comp);
 				
 				return B_OK;
 			}
 					
 status_t	BMailMessage::AddContent(const char *text, int32 length,
 		   const char *encoding, bool /*clobber*/) {
-				PlainTextBodyComponent *comp = new PlainTextBodyComponent;
+				Mail::TextComponent *comp = new Mail::TextComponent;
 				BMemoryIO io(text,length);
 				comp->SetDecodedData(&io);
 				
@@ -59,7 +59,7 @@ status_t	BMailMessage::AddContent(const char *text, int32 length,
 				comp->SetEncoding(quoted_printable,encode);
 				
 				//if (clobber)
-				((MailMessage *)(fFields))->AddComponent(comp);
+				((Mail::Message *)(fFields))->AddComponent(comp);
 				
 				return B_OK;
 			}
@@ -67,7 +67,7 @@ status_t	BMailMessage::AddContent(const char *text, int32 length,
 		   		
 
 status_t	BMailMessage::AddEnclosure(entry_ref *ref, bool /*clobber*/) {
-		((MailMessage *)(fFields))->Attach(ref);
+		((Mail::Message *)(fFields))->Attach(ref);
 		return B_OK;
 }
 
@@ -81,17 +81,17 @@ status_t	BMailMessage::AddEnclosure(const char *path, bool /*clobber*/) {
 	if ((status = entry.GetRef(&ref)) < B_OK)
 		return status;
 
-	((MailMessage *)(fFields))->Attach(&ref);
+	((Mail::Message *)(fFields))->Attach(&ref);
 	return B_OK;
 }
 
 status_t	BMailMessage::AddEnclosure(const char *MIME_type, void *data, int32 len,
 			 bool /*clobber*/) {
-			 	SimpleMailAttachment *attach = new SimpleMailAttachment;
+			 	Mail::SimpleAttachment *attach = new Mail::SimpleAttachment;
 			 	attach->SetDecodedData(data,len);
 			 	attach->SetHeaderField("Content-Type",MIME_type);
 			 	
-			 	((MailMessage *)(fFields))->AddComponent(attach);
+			 	((Mail::Message *)(fFields))->AddComponent(attach);
 			 	return B_OK;
 }
 
@@ -101,7 +101,7 @@ status_t	BMailMessage::AddHeaderField(uint32 /*encoding*/, const char *field_nam
 			   		
 			   		BString string = field_name;
 			   		string.Truncate(string.Length() - 2); //----BMailMessage includes the ": "
-					((MailMessage *)(fFields))->SetHeaderField(string.String(),str);
+					((Mail::Message *)(fFields))->SetHeaderField(string.String(),str);
 					return B_OK;
 				}
 				
@@ -110,11 +110,11 @@ status_t	BMailMessage::AddHeaderField(const char *field_name, const char *str,
 			   		printf("Second AddHeaderField. Args are %s%s\n",field_name,str);
 					BString string = field_name;
 			   		string.Truncate(string.Length() - 2); //----BMailMessage includes the ": "
-					((MailMessage *)(fFields))->SetHeaderField(string.String(),str);
+					((Mail::Message *)(fFields))->SetHeaderField(string.String(),str);
 					return B_OK;
 				}
 
 status_t	BMailMessage::Send(bool send_now,
 	 bool /*remove_when_I_have_completed_sending_this_message_to_your_preferred_SMTP_server*/) {
-	 	return ((MailMessage *)(fFields))->Send(send_now);
+	 	return ((Mail::Message *)(fFields))->Send(send_now);
 	 }

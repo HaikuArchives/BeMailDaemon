@@ -3,12 +3,12 @@
 
 #include <MailProtocol.h>
 
-class POP3Protocol : public SimpleMailProtocol {
+class POP3Protocol : public Mail::SimpleProtocol {
   public:
-  	POP3Protocol(BMessage *settings, StatusView *status);
+  	POP3Protocol(BMessage *settings, Mail::StatusView *status);
   	~POP3Protocol();
   
-	void SetStatusReporter(StatusView *view);
+	void SetStatusReporter(Mail::StatusView *view);
 	status_t Open(const char *server, int port, int protocol);
 	status_t Login(const char *uid, const char *password, int method);
 	int32 Messages(void);
@@ -29,5 +29,5 @@ protected:
 private:
 	BNetEndpoint conn;
 	BString		fLog;
-	StatusView *status_view;			
+	Mail::StatusView *status_view;			
 };

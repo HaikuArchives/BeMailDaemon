@@ -8,7 +8,7 @@
 #include <MailAddon.h>
 #include "NodeMessage.h"
 
-class FortuneFilter: public MailFilter
+class FortuneFilter: public Mail::Filter
 {
 	BMessage *settings;
   public:
@@ -22,7 +22,7 @@ class FortuneFilter: public MailFilter
 };
 
 FortuneFilter::FortuneFilter(BMessage* msg)
-: MailFilter(msg), settings(msg)
+: Mail::Filter(msg), settings(msg)
 {}
 
 status_t FortuneFilter::InitCheck(BString* err){ return B_OK; }
@@ -61,7 +61,7 @@ MDStatus FortuneFilter::ProcessMailMessage
 	return MD_OK;
 }
 
-MailFilter* instantiate_mailfilter(BMessage* settings, StatusView*)
+Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::StatusView*)
 { return new FortuneFilter(settings); }
 
 

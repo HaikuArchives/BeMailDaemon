@@ -1,11 +1,9 @@
 #include <Messenger.h>
 #include <Message.h>
 
-class _EXPORT MailDaemon;
-
 #include <MailDaemon.h>
 
-status_t MailDaemon::CheckMail(bool send_queued_mail) {
+_EXPORT status_t Mail::CheckMail(bool send_queued_mail) {
 	BMessenger daemon("application/x-vnd.Be-POST");
 	if (!daemon.IsValid())
 		return B_MAIL_NO_DAEMON;
@@ -18,7 +16,7 @@ status_t MailDaemon::CheckMail(bool send_queued_mail) {
 	return B_OK;
 }
 
-status_t MailDaemon::SendQueuedMail() {
+_EXPORT status_t Mail::SendQueuedMail() {
 	BMessenger daemon("application/x-vnd.Be-POST");
 	if (!daemon.IsValid())
 		return B_MAIL_NO_DAEMON;
@@ -28,7 +26,7 @@ status_t MailDaemon::SendQueuedMail() {
 	return B_OK;
 }
 
-int32 MailDaemon::CountNewMessages(bool wait_for_fetch_completion) {
+_EXPORT int32 Mail::CountNewMessages(bool wait_for_fetch_completion) {
 	BMessenger daemon("application/x-vnd.Be-POST");
 	if (!daemon.IsValid())
 		return B_MAIL_NO_DAEMON;
@@ -44,7 +42,7 @@ int32 MailDaemon::CountNewMessages(bool wait_for_fetch_completion) {
 	return reply.FindInt32("num_new_messages");
 }
 
-status_t MailDaemon::Quit() {
+_EXPORT status_t Mail::QuitDaemon() {
 	BMessenger daemon("application/x-vnd.Be-POST");
 	if (!daemon.IsValid())
 		return B_MAIL_NO_DAEMON;

@@ -12,7 +12,9 @@ class BView;
 class BListView;
 class BStringItem;
 
-class MailChain;
+namespace Mail {
+	class Chain;
+}
 class Account;
 class Accounts;
 
@@ -52,7 +54,7 @@ enum account_types
 class Account
 {
 	public:
-		Account(MailChain *inbound = NULL,MailChain *outbound = NULL);
+		Account(Mail::Chain *inbound = NULL,Mail::Chain *outbound = NULL);
 		~Account();
 
 		void		SetName(const char *name);
@@ -70,8 +72,8 @@ class Account
 		void		SetType(int32 type);
 		int32		Type() const;
 
-		MailChain	*Inbound() const;
-		MailChain	*Outbound() const;
+		Mail::Chain	*Inbound() const;
+		Mail::Chain	*Outbound() const;
 
 		void		Save();
 		void		Delete(int32 type = IN_AND_OUTBOUND_TYPE);
@@ -82,9 +84,9 @@ class Account
 	private:
 		void		CreateInbound();
 		void		CreateOutbound();
-		void		CopyMetaData(MailChain *targetChain, MailChain *sourceChain);
+		void		CopyMetaData(Mail::Chain *targetChain, Mail::Chain *sourceChain);
 
-		MailChain	*fSettings, *fInbound, *fOutbound;
+		Mail::Chain	*fSettings, *fInbound, *fOutbound;
 		AccountItem	*fAccountItem, *fInboundItem, *fOutboundItem, *fFilterItem;
 };
 

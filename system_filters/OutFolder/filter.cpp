@@ -14,7 +14,7 @@
 #include <FileConfigView.h>
 
 
-class StatusChanger : public MailCallback {
+class StatusChanger : public Mail::ChainCallback {
 	public:
 		StatusChanger(entry_ref entry);
 		void Callback(MDStatus result);
@@ -23,17 +23,17 @@ class StatusChanger : public MailCallback {
 		entry_ref to_change;
 };
 
-class DiskProducer : public MailFilter
+class DiskProducer : public Mail::Filter
 {
 	BString src_string;
 	BDirectory source;
 	
 	BList entries_to_send;
-	ChainRunner *runner;
+	Mail::ChainRunner *runner;
 	bool _we_are_default_chain;
 	
   public:
-	DiskProducer(BMessage*,StatusView*);
+	DiskProducer(BMessage*,Mail::StatusView*);
 	virtual status_t InitCheck(BString *err);
 	virtual MDStatus ProcessMailMessage
 	(
@@ -41,8 +41,8 @@ class DiskProducer : public MailFilter
 		BMessage* io_headers, BPath* io_folder, BString* io_uid
 	);
 };
-DiskProducer::DiskProducer(BMessage* msg,StatusView*status)
-: MailFilter(msg)
+DiskProducer::DiskProducer(BMessage* msg,Mail::StatusView*status)
+: Mail::Filter(msg)
 {
 	entry_ref entry;
 	mail_flags flags;
@@ -54,7 +54,7 @@ DiskProducer::DiskProducer(BMessage* msg,StatusView*status)
 	off_t worker;
 	
 	msg->FindPointer("chain_runner",(void **)&runner);
-	_we_are_default_chain = (MailSettings().DefaultOutboundChainID() == runner->Chain()->ID());
+	_we_are_default_chain = (Mail::Settings().DefaultOutboundChainID() == runner->Chain()->ID());
 	src_string = runner->Chain()->MetaData()->FindString("path");
  	source = src_string.String();
 	while (source.GetNextRef(&entry) == B_OK) {
@@ -134,7 +134,7 @@ void StatusChanger::Callback(MDStatus result) {
 }
 		
 
-MailFilter* instantiate_mailfilter(BMessage* settings, StatusView *status)
+Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::StatusView *status)
 {
 	return new DiskProducer(settings,status);
 }
@@ -142,7 +142,7 @@ MailFilter* instantiate_mailfilter(BMessage* settings, StatusView *status)
 
 BView* instantiate_config_panel(BMessage *settings,BMessage *metadata)
 {
-	FileConfigView *view = new FileConfigView("Source Folder:","path",true,"/boot/home/mail/out");
+	Mail::FileConfigView *view = new Mail::FileConfigView("Source Folder:","path",true,"/boot/home/mail/out");
 	view->SetTo(settings,metadata);
 
 	return view;

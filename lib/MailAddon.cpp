@@ -1,16 +1,19 @@
 #include <String.h>
 
-class _EXPORT MailFilter;
+namespace Mail {
+	class _EXPORT Filter;
+}
 
 #include "MailAddon.h"
 
+using Mail::Filter;
 
-MailFilter::MailFilter(BMessage *)
+Filter::Filter(BMessage *)
 {
 	//----do nothing-----
 }
 
-MailFilter::~MailFilter()
+Filter::~Filter()
 {
 }
 

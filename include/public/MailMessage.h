@@ -4,19 +4,20 @@
 
 #include <MailContainer.h>
 
+namespace Mail {
 
-class MailMessage : public MailContainer {
+class Message : public Container {
 	public:
-		MailMessage(BPositionIO *mail_file = NULL);
-		virtual ~MailMessage();
+		Message(BPositionIO *mail_file = NULL);
+		virtual ~Message();
 
 		status_t InitCheck() const;
 
-		MailMessage *ReplyMessage(bool reply_to_all,
-								  bool include_attachments = false,
-								  const char *quote_style = "> ");
-		MailMessage *ForwardMessage(bool include_attachments = false,
-									const char *quote_style = "> ");
+		Message *ReplyMessage(bool reply_to_all,
+							  bool include_attachments = false,
+							  const char *quote_style = "> ");
+		Message *ForwardMessage(bool include_attachments = false,
+								const char *quote_style = "> ");
 		// These return messages with the body quoted and
 		// ready to send via the appropriate channel. ReplyMessage()
 		// addresses the message appropriately, but ForwardMessage()
@@ -40,10 +41,10 @@ class MailMessage : public MailContainer {
 		void SendViaAccount(const char *account_name);
 		void SendViaAccount(int32 chain_id);
 
-		virtual status_t AddComponent(MailComponent *component);
+		virtual status_t AddComponent(Component *component);
 		virtual status_t RemoveComponent(int32 index);
 
-		virtual MailComponent *GetComponent(int32 index);
+		virtual Component *GetComponent(int32 index);
 		virtual int32 CountComponents() const;
 
 		void Attach(entry_ref *ref, bool include_attributes = true);
@@ -52,8 +53,8 @@ class MailMessage : public MailContainer {
 		void SetBodyTextTo(const char *text);
 		const char *BodyText();
 
-		status_t SetBody(PlainTextBodyComponent *body);
-		PlainTextBodyComponent *Body();
+		status_t SetBody(TextComponent *body);
+		TextComponent *Body();
 
 		virtual status_t SetToRFC822(BPositionIO *data, size_t length, bool parse_now = false);
 		virtual status_t RenderToRFC822(BPositionIO *render_to);
@@ -63,21 +64,22 @@ class MailMessage : public MailContainer {
 		status_t Send(bool send_now);
 
 	private:
-		PlainTextBodyComponent *RetrieveTextBody(MailComponent *);
+		TextComponent *RetrieveTextBody(Component *);
 
 		status_t _status;
 		int32 _chain_id;
 		char *_bcc;
 
 		int32 _num_components;
-		MailComponent *_body;
-		PlainTextBodyComponent *_text_body;
+		Component *_body;
+		TextComponent *_text_body;
 };
 
-inline status_t MailMessage::InitCheck() const
+inline status_t Message::InitCheck() const
 {
 	return _status;
 }
 
+}
 
 #endif	/* ZOIDBERG_NUMAIL_MAIL_MESSAGE_H */

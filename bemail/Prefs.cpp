@@ -571,9 +571,8 @@ BPopUpMenu *TPrefsWindow::BuildAccountMenu(uint32 account)
 	BMenuItem *item;
 
 	//menu->SetRadioMode(true);
-	MailSettings settings;
 	BList chains;
-	if (settings.OutboundChains(&chains) < B_OK)
+	if (Mail::OutboundChains(&chains) < B_OK)
 	{
 		menu->AddItem(item = new BMenuItem("<no account found>",NULL));
 		item->SetEnabled(false);
@@ -583,7 +582,7 @@ BPopUpMenu *TPrefsWindow::BuildAccountMenu(uint32 account)
 	BMessage *msg;
 	for (int32 i = 0;i < chains.CountItems();i++)
 	{
-		MailChain *chain = (MailChain *)chains.ItemAt(i);
+		Mail::Chain *chain = (Mail::Chain *)chains.ItemAt(i);
 		item = new BMenuItem(chain->Name(),msg = new BMessage(P_ACCOUNT));
 
 		msg->AddInt32("id",chain->ID());

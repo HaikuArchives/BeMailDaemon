@@ -9,11 +9,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-class _EXPORT ProtocolConfigView;
+namespace Mail {
+	class _EXPORT ProtocolConfigView;
+}
 
 #include <crypt.h>
 
 #include "ProtocolConfigView.h"
+
+using Mail::ProtocolConfigView;
 
 //--------------------Support functions and #defines---------------
 #define enable_control(name) if (FindView(name) != NULL) ((BControl *)(FindView(name)))->SetEnabled(true)

@@ -81,7 +81,7 @@ void AccountItem::DrawItem(BView *owner, BRect rect, bool complete)
 //	#pragma mark -
 
 
-Account::Account(MailChain *inbound,MailChain *outbound)
+Account::Account(Mail::Chain *inbound,Mail::Chain *outbound)
 	:	fInbound(inbound),
 		fOutbound(outbound),
 
@@ -223,7 +223,7 @@ const char *Account::ReturnAddress() const
 }
 
 
-void Account::CopyMetaData(MailChain *targetChain, MailChain *sourceChain)
+void Account::CopyMetaData(Mail::Chain *targetChain, Mail::Chain *sourceChain)
 {
 	BMessage *otherMsg, *thisMsg;
 	if (sourceChain && (otherMsg = sourceChain->MetaData()) != NULL
@@ -248,9 +248,8 @@ void Account::CopyMetaData(MailChain *targetChain, MailChain *sourceChain)
 
 void Account::CreateInbound()
 {
-	MailSettings mailSettings;
 
-	if (!(fInbound = mailSettings.NewChain()))
+	if (!(fInbound = Mail::NewChain()))
 	{
 		(new BAlert("E-mail","Could not create inbound chain.","Ok"))->Go();
 		return;
@@ -298,9 +297,8 @@ void Account::CreateInbound()
 
 void Account::CreateOutbound()
 {
-	MailSettings mailSettings;
 
-	if (!(fOutbound = mailSettings.NewChain()))
+	if (!(fOutbound = Mail::NewChain()))
 	{
 		(new BAlert("E-mail","Could not create outbound chain.","Ok"))->Go();
 		return;
@@ -510,13 +508,13 @@ void Account::Remove(int32 type)
 }
 
 
-MailChain *Account::Inbound() const
+Mail::Chain *Account::Inbound() const
 {
 	return gListView && gListView->HasItem(fInboundItem) ? fInbound : NULL;
 }
 
 
-MailChain *Account::Outbound() const
+Mail::Chain *Account::Outbound() const
 {
 	return gListView && gListView->HasItem(fOutboundItem) ? fOutbound : NULL;
 }
@@ -566,21 +564,20 @@ void Accounts::Create(BListView *listView, BView *configView)
 	gListView = listView;
 	gConfigView = configView;
 
-	MailSettings settings;
 	BList inbound,outbound;
 
-	settings.InboundChains(&inbound);
-	settings.OutboundChains(&outbound);
+	Mail::InboundChains(&inbound);
+	Mail::OutboundChains(&outbound);
 
 	// create inbound accounts and assign matching outbound chains
 
 	for (int32 i = inbound.CountItems();i-- > 0;)
 	{
-		MailChain *inChain = (MailChain *)inbound.ItemAt(i);
-		MailChain *outChain = NULL;
+		Mail::Chain *inChain = (Mail::Chain *)inbound.ItemAt(i);
+		Mail::Chain *outChain = NULL;
 		for (int32 j = outbound.CountItems();j-- > 0;)
 		{
-			outChain = (MailChain *)outbound.ItemAt(j);
+			outChain = (Mail::Chain *)outbound.ItemAt(j);
 
 			if (!strcmp(inChain->Name(),outChain->Name()))
 				break;
@@ -596,7 +593,7 @@ void Accounts::Create(BListView *listView, BView *configView)
 
 	for (int32 i = outbound.CountItems();i-- > 0;)
 	{
-		MailChain *outChain = (MailChain *)outbound.ItemAt(i);
+		Mail::Chain *outChain = (Mail::Chain *)outbound.ItemAt(i);
 
 		gAccounts.AddItem(new Account(NULL,outChain));
 		outbound.RemoveItem(i);

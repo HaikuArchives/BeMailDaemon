@@ -519,7 +519,7 @@ void ConfigWindow::LoadSettings()
 	Accounts::Create(fAccountsListView,fConfigView);
 
 	// load in general settings
-	MailSettings *settings = new MailSettings();
+	Mail::Settings *settings = new Mail::Settings();
 	status_t status = SetToGeneralSettings(settings);
 	if (status == B_OK)
 	{
@@ -566,7 +566,7 @@ void ConfigWindow::SaveSettings()
 	time_t time = (time_t)(multiplier * interval);
 
 	// apply and save general settings
-	MailSettings settings;
+	Mail::Settings settings;
 	if (fSaveSettings)
 	{
 		settings.SetAutoCheckInterval(time * 1e6);
@@ -694,7 +694,7 @@ void ConfigWindow::MessageReceived(BMessage *msg)
 }
 
 
-status_t ConfigWindow::SetToGeneralSettings(MailSettings *settings)
+status_t ConfigWindow::SetToGeneralSettings(Mail::Settings *settings)
 {
 	if (!settings)
 		return B_BAD_VALUE;
@@ -756,7 +756,7 @@ status_t ConfigWindow::SetToGeneralSettings(MailSettings *settings)
 void ConfigWindow::RevertToLastSettings()
 {
 	// revert general settings
-	MailSettings settings = MailSettings();
+	Mail::Settings settings;
 
 	// restore status window look
 	settings.SetStatusWindowLook(settings.StatusWindowLook());

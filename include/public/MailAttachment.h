@@ -6,19 +6,21 @@
 #include <MailContainer.h>
 #include <MailComponent.h>
 
-class MailAttachment {
+namespace Mail {
+
+class Attachment {
 	public:
 		virtual void SetFileName(const char *name) = 0;
 		virtual status_t FileName(char *name) = 0;
 };
 
-class SimpleMailAttachment : public MailComponent, public MailAttachment {
+class SimpleAttachment : public Component, public Attachment {
 	public:
-		SimpleMailAttachment();
+		SimpleAttachment();
 		
-		SimpleMailAttachment(BPositionIO *data /* data to attach */, mail_encoding encoding = base64);
-		SimpleMailAttachment(const void *data, size_t length /* data to attach */, mail_encoding encoding = base64);
-		virtual ~SimpleMailAttachment();
+		SimpleAttachment(BPositionIO *data /* data to attach */, mail_encoding encoding = base64);
+		SimpleAttachment(const void *data, size_t length /* data to attach */, mail_encoding encoding = base64);
+		virtual ~SimpleAttachment();
 		
 		virtual void SetFileName(const char *name);
 		virtual status_t FileName(char *name);
@@ -47,13 +49,13 @@ class SimpleMailAttachment : public MailComponent, public MailAttachment {
 		mail_encoding _encoding;
 };
 
-class AttributedMailAttachment : public MIMEMultipartContainer, public MailAttachment {
+class AttributedAttachment : public MIMEMultipartContainer, public Attachment {
 	public:
-		AttributedMailAttachment(BFile *file, bool delete_when_done);
-		AttributedMailAttachment(entry_ref *ref);
+		AttributedAttachment(BFile *file, bool delete_when_done);
+		AttributedAttachment(entry_ref *ref);
 		
-		AttributedMailAttachment();
-		virtual ~AttributedMailAttachment();
+		AttributedAttachment();
+		virtual ~AttributedAttachment();
 		
 		void SetTo(BFile *file, bool delete_file_when_done = false);
 		void SetTo(entry_ref *ref);
@@ -75,8 +77,10 @@ class AttributedMailAttachment : public MIMEMultipartContainer, public MailAttac
 		
 		virtual status_t MIMEType(BMimeType *mime);
 	private:
-		SimpleMailAttachment *_data, *_attributes_attach;
+		SimpleAttachment *_data, *_attributes_attach;
 		BMessage _attributes;
 };
+
+}
 
 #endif

@@ -11,7 +11,7 @@
 #include <MailAddon.h>
 #include "NodeMessage.h"
 
-class CompatibilityFilter: public MailFilter
+class CompatibilityFilter: public Mail::Filter
 {
 	bool enabled;
 	BPath path;
@@ -29,7 +29,7 @@ class CompatibilityFilter: public MailFilter
 };
 
 CompatibilityFilter::CompatibilityFilter(BMessage* msg)
-: MailFilter(msg), enabled(msg->FindBool("enabled")), status(B_OK)
+: Mail::Filter(msg), enabled(msg->FindBool("enabled")), status(B_OK)
 {
 	if(find_directory(B_USER_ADDONS_DIRECTORY, &path) != B_OK) {
 		status = B_NAME_NOT_FOUND;
@@ -71,5 +71,5 @@ MDStatus CompatibilityFilter::ProcessMailMessage
 	return MD_OK;
 }
 
-MailFilter* instantiate_mailfilter(BMessage* settings, StatusView*)
+Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::StatusView*)
 { return new CompatibilityFilter(settings); }

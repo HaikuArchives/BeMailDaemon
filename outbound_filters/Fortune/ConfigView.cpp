@@ -24,7 +24,7 @@ ConfigView::ConfigView()
 
 	BRect rect(5,4,250,25);
 	rect.bottom = rect.top - 2 + itemHeight;
-	FileConfigView *fview = new FileConfigView("Fortune File:","fortune_file",false,"/boot/beos/etc/fortunes/default",B_FILE_NODE);
+	Mail::FileConfigView *fview = new Mail::FileConfigView("Fortune File:","fortune_file",false,"/boot/beos/etc/fortunes/default",B_FILE_NODE);
 	AddChild(fview);
 	
 	rect.top = rect.bottom + 8;
@@ -43,7 +43,7 @@ void ConfigView::SetTo(BMessage *archive)
 	if (path == B_EMPTY_STRING)
 		path = "/boot/beos/etc/fortunes/default";
 	
-	if (FileConfigView *control = (FileConfigView *)FindView("fortune_file"))
+	if (Mail::FileConfigView *control = (Mail::FileConfigView *)FindView("fortune_file"))
 		control->SetTo(archive,NULL);
 		
 	path = archive->FindString("tag_line");
@@ -58,7 +58,7 @@ void ConfigView::SetTo(BMessage *archive)
 
 status_t ConfigView::Archive(BMessage *into,bool) const
 {
-	if (FileConfigView *control = (FileConfigView *)FindView("fortune_file"))
+	if (Mail::FileConfigView *control = (Mail::FileConfigView *)FindView("fortune_file"))
 	{
 		control->Archive(into);
 	}

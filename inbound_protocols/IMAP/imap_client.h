@@ -14,10 +14,10 @@ enum{
 };
 
 //! IMAP4 client socket.
-class IMAP4Client :public BNetEndpoint, public MailProtocol {
+class IMAP4Client :public BNetEndpoint, public Mail::Protocol {
 public:
 		//!Constructor.
-					IMAP4Client(BMessage *settings,StatusView *status);
+					IMAP4Client(BMessage *settings,Mail::StatusView *status);
 					virtual status_t InitCheck(BString* out_message = NULL);
 		//!Destructor.
 	virtual			~IMAP4Client();
@@ -78,7 +78,7 @@ private:
 		status_t error;
 		
 		BMessage *_settings;
-		StatusView *_status;
+		Mail::StatusView *_status;
 		StringList *to_fetch;
 };
 #endif

@@ -182,13 +182,13 @@ void DeskbarView::MessageReceived(BMessage *message)
 		case MD_CHECK_SEND_NOW:
 			// also happens in DeskbarView::MouseUp() with
 			// B_TERTIARY_MOUSE_BUTTON pressed
-			MailDaemon::CheckMail(true);
+			Mail::CheckMail(true);
 			break;
 		case MD_CHECK_FOR_MAILS:
-			MailDaemon::CheckMail(false);
+			Mail::CheckMail(false);
 			break;
 		case MD_SEND_MAILS:
-			MailDaemon::SendQueuedMail();
+			Mail::SendQueuedMail();
 			break;
 
 		case MD_OPEN_NEW:
@@ -298,7 +298,7 @@ void DeskbarView::MouseUp(BPoint pos)
 		OpenFolder("mail/mailbox");
 
 	if (fLastButtons & B_TERTIARY_MOUSE_BUTTON)
-		MailDaemon::CheckMail(true);
+		Mail::CheckMail(true);
 }
 
 void DeskbarView::MouseDown(BPoint pos)

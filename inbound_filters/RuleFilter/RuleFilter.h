@@ -11,7 +11,7 @@ typedef enum {
 	Z_TRASH
 } z_mail_action_flags;
 
-class RuleFilter : public MailFilter {
+class RuleFilter : public Mail::Filter {
 	public:
 							RuleFilter(BMessage *settings);
 		virtual				~RuleFilter() { }					

@@ -247,7 +247,7 @@ TMailApp::TMailApp()
 			if (fPrefs->Read(&gColoredQuotes, sizeof(bool)) <= 0)
 				gColoredQuotes = true;
 			
-			MailSettings settings;
+			Mail::Settings settings;
 			gDefaultChain = settings.DefaultOutboundChainID();
 		}
 		else
@@ -589,7 +589,7 @@ bool TMailApp::QuitRequested()
 			
 			if (gDefaultChain != ~0UL)
 			{
-				MailSettings settings;
+				Mail::Settings settings;
 				settings.SetDefaultOutboundChainID(gDefaultChain);
 				settings.Save();
 			}
@@ -2524,12 +2524,11 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 	if (gUseAccountFrom == ACCOUNT_FROM_MAIL
 		&& ReadAttrString(&file, "MAIL:account", &string) == B_NO_ERROR)
 	{
-		MailSettings settings;
 		BList chains;
-		settings.OutboundChains(&chains);
+		Mail::OutboundChains(&chains);
 		for (int32 i = 0;i < chains.CountItems();i++)
 		{
-			MailChain *chain = (MailChain *)chains.ItemAt(i);
+			Mail::Chain *chain = (Mail::Chain *)chains.ItemAt(i);
 			if (!string.Compare(chain->Name()))
 				fHeaderView->fChain = chain->ID();
 
@@ -2644,7 +2643,7 @@ status_t TMailWindow::Send(bool now)
 		result = file.InitCheck();
 		if (result == B_OK)
 		{
-			MailMessage mail(&file);
+			Mail::Message mail(&file);
 			mail.SetTo(fHeaderView->fTo->Text());
 	
 			if (fHeaderView->fChain != ~0UL)
@@ -2655,7 +2654,7 @@ status_t TMailWindow::Send(bool now)
 	}
 	else
 	{
-		MailMessage mail;
+		Mail::Message mail;
 				
 		if (strlen(fHeaderView->fTo->Text()) != 0)
 			mail.SetTo(fHeaderView->fTo->Text());

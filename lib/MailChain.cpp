@@ -9,28 +9,25 @@
 #include <string.h>
 #include <stdio.h>
 
-class _EXPORT MailChain;
+namespace Mail {
+	class _EXPORT Chain;
+}
 
-#include "MailSettings.h"
-#include "NumailKit.h"
-#include "ChainRunner.h"
-#include "status.h"
+#include <MailSettings.h>
+#include <NumailKit.h>
+#include <ChainRunner.h>
+#include <status.h>
 
-/*--------Hacks--------*/
-#if __POWERPC__
-	#define strlcpy strncpy
-#endif
-#define strlcpy strncpy // BeOS R5 + BONE does not have it too.
-/*--------End hacks----*/
+using Mail::Chain;
 
-MailChain::MailChain(uint32 i)
+Chain::Chain(uint32 i)
 : id(i), meta_data(NULL), _err(B_OK), direction(inbound), settings_ct(0), addons_ct(0) 
 {
 	name[0] = 0;
 	Reload();
 }
 
-MailChain::MailChain(BMessage* settings)
+Chain::Chain(BMessage* settings)
 : id(settings->FindInt32("id")), meta_data(NULL), _err(B_OK), direction(inbound), settings_ct(0), addons_ct(0) 
 {
 	name[0] = 0;
@@ -38,7 +35,7 @@ MailChain::MailChain(BMessage* settings)
 }
 
 
-MailChain::~MailChain() {
+Chain::~Chain() {
 	if (meta_data != NULL)
 		delete meta_data;
 		
@@ -49,7 +46,7 @@ MailChain::~MailChain() {
 		delete (entry_ref *)filter_addons.ItemAt(i);
 }
 
-status_t MailChain::Load(BMessage* settings)
+status_t Chain::Load(BMessage* settings)
 {
 	if (meta_data != NULL)
 		delete meta_data;
@@ -60,7 +57,7 @@ status_t MailChain::Load(BMessage* settings)
 	
 	const char* n;
 	status_t ret = settings->FindString("name",&n);
-	if (ret == B_OK) strlcpy(name,n,sizeof(name));
+	if (ret == B_OK) strncpy(name,n,sizeof(name));
 	else name[0]='\0';
 
 	type_code t;
@@ -95,7 +92,7 @@ status_t MailChain::Load(BMessage* settings)
 		return B_OK;
 }
 
-status_t MailChain::InitCheck() const
+status_t Chain::InitCheck() const
 {
 	if (settings_ct!=addons_ct)
 		return B_MISMATCHED_VALUES;
@@ -109,7 +106,7 @@ status_t MailChain::InitCheck() const
 }
 
 
-status_t MailChain::Archive(BMessage* archive, bool deep) const
+status_t Chain::Archive(BMessage* archive, bool deep) const
 {
 	status_t ret = B_OK;
 	
@@ -119,7 +116,7 @@ status_t MailChain::Archive(BMessage* archive, bool deep) const
 	ret = BArchivable::Archive(archive,deep);
 	if (ret!=B_OK) return ret;
 	
-	ret = archive->AddString("class","MailChain");
+	ret = archive->AddString("class","Chain");
 	if (ret!=B_OK) return ret;
 	
 	
@@ -160,13 +157,13 @@ status_t MailChain::Archive(BMessage* archive, bool deep) const
 	return B_OK;
 }
 
-BArchivable* MailChain::Instantiate(BMessage* archive)
+BArchivable* Chain::Instantiate(BMessage* archive)
 {
-	return validate_instantiation(archive, "MailChain")?
-		new MailChain(archive) : NULL;
+	return validate_instantiation(archive, "Chain")?
+		new Chain(archive) : NULL;
 }
 
-status_t MailChain::Path(BPath *path) const
+status_t Chain::Path(BPath *path) const
 {
 	status_t status = find_directory(B_USER_SETTINGS_DIRECTORY,path);
 	if (status < B_OK)
@@ -190,7 +187,7 @@ status_t MailChain::Path(BPath *path) const
 	return B_OK;
 }
 
-status_t MailChain::Save(bigtime_t /*timeout*/)
+status_t Chain::Save(bigtime_t /*timeout*/)
 {
 	status_t ret;
 	
@@ -214,7 +211,7 @@ status_t MailChain::Save(bigtime_t /*timeout*/)
 	return WriteMessageFile(archive,directory,path.Leaf()/*,timeout*/);
 }
 
-status_t MailChain::Delete() const
+status_t Chain::Delete() const
 {
 	status_t status;
 	BPath path;
@@ -228,15 +225,15 @@ status_t MailChain::Delete() const
 	return entry.Remove();
 }
 
-chain_direction MailChain::ChainDirection() const {
+chain_direction Chain::ChainDirection() const {
 	return direction;
 }
 
-void MailChain::SetChainDirection(chain_direction dir) {
+void Chain::SetChainDirection(chain_direction dir) {
 	direction = dir;
 }
 
-status_t MailChain::Reload()
+status_t Chain::Reload()
 {
 	status_t ret;
 	
@@ -311,27 +308,27 @@ status_t MailChain::Reload()
 	return ret;
 }
 
-uint32 MailChain::ID() const { return id; }
+uint32 Chain::ID() const { return id; }
 
-const char *MailChain::Name() const { return name; }
-status_t MailChain::SetName(const char* n)
+const char *Chain::Name() const { return name; }
+status_t Chain::SetName(const char* n)
 {
-	if (n) strlcpy(name,n,sizeof(name));
+	if (n) strncpy(name,n,sizeof(name));
 	else name[0]='\0';
 	
 	return B_OK;
 }
 
-BMessage *MailChain::MetaData() const {
+BMessage *Chain::MetaData() const {
 	return meta_data;
 }
 
-int32 MailChain::CountFilters() const
+int32 Chain::CountFilters() const
 {
 	return filter_settings.CountItems();
 }
 
-status_t MailChain::GetFilter(int32 index, BMessage* out_settings, entry_ref *addon) const
+status_t Chain::GetFilter(int32 index, BMessage* out_settings, entry_ref *addon) const
 {
 	if (index >= filter_settings.CountItems())
 		return B_BAD_INDEX;
@@ -349,7 +346,7 @@ status_t MailChain::GetFilter(int32 index, BMessage* out_settings, entry_ref *ad
 	return B_OK;
 }
 
-status_t MailChain::SetFilter(int32 index, const BMessage& s, const entry_ref& addon)
+status_t Chain::SetFilter(int32 index, const BMessage& s, const entry_ref& addon)
 {
 	BMessage *settings = (BMessage *)filter_settings.ItemAt(index);
 	if (settings) *settings = s;
@@ -362,7 +359,7 @@ status_t MailChain::SetFilter(int32 index, const BMessage& s, const entry_ref& a
 	return B_OK;
 }
 
-status_t MailChain::AddFilter(const BMessage& settings, const entry_ref& addon)
+status_t Chain::AddFilter(const BMessage& settings, const entry_ref& addon)
 {
 	BMessage *s = new BMessage(settings);
 	entry_ref*a = new entry_ref(addon);
@@ -387,7 +384,7 @@ status_t MailChain::AddFilter(const BMessage& settings, const entry_ref& addon)
 	
 	return B_OK;
 }
-status_t MailChain::AddFilter(int32 index, const BMessage& settings, const entry_ref& addon)
+status_t Chain::AddFilter(int32 index, const BMessage& settings, const entry_ref& addon)
 {
 	BMessage *s = new BMessage(settings);
 	entry_ref*a = new entry_ref(addon);
@@ -411,7 +408,7 @@ status_t MailChain::AddFilter(int32 index, const BMessage& settings, const entry
 	return B_OK;
 }
 
-status_t MailChain::RemoveFilter(int32 index)
+status_t Chain::RemoveFilter(int32 index)
 {
 	BMessage* s = (BMessage*)filter_settings.RemoveItem(index);
 	delete s;
@@ -425,6 +422,6 @@ status_t MailChain::RemoveFilter(int32 index)
 	return s||a?B_OK:B_BAD_INDEX;
 }
 
-void MailChain::RunChain(StatusWindow *window, bool async, bool save_when_done, bool delete_when_done) {
+void Chain::RunChain(StatusWindow *window, bool async, bool save_when_done, bool delete_when_done) {
 	(new ChainRunner(this))->RunChain(window,true,async,save_when_done,delete_when_done);
 }

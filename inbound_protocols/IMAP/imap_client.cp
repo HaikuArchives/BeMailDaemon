@@ -21,9 +21,9 @@ const bigtime_t kIMAP4ClientTimeout = 1000000*60; // 60 sec
 /***********************************************************
  * Constructor.
  ***********************************************************/
-IMAP4Client::IMAP4Client(BMessage *settings,StatusView *status)
+IMAP4Client::IMAP4Client(BMessage *settings,Mail::StatusView *status)
 	:BNetEndpoint(SOCK_STREAM)
-	,MailProtocol(settings)
+	,Mail::Protocol(settings)
 	,fCommandCount(0)
 	,fIdleTime(0)
 	,_settings(settings)
@@ -45,7 +45,7 @@ IMAP4Client::IMAP4Client(BMessage *settings,StatusView *status)
 }
 
 
-MailFilter* instantiate_mailfilter(BMessage *settings,StatusView *status) {
+Mail::Filter* instantiate_mailfilter(BMessage *settings,Mail::StatusView *status) {
 	return new IMAP4Client(settings,status);
 }
 

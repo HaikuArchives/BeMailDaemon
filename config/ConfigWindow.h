@@ -16,7 +16,9 @@ class BListView;
 class BButton;
 class BMenuField;
 
-class MailSettings;
+namespace Mail {
+	class Settings;
+}
 class Account;
 
 
@@ -35,7 +37,7 @@ class ConfigWindow : public BWindow
 		void			LoadSettings();
 		void			SaveSettings();
 
-		status_t		SetToGeneralSettings(MailSettings *general);
+		status_t		SetToGeneralSettings(Mail::Settings *general);
 		void			RevertToLastSettings();
 
 	private:

@@ -6,19 +6,44 @@
 #include <Message.h>
 
 class BPath;
-class StatusWindow;
 
 typedef enum {
 	inbound,
 	outbound
 } chain_direction;
 
-class MailChain: public BArchivable
+typedef enum
+{
+	MD_SHOW_STATUS_WINDOW_NEVER         = 0,
+	MD_SHOW_STATUS_WINDOW_WHEN_FETCHING = 1,
+	MD_SHOW_STATUS_WINDOW_ALWAYS        = 2
+} mail_status_window_option;
+
+typedef enum
+{
+	MD_STATUS_LOOK_TITLED                = 0,
+	MD_STATUS_LOOK_NORMAL_BORDER         = 1,
+	MD_STATUS_LOOK_FLOATING              = 2,
+	MD_STATUS_LOOK_THIN_BORDER           = 3,
+	MD_STATUS_LOOK_NO_BORDER             = 4
+} mail_status_window_look;
+
+namespace Mail {
+class StatusWindow;
+class Chain;
+
+Chain* NewChain();
+Chain* GetChain(uint32 id);
+
+status_t OutboundChains(BList *list);
+status_t InboundChains(BList *list);
+
+class Chain : public BArchivable
 {
   public:
-	MailChain(uint32 id);
-	MailChain(BMessage*);
-	virtual ~MailChain();
+	Chain(uint32 id);
+	Chain(BMessage*);
+	virtual ~Chain();
 	
 	virtual status_t Archive(BMessage*,bool) const;
 	static BArchivable* Instantiate(BMessage*);
@@ -69,38 +94,11 @@ class MailChain: public BArchivable
 	BList filter_addons;
 };
 
-
-typedef enum
-{
-	MD_SHOW_STATUS_WINDOW_NEVER         = 0,
-	MD_SHOW_STATUS_WINDOW_WHEN_FETCHING = 1,
-	MD_SHOW_STATUS_WINDOW_ALWAYS        = 2
-} mail_status_window_option;
-
-typedef enum
-{
-	MD_STATUS_LOOK_TITLED                = 0,
-	MD_STATUS_LOOK_NORMAL_BORDER         = 1,
-	MD_STATUS_LOOK_FLOATING              = 2,
-	MD_STATUS_LOOK_THIN_BORDER           = 3,
-	MD_STATUS_LOOK_NO_BORDER             = 4
-} mail_status_window_look;
-
-class MailSettings
+class Settings
 {
   public:
-	MailSettings();
-	~MailSettings();
-	
-	static MailChain* NewChain();
-	static MailChain* GetChain(uint32 id);
-	
-	//-------Note to Gargoyle: there *is* a reason for the following
-	//   namely, 'mnow' and 'msnd' have different functions, and some
-	//   distinction must be made to maintain compatibility. If you hate
-	//   me for this, too bad. --NathanW
-	static status_t OutboundChains(BList *list);
-	static status_t InboundChains(BList *list);
+	Settings();
+	~Settings();
 	
 	status_t Save(bigtime_t timeout = B_INFINITE_TIMEOUT);
 	status_t Reload();
@@ -139,4 +137,7 @@ class MailSettings
   private:
 	BMessage data;
 };
+
+}
+
 #endif

@@ -35,8 +35,8 @@ enum AuthType{
 
 
 // Constructor. Sets up everything and call other methods.
-SMTPProtocol::SMTPProtocol(BMessage *message, StatusView *view) :
-	MailFilter(message),
+SMTPProtocol::SMTPProtocol(BMessage *message, Mail::StatusView *view) :
+	Mail::Filter(message),
 	_settings(message),
 	status_view(view),
 	fAuthType(0),
@@ -167,16 +167,15 @@ status_t SMTPProtocol::Login(const char* _login, const char* password)
 			//*** POP3 authentification ***
 
 			// find the POP3 filter of the other chain - identify by name...
-			MailSettings mailSettings;
 			BList chains;
-			if (mailSettings.InboundChains(&chains) >= B_OK)
+			if (Mail::InboundChains(&chains) >= B_OK)
 			{
-				ChainRunner *parent;
+				Mail::ChainRunner *parent;
 				_settings->FindPointer("chain_runner",(void **)&parent);
-				MailChain *chain = NULL;
+				Mail::Chain *chain = NULL;
 				for (int i = chains.CountItems();i-- > 0;)
 				{
-					chain = (MailChain *)chains.ItemAt(i);
+					chain = (Mail::Chain *)chains.ItemAt(i);
 					if (chain != NULL && !strcmp(chain->Name(),parent->Chain()->Name()))
 						break;
 					chain = NULL;
@@ -189,7 +188,7 @@ status_t SMTPProtocol::Login(const char* _login, const char* password)
 					if (chain->GetFilter(0,&msg,&ref) >= B_OK)
 					{
 						BPath path(&ref);
-						if (path.InitCheck() >= B_OK/* && !strcmp(path.Leaf(),"POP3")*/)
+						if (path.InitCheck() >= B_OK && !strcmp(path.Leaf(),"POP3"))
 						{
 							// protocol matches, go execute it!
 		
@@ -198,16 +197,16 @@ status_t SMTPProtocol::Login(const char* _login, const char* password)
 							fLog = "Cannot load POP3 add-on";
 							if (image >= B_OK)
 							{
-								MailFilter *(* instantiate)(BMessage *,StatusView *);
+								Mail::Filter *(* instantiate)(BMessage *,Mail::StatusView *);
 								status_t status = get_image_symbol(image,"instantiate_mailfilter",B_SYMBOL_TYPE_TEXT,(void **)&instantiate);
 								if (status >= B_OK)
 								{
-									ChainRunner runner(chain);
+									Mail::ChainRunner runner(chain);
 									msg.AddPointer("chain_runner",&runner);
 									msg.AddInt32("chain",chain->ID());
 
 									// instantiating and deleting should be enough
-									MailFilter *filter = (*instantiate)(&msg,status_view);
+									Mail::Filter *filter = (*instantiate)(&msg,status_view);
 									delete filter;
 
 									return B_OK;
@@ -226,7 +225,7 @@ status_t SMTPProtocol::Login(const char* _login, const char* password)
 					
 				for (int i = chains.CountItems();i-- > 0;)
 				{
-					chain = (MailChain *)chains.ItemAt(i);
+					chain = (Mail::Chain *)chains.ItemAt(i);
 					delete chain;
 				}
 			
@@ -491,13 +490,13 @@ status_t SMTPProtocol::SendCommand(const char* cmd)
 }
 
 // Instantiate hook
-MailFilter* instantiate_mailfilter(BMessage *settings,StatusView *status) {
+Mail::Filter* instantiate_mailfilter(BMessage *settings,Mail::StatusView *status) {
 	return new SMTPProtocol(settings,status);
 }
 
 // Configuration interface
 BView* instantiate_config_panel(BMessage *settings,BMessage *) {
-	ProtocolConfigView *view = new ProtocolConfigView(Z_HAS_AUTH_METHODS | Z_HAS_USERNAME | Z_HAS_PASSWORD | Z_HAS_HOSTNAME);
+	Mail::ProtocolConfigView *view = new Mail::ProtocolConfigView(Z_HAS_AUTH_METHODS | Z_HAS_USERNAME | Z_HAS_PASSWORD | Z_HAS_HOSTNAME);
 	
 	view->AddAuthMethod("None",false);
 	view->AddAuthMethod("ESMTP");

@@ -6,7 +6,9 @@
 #include "MessageIO.h"
 #include "MailProtocol.h"
 
-MessageIO::MessageIO(SimpleMailProtocol *protocol, BPositionIO *dump_to, int32 seq_id) :
+using Mail::MessageIO;
+
+MessageIO::MessageIO(Mail::SimpleProtocol *protocol, BPositionIO *dump_to, int32 seq_id) :
 	slave(dump_to),
 	message_id(seq_id),
 	network(protocol),

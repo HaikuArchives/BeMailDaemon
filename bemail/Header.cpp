@@ -167,15 +167,14 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 	{
 		fAccountMenu = new BPopUpMenu(B_EMPTY_STRING);
 		//fAccountMenu->SetRadioMode(true);
-		MailSettings settings;
 		BList chains;
-		if (settings.OutboundChains(&chains) >= B_OK)
+		if (Mail::OutboundChains(&chains) >= B_OK)
 		{
 			BMessage *msg;
 			bool marked = false;
 			for (int32 i = 0;i < chains.CountItems();i++)
 			{
-				MailChain *chain = (MailChain *)chains.ItemAt(i);
+				Mail::Chain *chain = (Mail::Chain *)chains.ItemAt(i);
 				BString name = chain->Name();
 				if ((msg = chain->MetaData()) != NULL)
 				{

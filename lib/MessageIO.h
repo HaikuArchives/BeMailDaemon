@@ -2,11 +2,13 @@
 #include <Path.h>
 #include <Message.h>
 
-class SimpleMailProtocol;
+namespace Mail {
+
+class SimpleProtocol;
 
 class MessageIO : public BPositionIO {
 	public:
-		MessageIO(SimpleMailProtocol *protocol, BPositionIO *dump_to, int32 seq_id);
+		MessageIO(Mail::SimpleProtocol *protocol, BPositionIO *dump_to, int32 seq_id);
 		~MessageIO();
 		
 		//----BPositionIO
@@ -21,8 +23,10 @@ class MessageIO : public BPositionIO {
 		
 		BPositionIO *slave;
 		int32 message_id;
-		SimpleMailProtocol *network;
+		Mail::SimpleProtocol *network;
 		
 		size_t size;
 		int state;
 };
+
+}

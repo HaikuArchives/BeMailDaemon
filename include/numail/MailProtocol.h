@@ -1,19 +1,24 @@
+#ifndef MAIL_PROTOCOL_H
+#define MAIL_PROTOCOL_H
+
 #include <OS.h>
 
-#include "MailAddon.h"
+#include <MailAddon.h>
 
 class StringList;
+
+namespace Mail {
 class ChainRunner;
 
-class MailProtocol : public MailFilter
+class Protocol : public Filter
 {
   public:
-	MailProtocol(BMessage* settings);
+	Protocol(BMessage* settings);
 	// Open a connection based on 'settings'.  'settings' will
 	// contain a persistent uint32 ChainID field.  At most one
-	// MailProtocol per ChainID will exist at a given time.
+	// Protocol per ChainID will exist at a given time.
 	
-	virtual ~MailProtocol();
+	virtual ~Protocol();
 	// Close the connection and clean up.   This will be cal-
 	// led after FetchMessage() or FetchNewMessage() returns
 	// B_TIMED_OUT or B_ERROR, or when the settings for this
@@ -25,8 +30,8 @@ class MailProtocol : public MailFilter
 	// lows comparison of remote and local message manifests, so
 	// the local and remote contents can be kept in sync.
 	//
-	// The ID should be unique to this MailChain; if that means
-	// this MailProtocol must add account/server info to differ-
+	// The ID should be unique to this Chain; if that means
+	// this Protocol must add account/server info to differ-
 	// entiate it from other messages, then that info should
 	// be added before returning the IDs and stripped from the
 	// ID for use in GetMessage() et al, below.
@@ -126,9 +131,9 @@ class MailProtocol : public MailFilter
 //   Internal - Messages sent by this system
 //   Trash - Messages sent to the trash
 
-class SimpleMailProtocol : public MailProtocol {
+class SimpleProtocol : public Protocol {
 	public:
-		SimpleMailProtocol(BMessage *settings, StatusView *view);
+		SimpleProtocol(BMessage *settings, StatusView *view);
 			//---Constructor. Simply call this in yours, and most everything will be handled for you.
 		
 		virtual void SetStatusReporter(StatusView *view) = 0;
@@ -183,7 +188,7 @@ class SimpleMailProtocol : public MailProtocol {
 		virtual status_t DeleteMessage(const char* uid);
 		virtual status_t InitCheck(BString* out_message = NULL);
 		virtual void PrepareStatusWindow(StringList *manifest);
-		virtual ~SimpleMailProtocol();
+		virtual ~SimpleProtocol();
 	
 	protected:
 		StatusView *status_view;
@@ -193,3 +198,8 @@ class SimpleMailProtocol : public MailProtocol {
 		status_t error;
 		int32 last_message;
 };
+
+}
+
+#endif // MAIL_PROTOCOL_H
+

@@ -44,7 +44,7 @@ static const mail_header_field gDefaultFields[] =
 	{ NULL,              NULL,                 0 }
 };
 
-class FolderFilter: public MailFilter
+class FolderFilter: public Mail::Filter
 {
 	BString dest_string;
 	BDirectory destination;
@@ -61,10 +61,10 @@ class FolderFilter: public MailFilter
 };
 
 FolderFilter::FolderFilter(BMessage* msg)
-: MailFilter(msg),
+: Mail::Filter(msg),
   chain_id(msg->FindInt32("chain"))
 {
-	ChainRunner *runner = NULL;
+	Mail::ChainRunner *runner = NULL;
 	msg->FindPointer("chain_runner", (void**)&runner);
 	dest_string = runner->Chain()->MetaData()->FindString("path");
 	destination = dest_string.String();
@@ -123,7 +123,7 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		
 		attributes.AddString("MAIL:unique_id",io_uid->String());
 		attributes.AddString("MAIL:status","New");
-		attributes.AddString("MAIL:account",MailChain(chain_id).Name());
+		attributes.AddString("MAIL:account",Mail::Chain(chain_id).Name());
 		attributes.AddInt32("MAIL:chain",chain_id);
 		
 		size_t length = (*io)->Position();
@@ -177,7 +177,7 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 }
 
 
-MailFilter* instantiate_mailfilter(BMessage* settings, StatusView *status)
+Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::StatusView *status)
 {
 	return new FolderFilter(settings);
 }
@@ -185,7 +185,7 @@ MailFilter* instantiate_mailfilter(BMessage* settings, StatusView *status)
 
 BView* instantiate_config_panel(BMessage *settings, BMessage *meta_data)
 {
-	FileConfigView *view = new FileConfigView("Destination Folder:","path",true,"/boot/home/mail/in");
+	Mail::FileConfigView *view = new Mail::FileConfigView("Destination Folder:","path",true,"/boot/home/mail/in");
 	view->SetTo(settings,meta_data);
 
 	return view;

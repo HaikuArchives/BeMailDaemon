@@ -9,8 +9,10 @@
 #include <Alert.h>
 #include <StatusBar.h>
 
-class StatusView;
 class BStringView;
+
+namespace Mail {
+class StatusView;
 
 class StatusWindow : public BWindow {
 	public:
@@ -64,6 +66,8 @@ class StatusView : public BBox {
 		int32			items_now;
 		int32			total_items;
 };
+
+}
 
 extern void ShowAlert(const char *title, const char *body, const char *button = "Ok",
 		alert_type type = B_INFO_ALERT);

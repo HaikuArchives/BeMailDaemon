@@ -34,7 +34,7 @@
 	#include <unistd.h>
 #endif
 
-StatusWindow *status;
+Mail::StatusWindow *status;
 
 class MailDaemonApp : public BApplication {
 	public:
@@ -53,7 +53,7 @@ class MailDaemonApp : public BApplication {
 		void UpdateAutoCheck(bigtime_t interval);
 
 		BMessageRunner *auto_check;
-		MailSettings settings_file;
+		Mail::Settings settings_file;
 		
 		int32 new_messages;
 		BList fetch_done_respondents;
@@ -94,7 +94,7 @@ void makeIndices()
 int main (int argc, const char **argv) {
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i],"-E") == 0) {
-			if (!MailSettings().DaemonAutoStarts())
+			if (!Mail::Settings().DaemonAutoStarts())
 				return 0;
 		}
 	}
@@ -165,7 +165,7 @@ MailDaemonApp::MailDaemonApp(void)
 {
 	InstallDeskbarIcon();
 	
-	status = new StatusWindow(BRect(40,400,360,400),"Mail Status", settings_file.ShowStatusWindow());
+	status = new Mail::StatusWindow(BRect(40,400,360,400),"Mail Status", settings_file.ShowStatusWindow());
 	auto_check = NULL;
 }
 
@@ -386,11 +386,11 @@ bool MailDaemonApp::QuitRequested() {
 
 void MailDaemonApp::GetNewMessages() {
 	BList *list = new BList;
-	settings_file.InboundChains(list);
-	MailChain *chain;
+	Mail::InboundChains(list);
+	Mail::Chain *chain;
 	
 	for (int32 i = 0; i < list->CountItems(); i++) {
-		chain = (MailChain *)(list->ItemAt(i));
+		chain = (Mail::Chain *)(list->ItemAt(i));
 		
 		chain->RunChain(status,true,true,true);
 	}	
@@ -398,11 +398,11 @@ void MailDaemonApp::GetNewMessages() {
 
 void MailDaemonApp::SendPendingMessages() {
 	BList *list = new BList;
-	settings_file.OutboundChains(list);
-	MailChain *chain;
+	Mail::OutboundChains(list);
+	Mail::Chain *chain;
 
 	for (int32 i = 0; i < list->CountItems(); i++) {
-		chain = (MailChain *)(list->ItemAt(i));
+		chain = (Mail::Chain *)(list->ItemAt(i));
 		
 		chain->RunChain(status,true,true,true);
 	}

@@ -6,11 +6,14 @@
 #include <unistd.h>
 #include <malloc.h>
 
-class _EXPORT MIMEMultipartContainer;
+namespace Mail {
+	class _EXPORT MIMEMultipartContainer;
+}
 
 #include <MailContainer.h>
 #include <MailAttachment.h>
 
+using Mail::MIMEMultipartContainer;
 
 typedef struct message_part {
 	message_part(off_t start, off_t end) { this->start = start; this->end = end; }
@@ -39,7 +42,7 @@ MIMEMultipartContainer::MIMEMultipartContainer(const char *boundary, const char 
 	}
 
 /*MIMEMultipartContainer::MIMEMultipartContainer(MIMEMultipartContainer &copy) :
-	MailComponent(copy), 
+	Mail::Component(copy), 
 	_boundary(copy._boundary),
 	_MIME_message_warning(copy._MIME_message_warning),
 	_io_data(copy._io_data) {		
@@ -53,7 +56,7 @@ MIMEMultipartContainer::~MIMEMultipartContainer() {
 		delete (message_part *)_components_in_raw.ItemAt(i);
 
 	for (int32 i = 0; i < _components_in_code.CountItems(); i++)
-		delete (MailComponent *)_components_in_code.ItemAt(i);
+		delete (Mail::Component *)_components_in_code.ItemAt(i);
 
 	if (_boundary != NULL)
 		free((void *)_boundary);
@@ -77,7 +80,7 @@ void MIMEMultipartContainer::SetThisIsAnMIMEMessageText(const char *text) {
 	_MIME_message_warning = text;
 }
 
-status_t MIMEMultipartContainer::AddComponent(MailComponent *component) {
+status_t MIMEMultipartContainer::AddComponent(Mail::Component *component) {
 	if (!_components_in_code.AddItem(component))
 		return B_ERROR;
 	if (_components_in_raw.AddItem(NULL))
@@ -87,8 +90,8 @@ status_t MIMEMultipartContainer::AddComponent(MailComponent *component) {
 	return B_ERROR;
 }
 
-MailComponent *MIMEMultipartContainer::GetComponent(int32 index) {
-	if (MailComponent *component = (MailComponent *)_components_in_code.ItemAt(index))
+Mail::Component *MIMEMultipartContainer::GetComponent(int32 index) {
+	if (Mail::Component *component = (Mail::Component *)_components_in_code.ItemAt(index))
 		return component;	//--- Handle easy case
 
 	message_part *part = (message_part *)(_components_in_raw.ItemAt(index));
@@ -97,11 +100,11 @@ MailComponent *MIMEMultipartContainer::GetComponent(int32 index) {
 
 	_io_data->Seek(part->start,SEEK_SET);
 	
-	MailComponent component;
+	Mail::Component component;
 	if (component.SetToRFC822(_io_data,part->end - part->start) < B_OK)
 		return NULL;
 
-	MailComponent *piece = component.WhatIsThis();
+	Mail::Component *piece = component.WhatIsThis();
 	
 	/* Debug code 
 	_io_data->Seek(part->start,SEEK_SET);
@@ -130,7 +133,7 @@ status_t MIMEMultipartContainer::RemoveComponent(int32 index) {
 	if (index >= CountComponents())
 		return B_BAD_INDEX;
 
-	delete (MailComponent *)_components_in_code.RemoveItem(index);
+	delete (Mail::Component *)_components_in_code.RemoveItem(index);
 	delete (message_part *)_components_in_raw.RemoveItem(index);
 
 	return B_OK;
@@ -159,7 +162,7 @@ static int8 check_state(char *buffer, int32 pos, int32 bytes)
 status_t MIMEMultipartContainer::SetToRFC822(BPositionIO *data, size_t length, bool copy_data)
 {
 	for (int32 i = _components_in_code.CountItems();i-- > 0;)
-		delete (MailComponent *)_components_in_code.RemoveItem(i);
+		delete (Mail::Component *)_components_in_code.RemoveItem(i);
 
 	for (int32 i = _components_in_raw.CountItems();i-- > 0;)
 		delete (message_part *)_components_in_raw.RemoveItem(i);
@@ -167,7 +170,7 @@ status_t MIMEMultipartContainer::SetToRFC822(BPositionIO *data, size_t length, b
 	_io_data = data;
 	
 	off_t position = data->Position();
-	MailComponent::SetToRFC822(data,length);
+	Mail::Component::SetToRFC822(data,length);
 
 	BMessage content_type;
 	HeaderField("Content-Type",&content_type);
@@ -268,7 +271,7 @@ status_t MIMEMultipartContainer::SetToRFC822(BPositionIO *data, size_t length, b
 }
 
 status_t MIMEMultipartContainer::RenderToRFC822(BPositionIO *render_to) {
-	MailComponent::RenderToRFC822(render_to);
+	Mail::Component::RenderToRFC822(render_to);
 	
 	BString delimiter;
 	delimiter << "\r\n--" << _boundary << "\r\n";
@@ -282,7 +285,7 @@ status_t MIMEMultipartContainer::RenderToRFC822(BPositionIO *render_to) {
 		render_to->Write(delimiter.String(),delimiter.Length());
 		if (_components_in_code.ItemAt(i) != NULL) { //---- _components_in_code has precedence
 			
-			MailComponent *code = (MailComponent *)_components_in_code.ItemAt(i);
+			Mail::Component *code = (Mail::Component *)_components_in_code.ItemAt(i);
 			code->RenderToRFC822(render_to); //----Easy enough
 		} else {
 			// copy message contents

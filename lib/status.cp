@@ -8,11 +8,16 @@
 #include <stdio.h>
 #include <assert.h>
 
-class _EXPORT StatusWindow;
-class _EXPORT StatusView;
+namespace Mail {
+	class _EXPORT StatusWindow;
+	class _EXPORT StatusView;
+}
 
 #include "status.h"
 #include "MailSettings.h"
+
+using Mail::StatusWindow;
+using Mail::StatusView;
 
 /*------------------------------------------------
 
@@ -67,7 +72,7 @@ StatusWindow::StatusWindow(BRect rect, const char *name, uint32 s)
 	ResizeTo(min_width, min_height);
 	SetSizeLimits(min_width, 2.0 * min_width, min_height, min_height);
 
-	MailSettings general;
+	Mail::Settings general;
 	if (general.InitCheck() == B_OK)
 	{
 		// set on-screen location
@@ -118,7 +123,7 @@ StatusWindow::~StatusWindow()
 	// remove all status_views, so we don't accidentally delete them
 	while (StatusView *status_view = (StatusView *)stat_views.RemoveItem(0L))
 		RemoveChild(status_view);
-	MailSettings general;
+	Mail::Settings general;
 	if (general.InitCheck() == B_OK)
 	{
 		general.SetStatusWindowFrame(Frame());

@@ -12,15 +12,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-class _EXPORT ChainRunner;
+namespace Mail {
+	class _EXPORT ChainRunner;
+}
 
 #include "ChainRunner.h"
 #include "status.h"
 
+using Mail::ChainRunner;
+
 struct async_args {
-	MailChain *home;
-	ChainRunner *runner;
-	StatusWindow *status;
+	Mail::Chain *home;
+	Mail::ChainRunner *runner;
+	Mail::Mail::StatusWindow *status;
 	
 	bool self_destruct;
 	bool destruct_chain;
@@ -29,13 +33,13 @@ struct async_args {
 
 struct filter_image {
 	BMessage *settings;
-	MailFilter *filter;
+	Mail::Filter *filter;
 	image_id id;
 };
 
 void unload(void *id);
 
-ChainRunner::ChainRunner(MailChain *chain) :
+ChainRunner::ChainRunner(Mail::Chain *chain) :
   _chain(chain) {
 	//------do absolutely nothing--------
 }
@@ -44,24 +48,24 @@ ChainRunner::~ChainRunner()
 {
 	// clean up if the chain have not been run at all
 	for (int32 i = message_cb.CountItems();i-- > 0;)
-		delete (MailCallback *)message_cb.ItemAt(i);
+		delete (Mail::ChainCallback *)message_cb.ItemAt(i);
 	for (int32 i = process_cb.CountItems();i-- > 0;)
-		delete (MailCallback *)process_cb.ItemAt(i);
+		delete (Mail::ChainCallback *)process_cb.ItemAt(i);
 }
 
-void ChainRunner::RegisterMessageCallback(MailCallback *callback) {
+void ChainRunner::RegisterMessageCallback(Mail::ChainCallback *callback) {
 	message_cb.AddItem(callback);
 }
 
-void ChainRunner::RegisterProcessCallback(MailCallback *callback) {
+void ChainRunner::RegisterProcessCallback(Mail::ChainCallback *callback) {
 	process_cb.AddItem(callback);
 }
 
-MailChain *ChainRunner::Chain() {
+Mail::Chain *ChainRunner::Chain() {
 	return _chain;
 }
 
-status_t ChainRunner::RunChain(StatusWindow *status,bool self_destruct_when_done, bool asynchronous, bool save_chain_when_done, bool destruct_chain_when_done) {
+status_t ChainRunner::RunChain(Mail::StatusWindow *status,bool self_destruct_when_done, bool asynchronous, bool save_chain_when_done, bool destruct_chain_when_done) {
 	BString thread_name(_chain->Name());
 	thread_name += (_chain->ChainDirection() == inbound) ? "_inbound" : "_outbound";
 	
@@ -89,10 +93,10 @@ status_t ChainRunner::RunChain(StatusWindow *status,bool self_destruct_when_done
 }
 
 int32 ChainRunner::async_chain_runner(void *arg) {
-	MailChain *chain;
+	Mail::Chain *chain;
 	ChainRunner *runner;
-	StatusView *status;
-	StatusWindow *stat_win;
+	Mail::StatusView *status;
+	Mail::StatusWindow *stat_win;
 	bool self_destruct;
 	bool destroy_chain;
 	bool save_chain;
@@ -136,7 +140,7 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 			if (addons.CountItems() <= i) { //------eek! not enough filters? load the addon
 				struct filter_image *image = new struct filter_image;
 				BPath path(&addon);
-				MailFilter *(* instantiate)(BMessage *,StatusView *);
+				Mail::Filter *(* instantiate)(BMessage *,Mail::StatusView *);
 				
 				image->id = load_add_on(path.Path());
 				
@@ -182,9 +186,9 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 		}
 		
 		err:
-		MailCallback *cb;
+		Mail::ChainCallback *cb;
 		for (int32 i = 0; i < runner->message_cb.CountItems(); i++) {
-			cb = (MailCallback *)(runner->message_cb.ItemAt(i));
+			cb = (Mail::ChainCallback *)(runner->message_cb.ItemAt(i));
 			cb->Callback(last_result);
 			delete cb;
 		}
@@ -205,9 +209,9 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 			break;
 	}
 	
-	MailCallback *cb;
+	Mail::ChainCallback *cb;
 	for (int32 i = 0; i < runner->process_cb.CountItems(); i++) {
-		cb = (MailCallback *)(runner->process_cb.ItemAt(i));
+		cb = (Mail::ChainCallback *)(runner->process_cb.ItemAt(i));
 		cb->Callback(last_result);
 		delete cb;
 	}

@@ -7,18 +7,19 @@ class BPositionIO;
 
 #include <MailComponent.h>
 
+namespace Mail {
 
-class MailContainer : public MailComponent {
+class Container : public Component {
 	public:
-		virtual status_t AddComponent(MailComponent *component) = 0;
+		virtual status_t AddComponent(Component *component) = 0;
 		virtual status_t RemoveComponent(int32 index) = 0;
 
-		virtual MailComponent *GetComponent(int32 index) = 0;
+		virtual Component *GetComponent(int32 index) = 0;
 		virtual int32 CountComponents() const = 0;
 };
 
 
-class MIMEMultipartContainer : public MailContainer {
+class MIMEMultipartContainer : public Container {
 	public:
 		MIMEMultipartContainer(const char *boundary = NULL, const char *this_is_an_MIME_message_text = NULL);
 		MIMEMultipartContainer(MIMEMultipartContainer &copy);
@@ -28,10 +29,10 @@ class MIMEMultipartContainer : public MailContainer {
 		void SetThisIsAnMIMEMessageText(const char *text);
 
 		// MailContainer
-		virtual status_t AddComponent(MailComponent *component);
+		virtual status_t AddComponent(Component *component);
 		virtual status_t RemoveComponent(int32 index);
 
-		virtual MailComponent *GetComponent(int32 index);
+		virtual Component *GetComponent(int32 index);
 		virtual int32 CountComponents() const;
 
 		// MailComponent
@@ -49,5 +50,7 @@ class MIMEMultipartContainer : public MailContainer {
 		BList _components_in_raw;
 		BList _components_in_code;
 };
+
+}
 
 #endif

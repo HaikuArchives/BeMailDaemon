@@ -36,6 +36,7 @@ class FileControl : public BView
 		BFilePanel		*fPanel;
 };
 
+namespace Mail { //-----Only this one is part of the Mail Kit, per se
 
 class FileConfigView : public FileControl
 {
@@ -50,5 +51,7 @@ class FileConfigView : public FileControl
 		bool		fUseMeta;
 		const char	*fName;
 };
+
+}
 
 #endif	/* FILE_CONFIG_VIEW */

@@ -10,7 +10,7 @@ class StatusView;
 _EXPORT const char *pretty_name = "Match Header";
 
 
-RuleFilter::RuleFilter(BMessage *settings) : MailFilter(settings) {
+RuleFilter::RuleFilter(BMessage *settings) : Mail::Filter(settings) {
 	settings->FindString("attribute",&attribute);
 
 	const char *regex = NULL;	
@@ -81,5 +81,5 @@ status_t descriptive_name(BMessage *settings, char *buffer) {
 	return B_OK;
 }
 
-MailFilter* instantiate_mailfilter(BMessage* settings,StatusView *)
+Mail::Filter* instantiate_mailfilter(BMessage* settings,Mail::StatusView *)
 { return new RuleFilter(settings); }

@@ -13,7 +13,12 @@
 #include <stdio.h>
 
 class _EXPORT FileControl;
-class _EXPORT FileConfigView;
+
+namespace Mail {
+	class _EXPORT FileConfigView;
+}
+
+using Mail::FileConfigView;
 
 #include "FileConfigView.h"
 

@@ -3,9 +3,9 @@
 
 #include <MailAddon.h>
 
-class SMTPProtocol : public MailFilter {
+class SMTPProtocol : public Mail::Filter {
 public:
-	SMTPProtocol(BMessage *message, StatusView *view);
+	SMTPProtocol(BMessage *message, Mail::StatusView *view);
 	virtual status_t InitCheck(BString *verbose);
 	virtual MDStatus ProcessMailMessage
 	(
@@ -26,7 +26,7 @@ private:
 	BNetEndpoint conn;
 	BString fLog;
 	BMessage *_settings;
-	StatusView *status_view;
+	Mail::StatusView *status_view;
 	int32 fAuthType;
 	
 	status_t err;

@@ -66,7 +66,10 @@ class TTextView;
 class BFile;
 class BList;
 class BPopupMenu;
-class MailMessage;
+
+namespace Mail {
+	class Message;
+}
 
 struct text_run_array;
 
@@ -100,7 +103,7 @@ typedef struct
 	char *encoding;
 	int32 text_start;
 	int32 text_end;
-	MailComponent *component;
+	Mail::Component *component;
 	bool saved;
 	bool have_ref;
 	entry_ref ref;
@@ -156,7 +159,7 @@ class TTextView : public BTextView
 		void Open(hyper_text*);
 		status_t Save(BMessage *, bool makeNewFile = true);
 		void StopLoad();
-		void AddAsContent(MailMessage*, bool);
+		void AddAsContent(Mail::Message*, bool);
 		void CheckSpelling(int32 start, int32 end,
 			int32 flags = S_CLEAR_ERRORS | S_SHOW_ERRORS);
 		void FindSpellBoundry(int32 length, int32 offset, int32 *start,
@@ -175,7 +178,7 @@ class TTextView : public BTextView
 		char *fYankBuffer;
 		int32 fLastPosition;
 		BFile *fFile;
-		MailMessage *fMail;	// for incoming mails only
+		Mail::Message *fMail;	// for incoming mails only
 		BFont fFont;
 		TContentView *fParent;
 		sem_id fStopSem;
@@ -198,7 +201,7 @@ class TTextView : public BTextView
 				static status_t Run(void *);
 	
 			private:
-				bool ParseMail(MailContainer *container,PlainTextBodyComponent *ignore);
+				bool ParseMail(Mail::Container *container,Mail::TextComponent *ignore);
 				bool Process(const char *data, int32 len, bool isHeader = false);
 				bool Insert(const char *line, int32 count, bool isHyperLink, bool isHeader = false);
 	

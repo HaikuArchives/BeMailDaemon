@@ -16,14 +16,16 @@ enum component_type {
 	MC_MULTIPART_CONTAINER
 };
 
-class MailComponent {
+namespace Mail {
+
+class Component {
 	public:
-		MailComponent();
-		virtual ~MailComponent();
+		Component();
+		virtual ~Component();
 		
 		//------Info on this component
 		uint32 ComponentType();
-		MailComponent *WhatIsThis();
+		Component *WhatIsThis();
 			// Takes any generic MailComponent, and returns an instance
 			// of a MailComponent subclass that applies to this case,
 			// ready for instantiation. Note that you still have to
@@ -59,10 +61,10 @@ class MailComponent {
 		BMessage headers;
 };
 
-class PlainTextBodyComponent : public MailComponent {
+class TextComponent : public Component {
 	public:
-		PlainTextBodyComponent(const char *text = NULL);
-		virtual ~PlainTextBodyComponent();		
+		TextComponent(const char *text = NULL);
+		virtual ~TextComponent();		
 
 		void SetEncoding(mail_encoding encoding, int32 charset);
 			//------encoding: you should always use quoted_printable, base64 is strongly not reccomend, see rfc 2047 for the reasons why
@@ -94,5 +96,7 @@ class PlainTextBodyComponent : public MailComponent {
 		size_t raw_length;
 		off_t raw_offset;
 };
+
+}
 
 #endif

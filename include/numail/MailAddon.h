@@ -10,7 +10,6 @@ class BView;
 class BString;
 class BPositionIO;
 class BEntry;
-class StatusView;
 
 typedef enum
 {
@@ -42,16 +41,20 @@ typedef enum
 	// or (2) we run out of disk space. That's it.
 } MDStatus;
 
-class MailFilter
+namespace Mail {
+
+class StatusView;
+
+class Filter
 {
   public:
-	MailFilter(BMessage* settings);
+	Filter(BMessage* settings);
 	// How to support queueing messages until a time of the
 	// day/week/month/year?  The settings will contain a
 	// persistent ChainID field, the same for all Filters
 	// on the same "chain".
 	
-	virtual ~MailFilter();
+	virtual ~Filter();
 	// This will be called when the settings for this Filter
 	// are changed, or there are no new messages to consume
 	// after settings->FindInt32("timeout") seconds.
@@ -88,15 +91,15 @@ class MailFilter
 	//   * io_uid - The unique ID provided by the message's
 	//       Protocol
 	//
-	// At most one MailFilter::ProcessMailMessage() for a given
+	// At most one Filter::ProcessMailMessage() for a given
 	// chain (and thus ChainID) will be called at a time.
 };
 
+}
 
 //
-// The addon interface: export either instantiate_mailprotocol()
-// or instantiate_mailfilter() and instantiate_mailconfig()
-// to create a MailProtocol or MailFilter addon, respectively.
+// The addon interface: export instantiate_mailfilter()
+// and instantiate_mailconfig() to create a Filter addon
 //
 
 extern "C" _EXPORT BView* instantiate_config_panel(BMessage *settings,BMessage *metadata);
@@ -112,7 +115,7 @@ extern "C" _EXPORT BView* instantiate_config_panel(BMessage *settings,BMessage *
 // you must cache this pointer yourself! You will never get it again.
 // Also note that it is possible for it to be NULL. 
 
-extern "C" _EXPORT MailFilter* instantiate_mailfilter(BMessage *settings,StatusView *status);
+extern "C" _EXPORT Mail::Filter* instantiate_mailfilter(BMessage *settings,Mail::StatusView *status);
 // Return a MailProtocol or MailFilter ready to do its thing,
 // based on settings produced by archiving your config panel.
 // Note that a MailProtocol is a MailFilter, so use
@@ -128,7 +131,7 @@ extern "C" _EXPORT status_t descriptive_name(BMessage *msg, char *buffer);
 // list if this function returns B_OK.
 // The buffer is as big as B_FILE_NAME_LENGTH.
 
-// standard MailFilters:
+// standard Filters:
 //
 // * Parser - does ParseRFC2822(io_message,io_headers)
 // * Folder - stores the message in the specified folder,

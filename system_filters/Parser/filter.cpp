@@ -10,7 +10,7 @@
 
 void subject2thread(BString&);
 
-class ParseFilter: public MailFilter
+class ParseFilter: public Mail::Filter
 {
 	BString name_field;
 	
@@ -25,7 +25,7 @@ class ParseFilter: public MailFilter
 };
 
 ParseFilter::ParseFilter(BMessage* msg)
-: MailFilter(msg), name_field("from")
+: Mail::Filter(msg), name_field("from")
 {
 	const char *n = msg->FindString("name_field");
 	if (n) name_field = n;
@@ -101,5 +101,5 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 	return MD_OK;
 }
 
-MailFilter* instantiate_mailfilter(BMessage* settings, StatusView *view)
+Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::StatusView *view)
 { return new ParseFilter(settings); }

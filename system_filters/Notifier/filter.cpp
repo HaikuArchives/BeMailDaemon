@@ -10,18 +10,18 @@
 
 #include "ConfigView.h"
 
-class NotifyCallback : public MailCallback {
+class NotifyCallback : public Mail::ChainCallback {
 	public:
-		NotifyCallback (int32 notification_method, MailChain *us);
+		NotifyCallback (int32 notification_method, Mail::Chain *us);
 		virtual void Callback(MDStatus result);
 		
 		uint32 num_messages;
 	private:
-		MailChain *chain;
+		Mail::Chain *chain;
 		int32 strategy;
 };
 
-class NotifyFilter: public MailFilter
+class NotifyFilter: public Mail::Filter
 {
   public:
 	NotifyFilter(BMessage*);
@@ -37,9 +37,9 @@ class NotifyFilter: public MailFilter
 };
 
 NotifyFilter::NotifyFilter(BMessage* msg)
-: MailFilter(msg)
+: Mail::Filter(msg)
 {
-	ChainRunner *runner;
+	Mail::ChainRunner *runner;
 	msg->FindPointer("chain_runner",(void **)&runner);
 
 	callback = new NotifyCallback(msg->FindInt32("notification_method"),runner->Chain());
@@ -56,7 +56,7 @@ MDStatus NotifyFilter::ProcessMailMessage(BPositionIO**, BEntry*, BMessage*, BPa
 	return MD_OK;
 }
 
-NotifyCallback::NotifyCallback (int32 notification_method, MailChain *us) : 
+NotifyCallback::NotifyCallback (int32 notification_method, Mail::Chain *us) : 
 	strategy(notification_method),
 	chain(us),
 	num_messages(0) {}
@@ -85,7 +85,7 @@ void NotifyCallback::Callback(MDStatus result) {
 	}
 }
 
-MailFilter* instantiate_mailfilter(BMessage* settings, StatusView *view)
+Mail::Filter* instantiate_mailfilter(BMessage* settings, Mail::StatusView *view)
 {
 	return new NotifyFilter(settings);
 }

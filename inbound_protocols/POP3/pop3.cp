@@ -14,11 +14,11 @@
 #define CRLF	"\r\n"
 #define pop3_error(string) (new BAlert("POP3 Error",string,"OK",NULL,NULL,B_WIDTH_AS_USUAL,B_WARNING_ALERT))->Go()
 
-POP3Protocol::POP3Protocol(BMessage *settings, StatusView *status) : SimpleMailProtocol(settings,status) {
+POP3Protocol::POP3Protocol(BMessage *settings, Mail::StatusView *status) : Mail::SimpleProtocol(settings,status) {
 	Init();
 }
 
-void POP3Protocol::SetStatusReporter(StatusView *view) {
+void POP3Protocol::SetStatusReporter(Mail::StatusView *view) {
 	status_view = view;
 }
 
@@ -362,12 +362,12 @@ void POP3Protocol::MD5Digest (unsigned char *in,char *ascii_digest)
 	return;
 }
 
-MailFilter *instantiate_mailfilter(BMessage *settings, StatusView *view) {
+Mail::Filter *instantiate_mailfilter(BMessage *settings, Mail::StatusView *view) {
 	return new POP3Protocol(settings,view);
 }
 
 BView* instantiate_config_panel(BMessage *settings,BMessage *) {
-	ProtocolConfigView *view = new ProtocolConfigView(Z_HAS_USERNAME | Z_HAS_AUTH_METHODS | Z_HAS_PASSWORD | Z_HAS_HOSTNAME | Z_CAN_LEAVE_MAIL_ON_SERVER);
+	Mail::ProtocolConfigView *view = new Mail::ProtocolConfigView(Z_HAS_USERNAME | Z_HAS_AUTH_METHODS | Z_HAS_PASSWORD | Z_HAS_HOSTNAME | Z_CAN_LEAVE_MAIL_ON_SERVER);
 	view->AddAuthMethod("Plain Text");
 	view->AddAuthMethod("APOP");
 	

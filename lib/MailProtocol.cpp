@@ -6,32 +6,42 @@
 #include <stdio.h>
 #include <assert.h>
 
-class _EXPORT MailProtocol;
+namespace Mail {
+	class _EXPORT Protocol;
+}
 
-#include "MailProtocol.h"
-#include "StringList.h"
-#include "ChainRunner.h"
-#include "status.h"
+#include <MailProtocol.h>
+#include <StringList.h>
+#include <ChainRunner.h>
+#include <status.h>
 
+using Mail::Protocol;
 
-class DeletePass : public MailCallback {
+namespace Mail {
+
+class DeletePass : public Mail::ChainCallback {
 	public:
-		DeletePass(MailProtocol *home);
+		DeletePass(Protocol *home);
 		virtual void Callback(MDStatus result);
 		
 	private:
-		MailProtocol *us;
+		Protocol *us;
 };
 
-class MessageDeletion : public MailCallback {
+class MessageDeletion : public Mail::ChainCallback {
 	public:
-		MessageDeletion(MailProtocol *home, BString *uid);
+		MessageDeletion(Protocol *home, BString *uid);
 		virtual void Callback(MDStatus result);
 		
 	private:
-		MailProtocol *us;
+		Protocol *us;
 		BString *message_id;
 };
+
+}
+
+using Mail::DeletePass;
+using Mail::MessageDeletion;
 
 inline void error_alert(const char *process, status_t error) {
 	BString string;
@@ -39,9 +49,9 @@ inline void error_alert(const char *process, status_t error) {
 	ShowAlert("error_alert",string.String(),"Ok",B_WARNING_ALERT);
 }
 
-MailProtocol::MailProtocol(BMessage* settings) : MailFilter(settings) {
+Protocol::Protocol(BMessage* settings) : Mail::Filter(settings) {
 	unique_ids = NULL;
-	MailProtocol::settings = settings;
+	Protocol::settings = settings;
 	
 	manifest = new StringList;
 	
@@ -51,7 +61,7 @@ MailProtocol::MailProtocol(BMessage* settings) : MailFilter(settings) {
 	parent->RegisterProcessCallback(new DeletePass(this));
 };
 
-MailProtocol::~MailProtocol() {
+Protocol::~Protocol() {
 	if (unique_ids != NULL)
 		delete unique_ids;
 		
@@ -64,7 +74,7 @@ MailProtocol::~MailProtocol() {
 								puts(a->ItemAt(i)); \
 							puts("Done\n");
 							
-MDStatus MailProtocol::ProcessMailMessage
+MDStatus Protocol::ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* /*io_entry*/,
 		BMessage* io_headers, BPath* io_folder, BString* io_uid
@@ -108,7 +118,7 @@ MDStatus MailProtocol::ProcessMailMessage
 		return MD_OK;
 }
 
-DeletePass::DeletePass(MailProtocol *home) : us(home) {
+DeletePass::DeletePass(Protocol *home) : us(home) {
 	//--do nothing, and do it well
 }
 
@@ -147,7 +157,7 @@ void DeletePass::Callback(MDStatus /*status*/) {
 	}
 }
 
-MessageDeletion::MessageDeletion(MailProtocol *home, BString *uid) :
+MessageDeletion::MessageDeletion(Protocol *home, BString *uid) :
 	us(home),
 	message_id(uid) {}
 

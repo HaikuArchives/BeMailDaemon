@@ -1,3 +1,6 @@
+#ifndef MAIL_PROTOCOLCONFIGVIEW_H
+#define MAIL_PROTOCOLCONFIGVIEW_H
+
 #include <View.h>
 
 typedef enum {
@@ -8,6 +11,8 @@ typedef enum {
 	Z_HAS_HOSTNAME 				= 16,
 	Z_CAN_LEAVE_MAIL_ON_SERVER 	= 32
 } config_options;
+
+namespace Mail {
 
 class ProtocolConfigView : public BView {
 	public:
@@ -24,3 +29,7 @@ class ProtocolConfigView : public BView {
 		virtual	void AttachedToWindow();
 		virtual void MessageReceived(BMessage *msg);
 };
+
+}
+
+#endif

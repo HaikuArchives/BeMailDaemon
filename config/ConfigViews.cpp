@@ -48,7 +48,7 @@ AccountConfigView::AccountConfigView(BRect rect,Account *account)
 		fAccount(account)
 {
 	SetLabel("Account Configuration");
-	MailChain *settings = account->Inbound() ? account->Inbound() : account->Outbound();
+	Mail::Chain *settings = account->Inbound() ? account->Inbound() : account->Outbound();
 
 	rect = Bounds().InsetByCopy(8,8);
 	rect.top += 10;
@@ -164,7 +164,7 @@ void AccountConfigView::UpdateViews()
 //	#pragma mark -
 
 #include <stdio.h>
-FilterConfigView::FilterConfigView(MailChain *chain,int32 index,BMessage *msg,entry_ref *ref)
+FilterConfigView::FilterConfigView(Mail::Chain *chain,int32 index,BMessage *msg,entry_ref *ref)
 	:	BBox(BRect(0,0,100,100)),
 		fConfigView(NULL),
 		fChain(chain),
@@ -265,7 +265,7 @@ void FilterConfigView::AttachedToWindow()
 //	#pragma mark -
 
 
-ProtocolsConfigView::ProtocolsConfigView(MailChain *chain,int32 index,BMessage *msg,entry_ref *ref)
+ProtocolsConfigView::ProtocolsConfigView(Mail::Chain *chain,int32 index,BMessage *msg,entry_ref *ref)
 	:	FilterConfigView(chain,index,msg,ref)
 {
 	BPopUpMenu *menu = new BPopUpMenu("<choose protocol>");
@@ -549,7 +549,7 @@ FiltersConfigView::FiltersConfigView(BRect rect,Account *account)
 		msg->AddPointer("chain",fChain);
 		item->SetMarked(true);
 	}
-	if (MailChain *chain = fAccount->Outbound())
+	if (Mail::Chain *chain = fAccount->Outbound())
 	{
 		menu->AddItem(item = new BMenuItem("Outgoing E-mail Filters",msg = new BMessage(kMsgChainSelected)));
 		msg->AddPointer("chain",chain);
@@ -658,7 +658,7 @@ void FiltersConfigView::SelectFilter(int32 index)
 }
 
 
-void FiltersConfigView::SetTo(MailChain *chain)
+void FiltersConfigView::SetTo(Mail::Chain *chain)
 {
 	// remove the filter config view
 	SelectFilter(-1);
@@ -749,7 +749,7 @@ void FiltersConfigView::MessageReceived(BMessage *msg)
 	{
 		case kMsgChainSelected:
 		{
-			MailChain *chain;
+			Mail::Chain *chain;
 			if (msg->FindPointer("chain",(void **)&chain) < B_OK)
 				break;
 

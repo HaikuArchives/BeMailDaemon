@@ -11,27 +11,31 @@
 #include <string.h>
 #include <stdlib.h>
 
-class _EXPORT MailSettings;
+namespace Mail {
+	class _EXPORT Settings;
+}
 
-#include "MailSettings.h"
-#include "NumailKit.h"
+#include <MailSettings.h>
+#include <NumailKit.h>
 
-MailSettings::MailSettings()
+using Mail::Settings;
+
+Settings::Settings()
 {
 	Reload();
 }
 
-MailSettings::~MailSettings()
+Settings::~Settings()
 {
 }
 
-status_t MailSettings::InitCheck() const
+status_t Settings::InitCheck() const
 {
 	return B_OK;
 }
 
 
-status_t MailSettings::Save(bigtime_t /*timeout*/)
+status_t Settings::Save(bigtime_t /*timeout*/)
 {
 	status_t ret;
 	//
@@ -58,7 +62,7 @@ status_t MailSettings::Save(bigtime_t /*timeout*/)
 	return B_OK;
 }
 
-status_t MailSettings::Reload()
+status_t Settings::Reload()
 {
 	status_t ret;
 	
@@ -103,7 +107,7 @@ status_t MailSettings::Reload()
 //
 // To do
 //
-MailChain* MailSettings::NewChain()
+_EXPORT Mail::Chain* Mail::NewChain()
 {
 	// attempted solution: use time(NULL) and hope it's unique. Is there a better idea?
 	// note that two chains in two second is quite possible. how to fix this?
@@ -136,18 +140,18 @@ MailChain* MailSettings::NewChain()
 	
 	chain_dir.WriteAttr("last_issued_chain_id",B_INT32_TYPE,0,&id,sizeof(id));
 	
-	return new MailChain(id);
+	return new Mail::Chain(id);
 }
 //
 // Done
 //
 
-MailChain* MailSettings::GetChain(uint32 id)
+_EXPORT Mail::Chain* Mail::GetChain(uint32 id)
 {
-	return new MailChain(id);
+	return new Mail::Chain(id);
 }
 
-status_t MailSettings::InboundChains(BList *list)
+_EXPORT status_t Mail::InboundChains(BList *list)
 {
 	BPath path;
 	status_t ret = B_OK;
@@ -170,13 +174,13 @@ status_t MailSettings::InboundChains(BList *list)
 		uint32 id = strtoul(ref.name, &end, 10);
 		
 		if (!end || *end == '\0')
-			list->AddItem((void*)new MailChain(id));
+			list->AddItem((void*)new Mail::Chain(id));
 	}
 	
 	return ret;
 }
 
-status_t MailSettings::OutboundChains(BList *list)
+_EXPORT status_t Mail::OutboundChains(BList *list)
 {
 	BPath path;
 	status_t ret = B_OK;
@@ -198,7 +202,7 @@ status_t MailSettings::OutboundChains(BList *list)
 		char *end;
 		uint32 id = strtoul(ref.name, &end, 10);
 		if (!end || *end == '\0')
-			list->AddItem((void*)new MailChain(id));
+			list->AddItem((void*)new Mail::Chain(id));
 	}
 	
 	return ret;
@@ -206,61 +210,61 @@ status_t MailSettings::OutboundChains(BList *list)
 
 
 // Global settings
-int32 MailSettings::WindowFollowsCorner()
+int32 Settings::WindowFollowsCorner()
 {
 	return data.FindInt32("WindowFollowsCorner");
 }
-void MailSettings::SetWindowFollowsCorner(int32 which_corner)
+void Settings::SetWindowFollowsCorner(int32 which_corner)
 {
 	if (data.ReplaceInt32("WindowFollowsCorner",which_corner))
 		data.AddInt32("WindowFollowsCorner",which_corner);
 }
 
-uint32 MailSettings::ShowStatusWindow()
+uint32 Settings::ShowStatusWindow()
 {
 	return data.FindInt32("ShowStatusWindow");
 }
-void MailSettings::SetShowStatusWindow(uint32 mode)
+void Settings::SetShowStatusWindow(uint32 mode)
 {
 	if (data.ReplaceInt32("ShowStatusWindow",mode))
 		data.AddInt32("ShowStatusWindow",mode);
 }
 
-bool MailSettings::DaemonAutoStarts()
+bool Settings::DaemonAutoStarts()
 {
 	return data.FindBool("DaemonAutoStarts");
 }
-void MailSettings::SetDaemonAutoStarts(bool does_it)
+void Settings::SetDaemonAutoStarts(bool does_it)
 {
 	if (data.ReplaceBool("DaemonAutoStarts",does_it))
 		data.AddBool("DaemonAutoStarts",does_it);
 }
 
-BRect MailSettings::ConfigWindowFrame()
+BRect Settings::ConfigWindowFrame()
 {
 	return data.FindRect("ConfigWindowFrame");
 }
-void MailSettings::SetConfigWindowFrame(BRect frame)
+void Settings::SetConfigWindowFrame(BRect frame)
 {
 	if (data.ReplaceRect("ConfigWindowFrame",frame))
 		data.AddRect("ConfigWindowFrame",frame);
 }
 
-BRect MailSettings::StatusWindowFrame()
+BRect Settings::StatusWindowFrame()
 {
 	return data.FindRect("StatusWindowFrame");
 }
-void MailSettings::SetStatusWindowFrame(BRect frame)
+void Settings::SetStatusWindowFrame(BRect frame)
 {
 	if (data.ReplaceRect("StatusWindowFrame",frame))
 		data.AddRect("StatusWindowFrame",frame);
 }
 
-int32 MailSettings::StatusWindowWorkspaces()
+int32 Settings::StatusWindowWorkspaces()
 {
 	return data.FindInt32("StatusWindowWorkSpace");
 }
-void MailSettings::SetStatusWindowWorkspaces(int32 workspace)
+void Settings::SetStatusWindowWorkspaces(int32 workspace)
 {
 	if (data.ReplaceInt32("StatusWindowWorkSpace",workspace))
 		data.AddInt32("StatusWindowWorkSpace",workspace);
@@ -270,11 +274,11 @@ void MailSettings::SetStatusWindowWorkspaces(int32 workspace)
 	BMessenger("application/x-vnd.Be-POST").SendMessage(&msg);
 }
 
-int32 MailSettings::StatusWindowLook()
+int32 Settings::StatusWindowLook()
 {
 	return data.FindInt32("StatusWindowLook");
 }
-void MailSettings::SetStatusWindowLook(int32 look)
+void Settings::SetStatusWindowLook(int32 look)
 {
 	if (data.ReplaceInt32("StatusWindowLook",look))
 		data.AddInt32("StatusWindowLook",look);
@@ -284,31 +288,31 @@ void MailSettings::SetStatusWindowLook(int32 look)
 	BMessenger("application/x-vnd.Be-POST").SendMessage(&msg);
 }
 
-bigtime_t MailSettings::AutoCheckInterval() {
+bigtime_t Settings::AutoCheckInterval() {
 	bigtime_t value = B_INFINITE_TIMEOUT;
 	data.FindInt64("AutoCheckInterval",&value);
 	return value;
 }
 
-void MailSettings::SetAutoCheckInterval(bigtime_t interval) {
+void Settings::SetAutoCheckInterval(bigtime_t interval) {
 	if (data.ReplaceInt64("AutoCheckInterval",interval))
 		data.AddInt64("AutoCheckInterval",interval);
 }
 
-bool MailSettings::CheckOnlyIfPPPUp() {
+bool Settings::CheckOnlyIfPPPUp() {
 	return data.FindBool("CheckOnlyIfPPPUp");
 }
 
-void MailSettings::SetCheckOnlyIfPPPUp(bool yes) {
+void Settings::SetCheckOnlyIfPPPUp(bool yes) {
 	if (data.ReplaceBool("CheckOnlyIfPPPUp",yes))
 		data.AddBool("CheckOnlyIfPPPUp",yes);
 }
 
-uint32 MailSettings::DefaultOutboundChainID() {
+uint32 Settings::DefaultOutboundChainID() {
 	return data.FindInt32("DefaultOutboundChainID");
 }
 
-void MailSettings::SetDefaultOutboundChainID(uint32 to) {
+void Settings::SetDefaultOutboundChainID(uint32 to) {
 	if (data.ReplaceInt32("DefaultOutboundChainID",to))
 		data.AddInt32("DefaultOutboundChainID",to);
 }
