@@ -231,7 +231,7 @@ IMAP4Client::~IMAP4Client() {
 
 void IMAP4Client::InitializeMailboxes() {
 	BString command;
-	command << "LIST \"" << mb_root << "\" \"*\"";
+	command << "LSUB \"" << mb_root << "\" \"*\"";
 	
 	SendCommand(command.String());
 	
@@ -436,6 +436,13 @@ status_t IMAP4Client::CreateMailbox(const char *mailbox) {
 	command << "CREATE \"" << info->server_mb_name << '\"';
 	SendCommand(command.String());
 	BString response;
+	WasCommandOkay(response);
+	//--- Deliberately ignore errors in the case of extant, but unsubscribed, mailboxes
+	
+	command = "SUBSCRIBE \"";
+	command << info->server_mb_name << '\"';
+	SendCommand(command.String());
+	
 	if (!WasCommandOkay(response)) {
 		command = "Error creating mailbox ";
 		command << mailbox << ". The server said: \n" << response << "\nThis may mean you can't create a new mailbox in this location.";
@@ -468,6 +475,11 @@ status_t IMAP4Client::DeleteMailbox(const char *mailbox) {
 		
 		return B_ERROR;
 	}
+	
+	command = "UNSUBSCRIBE \"";
+	command << ((struct mailbox_info *)(box_info.ItemAt(mailboxes.IndexOf(mailbox))))->server_mb_name << '\"';
+	WasCommandOkay(command);
+	//---If this fails, that's fine.
 	
 	return B_OK;
 }
