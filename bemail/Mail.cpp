@@ -2546,6 +2546,9 @@ TMailWindow::MessageReceived(BMessage *msg)
 			break;
 
 		case M_CHECK_SPELLING:
+			if (gDictCount == 0)
+				// Give the application time to initialise and load the dictionaries.
+				snooze (1500000);
 			if (!gDictCount)
 			{
 				beep();
