@@ -73,7 +73,7 @@ LOCAL_INCLUDE_PATHS =
 
 #	specify the level of optimization that you desire
 #	NONE, SOME, FULL
-OPTIMIZE= NONE
+OPTIMIZE= SOME
 
 #	specify any preprocessor symbols to be defined.  The symbols will not
 #	have their values set automatically; you must supply the value (if any)
@@ -116,6 +116,22 @@ APP_VERSION =
 #	/dev/video/usb when loaded. Default is "misc".
 DRIVER_PATH = 
 
+#   Custom overrides that can be set from the command line.
+ifeq ($(DEBUG_BUILD), true)
+	SYMBOLS := TRUE
+	DEBUGGER := TRUE
+	OPTIMIZE := NONE
+	COMPILER_FLAGS += -DDEBUG=1
+endif
+
+ifeq ($(CHECK_MEM), true)
+	SYMBOLS := TRUE
+	DEBUGGER := TRUE
+	OPTIMIZE := NONE
+	COMPILER_FLAGS += -fcheck-memory-usage -DDEBUG=1 -D_NO_INLINE_ASM=1 -D_KERNEL_MODE=1
+endif
+
+
 #	Detect BONE
 ifeq ($(shell ls 2>/dev/null -1 /boot/develop/headers/be/bone/bone_api.h), /boot/develop/headers/be/bone/bone_api.h)
 	SYSTEM_INCLUDE_PATHS += /boot/develop/headers/be/bone
@@ -126,8 +142,8 @@ endif
 first:	default
 	addattr -t mime "BEOS:PREF_APP" "application/x-vnd.Be-POST" $(TARGET)
 
-## include the makefile-engine
-include $(BUILDHOME)/etc/makefile-engine
+INSTALL_DIR=/boot/beos/system/servers/
 
-install:	default
-	mv $(TARGET) /boot/beos/system/servers/
+include $(BUILDHOME)/etc/makefile-engine.MailD
+
+

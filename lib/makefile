@@ -73,7 +73,7 @@ LOCAL_INCLUDE_PATHS =
 
 #	specify the level of optimization that you desire
 #	NONE, SOME, FULL
-OPTIMIZE= FULL
+OPTIMIZE= SOME
 
 #	specify any preprocessor symbols to be defined.  The symbols will not
 #	have their values set automatically; you must supply the value (if any)
@@ -96,7 +96,7 @@ SYMBOLS = TRUE
 #	specify debug settings
 #	if TRUE will allow application to be run from a source-level
 #	debugger.  Note that this will disable all optimzation.
-DEBUGGER = 
+DEBUGGER =
 
 #	specify additional compiler flags for all files
 COMPILER_FLAGS =
@@ -116,14 +116,30 @@ APP_VERSION =
 #	/dev/video/usb when loaded. Default is "misc".
 DRIVER_PATH = 
 
+
+#   Custom overrides that can be set from the command line.
+ifeq ($(DEBUG_BUILD),true)
+	SYMBOLS := TRUE
+	DEBUGGER := TRUE
+	OPTIMIZE := NONE
+	COMPILER_FLAGS += -DDEBUG=1
+endif
+
+ifeq ($(CHECK_MEM), true)
+	SYMBOLS := TRUE
+	DEBUGGER := TRUE
+	OPTIMIZE := NONE
+	COMPILER_FLAGS += -fcheck-memory-usage -DDEBUG=1 -D_NO_INLINE_ASM=1 -D_KERNEL_MODE=1
+endif
+
+
 #	this one is the default target and calls the one from the makefile-engine
 #	to be able to move the library after it has been created
 first:	default
 	mv $(TARGET) .
 
-install:	first
-	cp $(NAME) /boot/home/config/lib/
+INSTALL_DIR=/boot/home/config/lib/
 
 ## include the makefile-engine
-include $(BUILDHOME)/etc/makefile-engine
+include $(BUILDHOME)/etc/makefile-engine.MailD
 

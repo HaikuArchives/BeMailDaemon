@@ -73,7 +73,7 @@ LOCAL_INCLUDE_PATHS =
 
 #	specify the level of optimization that you desire
 #	NONE, SOME, FULL
-OPTIMIZE= FULL
+OPTIMIZE= SOME
 
 #	specify any preprocessor symbols to be defined.  The symbols will not
 #	have their values set automatically; you must supply the value (if any)
@@ -116,8 +116,23 @@ APP_VERSION =
 #	/dev/video/usb when loaded. Default is "misc".
 DRIVER_PATH = 
 
-## include the makefile-engine
-include $(BUILDHOME)/etc/makefile-engine
+#   Custom overrides that can be set from the command line.
+ifeq ($(DEBUG_BUILD), true)
+	SYMBOLS := TRUE
+	DEBUGGER := TRUE
+	OPTIMIZE := NONE
+	COMPILER_FLAGS += -DDEBUG=1
+endif
 
-install:	default
-	mv $(TARGET) /boot/home/config/add-ons/mail_daemon/system_filters/
+ifeq ($(CHECK_MEM), true)
+	SYMBOLS := TRUE
+	DEBUGGER := TRUE
+	OPTIMIZE := NONE
+	COMPILER_FLAGS += -fcheck-memory-usage -DDEBUG=1 -D_NO_INLINE_ASM=1 -D_KERNEL_MODE=1
+endif
+
+
+INSTALL_DIR := /boot/home/config/add-ons/mail_daemon/system_filters/
+
+## include the makefile-engine
+include $(BUILDHOME)/etc/makefile-engine.MailD
