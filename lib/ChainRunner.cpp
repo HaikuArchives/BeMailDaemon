@@ -143,8 +143,10 @@ ChainRunner::Chain()
 status_t
 ChainRunner::RunChain(bool asynchronous)
 {
-	if (running_chains.HasItem((void *)(_chain->ID())))
+	if (running_chains.HasItem((void *)(_chain->ID()))) {
+		delete this;
 		return B_NAME_IN_USE;
+	}
 
 	Run();
 
