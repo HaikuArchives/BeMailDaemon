@@ -43,7 +43,8 @@ extern const char *kHeaderEncodingString = "header-encoding";
 // extra fields won't be output.
 
 
-Component::Component()
+Component::Component(uint32 defaultCharSet)
+	: _charSetForTextDecoding (defaultCharSet)
 {
 }
 
@@ -80,10 +81,10 @@ Component *Component::WhatIsThis() {
 		case MC_ATTRIBUTED_ATTACHMENT:
 			return new Mail::AttributedAttachment;
 		case MC_MULTIPART_CONTAINER:
-			return new Mail::MIMEMultipartContainer;
+			return new Mail::MIMEMultipartContainer (NULL, NULL, _charSetForTextDecoding);
 		case MC_PLAIN_TEXT_BODY:
 		default:
-			return new TextComponent;
+			return new TextComponent (NULL, _charSetForTextDecoding);
 	}
 }
 
@@ -380,8 +381,8 @@ void Component::_ReservedComponent5() {}
 //	#pragma mark -
 
 
-TextComponent::TextComponent(const char *text)
-	: Component(),
+TextComponent::TextComponent(const char *text, uint32 defaultCharSet)
+	: Component(defaultCharSet),
 	encoding(quoted_printable),
 	charset(B_ISO1_CONVERSION),
 	raw_data(NULL)
@@ -497,8 +498,8 @@ TextComponent::ParseRaw()
 	BMessage content_type;
 	HeaderField("Content-Type", &content_type);
 
-	charset = MDR_NULL_CONVERSION;
-	if (content_type.HasString("charset")) {
+	charset = _charSetForTextDecoding;
+	if (charset == MDR_NULL_CONVERSION && content_type.HasString("charset")) {
 		for (int32 i = 0; charsets[i].charset != NULL; i++) {
 			if (strcasecmp(content_type.FindString("charset"), charsets[i].charset) == 0) {
 				charset = charsets[i].flavor;
@@ -534,7 +535,7 @@ TextComponent::ParseRaw()
 	if (charset == MDR_NULL_CONVERSION) {
 		if (decoded.FindFirst ("\e$B") >= 0 || decoded.FindFirst ("\e$@") >= 0)
 			charset = B_JIS_CONVERSION;
-		else
+		else // Just assume the usual Latin-1 character set.
 			charset = B_ISO1_CONVERSION;
 	}
 

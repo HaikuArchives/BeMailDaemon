@@ -35,7 +35,7 @@ enum component_type {
 
 class Component {
 	public:
-		Component();
+		Component(uint32 defaultCharSet = MDR_NULL_CONVERSION);
 		virtual ~Component();
 
 		//------Info on this component
@@ -74,6 +74,17 @@ class Component {
 
 		virtual status_t MIMEType(BMimeType *mime);
 
+	protected:
+		uint32 _charSetForTextDecoding;
+			// This is the character set to be used for decoding text
+			// components, or if it is MDR_NULL_CONVERSION then the character
+			// set will be determined automatically.  Since we can't use a
+			// global variable (different messages might have different values
+			// of this), and since sub-components can't find their parents,
+			// this is passed down during construction to some (just Component,
+			// Container, Message, MIME, Text) child components and ends up
+			// being used in the text components.
+
 	private:
 		virtual void _ReservedComponent1();
 		virtual void _ReservedComponent2();
@@ -89,8 +100,8 @@ class Component {
 
 class TextComponent : public Mail::Component {
 	public:
-		TextComponent(const char *text = NULL);
-		virtual ~TextComponent();		
+		TextComponent(const char *text = NULL, uint32 defaultCharSet = MDR_NULL_CONVERSION);
+		virtual ~TextComponent();
 
 		void SetEncoding(mail_encoding encoding, int32 charset);
 			// encoding: you should always use quoted_printable, base64 is strongly not
@@ -120,7 +131,7 @@ class TextComponent : public Mail::Component {
 		BString decoded;
 
 		mail_encoding encoding;
-		uint32 charset;
+		uint32 charset; // This character set is used for encoding, not decoding.
 
 		status_t ParseRaw();
 		BPositionIO *raw_data;

@@ -28,8 +28,8 @@ enum reply_to_mode {
 
 class Message : public Container {
 	public:
-		Message(BPositionIO *mail_file = NULL,bool own = false);
-		Message(entry_ref *ref);
+		Message(BPositionIO *mail_file = NULL, bool own = false, uint32 defaultCharSet = MDR_NULL_CONVERSION);
+		Message(entry_ref *ref, uint32 defaultCharSet = MDR_NULL_CONVERSION);
 		virtual ~Message();
 
 		status_t InitCheck() const;

@@ -114,7 +114,7 @@ class THeaderView : public BBox
 		TTextControl	*fTo;
 		BStringView		*fDate;
 		bool			fIncoming;
-		uint32			fCharacterSetForEncoding;
+		uint32			fCharacterSetUserSees;
 
 	private:		
 		void InitEmailCompletion();

@@ -53,8 +53,9 @@ using namespace Zoidberg::Mail;
 #define mime_warning "This is a multipart message in MIME format."
 
 
-Message::Message(BPositionIO *file, bool own)
+Message::Message(BPositionIO *file, bool own, uint32 defaultCharSet)
 	:
+	Container (defaultCharSet),
 	fData(NULL),
 	_status(B_NO_ERROR),
 	_bcc(NULL),
@@ -73,8 +74,9 @@ Message::Message(BPositionIO *file, bool own)
 }
 
 
-Message::Message(entry_ref *ref)
+Message::Message(entry_ref *ref, uint32 defaultCharSet)
 	:
+	Container (defaultCharSet),
 	_bcc(NULL),
 	_num_components(0),
 	_body(NULL),
@@ -421,7 +423,8 @@ Message::AddComponent(Mail::Component *component)
 	if (_num_components == 0)
 		_body = component;
 	else if (_num_components == 1) {
-		MIMEMultipartContainer *container = new MIMEMultipartContainer(mime_boundary,mime_warning);
+		MIMEMultipartContainer *container = new MIMEMultipartContainer (
+			mime_boundary, mime_warning, _charSetForTextDecoding);
 		if ((status = container->AddComponent(_body)) == B_OK)
 			status = container->AddComponent(component);
 		_body = container;

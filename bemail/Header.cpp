@@ -122,12 +122,15 @@ THeaderView::THeaderView (
 		fTo(NULL),
 		fDate(NULL),
 		fIncoming(incoming),
-		fCharacterSetForEncoding(defaultCharacterSet),
+		fCharacterSetUserSees(defaultCharacterSet),
 		fResending(resending),
 		fBccMenu(NULL),
 		fCcMenu(NULL),
 		fToMenu(NULL)
 {
+	BMenuField	*field;
+	BMessage *msg;
+
 	BFont font = *be_plain_font;
 	font.SetSize(FONT_SIZE);
 	SetFont(&font);
@@ -141,12 +144,60 @@ THeaderView::THeaderView (
 		InitGroupCompletion();
 	}
 
+	// Prepare the character set selection pop-up menu (we tell the user that
+	// it is the Encoding menu, even though it is really the character set).
+	// It may appear in the first line, to the right of the From box if the
+	// user is reading an e-mail.  It appears on the second line, to the right
+	// of the e-mail account menu, if the user is composing a message.  It lets
+	// the user quickly select a character set different from the application
+	// wide default one, and also shows them which character set is active.  If
+	// you are reading a message, you also see an item that says "Automatic"
+	// for automatic decoding character set choice.
+
+	bool marked;
+	float widestCharacterSet;
+
+	fEncodingMenu = new BPopUpMenu (B_EMPTY_STRING);
+	marked = false;
+	widestCharacterSet = 0;
+	for (int32 i = 0; true; i++) {
+		if (kEncodings[i].flavor == MDR_NULL_CONVERSION && (resending || !fIncoming))
+			break; // Composing a new message, don't display last "Automatic" item.
+		msg = new BMessage(kMsgEncoding);
+		msg->AddInt32 ("charset", kEncodings[i].flavor);
+		BMenuItem *item = new BMenuItem (kEncodings[i].name, msg);
+		if (kEncodings[i].flavor == fCharacterSetUserSees && !marked) {
+			item->SetMarked (true);
+			marked = true;
+		}
+		fEncodingMenu->AddItem (item);
+		if (font.StringWidth (kEncodings[i].name) > widestCharacterSet)
+			widestCharacterSet = font.StringWidth (kEncodings[i].name);
+		if (kEncodings[i].flavor == MDR_NULL_CONVERSION)
+			break; // No more character set choices after this one, stop.
+	}
+
+	// First line of the header, From for reading e-mails (includes the
+	// character set choice at the right), To when composing (nothing else in
+	// the row).
+
 	BRect r;
 	char string[20];
 	if (fIncoming && !resending)
 	{
+		// Set up the character set pop-up menu on the right of "To" box.
+		r.Set (windowRect.Width() - widestCharacterSet -
+			font.StringWidth (ENCODING_TEXT) - 2 * SEPARATOR_MARGIN,
+			y - 2, windowRect.Width() - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT + 3);
+		field = new BMenuField (r, "encoding", ENCODING_TEXT, fEncodingMenu,
+			true /* fixedSize */,
+			B_FOLLOW_TOP | B_FOLLOW_LEFT,
+			B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
+		field->SetFont (&font);
+		field->SetDivider (font.StringWidth(ENCODING_TEXT) + 5);
+		AddChild(field);
 		r.Set(x - font.StringWidth(FROM_TEXT) - 11, y,
-			  windowRect.Width() - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT);
+			  field->Frame().left - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT);
 		sprintf(string, FROM_TEXT);
 	}
 	else
@@ -158,17 +209,16 @@ THeaderView::THeaderView (
 	fTo = new TTextControl(r, string, new BMessage(TO_FIELD), fIncoming, resending,
 						   B_FOLLOW_LEFT_RIGHT);
 
-	if (!fIncoming)
+	if (!fIncoming || resending)
 	{
 		fTo->SetChoiceList(&fEmailList);
 		fTo->SetAutoComplete(true);
 	}
 	AddChild(fTo);
-	BMessage *msg = new BMessage(FIELD_CHANGED);
+	msg = new BMessage(FIELD_CHANGED);
 	msg->AddInt32("bitmask", FIELD_TO);
 	fTo->SetModificationMessage(msg);
 
-	BMenuField	*field;
 	if (!fIncoming || resending)
 	{
 		r.right = r.left + 8;
@@ -184,36 +234,12 @@ THeaderView::THeaderView (
 	// "From:" accounts Menu and Encoding Menu.
 	if (!fIncoming || resending)
 	{
-		bool marked;
-		float widestStringWidth;
-
-		// First do the pop-up encoding menu, to the right of the From Account
-		// menu.  It lets the user quickly select a character set different
-		// from the application wide default one, and also shows them which
-		// character set is active.  Only works for encoding, not for decoding
-		// existing emails (due to some awkwardness in overriding the library
-		// and the need to reload the message).
-
-		fEncodingMenu = new BPopUpMenu(B_EMPTY_STRING);
-		marked = false;
-		widestStringWidth = 0;
-		for (int32 i = 0; kEncodings[i].flavor != MDR_NULL_CONVERSION; i++) {
-			msg = new BMessage(kMsgEncoding);
-			msg->AddInt32 ("charset", kEncodings[i].flavor);
-			BMenuItem *item = new BMenuItem (kEncodings[i].name, msg);
-			if (kEncodings[i].flavor == fCharacterSetForEncoding && !marked) {
-				item->SetMarked (true);
-				marked = true;
-			}
-			fEncodingMenu->AddItem (item);
-			if (font.StringWidth (kEncodings[i].name) > widestStringWidth)
-				widestStringWidth = font.StringWidth (kEncodings[i].name);
-		}
-
-		r.Set (windowRect.Width() - widestStringWidth -
+		// Put the character set box on the right of the From field.
+		r.Set (windowRect.Width() - widestCharacterSet -
 			font.StringWidth (ENCODING_TEXT) - 2 * SEPARATOR_MARGIN,
-			y - 1, windowRect.Width() - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT);
+			y - 2, windowRect.Width() - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT + 3);
 		field = new BMenuField (r, "encoding", ENCODING_TEXT, fEncodingMenu,
+			true /* fixedSize */,
 			B_FOLLOW_TOP | B_FOLLOW_LEFT,
 			B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
 		field->SetFont (&font);
@@ -228,7 +254,6 @@ THeaderView::THeaderView (
 		BList chains;
 		if (Mail::OutboundChains(&chains) >= B_OK)
 		{
-			BMessage *msg;
 			marked = false;
 			for (int32 i = 0;i < chains.CountItems();i++)
 			{
@@ -537,9 +562,15 @@ THeaderView::MessageReceived(BMessage *msg)
 
 		case kMsgEncoding:
 		{
+			BMessage message(*msg);
 			int32 tempInt;
+
 			if (msg->FindInt32("charset", &tempInt) == B_OK)
-				fCharacterSetForEncoding = tempInt;
+				fCharacterSetUserSees = tempInt;
+
+			message.what = CHARSET_CHOICE_MADE;
+			message.AddInt32 ("charset", fCharacterSetUserSees);
+			Window()->PostMessage (&message, Window());
 			break;
 		}
 	}

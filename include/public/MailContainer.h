@@ -18,6 +18,9 @@ namespace Mail {
 
 class Container : public Component {
 	public:
+		Container (uint32 defaultCharSet = MDR_NULL_CONVERSION) :
+			Component (defaultCharSet) {};
+
 		virtual status_t AddComponent(Component *component) = 0;
 		virtual status_t RemoveComponent(Component *component) = 0;
 		virtual status_t RemoveComponent(int32 index) = 0;
@@ -34,7 +37,10 @@ class Container : public Component {
 
 class MIMEMultipartContainer : public Container {
 	public:
-		MIMEMultipartContainer(const char *boundary = NULL, const char *this_is_an_MIME_message_text = NULL);
+		MIMEMultipartContainer(
+			const char *boundary = NULL,
+			const char *this_is_an_MIME_message_text = NULL,
+			uint32 defaultCharSet = MDR_NULL_CONVERSION);
 		MIMEMultipartContainer(MIMEMultipartContainer &copy);
 		virtual ~MIMEMultipartContainer();
 
@@ -69,6 +75,7 @@ class MIMEMultipartContainer : public Container {
 		BList _components_in_raw;
 		BList _components_in_code;
 		
+
 		uint32 _reserved[5];
 };
 

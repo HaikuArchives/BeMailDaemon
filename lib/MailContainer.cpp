@@ -37,8 +37,12 @@ typedef struct message_part {
 } message_part;
 
 
-MIMEMultipartContainer::MIMEMultipartContainer(const char *boundary, const char *this_is_an_MIME_message_text)
+MIMEMultipartContainer::MIMEMultipartContainer(
+	const char *boundary,
+	const char *this_is_an_MIME_message_text,
+	uint32 defaultCharSet)
 	:
+	Container (defaultCharSet),
 	_boundary(NULL),
 	_MIME_message_warning(this_is_an_MIME_message_text),
 	_io_data(NULL)
@@ -118,7 +122,7 @@ Mail::Component *MIMEMultipartContainer::GetComponent(int32 index, bool parse_no
 
 	_io_data->Seek(part->start,SEEK_SET);
 
-	Mail::Component component;
+	Mail::Component component (_charSetForTextDecoding);
 	if (component.SetToRFC822(_io_data,part->end - part->start) < B_OK)
 		return NULL;
 

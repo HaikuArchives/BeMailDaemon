@@ -126,7 +126,7 @@ const EncodingItem kEncodings[] =
 	{"DOS-866 (rarer)", B_MS_DOS_866_CONVERSION},
 	{"Macintosh Roman", B_MAC_ROMAN_CONVERSION},
 	{"UTF-8 (BeOS!)", MDR_UTF8_CONVERSION},
-	{NULL, MDR_NULL_CONVERSION}
+	{"Automatic", MDR_NULL_CONVERSION /* marks end of list, only visible when decoding */}
 };
 
 #define  ATTRIBUTE_ON_TEXT MDR_DIALECT_CHOICE ("Include BeOS Attributes in Attachments", "BeOSの属性を付ける")

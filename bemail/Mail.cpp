@@ -1264,7 +1264,10 @@ skip:			if (!done)
 		fButtonBar = NULL;
 
 	r.top = r.bottom = height + bbheight + 1;
-	fHeaderView = new THeaderView(r, rect, fIncoming, fMail, resending, gMailCharacterSet);
+	fHeaderView = new THeaderView (r, rect, fIncoming, fMail, resending,
+		(resending || !fIncoming)
+		? gMailCharacterSet // Use preferences setting for composing mail.
+		: MDR_NULL_CONVERSION); // Default is automatic selection for reading mail.
 
 	r = Frame();
 	r.OffsetTo(0, 0);
@@ -2132,6 +2135,21 @@ void TMailWindow::MessageReceived(BMessage *msg)
 			fHeaderView->SetAddress(msg);
 			break;
 
+		case CHARSET_CHOICE_MADE:
+			if (fIncoming && !fResending) {
+				// The user wants to see the message they are reading (not
+				// composing) displayed with a different kind of character set
+				// for decoding.  Reload the whole message and redisplay.  For
+				// messages which are being composed, the character set is
+				// retrieved from the header view when it is needed.
+
+				entry_ref fileRef = *fRef;
+				int32 characterSet;
+				msg->FindInt32 ("charset", &characterSet);
+				OpenMessage (&fileRef, characterSet);
+			}
+			break;
+
 		case REFS_RECEIVED:
 			AddEnclosure(msg);
 			break;
@@ -2795,7 +2813,7 @@ TMailWindow::Send(bool now)
 	mail_encoding	encodingRelatedToCharset = quoted_printable;
 
 	if (fHeaderView != NULL)
-		characterSetToUse = fHeaderView->fCharacterSetForEncoding;
+		characterSetToUse = fHeaderView->fCharacterSetUserSees;
 
 	// Set up the encoding to use for converting binary to printable ASCII.
 	// Normally this will be quoted printable, but for some old software,
@@ -3116,7 +3134,7 @@ void TMailWindow::SetTitleForMessage()
 //	The duplicated code should be in a private initializer method -- axeld.
 //
 
-status_t TMailWindow::OpenMessage(entry_ref *ref)
+status_t TMailWindow::OpenMessage(entry_ref *ref, uint32 characterSetForDecoding)
 {
 	//
 	//	Set some references to the email file
@@ -3197,7 +3215,7 @@ status_t TMailWindow::OpenMessage(entry_ref *ref)
 	}
 	else // A real mail message, parse its headers to get from, to, etc.
 	{
-		fMail = new Mail::Message(fRef);
+		fMail = new Mail::Message(fRef, characterSetForDecoding);
 		fIncoming = true;
 		fHeaderView->LoadMessage(fMail);
 	}

@@ -52,6 +52,8 @@ All rights reserved.
 #include <Window.h>
 #include <Entry.h>
 
+#include <mail_encoding.h>
+
 #define MAX_DICTIONARIES	8
 #define	TITLE_BAR_HEIGHT	25
 #define	WIND_WIDTH			457
@@ -69,7 +71,8 @@ enum MESSAGES
 	WINDOW_CLOSED,
 	CHANGE_FONT,
 	RESET_BUTTONS,
-	PREFS_CHANGED
+	PREFS_CHANGED,
+	CHARSET_CHOICE_MADE
 };
 
 enum TEXT
@@ -242,7 +245,7 @@ class TMailWindow : public BWindow
 		void CopyMessage(entry_ref *ref, TMailWindow *src);
 		status_t Send(bool);
 		status_t SaveAsDraft( void );
-		status_t OpenMessage(entry_ref *);
+		status_t OpenMessage(entry_ref *ref, uint32 characterSetForDecoding = MDR_NULL_CONVERSION);
 
 		entry_ref *GetMailFile() const;
 		Mail::Message *Mail() const { return fMail; }
