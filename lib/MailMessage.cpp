@@ -381,6 +381,7 @@ status_t MailMessage::Send(bool send_now) {
 		via = new MailChain(MailSettings().DefaultOutboundChainID());
 	}
 	
+	create_directory(via->MetaData()->FindString("path"),0777);
 	BDirectory dir(via->MetaData()->FindString("path"));
 
 	status_t status = RenderTo(&dir);
