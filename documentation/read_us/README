@@ -149,6 +149,7 @@ November 30 2002 - v2.0.0b6
 - Fixed Reply-All bug where it would get stuck in an infinite loop when it tried to remove the sender's address from the list of addresses.
 - Forgot to mention spam database was updated in Beta 5 to reflect MIME decoding improvements (base64 text now decoded) and to add new spam examples.
 - Fixed Reply-All CC bug where some CCed addresses weren't included.
+- Added reply preamble options for full name and date, so you can have something like "Joe Who wrote on December 23 2001 18:33:" inserted in your replies.
 
 November 29 2002 - v2.0.0b5
 - Changed readfoldedline and MIME parsing to both handle lines ending in either CRLF (the standard for Internet mail) or LF (sometimes used for local file storage).  Also handles EOF and errors better.
