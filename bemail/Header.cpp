@@ -828,18 +828,21 @@ status_t THeaderView::LoadMessage(BFile *file)
 		fTo->SetText("");
 
 	//	Set Account/To Field
-	if (fFile->ReadAttrString(B_MAIL_ATTR_TO, &string) == B_OK)
+	if (fAccount != NULL)
 	{
-		BString account;
-		if (fFile->ReadAttrString("MAIL:account", &account) == B_OK)
+		if (fFile->ReadAttrString(B_MAIL_ATTR_TO, &string) == B_OK)
 		{
-			account << ":  ";
-			string.Prepend(account);
+			BString account;
+			if (fFile->ReadAttrString("MAIL:account", &account) == B_OK)
+			{
+				account << ":  ";
+				string.Prepend(account);
+			}
+			fAccount->SetText(string.String());
 		}
-		fAccount->SetText(string.String());
+		else
+			fAccount->SetText("");
 	}
-	else
-		fAccount->SetText("");
 
 	return B_OK;
 }
