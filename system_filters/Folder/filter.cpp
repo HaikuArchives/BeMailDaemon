@@ -132,7 +132,6 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 			out_headers->FindString(gDefaultFields[i].rfc_name,&buf);
 			if (buf == NULL)
 				continue;
-			fprintf(stderr, "Found header %s\n",gDefaultFields[i].rfc_name);
 			
 			switch (gDefaultFields[i].attr_type){
 			case B_STRING_TYPE:
@@ -156,7 +155,7 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		
 		BString worker;
 		int32 uniquer = time(NULL);
-		worker = name;
+		worker << name << uniquer;
 		
 		while (destination.Contains(worker.String())) {
 			worker = name;

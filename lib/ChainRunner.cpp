@@ -134,7 +134,6 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 				MailFilter *(* instantiate)(BMessage *,StatusView *);
 				
 				image->id = load_add_on(path.Path());
-				puts(path.Path());
 				
 				if (image->id < B_OK) {
 					BString error;

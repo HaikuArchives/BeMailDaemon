@@ -54,7 +54,7 @@ DiskProducer::DiskProducer(BMessage* msg,StatusView*status)
 	off_t worker;
 	
 	msg->FindPointer("chain_runner",(void **)&runner);
-	_we_are_default_chain == (MailSettings().DefaultOutboundChainID() == runner->Chain()->ID());
+	_we_are_default_chain = (MailSettings().DefaultOutboundChainID() == runner->Chain()->ID());
 	src_string = runner->Chain()->MetaData()->FindString("path");
  	source = src_string.String();
 	while (source.GetNextRef(&entry) == B_OK) {
