@@ -94,8 +94,8 @@ status_t WIndex::SetTo( const char *dataPath, const char *indexPath )
 						indexFile.ReadAttr( "WINDEX:modified", B_UINT32_TYPE, 0, &modified, 4 );
 						if( mtime == modified )
 						{
-							UnflattenIndex( &indexFile );
-							buildIndex = false;
+							if (UnflattenIndex( &indexFile ) == B_OK)
+								buildIndex = false;
 						}
 					}
 				}
