@@ -35,6 +35,12 @@ MailChain::MailChain(BMessage* settings)
 	Load(settings);
 }
 
+
+MailChain::~MailChain() {
+	if (meta_data != NULL)
+		delete meta_data;
+}
+
 status_t MailChain::Load(BMessage* settings)
 {
 	if (meta_data != NULL)
