@@ -244,7 +244,9 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	// deleted.  Partial messages have already been moved, so don't move them.
 	if (out_headers->FindBool("ENTIRE_MESSAGE", &tempBool) != B_OK
 	|| tempBool == false) {
-		err = e->MoveTo(&dir);
+		err = B_OK;
+		if (!dir.Contains(e))
+			err = e->MoveTo(&dir);
 		if (err != B_OK)
 		{
 			BString error;

@@ -64,8 +64,7 @@ status_t DiskProducer::InitCheck(BString* err)
 status_t DiskProducer::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* out_headers, BPath*, const char* io_uid)
 {
 	e->Remove();
-			
-	delete *io;
+	
 	BFile *file = new BFile(io_uid,B_READ_WRITE);
 	
 	e->SetTo(io_uid);

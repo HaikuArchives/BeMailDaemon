@@ -411,15 +411,27 @@ ChainRunner::get_messages(StringList *list)
 	const char *uid;
 
 	status_t err = B_OK;
-	BDirectory tmp("/tmp");
+	char *glort;
+	bool using_tmp = (_chain->MetaData()->FindString("path",&glort) < B_OK);
+		
+	BDirectory tmp(using_tmp ? "/tmp" : glort);
 
 	for (int i = 0; i < list->CountItems(); i++) {
 		uid = (*list)[i];
 
-		char *path = tempnam("/tmp","mail_temp_");
+		char *path;
+		if (using_tmp)
+			path = tempnam("/tmp","mail_temp_");
+		else {
+			BPath pathy(glort);
+			pathy.Append("Downloading");
+			path = (char *)malloc(B_PATH_NAME_LENGTH);
+			sprintf(path,"%s (%s: %d)...",pathy.Path(), _chain->Name(), _chain->ID());
+		}
+			
 		BEntry *entry = new BEntry(path);
 		free(path);
-		BPositionIO *file = new BFile(entry, B_READ_WRITE | B_CREATE_FILE);
+		BPositionIO *file = (_chain->ChainDirection() == Mail::inbound) ? new BFile(entry, B_READ_WRITE | B_CREATE_FILE | B_ERASE_FILE) : NULL;
 		BPath *folder = new BPath;
 		BMessage *headers = new BMessage;
 
@@ -434,10 +446,9 @@ ChainRunner::get_messages(StringList *list)
 
 		CallCallbacksFor(message_cb, err);
 
-		if (tmp.Contains(entry))
-			entry->Remove();
-
-		delete file;
+		if (file != NULL)
+			delete file;
+			
 		delete entry;
 		delete headers;
 		delete folder;
