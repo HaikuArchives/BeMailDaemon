@@ -149,7 +149,7 @@ const char *MailMessage::HeaderField(const char *name) {
 	}
 	
 	if (_body != NULL)
-		_body->AddHeaderField(name,with);
+		_body->SetHeaderField(name,with);
 }
 
 void MailMessage::SendViaAccount(const char *account_name) {
@@ -280,7 +280,7 @@ status_t MailMessage::RenderTo(BFile *file) {
 		
 		for (int32 i = 0; _header_kludge_yikes->GetInfo(B_STRING_TYPE,i,&name,&type) >= B_OK; i++) {
 			if (_header_kludge_yikes->FindString(name,&data) >= B_OK)
-				_body->AddHeaderField(name,data);
+				_body->SetHeaderField(name,data);
 		}
 		
 		delete _header_kludge_yikes;
@@ -379,7 +379,7 @@ status_t MailMessage::RenderTo(BFile *file) {
 	#endif
 
 	message_id << ">";
-	_body->AddHeaderField("Message-ID", message_id.String());
+	_body->SetHeaderField("Message-ID", message_id.String());
 	
 	return _body->Render(file);
 }

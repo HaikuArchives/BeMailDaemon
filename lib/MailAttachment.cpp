@@ -23,7 +23,7 @@ SimpleMailAttachment::SimpleMailAttachment()
 	_we_own_data(false)
 	{
 		SetEncoding(base64);
-		AddHeaderField("Content-Disposition","Attachment");
+		SetHeaderField("Content-Disposition","Attachment");
 	}
 
 SimpleMailAttachment::SimpleMailAttachment(BPositionIO *data)
@@ -32,7 +32,7 @@ SimpleMailAttachment::SimpleMailAttachment(BPositionIO *data)
 	_we_own_data(false)
 	{
 		SetEncoding(base64);
-		AddHeaderField("Content-Disposition","Attachment");
+		SetHeaderField("Content-Disposition","Attachment");
 	}
 
 SimpleMailAttachment::SimpleMailAttachment(const void *data, size_t length)
@@ -41,7 +41,7 @@ SimpleMailAttachment::SimpleMailAttachment(const void *data, size_t length)
 	_we_own_data(true)
 	{
 		SetEncoding(base64);
-		AddHeaderField("Content-Disposition","Attachment");
+		SetHeaderField("Content-Disposition","Attachment");
 	}
 
 SimpleMailAttachment::~SimpleMailAttachment() {
@@ -50,33 +50,23 @@ SimpleMailAttachment::~SimpleMailAttachment() {
 }
 
 status_t SimpleMailAttachment::FileName(char *text) {
-	BString name = HeaderField("Content-Type");
-	int32 offset = name.IFindFirst("name=");
-	if (offset < 0)
-		return B_ERROR;
-		
-	name.Remove(0,offset);
+	BMessage content_type;
+	HeaderField("Content-Type",&content_type);
 	
-	offset = name.IFindFirst(" ");
-	if (offset >= 0)
-		name.Truncate(offset);
+	if (!content_type.HasString("name"))
+		return B_NAME_NOT_FOUND;
 	
-	if (name.ByteAt(0) == '\"') {
-		name.Remove(0,1);
-		name.Truncate(name.IFindFirst("\""));
-	}
-	
-	strcpy(text,name.String());
+	strcpy(text,content_type.FindString("name"));
 	return B_OK;
 }
 	
 void SimpleMailAttachment::SetFileName(const char *name) {
-	BString header;
-	BMimeType mime;
-	MIMEType(&mime);
-	header << mime.Type() << "; name=\"" << name << "\"";
+	BMessage content_type;
+	HeaderField("Content-Type",&content_type);
+	if (content_type.ReplaceString("name",name) != B_OK)
+		content_type.AddString("name",name);
 	
-	AddHeaderField("Content-Type",header.String());
+	SetHeaderField("Content-Type",&content_type);
 }
 
 status_t SimpleMailAttachment::GetDecodedData(BPositionIO *data) {
@@ -139,7 +129,7 @@ void SimpleMailAttachment::SetEncoding(mail_encoding encoding) {
 			break;
 	}
 
-	AddHeaderField("Content-Transfer-Encoding",cte);
+	SetHeaderField("Content-Transfer-Encoding",cte);
 }
 
 mail_encoding SimpleMailAttachment::Encoding() {
@@ -217,11 +207,11 @@ AttributedMailAttachment::AttributedMailAttachment(BFile *file, bool delete_when
 	AddComponent(_data);
 	
 	_attributes_attach = new SimpleMailAttachment;
-	_attributes_attach->AddHeaderField("Content-Type","application/x-be_attribute; name=\"BeOS Attributes\"");
+	_attributes_attach->SetHeaderField("Content-Type","application/x-be_attribute; name=\"BeOS Attributes\"");
 	AddComponent(_attributes_attach);
 	
-	AddHeaderField("Content-Type","multipart/x-bfile");
-	AddHeaderField("Content-Disposition","Attachment");
+	SetHeaderField("Content-Type","multipart/x-bfile");
+	SetHeaderField("Content-Disposition","Attachment");
 	
 	if (file != NULL)
 		SetTo(file,delete_when_done);
@@ -232,11 +222,11 @@ AttributedMailAttachment::AttributedMailAttachment(entry_ref *ref) {
 	AddComponent(_data);
 	
 	_attributes_attach = new SimpleMailAttachment;
-	_attributes_attach->AddHeaderField("Content-Type","application/x-be_attribute; name=\"BeOS Attributes\"");
+	_attributes_attach->SetHeaderField("Content-Type","application/x-be_attribute; name=\"BeOS Attributes\"");
 	AddComponent(_attributes_attach);
 	
-	AddHeaderField("Content-Type","multipart/x-bfile");
-	AddHeaderField("Content-Disposition","Attachment");
+	SetHeaderField("Content-Type","multipart/x-bfile");
+	SetHeaderField("Content-Disposition","Attachment");
 	
 	if (ref != NULL)
 		SetTo(ref);
@@ -251,7 +241,7 @@ void AttributedMailAttachment::SetTo(BFile *file, bool delete_file_when_done) {
 	_attributes << *file;
 	
 	BNodeInfo(file).GetType(buffer);
-	_data->AddHeaderField("Content-Type",buffer);
+	_data->SetHeaderField("Content-Type",buffer);
 	//---No way to get file name
 	//_data->SetFileName(ref->name);
 	
@@ -275,7 +265,7 @@ void AttributedMailAttachment::SetTo(entry_ref *ref) {
 	
 	_data->SetDecodedDataAndDeleteWhenDone(file);
 	BNodeInfo(file).GetType(buffer);
-	_data->AddHeaderField("Content-Type",buffer);
+	_data->SetHeaderField("Content-Type",buffer);
 	
 	SetFileName(ref->name);
 	

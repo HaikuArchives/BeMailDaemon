@@ -29,12 +29,17 @@ class MailComponent {
 			// Returns true if this component is an attachment, false
 			// otherwise
 			
-		void AddHeaderField(
+		void SetHeaderField(
 			const char *key, const char *value,
 			uint32 charset = B_ISO1_CONVERSION,
 			mail_encoding encoding = quoted_printable,
 			bool replace_existing = true);
+		void SetHeaderField(
+			const char *key, BMessage *structured_header,
+			bool replace_existing = true);
+			
 		const char *HeaderField(const char *key, int32 index = 0);
+		status_t	HeaderField(const char *key, BMessage *structured_header, int32 index = 0);
 		
 		virtual status_t GetDecodedData(BPositionIO *data);
 		virtual status_t SetDecodedData(BPositionIO *data);

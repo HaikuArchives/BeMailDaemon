@@ -24,8 +24,8 @@ MIMEMultipartContainer::MIMEMultipartContainer(const char *boundary, const char 
 	_boundary(NULL),
 	_MIME_message_warning(this_is_an_MIME_message_text),
 	_io_data(NULL) {		
-		AddHeaderField("MIME-Version","1.0");
-		AddHeaderField("Content-Type","multipart/mixed");
+		SetHeaderField("MIME-Version","1.0");
+		SetHeaderField("Content-Type","multipart/mixed");
 		SetBoundary(boundary);
 	}
 
@@ -57,11 +57,17 @@ MIMEMultipartContainer::~MIMEMultipartContainer() {
 void MIMEMultipartContainer::SetBoundary(const char *boundary) {
 	_boundary = strdup(boundary);
 	
-	BMimeType mime;
-	MailComponent::MIMEType(&mime); //------Use MailComponent's because of the AttributedMailAttachment implements this
-	BString type;
-	type << mime.Type() << "; boundary=\"" << boundary << "\"";
-	AddHeaderField("Content-Type",type.String());
+	BMessage structured;
+	HeaderField("Content-Type",&structured);
+	
+	if (boundary == NULL) {
+		structured.RemoveName("boundary");
+	} else {
+		if (structured.ReplaceString("boundary",_boundary) != B_OK)
+			structured.AddString("boundary",_boundary);
+	}
+		
+	SetHeaderField("Content-Type",&structured);
 }
 
 void MIMEMultipartContainer::SetThisIsAnMIMEMessageText(const char *text) {
@@ -147,22 +153,17 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length) {
 	length -= (data->Position() - position);
 		
 	BString end_delimiter;
-	BString type = HeaderField("Content-Type");
-	if (type.FindFirst("multipart") < 0)
+	BMessage content_type;
+	HeaderField("Content-Type",&content_type);
+	if (strncmp(content_type.FindString("unlabeled"),"multipart",9) != 0)
 		return B_BAD_TYPE;
 		
-	if (type.FindFirst("boundary=") < 0)
+	if (!content_type.HasString("boundary"))
 		return B_BAD_TYPE;
 		
-	type.Remove(0, type.FindFirst("boundary=") + 9);
-	if (type.FindFirst(' ') >= 0)
-		type.Truncate(type.FindFirst(' '));
-			
-	if (type.ByteAt(0) == '\"')
-		type.RemoveAll("\"");
+	_boundary = strdup(content_type.FindString("boundary"));
 		
-	_boundary = strdup(type.String());
-		
+	BString type = content_type.FindString("boundary");
 	type.Prepend("--");
 
 	end_delimiter << type << "--";

@@ -89,7 +89,7 @@ bool MailComponent::IsAttachment() {
 	return false;
 }
 
-void MailComponent::AddHeaderField(const char *key, const char *value, uint32 charset, mail_encoding encoding, bool replace_existing) {
+void MailComponent::SetHeaderField(const char *key, const char *value, uint32 charset, mail_encoding encoding, bool replace_existing) {
 	if (replace_existing)
 		headers.RemoveName(key);
 	
@@ -97,12 +97,84 @@ void MailComponent::AddHeaderField(const char *key, const char *value, uint32 ch
 	headers.AddInt32(key,charset);
 	headers.AddInt8(key,encoding);
 }
+
+void MailComponent::SetHeaderField(const char *key, BMessage *structure, bool replace_existing) {
+	if (replace_existing)
+		headers.RemoveName(key);
+	
+	BString value;
+	if (structure->HasString("unlabeled"))
+		value << structure->FindString("unlabeled") << "; ";
+	
+	char *name, *sub_val;
+	type_code type;
+	for (int32 i = 0; structure->GetInfo(B_STRING_TYPE,i,&name,&type) == B_OK; i++) {
+		if (strcasecmp(name,"unlabeled") == 0)
+			continue;
+		
+		structure->FindString(name,&sub_val);
+		value << name << '=';
+		if (BString(sub_val).FindFirst(' ') > 0)
+			value << '\"' << sub_val << "\"; ";
+		else
+			value << sub_val << "; ";
+	}
+	
+	value.Truncate(value.Length() - 2); //-----Remove the last "; "
+	
+	SetHeaderField(key,value.String(),B_ISO1_CONVERSION,no_encoding);
+}
 	
 const char *MailComponent::HeaderField(const char *key, int32 index) {
 	const char *string;
 	
 	headers.FindString(key,index,&string);
 	return string;
+}
+
+status_t MailComponent::HeaderField(const char *key, BMessage *structure, int32 index) {
+	BString string,sub_cat,end_piece;
+	
+	string = HeaderField(key,index);
+	if (string == "")
+		return B_NAME_NOT_FOUND;
+	
+	int32 i = 0, end = 0;
+	while (end < string.Length()) {
+		end = string.FindFirst(';',i);
+		if (end < 0)
+			end = string.Length();
+			
+		string.CopyInto(sub_cat,i,end - i);
+		//-------Trim spaces off of beginning and end of text
+		for (int32 h = 0; h < sub_cat.Length(); h++) {
+			if (!isspace(sub_cat.ByteAt(h))) {
+				sub_cat.Remove(0,h);
+				break;
+			}
+		}
+		for (int32 h = sub_cat.Length()-1; h >= 0; h--) {
+			if (!isspace(sub_cat.ByteAt(h))) {
+				sub_cat.Truncate(h+1);
+				break;
+			}
+		}
+		//--------Split along '='
+		int32 first_equal = sub_cat.FindFirst('=');
+		if (first_equal >= 0) {
+			sub_cat.CopyInto(end_piece,first_equal+1,sub_cat.Length() - first_equal - 1);
+			sub_cat.Truncate(first_equal);
+			if (end_piece.ByteAt(0) == '\"') {
+				end_piece.Remove(0,1);
+				end_piece.Truncate(end_piece.Length() - 1);
+			}
+			structure->AddString(sub_cat.String(),end_piece.String());
+		} else {
+			structure->AddString("unlabeled",sub_cat.String());
+		}
+	}
+		
+	return B_OK;
 }
 
 status_t MailComponent::GetDecodedData(BPositionIO *) {return B_OK;}
@@ -193,12 +265,10 @@ status_t MailComponent::Render(BPositionIO *render_to) {
 }
 
 status_t MailComponent::MIMEType(BMimeType *mime) {
-	BString string = HeaderField("Content-Type");
+	BMessage msg;
+	HeaderField("Content-Type",&msg);
 	
-	if (string.FindFirst(';') >= 0)
-		string.Truncate(string.FindFirst(';'));
-	
-	mime->SetTo(string.String());
+	mime->SetTo(msg.FindString("unlabeled"));
 	
 	return B_OK;
 }
@@ -212,7 +282,7 @@ PlainTextBodyComponent::PlainTextBodyComponent(const char *text)
 		if (text != NULL)
 			SetText(text);
 			
-		AddHeaderField("MIME-Version","1.0");
+		SetHeaderField("MIME-Version","1.0");
 }
 
 void PlainTextBodyComponent::SetEncoding(mail_encoding encoding, int32 charset) {
@@ -338,7 +408,7 @@ status_t PlainTextBodyComponent::Render(BPositionIO *render_to) {
 		}
 	}
 	
-	AddHeaderField("Content-Type",content_type.String());
+	SetHeaderField("Content-Type",content_type.String());
 	
 	const char *transfer_encoding = NULL;
 	switch (encoding) {
@@ -353,7 +423,7 @@ status_t PlainTextBodyComponent::Render(BPositionIO *render_to) {
 			break;
 	}
 	
-	AddHeaderField("Content-Transfer-Encoding",transfer_encoding);
+	SetHeaderField("Content-Transfer-Encoding",transfer_encoding);
 	
 	MailComponent::Render(render_to);
 	

@@ -89,7 +89,7 @@ status_t	BMailMessage::AddEnclosure(const char *MIME_type, void *data, int32 len
 			 bool /*clobber*/) {
 			 	SimpleMailAttachment *attach = new SimpleMailAttachment;
 			 	attach->SetDecodedData(data,len);
-			 	attach->AddHeaderField("Content-Type",MIME_type);
+			 	attach->SetHeaderField("Content-Type",MIME_type);
 			 	
 			 	((MailMessage *)(fFields))->AddComponent(attach);
 			 	return B_OK;
