@@ -7,6 +7,7 @@
 #include <String.h>
 #include <ClassInfo.h>
 #include <Alert.h>
+#include <Directory.h>
 
 #include <stdio.h>
 
@@ -116,6 +117,8 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 	struct filter_image *current;
 	MDStatus last_result = MD_OK;
 	
+	BDirectory tmp("/tmp");
+	
 	while (last_result != MD_NO_MORE_MESSAGES) { //------Message loop. Break with a MD_NO_MORE_MESSAGES
 		char *path = tempnam("/tmp","mail_temp_"); // do we need to free() tempnam()'s value?
 		BPositionIO *file = new BFile(path, B_READ_WRITE | B_CREATE_FILE);
@@ -182,6 +185,9 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 		runner->message_cb.MakeEmpty();
 		
 		status->AddItem();
+		
+		if (tmp.Contains(entry))
+			entry->Remove();
 		
 		delete file;
 		delete entry;
