@@ -256,8 +256,8 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, cha
 	}
 	
 	struct word *run;
-	for (int32 i = 0; current = (struct word *)words.ItemAt(i); i++) {
-		for (int32 g = i+1; run = (struct word *)words.ItemAt(g); g++) {
+	for (int32 i = 0; (current = (struct word *)words.ItemAt(i)) != NULL; i++) {
+		for (int32 g = i+1; (run = (struct word *)words.ItemAt(g)) != NULL; g++) {
 			if (run->has_8bit && current->has_8bit) {
 				current->length += run->length+1;
 				delete words.RemoveItem(g);
@@ -269,14 +269,14 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, cha
 		}
 	}
 	
-	while (current = (struct word *)words.RemoveItem(0L)) {
+	while ((current = (struct word *)words.RemoveItem(0L)) != NULL) {
 		if (!current->has_8bit) {
 			rfc2047.Append(current->begin, current->length + 1);
 			delete current;
 		} else {
-			char *encoded;
-			ssize_t encoded_len;
-			
+			char *encoded = NULL;
+			ssize_t encoded_len = 0;
+
 			switch (encoding) {
 				case -1:
 					encoded = (char *)current->begin;
@@ -292,7 +292,7 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, cha
 					break;
 			}
 			
-			printf("String: %s, len: %d\n",current->begin,current->length);
+			printf("String: %s, len: %ld\n",current->begin,current->length);
 			
 			rfc2047 << "=?" << charset_dec << '?' << encoding << '?';
 			rfc2047.Append(encoded,encoded_len);
