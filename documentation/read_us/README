@@ -150,7 +150,7 @@ ADDON INSTALLATION.
 
 HISTORY:
 
-July 4 2003 - v2.1.0rc2
+July 5 2003 - v2.1.0rc2
 - Fixed some IMAP bugs.  Not all IMAP servers are the same, or even standard.
 - Wipe out the /boot/beos/etc/word_index/ directory when installing, since the corrupt spell checking indices crash BeMail, and they get automatically regenerated if they aren't there.
 - Installer now creates the symbolic link /boot/develop/lib/(x86|ppc)/libmail.so which the older installers accidentally deleted.
@@ -159,6 +159,7 @@ July 4 2003 - v2.1.0rc2
 - Fixed multiple send bug.  If you create several new messages per second for the same outbound account, it fired off several sender threads, and ended up sending each message several times.  The threads fought over access to their configuration files (and other unrelated outbound configuration files for some reason), which often resulted in wiped out account settings and other weirdness.  Now uses only one sender thread per account.
 - Installer completely regenerates the MIME types for the applications and the data types text/x-email, text/x-partial-email so that the correct icons show up.  So if you had custom attributes registered for e-mail files, you'll have to re-enter them.  On a related note, the Daemon now takes a command line argument of "-M" to forcibly delete the old MIME types and rebuild them, plus the existing -E argument that exits immediately if you don't have the auto-run option turned on (so it can be simply started from the boot script).
 - Added a command to AGMSBayesianSpamServer to declassify mail, and the related GUI changes.  So now if you decide a message shouldn't be in the database, you can change it back to Uncertain status, which will also remove its word counts from the database.  Incidentally, I had to make a new dialogue box to choose spam/genuine/uncertain after exceeding the maximum number of buttons (3) for a BAlert.  Also changed the logo to remove the reference to SPAM, since Hormel doesn't like having their meat product associated with junk e-mail.
+- Added the spam button to BeMail.  Click it to train the current message as spam and then delete the message.  Right click it to bring up a menu with other training options and long descriptions of what they do.  Also added spam menu items to the Message menu.
 
 June 26 2003 - v2.1.0rc1
 - Added US-ASCII encoding and decoding, which also uses 7bit rather than quoted printable.
