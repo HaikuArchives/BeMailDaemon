@@ -75,7 +75,7 @@ status_t MailChain::Load(BMessage* settings)
 		char *addon_path;
 
 		if (settings->FindMessage("filter_settings",i,filter) != B_OK
-			|| settings->FindString("filter_addons",i,&addon_path) != B_OK)
+			|| settings->FindString("filter_addons",i,(const char **)&addon_path) != B_OK)
 		{
 			delete filter;
 			delete ref;
