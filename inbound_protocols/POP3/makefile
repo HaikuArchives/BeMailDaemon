@@ -30,7 +30,6 @@ TYPE= SHARED
 #	if two source files with the same name (source.c or source.cpp)
 #	are included from different directories.  Also note that spaces
 #	in folder names do not work well with this makefile.
-#SRCS= pop3.cp md5c.c SimpleMailProtocol.cpp MessageIO.cpp
 SRCS= pop3.cp SimpleMailProtocol.cpp MessageIO.cpp
 
 #	specify the resource files to use
@@ -147,6 +146,8 @@ ifeq ($(shell ls 2>/dev/null -1 /boot/home/config/include/openssl/ssl.h), /boot/
 	LIBPATHS += /boot/home/config/lib
 	LIBS += ssl crypto
 	DEFINES += POPSSL
+else
+	SRCS += md5c.c
 endif
 
 INSTALL_DIR=/boot/home/config/add-ons/mail_daemon/inbound_protocols
