@@ -80,6 +80,15 @@ inline void Protocol::error_alert(const char *process, status_t error) {
 	)
 }
 
+class DeleteCallback : public Mail::ChainCallback {
+	public:
+		DeleteCallback(Protocol *a) : us(a) {}
+		void Callback(status_t) {
+			us->ProcessMailMessage(NULL,NULL,NULL,NULL,NULL);
+		}
+	private:
+		Protocol *us;
+};
 
 Protocol::Protocol(BMessage* settings, ChainRunner *run) : Filter(settings), runner(run), ran_yet(false) {
 	unique_ids = new StringList;
@@ -87,13 +96,15 @@ Protocol::Protocol(BMessage* settings, ChainRunner *run) : Filter(settings), run
 	
 	manifest = new StringList;
 	runner->Chain()->MetaData()->FindFlat("manifest",manifest); //---no error checking, because if it doesn't exist, it will stay empty anyway
+
+	runner->RegisterChainCallback(new DeleteCallback(this));
 }
 
 Protocol::~Protocol() {
 	if (manifest != NULL) {
 		BMessage *meta_data = runner->Chain()->MetaData();
 		meta_data->RemoveName("manifest");
-		//if (settings->FindBool("leave_mail_on_server"))
+		if (settings->FindBool("leave_mail_on_server"))
 			meta_data->AddFlat("manifest",manifest);
 	}
 	delete unique_ids;
@@ -136,7 +147,7 @@ status_t Protocol::ProcessMailMessage
 				
 				StringList to_delete;
 				query_contents.NotHere(*manifest,&to_delete);
-				
+								
 				for (int32 i = 0; i < to_delete.CountItems(); i++)
 					DeleteMessage(to_delete[i]);
 				
@@ -147,6 +158,9 @@ status_t Protocol::ProcessMailMessage
 			ran_yet = true;
 			runner->RegisterProcessCallback(new RanYetReset(&ran_yet));
 		}
+		
+		if (io_uid == NULL)
+			return B_ERROR;
 		
 		error = GetMessage(io_uid,io_message,io_headers,io_folder);
 		if (error < B_OK) {
