@@ -145,7 +145,7 @@ ADDON INSTALLATION.
 
 HISTORY:
 
-December 6 2002 - v2.0.0b7
+December 9 2002 - v2.0.0b7
 - Fixed vman's bug with TABs after the colon in the headers making it ignore the header.
 - Fixed the Forwarding with Attachments bug so it now works with X-BFile type attachments.
 - Added a couple of forwarding menu items, so you get the complete set on the main menu and the right-click on the Forward button menu.
@@ -154,6 +154,7 @@ December 6 2002 - v2.0.0b7
 - Added a preferences option to attach files in BeMail without the attributes, so that users of other operating systems don't get confused by the extra attachment.
 - Fixed some bugs with reading (garbage appended bug) and forwarding text attachments (didn't copy text so it sometimes crashed).
 - Include preamble text when making a reply from selected text in a message.
+- Added ChiSquared (Greek X is called chi, capital is Χ, lower case is χ) statistical error scoring method to AGMSBayesianSpamServer; you lose the shades of gray and get better spam/genuine/don't-know results instead.
 
 December 1 2002 - v2.0.0b6
 - Fixed Reply-All bug where it would get stuck in an infinite loop when it tried to remove the sender's address from the list of addresses.
