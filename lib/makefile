@@ -126,7 +126,12 @@ ifeq ($(DEBUG_BUILD), true)
 	SYMBOLS := TRUE
 	DEBUGGER := TRUE
 	OPTIMIZE := NONE
-	COMPILER_FLAGS += -DDEBUG=1 -fno-debug-opt
+	COMPILER_FLAGS += -DDEBUG=1
+	
+	ifeq ($(shell uname -r), 5.1)
+		COMPILER_FLAGS += -fno-debug-opt
+	endif
+
 endif
 
 TARGET_DIR=.
