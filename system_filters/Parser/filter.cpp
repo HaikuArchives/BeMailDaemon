@@ -56,6 +56,9 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 		buf[len] = 0;
 		string.SetTo(buf);
 		
+		if (string.FindFirst(": ") < 0)
+			continue;
+		
 		string.CopyInto(piece,0,string.FindFirst(": "));
 		piece.ToLower(); //-------Unified case for later fetch
 		
