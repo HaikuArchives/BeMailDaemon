@@ -44,6 +44,13 @@ All rights reserved.
 
 #include <SupportDefs.h>
 
+namespace Zoidberg {
+namespace Mail {
+	class Message;
+}
+}
+using namespace Zoidberg;
+
 //====================================================================
 
 #ifdef __cplusplus
@@ -55,15 +62,15 @@ extern status_t ReadAttrString(BNode *node, const char *attr, BString *value);
 extern "C" {
 #endif
 
-int32 cistrcmp(const char*, const char*);
-int32 cistrncmp(const char*, const char*, int32);
-char* cistrstr(char*, char*);
-void extract(char**, char*);
-void get_recipients(char**, char*, int32, bool);
-void verify_recipients(char**);
+int32 cistrcmp(const char *, const char *);
+int32 cistrncmp(const char *, const char *, int32);
+char *cistrstr(const char *, const char *);
+void extract(char **dest, const char *source);
+void get_recipients(char **dest, Mail::Message *mail, bool all);
+void verify_recipients(char **);
 int32 linelen(char*, int32, bool);
 bool get_parameter(const char *src, char *param, BString *dest);
-char* find_boundary(char*, char*, int32);
+char* find_boundary(char *, char *, int32);
 
 #ifdef __cplusplus
 }

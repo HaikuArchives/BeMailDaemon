@@ -48,6 +48,8 @@ All rights reserved.
 #include <TypeConstants.h>
 #include <fs_attr.h>
 
+#include <MailMessage.h>
+
 #include "Utilities.h"
 
 
@@ -140,7 +142,7 @@ int32 cistrncmp(const char *str1, const char *str2, int32 max)
 // case-insensitive version of strstr
 //
 
-char* cistrstr(char *cs, char *ct)
+char *cistrstr(const char *cs, const char *ct)
 {
 	char		c1;
 	char		c2;
@@ -164,11 +166,11 @@ char* cistrstr(char *cs, char *ct)
 			if (c1 != c2)
 				goto next;
 		}
-		return(&cs[loop1]);
+		return const_cast<char *>(&cs[loop1]);
 next:;
 	}
 done:;
-	return(NULL);
+	return NULL;
 }
 
 
@@ -176,8 +178,11 @@ done:;
 // Un-fold field and add items to dst
 //
 
-void extract(char **dst, char *src)
+void extract(char **dst, const char *src)
 {
+	if (src == NULL)
+		return;
+
 	bool		remove_ws = true;
 	int32		comma = 0;
 	int32		count = 0;
@@ -188,12 +193,16 @@ void extract(char **dst, char *src)
 	if (strlen(*dst))
 		comma = 2;
 
-	for (;;) {
-		if ((src[index] == '\r') || (src[index] == '\n')) {
-			if (count) {
+	for (;;)
+	{
+		if (!src[index])
+		{
+			if (count)
+			{
 				len = strlen(*dst);
 				*dst = (char *)realloc(*dst, len + count + comma + 1);
-				if (comma) {
+				if (comma)
+				{
 					(*dst)[len++] = ',';
 					(*dst)[len++] = ' ';
 					comma = 0;
@@ -208,16 +217,20 @@ void extract(char **dst, char *src)
 					break;
 			}
 		}
-		else {
-			if ((remove_ws) && ((src[index] == ' ') || (src[index] == '\t'))) {
+		else
+		{
+			if ((remove_ws) && ((src[index] == ' ') || (src[index] == '\t')))
+			{
+				// just ignore that whitespace
 			}
-			else {
+			else
+			{
 				remove_ws = false;
 				count++;
 			}
 		}
 		index++;
-		if(index > srcLen)
+		if (index > srcLen)
 			break;
 	}
 }
@@ -227,26 +240,17 @@ void extract(char **dst, char *src)
 // get list of recipients
 //
 
-void get_recipients(char **str, char *header, int32 len, bool all)
+void get_recipients(char **dest, Mail::Message *mail, bool all)
 {
-	int32		start;
-
-	start = 0;
-	for (;;) {
-		if (!(cistrncmp("To: ", &header[start], strlen("To: ") - 1))) 
-			extract(str, &header[start + strlen("To: ")]);
-		else if (!(cistrncmp("Cc: ", &header[start], strlen("Cc: ") - 1)))
-			extract(str, &header[start + strlen("Cc: ")]);
-		else if ((all) && (!(cistrncmp("From: ", &header[start], strlen("From: ") - 1))))
-			extract(str, &header[start + strlen("From: ")]);
-		else if ((all) && (!(cistrncmp("Reply-To: ", &header[start], strlen("Reply-To: ") - 1))))
-			extract(str, &header[start + strlen("Reply-To: ")]);
-		start += linelen(&header[start], len - start, true);
-
-		if (start >= len)
-			break;
+	extract(dest,mail->To());
+	extract(dest,mail->CC());
+	if (all)
+	{
+		extract(dest,mail->From());
+		extract(dest,mail->ReplyTo());
 	}
-	verify_recipients(str);
+
+	verify_recipients(dest);
 }
 
 
