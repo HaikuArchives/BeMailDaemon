@@ -65,6 +65,7 @@ class StatusView : public BBox {
 				int32	CountTotalItems();
 				void	SetTotalItems(int32 items);
 				void	AddItem(void);
+				void	Reset(bool hide = true);
 		
 		virtual			~StatusView();
 
@@ -79,6 +80,8 @@ class StatusView : public BBox {
 		int32			items_now;
 		int32			total_items;
 		bool			is_upstream;
+		bool			by_bytes;
+		char 			pre_text[255];
 
 		uint32			_reserved[5];
 };
