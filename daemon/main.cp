@@ -388,8 +388,6 @@ void MailDaemonApp::SendPendingMessages() {
 }
 
 void MailDaemonApp::Pulse() {
-	if (led->IsRunning() && (idle_time() < 100000)) {		
+	if (led->IsRunning() && (idle_time() < 999999))		
 		led->Stop();
-		printf("LED Stopped\n");	
-	}
 }
