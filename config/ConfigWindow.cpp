@@ -43,8 +43,10 @@
 // define if you want to have an apply button
 //#define HAVE_APPLY_BUTTON
 
-const char *kEMail = "zoidberg@bug-br.org.br";
-const char *kMailto = "mailto:zoidberg@bug-br.org.br";
+const char *kEMail = "bemaildaemon@bug-br.org.br";
+const char *kMailto = "mailto:bemaildaemon@bug-br.org.br";
+const char *kBugsitePretty = "Bug-Tracker at SourceForge.net";
+const char *kBugsite = "http://sourceforge.net/tracker/?func=add&group_id=26926&atid=388726";
 const char *kWebsite = "http://www.bug-br.org.br/zoidberg/";
 const rgb_color kLinkColor = {40,40,180};
 
@@ -139,11 +141,12 @@ class AboutTextView : public BTextView
 						"by Dr. Zoidberg Enterprises. All rights reserved.\n\n"
 						"Version %ld.%ld.%ld %s\n\n"
 						"See LICENSE file included in the installation package for more information.\n\n\n\n"
-						"Submit bug reports, feature requests, suggestions or money to:\n"
+						"You can contact us at:\n"
 						"%s\n\n"
+						"Please submit bug reports using the %s\n\n"
 						"Project homepage at:\n%s",
 						major,middle,minor,varietyString,
-						kEMail,kWebsite);
+						kEMail,kBugsitePretty,kWebsite);
 
 			SetText(s);
 			MakeEditable(false);
@@ -168,6 +171,11 @@ class AboutTextView : public BTextView
 			GetTextRegion(start,finish,&fMail);
 			SetFontAndColor(start,finish,NULL,0,&kLinkColor);
 
+			start = strstr(s,kBugsitePretty) - s;
+			finish = start + strlen(kBugsitePretty);
+			GetTextRegion(start,finish,&fBugsite);
+			SetFontAndColor(start,finish,NULL,0,&kLinkColor);
+
 			start = strstr(s,kWebsite) - s;
 			finish = start + strlen(kWebsite);
 			GetTextRegion(start,finish,&fWebsite);
@@ -180,6 +188,8 @@ class AboutTextView : public BTextView
 			
 			BRect rect(fMail.Frame());
 			StrokeLine(BPoint(rect.left,rect.bottom-2),BPoint(rect.right,rect.bottom-2));
+			rect = fBugsite.Frame();
+			StrokeLine(BPoint(rect.left,rect.bottom-2),BPoint(rect.right,rect.bottom-2));
 			rect = fWebsite.Frame();
 			StrokeLine(BPoint(rect.left,rect.bottom-2),BPoint(rect.right,rect.bottom-2));
 		}
@@ -191,6 +201,11 @@ class AboutTextView : public BTextView
 				char *arg[] = {(char *)kMailto,NULL};
 				be_roster->Launch("text/x-email",1,arg);
 			}
+			else if (fBugsite.Contains(point))
+			{
+				char *arg[] = {(char *)kBugsite,NULL};
+				be_roster->Launch("text/html",1,arg);
+			}
 			else if (fWebsite.Contains(point))
 			{
 				char *arg[] = {(char *)kWebsite,NULL};
@@ -199,7 +214,7 @@ class AboutTextView : public BTextView
 		}
 	
 	private:
-		BRegion	fWebsite,fMail;
+		BRegion	fWebsite,fMail,fBugsite;
 };
 
 
@@ -345,6 +360,31 @@ ConfigWindow::ConfigWindow()
 	fStatusWorkspaceField = new BMenuField(rect,"status workspace","Window visible on:",workspacesPopUp);
 	fStatusWorkspaceField->SetDivider(labelWidth);
 	box->AddChild(fStatusWorkspaceField);
+
+	rect = box->Frame();  rect.bottom = rect.top + 2*height + 13;
+	box = new BBox(rect);
+	box->SetLabel("Deskbar Icon");
+	view->AddChild(box);
+
+	rect = box->Bounds().InsetByCopy(8,8);
+	rect.left += 100;  rect.right -= 100;
+	rect.top += 7;
+	BButton *button = new BButton(rect,B_EMPTY_STRING,"Configure Menu Links",msg = new BMessage(B_REFS_RECEIVED));
+	box->AddChild(button);
+	button->SetTarget(BMessenger("application/x-vnd.Be-TRAK"));
+
+	BPath path;
+	find_directory(B_USER_SETTINGS_DIRECTORY,&path);
+	path.Append("Mail/Menu Links");
+	BEntry entry(path.Path());
+	if (entry.InitCheck() == B_OK && entry.Exists())
+	{
+		entry_ref ref;
+		entry.GetRef(&ref);
+		msg->AddRef("refs",&ref);
+	}
+	else
+		button->SetEnabled(false);
 
 	rect = box->Frame();  rect.bottom = rect.top + 2*height + 6;
 	box = new BBox(rect);
