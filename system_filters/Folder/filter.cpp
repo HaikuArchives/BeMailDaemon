@@ -111,7 +111,6 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	dir.SetTo(path.Path());
 	
 	status_t err = e->MoveTo(&dir);
-	
 	if (err != B_OK)
 	{
 		BString error;
@@ -120,72 +119,73 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 		Mail::ShowAlert("Folder Error",error.String(),"OK",B_WARNING_ALERT);
 		
 		return MD_ERROR;
-	} else {
-		BNode node(e);
-		
-		(*io)->Seek(0,SEEK_END);
-		
-		BNodeInfo info(&node);
-		info.SetType(B_MAIL_TYPE);
-		
-		BMessage attributes;
-		
-		attributes.AddString("MAIL:unique_id",io_uid->String());
-		attributes.AddString("MAIL:status","New");
-		attributes.AddString("MAIL:account",Mail::Chain(chain_id).Name());
-		attributes.AddInt32("MAIL:chain",chain_id);
-		
-		size_t length = (*io)->Position();
-		length -= out_headers->FindInt32(B_MAIL_ATTR_HEADER);
-		if (attributes.ReplaceInt32(B_MAIL_ATTR_CONTENT,length) != B_OK)
-			attributes.AddInt32(B_MAIL_ATTR_CONTENT,length);
-		
-		const char *buf;
-		time_t when;
-		for (int i=0; gDefaultFields[i].rfc_name; ++i)
-		{
-			out_headers->FindString(gDefaultFields[i].rfc_name,&buf);
-			if (buf == NULL)
-				continue;
-			
-			switch (gDefaultFields[i].attr_type){
-			case B_STRING_TYPE:
-				attributes.AddString(gDefaultFields[i].attr_name, buf);
-				break;
-			
-			case B_TIME_TYPE:
-				when = parsedate(buf, time((time_t *)NULL));
-				if (when == -1) when = time((time_t *)NULL);
-				attributes.AddData(B_MAIL_ATTR_WHEN, B_TIME_TYPE, &when, sizeof(when));
-				break;
-			}
-		}
-		
-		node << attributes;
-		
-		BString name = attributes.FindString("MAIL:subject");
-		
-		name << ": <" << attributes.FindString("MAIL:from") << ">";
-		
-		BString worker;
-		int32 uniquer = time(NULL);
-		worker << name << uniquer;
-		
-		worker.ReplaceAll('/', '_');
-
-		while (destination.Contains(worker.String())) {
-			worker = name;
-			uniquer++;
-			
-			worker << ' ' << uniquer;
-		}
-		
-		err = e->Rename(worker.String());
-		if (err < B_OK)
-			printf("could not rename mail (%s)! (should be: %s)\n",strerror(err),worker.String());
-
-		return MD_HANDLED;
 	}
+
+	BNode node(e);
+	
+	(*io)->Seek(0,SEEK_END);
+	
+	BNodeInfo info(&node);
+	info.SetType(B_MAIL_TYPE);
+	
+	BMessage attributes;
+	
+	attributes.AddString("MAIL:unique_id",io_uid->String());
+	attributes.AddString("MAIL:status","New");
+	attributes.AddString("MAIL:account",Mail::Chain(chain_id).Name());
+	attributes.AddInt32("MAIL:chain",chain_id);
+	
+	size_t length = (*io)->Position();
+	length -= out_headers->FindInt32(B_MAIL_ATTR_HEADER);
+	if (attributes.ReplaceInt32(B_MAIL_ATTR_CONTENT,length) != B_OK)
+		attributes.AddInt32(B_MAIL_ATTR_CONTENT,length);
+	
+	const char *buf;
+	time_t when;
+	for (int i = 0; gDefaultFields[i].rfc_name; ++i)
+	{
+		out_headers->FindString(gDefaultFields[i].rfc_name,&buf);
+		if (buf == NULL)
+			continue;
+		
+		switch (gDefaultFields[i].attr_type){
+		case B_STRING_TYPE:
+			attributes.AddString(gDefaultFields[i].attr_name, buf);
+			break;
+		
+		case B_TIME_TYPE:
+			when = parsedate(buf, time((time_t *)NULL));
+			if (when == -1) when = time((time_t *)NULL);
+			attributes.AddData(B_MAIL_ATTR_WHEN, B_TIME_TYPE, &when, sizeof(when));
+			break;
+		}
+	}
+	
+	node << attributes;
+	
+	BString name = attributes.FindString("MAIL:subject");
+	
+	name << ": <" << attributes.FindString("MAIL:from");
+	name.Truncate(222);
+	name << ">";
+	name.ReplaceAll('/', '_');
+	
+	BString worker;
+	int32 uniquer = time(NULL);
+	worker << name << uniquer;
+
+	while (destination.Contains(worker.String())) {
+		worker = name;
+		uniquer++;
+		
+		worker << ' ' << uniquer;
+	}
+	
+	err = e->Rename(worker.String());
+	if (err < B_OK)
+		printf("could not rename mail (%s)! (should be: %s)\n",strerror(err),worker.String());
+
+	return MD_HANDLED;
 }
 
 
