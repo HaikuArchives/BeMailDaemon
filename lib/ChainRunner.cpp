@@ -44,6 +44,28 @@ struct filter_image {
 
 BLocker list_lock("mdr_chainrunner_lock");
 BList running_chains, running_chain_pointers;
+
+#if USE_NASTY_SYNC_THREAD_HACK
+	int32 ChainRunner::thread_sync_func(void *arg) {
+		ChainRunner *us = ((ChainRunner *)(arg));
+		us->Lock();
+		status_t val = us->Init();
+		us->Unlock();
+		return val;
+	}
+	
+	status_t ChainRunner::init_addons() {
+		thread_id thread = spawn_thread(&thread_sync_func,NULL,10,this);
+		Unlock();
+		resume_thread(thread);
+		status_t result;
+		wait_for_thread(thread,&result);
+		Lock();
+		return result;
+	}
+#else
+	#define init_addons Init
+#endif
 	
 _EXPORT ChainRunner *
 Mail::GetRunner(int32 chain_id, Mail::StatusWindow *status, bool selfDestruct)
@@ -218,75 +240,76 @@ ChainRunner::CallCallbacksFor(BList &list, status_t code)
 	list.MakeEmpty();
 }
 
+status_t ChainRunner::Init() {
+	status_t big_err = B_OK;
+	BString desc;
+	entry_ref addon;
+
+	MDR_DIALECT_CHOICE (
+	desc << ((_chain->ChainDirection() == inbound) ? "Fetching" : "Sending") << " mail for " << _chain->Name(),
+	desc << _chain->Name() << ((_chain->ChainDirection() == inbound) ? "より受信中..." : "へ送信中...")
+	);
+
+	_status->Lock();
+	_statview = _status->NewStatusView(desc.String(),_chain->ChainDirection() == outbound);
+	_status->Unlock();
+
+	BMessage settings;
+	for (int32 i = 0; _chain->GetFilter(i,&settings,&addon) >= B_OK; i++) {
+		struct filter_image *image = new struct filter_image;
+		BPath path(&addon);
+		Mail::Filter *(* instantiate)(BMessage *,Mail::ChainRunner *);
+
+		image->id = load_add_on(path.Path());
+
+		if (image->id < B_OK) {
+			BString error;
+			MDR_DIALECT_CHOICE (
+				error << "Error loading the mail addon " << path.Path() << " from chain " << _chain->Name() << ": " << strerror(image->id);
+				ShowError(error.String());,
+				error << "メールアドオン " << path.Path() << " を " << _chain->Name() << "から読み込む際にエラーが発生しました: " << strerror(image->id);
+				ShowError(error.String());
+			)
+			return image->id;
+		}
+
+		status_t err = get_image_symbol(image->id,"instantiate_mailfilter",B_SYMBOL_TYPE_TEXT,(void **)&instantiate);
+		if (err < B_OK) {
+			BString error;
+			MDR_DIALECT_CHOICE (
+				error << "Error loading the mail addon " << path.Path() << " from chain " << _chain->Name()
+					<< ": the addon does not seem to be a mail addon (missing symbol instantiate_mailfilter).";
+				ShowError(error.String());,
+				error << "メールアドオン " << path.Path() << " を " << _chain->Name() << "から読み込む際にエラーが発生しました"
+						<< ": そのアドオンはメールアドオンではないようです（instantiate_mailfilterシンボルがありません）";
+				ShowError(error.String());
+			)
+
+			err = -1;
+			return err;
+		}
+
+		image->settings = new BMessage(settings);
+
+		image->settings->AddInt32("chain",_chain->ID());
+		image->filter = (*instantiate)(image->settings,this);
+		addons.AddItem(image);
+
+		if ((big_err = image->filter->InitCheck()) != B_OK) {
+			//printf("InitCheck() failed (%s) in add-on %s\n",strerror(big_err),path.Path());
+			break;
+		}
+	}
+	return big_err;
+}
 
 void
 ChainRunner::MessageReceived(BMessage *msg)
 {
 	switch (msg->what) {
-		case 'INIT': {
-			status_t big_err = B_OK;
-			BString desc;
-			entry_ref addon;
-
-			MDR_DIALECT_CHOICE (
-			desc << ((_chain->ChainDirection() == inbound) ? "Fetching" : "Sending") << " mail for " << _chain->Name(),
-			desc << _chain->Name() << ((_chain->ChainDirection() == inbound) ? "より受信中..." : "へ送信中...")
-			);
-
-			_status->Lock();
-			_statview = _status->NewStatusView(desc.String(),_chain->ChainDirection() == outbound);
-			_status->Unlock();
-
-			BMessage settings;
-			for (int32 i = 0; _chain->GetFilter(i,&settings,&addon) >= B_OK; i++) {
-				struct filter_image *image = new struct filter_image;
-				BPath path(&addon);
-				Mail::Filter *(* instantiate)(BMessage *,Mail::ChainRunner *);
-
-				image->id = load_add_on(path.Path());
-
-				if (image->id < B_OK) {
-					BString error;
-					MDR_DIALECT_CHOICE (
-						error << "Error loading the mail addon " << path.Path() << " from chain " << _chain->Name() << ": " << strerror(image->id);
-						ShowError(error.String());,
-						error << "メールアドオン " << path.Path() << " を " << _chain->Name() << "から読み込む際にエラーが発生しました: " << strerror(image->id);
-						ShowError(error.String());
-					)
-					return;
-				}
-
-				status_t err = get_image_symbol(image->id,"instantiate_mailfilter",B_SYMBOL_TYPE_TEXT,(void **)&instantiate);
-				if (err < B_OK) {
-					BString error;
-					MDR_DIALECT_CHOICE (
-						error << "Error loading the mail addon " << path.Path() << " from chain " << _chain->Name()
-							<< ": the addon does not seem to be a mail addon (missing symbol instantiate_mailfilter).";
-						ShowError(error.String());,
-						error << "メールアドオン " << path.Path() << " を " << _chain->Name() << "から読み込む際にエラーが発生しました"
- 							<< ": そのアドオンはメールアドオンではないようです（instantiate_mailfilterシンボルがありません）";
-						ShowError(error.String());
-					)
-
-					err = -1;
-					return;
-				}
-
-				image->settings = new BMessage(settings);
-
-				image->settings->AddInt32("chain",_chain->ID());
-				image->filter = (*instantiate)(image->settings,this);
-				addons.AddItem(image);
-
-				if ((big_err = image->filter->InitCheck()) != B_OK) {
-					//printf("InitCheck() failed (%s) in add-on %s\n",strerror(big_err),path.Path());
-					break;
-				}
-			}
-			if (big_err == B_OK)
+		case 'INIT':
+			if (init_addons() == B_OK)
 				break;
-		}
-
 		case 'STOP': {
 			
 			CallCallbacksFor(chain_cb, B_OK);
@@ -498,6 +521,9 @@ ChainRunner::Stop()
 void
 ChainRunner::GetMessages(StringList *list, int32 bytes)
 {
+	if (list->CountItems() < 1)
+		return;
+		
 	BMessage msg('GETM');
 	msg.AddFlat("messages",list);
 	msg.AddInt32("bytes",bytes);

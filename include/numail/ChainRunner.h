@@ -77,6 +77,11 @@ class ChainRunner : public BLooper {
 	private:
 		void CallCallbacksFor(BList &list, status_t code);
 		void get_messages(StringList *list);
+		status_t Init();
+		#if USE_NASTY_SYNC_THREAD_HACK
+			static int32 thread_sync_func(void *arg);
+			status_t init_addons();
+		#endif
 	
 		Mail::Chain *_chain;
 		BList message_cb, process_cb, chain_cb;
