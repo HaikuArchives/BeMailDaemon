@@ -13,6 +13,11 @@
  * which gives a better spread in spam ratios and slightly fewer
  * misclassifications.
  *
+ * Note that this uses the AGMS coding style, not the OpenTracker one.  That
+ * means no tabs, indents are two spaces, m_ is the prefix for member
+ * variables, g_ is the prefix for global names, C style comments, constants
+ * are in all capital letters and most other things are mixed case.
+ *
  * The Original Design:
  * There is a spam database (just a file listing words and number of times they
  * were used in spam and non-spam messages) that a BeMailDaemon input filter
@@ -66,8 +71,11 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
- * Revision 1.2  2002/11/03 22:54:38  agmsmith
- * Trying to update to version 1.61 to match old RCS version numbers.
+ * Revision 1.61  2002/11/03 23:00:37  agmsmith
+ * Added to the bemaildaemon project on SourceForge.  Hmmmm, seems to switch to
+ * a new version if I commit and specify a message, but doesn't accept the
+ * message and puts up the text editor.  Must be a bug where cvs eats the first
+ * option after "commit".
  *
  * Revision 1.60.1.1  2002/10/22 14:29:27  agmsmith
  * Needed to recompile with the original Libmail.so from Beta/1 since
@@ -442,23 +450,24 @@ static struct property_info g_ScriptingPropertyList [] =
   {g_PropertyNames[PN_DATABASE_FILE], {B_GET_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "Get the pathname of the current database file.  "
     "The default name is something like B_USER_SETTINGS_DIRECTORY / "
-    "AGMSBayesianSpam / AGMSBayesianSpamServer Database", PN_DATABASE_FILE},
+    "AGMSBayesianSpam / AGMSBayesianSpamServer Database", PN_DATABASE_FILE,
+    {}, {}, {}},
   {g_PropertyNames[PN_DATABASE_FILE], {B_SET_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "Change the pathname of the database file to "
     "use.  It will automatically be converted to an absolute path name, "
     "so make sure the parent directories exist before setting it.  If it "
     "doesn't exist, you'll have to use the create command next.",
-    PN_DATABASE_FILE},
+    PN_DATABASE_FILE, {}, {}, {}},
   {g_PropertyNames[PN_DATABASE_FILE], {B_CREATE_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "Creates a new empty database, will replace "
-    "the existing database file too.", PN_DATABASE_FILE},
+    "the existing database file too.", PN_DATABASE_FILE, {}, {}, {}},
   {g_PropertyNames[PN_DATABASE_FILE], {B_DELETE_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "Deletes the database file and all backup copies "
     "of that file too.  Really only of use for uninstallers.",
-    PN_DATABASE_FILE},
+    PN_DATABASE_FILE, {}, {}, {}},
   {g_PropertyNames[PN_DATABASE_FILE], {B_COUNT_PROPERTIES, 0},
     {B_DIRECT_SPECIFIER, 0}, "Returns the number of words in the database.",
-    PN_DATABASE_FILE},
+    PN_DATABASE_FILE, {}, {}, {}},
   {g_PropertyNames[PN_SPAM], {B_SET_PROPERTY, 0}, {B_DIRECT_SPECIFIER, 0},
     "Adds the spam in the given file (specify full pathname to be safe) to "
     "the database.  The words in the files will be added to the list of words "
@@ -470,15 +479,16 @@ static struct property_info g_ScriptingPropertyList [] =
     "statistics for the old class and added to the statistics for the new "
     "one).  You can turn off that behaviour with the "
     "IgnorePreviousClassification property.  The command line version lets "
-    "you specify more than one pathname.", PN_SPAM},
+    "you specify more than one pathname.", PN_SPAM, {}, {}, {}},
   {g_PropertyNames[PN_SPAM], {B_COUNT_PROPERTIES, 0}, {B_DIRECT_SPECIFIER, 0},
-    "Returns the number of spam messages in the database.", PN_SPAM},
+    "Returns the number of spam messages in the database.", PN_SPAM,
+    {}, {}, {}},
   {g_PropertyNames[PN_GENUINE], {B_SET_PROPERTY, 0}, {B_DIRECT_SPECIFIER, 0},
     "Similar to adding spam except that the messages are added to the genuine "
-    "statistics.", PN_GENUINE},
+    "statistics.", PN_GENUINE, {}, {}, {}},
   {g_PropertyNames[PN_GENUINE], {B_COUNT_PROPERTIES, 0},
     {B_DIRECT_SPECIFIER, 0}, "Returns the number of genuine messages in the "
-    "database.", PN_GENUINE},
+    "database.", PN_GENUINE, {}, {}, {}},
   {g_PropertyNames[PN_IGNORE_PREVIOUS_CLASSIFICATION], {B_SET_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "If set to true then the previous classification "
     "(which was saved as an attribute of the e-mail message file) will be "
@@ -488,23 +498,24 @@ static struct property_info g_ScriptingPropertyList [] =
     "will be done.  If it was misclassified, then the message will be removed "
     "from the statistics for the old class and added to the stats for the "
     "new classification you have requested.",
-    PN_IGNORE_PREVIOUS_CLASSIFICATION},
+    PN_IGNORE_PREVIOUS_CLASSIFICATION, {}, {}, {}},
   {g_PropertyNames[PN_IGNORE_PREVIOUS_CLASSIFICATION], {B_GET_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "Find out the current setting of the flag for "
     "ignoring the previously recorded classification.",
-    PN_IGNORE_PREVIOUS_CLASSIFICATION},
+    PN_IGNORE_PREVIOUS_CLASSIFICATION, {}, {}, {}},
   {g_PropertyNames[PN_SERVER_MODE], {B_SET_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "If set to true then error messages get printed "
     "to the standard error stream rather than showing up in an alert box.  "
-    "It also starts up with the window minimized.", PN_SERVER_MODE},
+    "It also starts up with the window minimized.", PN_SERVER_MODE,
+    {}, {}, {}},
   {g_PropertyNames[PN_SERVER_MODE], {B_GET_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "Find out the setting of the server mode flag.",
-    PN_SERVER_MODE},
+    PN_SERVER_MODE, {}, {}, {}},
   {g_PropertyNames[PN_FLUSH], {B_EXECUTE_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "Writes out the database file to disk, if it has "
     "been updated in memory but hasn't been saved to disk.  It will "
     "automatically get written when the program exits, so this command is "
-    "mostly useful for server mode.", PN_FLUSH},
+    "mostly useful for server mode.", PN_FLUSH, {}, {}, {}},
   {g_PropertyNames[PN_PURGE_AGE], {B_SET_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "Sets the old age limit.  Words which haven't "
       "been updated since this many message additions to the database may be "
@@ -516,9 +527,10 @@ static struct property_info g_ScriptingPropertyList [] =
       "removing those one time words which are often hunks of binary garbage, "
       "not real words.  This acts in combination with the popularity limit; "
       "both conditions have to be valid before the word gets deleted.",
-      PN_PURGE_AGE},
+      PN_PURGE_AGE, {}, {}, {}},
   {g_PropertyNames[PN_PURGE_AGE], {B_GET_PROPERTY, 0},
-    {B_DIRECT_SPECIFIER, 0}, "Gets the old age limit.", PN_PURGE_AGE},
+    {B_DIRECT_SPECIFIER, 0}, "Gets the old age limit.", PN_PURGE_AGE,
+    {}, {}, {}},
   {g_PropertyNames[PN_PURGE_POPULARITY], {B_SET_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "Sets the popularity limit.  Words which aren't "
     "this popular may be deleted when you do a purge.  A good value is 5, "
@@ -527,19 +539,20 @@ static struct property_info g_ScriptingPropertyList [] =
     "purged.  The extreme is zero, where only words that haven't been seen "
     "in any message are deleted (usually means no words).  This acts in "
     "combination with the old age limit; both conditions have to be valid "
-    "before the word gets deleted.", PN_PURGE_POPULARITY},
+    "before the word gets deleted.", PN_PURGE_POPULARITY, {}, {}, {}},
   {g_PropertyNames[PN_PURGE_POPULARITY], {B_GET_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "Gets the purge popularity limit.",
-    PN_PURGE_POPULARITY},
+    PN_PURGE_POPULARITY, {}, {}, {}},
   {g_PropertyNames[PN_PURGE], {B_EXECUTE_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "Purges the old obsolete words from the "
     "database, if they are old enough according to the age limit and also "
-    "unpopular enough according to the popularity limit.", PN_PURGE},
+    "unpopular enough according to the popularity limit.", PN_PURGE,
+    {}, {}, {}},
   {g_PropertyNames[PN_OLDEST], {B_GET_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "Gets the age of the oldest message in the "
     "database.  It's relative to the beginning of time, so you need to do "
     "(total messages - age - 1) to see how many messages ago it was added.",
-    PN_OLDEST},
+    PN_OLDEST, {}, {}, {}},
   {g_PropertyNames[PN_EVALUATE], {B_SET_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "Evaluates a given file (by path name) to see "
     "if it is spam or not.  Returns the ratio of spam probability vs genuine "
@@ -548,13 +561,14 @@ static struct property_info g_ScriptingPropertyList [] =
     "0.56.  It attaches a MAIL:ratio_spam attribute with the ratio as its "
     "float32 value to the file.  Also returns the top few interesting words "
     "in \"words\" and the associated per-word probability ratios in "
-    "\"ratios\".", PN_EVALUATE},
+    "\"ratios\".", PN_EVALUATE, {}, {}, {}},
   {g_PropertyNames[PN_EVALUATE_STRING], {B_SET_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "Like Evaluate, but rather than a file, it "
-    "evaluates the string argument directly.", PN_EVALUATE_STRING},
+    "evaluates the string argument directly.", PN_EVALUATE_STRING, {}, {}, {}},
   {g_PropertyNames[PN_RESET_TO_DEFAULTS], {B_EXECUTE_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "Resets all the configuration options to the "
-    "default values, including the database name.", PN_RESET_TO_DEFAULTS},
+    "default values, including the database name.", PN_RESET_TO_DEFAULTS,
+    {}, {}, {}},
   {g_PropertyNames[PN_INSTALL_THINGS], {B_EXECUTE_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "Creates indices for the MAIL:classification and "
     "MAIL:ratio_spam attributes on all volumes which support BeOS queries, "
@@ -563,7 +577,8 @@ static struct property_info g_ScriptingPropertyList [] =
     "(text/x-vnd.agmsmith.spam_probability_database) for the database file.  "
     "Also registers names for the sound effects used by the separate filter "
     "program (use the installsound BeOS program or the Sounds preferences "
-    "program to associate sound files with the names).", PN_INSTALL_THINGS},
+    "program to associate sound files with the names).", PN_INSTALL_THINGS,
+    {}, {}, {}},
   {g_PropertyNames[PN_TOKENIZE_MODE], {B_SET_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "Sets the method used for breaking up the "
     "message into words.  Use \"Whole\" for the whole file (also use it for "
@@ -578,11 +593,12 @@ static struct property_info g_ScriptingPropertyList [] =
     "and look for words in them, including binary attachments.  "
     "\"JustHeader\" will only look for words in the message header.  "
     "\"AllPartsAndHeader\", \"PlainTextAndHeader\" and \"AnyTextAndHeader\" "
-    "will also include the words from the message headers.", PN_TOKENIZE_MODE},
+    "will also include the words from the message headers.", PN_TOKENIZE_MODE,
+    {}, {}, {}},
   {g_PropertyNames[PN_TOKENIZE_MODE], {B_GET_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "Gets the method used for breaking up the "
-    "message into words.", PN_TOKENIZE_MODE},
-  {0} /* End of list of property commands. */
+    "message into words.", PN_TOKENIZE_MODE, {}, {}, {}},
+  {0, {0}, {0}, 0, 0, {}, {}, {}} /* End of list of property commands. */
 };
 
 
@@ -3500,6 +3516,7 @@ status_t ABSApp::PurgeOldWords (char *ErrorMessage)
   StatisticsMap::iterator NextIter;
   char                    TempString [80];
 
+  strcpy (ErrorMessage, "Purge can't fail"); /* So argument gets used. */
   CurrentTime = m_TotalGenuineMessages + m_TotalSpamMessages - 1;
   m_OldestAge = (uint32) -1 /* makes largest number possible */;
 
@@ -5329,7 +5346,7 @@ show the new size (the sub-items need to be resized too).  Then make it redraw.
 Well, actually just resetting the mark on the current item will resize it
 properly. */
 
-void ControlsView::FrameResized (float Width, float Height)
+void ControlsView::FrameResized (float, float)
 {
   m_TokenizeModeCachedValue = TM_MAX; /* Force it to reset the mark. */
 }
@@ -6148,7 +6165,7 @@ void WordsView::MessageReceived (BMessage *MessagePntr)
 
 /* If the user clicks on our view, take over the focus. */
 
-void WordsView::MouseDown (BPoint point)
+void WordsView::MouseDown (BPoint)
 {
   if (!IsFocus ())
     MakeFocus (true);
@@ -6277,7 +6294,7 @@ void WordsView::RefsDroppedHere (BMessage *MessagePntr)
  * Finally, the main program which drives it all.
  */
 
-int main (int argc, char** argv)
+int main (int argc, char**)
 {
   g_CommandLineMode = (argc > 1);
   if (!g_CommandLineMode)
