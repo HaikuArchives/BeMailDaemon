@@ -340,5 +340,3 @@ void RemoteStorageProtocol::SyncMailbox(const char *mailbox) {
 	*message = new_id;
 	return B_OK;
 }*/
-
-			
