@@ -14,10 +14,13 @@ char base64_alphabet[64] = { //----Fast lookup table
   '+',
   '/'
  };
- 
+
 const char hex_alphabet[16] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
 
-_EXPORT ssize_t encode(mail_encoding encoding, char *out, const char *in, off_t length, int encode_spaces) {
+
+_EXPORT ssize_t
+encode(mail_encoding encoding, char *out, const char *in, off_t length, int encode_spaces)
+{
 	switch (encoding) {
 		case base64:
 			return encode_base64(out,in,length);
@@ -34,24 +37,29 @@ _EXPORT ssize_t encode(mail_encoding encoding, char *out, const char *in, off_t 
 	return -1;
 }
 			
-_EXPORT ssize_t decode(mail_encoding encoding, char *out, const char *in, off_t length, int underscore_is_space) {
+
+_EXPORT ssize_t
+decode(mail_encoding encoding, char *out, const char *in, off_t length, int underscore_is_space)
+{
 	switch (encoding) {
 		case base64:
-			return decode_base64(out,in,length);
+			return decode_base64(out, in, length);
 		case quoted_printable:
-			return decode_qp(out,in,length,underscore_is_space);
+			return decode_qp(out, in, length, underscore_is_space);
 		case uuencode:
-			return uu_decode(out,in,length);
+			return uu_decode(out, in, length);
 		case no_encoding:
-			memcpy(out,in,length);
+			memcpy(out, in, length);
 			return length;
 	}
-	
+
 	return -1;
 }
 
-_EXPORT ssize_t max_encoded_length(mail_encoding encoding, off_t cur_length) {
-	
+
+_EXPORT ssize_t
+max_encoded_length(mail_encoding encoding, off_t cur_length)
+{
 	switch (encoding) {
 		case base64:
 		{
@@ -73,7 +81,10 @@ _EXPORT ssize_t max_encoded_length(mail_encoding encoding, off_t cur_length) {
 	return -1;
 }
 
-_EXPORT mail_encoding encoding_for_cte(const char *cte) {
+
+_EXPORT mail_encoding
+encoding_for_cte(const char *cte)
+{
 	if (cte == NULL)
 		return no_encoding;
 	
@@ -87,13 +98,16 @@ _EXPORT mail_encoding encoding_for_cte(const char *cte) {
 	return no_encoding;
 }
 
-_EXPORT ssize_t	encode_base64(char *out, const char *in, register off_t length) {
-	register unsigned long concat;
-	register int i = 0;
-	register int k = 0;
-	register int curr_linelength = 4; //--4 is a safety extension, designed to cause retirement *before* it actually gets too long
-	
-	while ( i < length ) {
+
+_EXPORT ssize_t
+encode_base64(char *out, const char *in, off_t length)
+{
+	unsigned long concat;
+	int i = 0;
+	int k = 0;
+	int curr_linelength = 4; //--4 is a safety extension, designed to cause retirement *before* it actually gets too long
+
+	while (i < length) {
 		concat = ((in[i] & 0xff) << 16);
 		
 		if ((i+1) < length)
@@ -127,54 +141,69 @@ _EXPORT ssize_t	encode_base64(char *out, const char *in, register off_t length) 
 	return k;
 }
 
-_EXPORT  ssize_t	decode_base64(char *out, const char *in, register off_t length) {
-		
-		register unsigned long concat, value;
-		register int i,j;
-		register int k = 0;
-		
-		for (i = 0; i < length; i += 4) {
-			concat = 0;
-			
-			for (j = 0; (j < 4) && ((i + j) < length); j++) {
-				value = in[i+j];
-				
-				if (( value >= 'A' ) && ( value <= 'Z'))
-					value -= 'A';
-				else if (( value >= 'a' ) && ( value <= 'z'))
-					value = value - 'a' + 26;
-				else if (( value >= '0' ) && ( value <= '9'))
-					value = value - '0' + 52;
-				else if ( value == '+' )
-					value = 62;
-				else if ( value == '/' )
-					value = 63;
-				else if ( value == '=' )
-					break;
-				else {
-					i += 2;
-					j--;
-					continue;
-				}
-				
-				value = value << ((3-j)*6);
-				
-				concat |= value;
+
+_EXPORT ssize_t
+decode_base64(char *out, const char *in, off_t length)
+{
+	unsigned long concat, value;
+	int lastOutLine = 0;
+	int i, j;
+	int outIndex = 0;
+
+	for (i = 0; i < length; i += 4) {
+		concat = 0;
+
+		for (j = 0; j < 4 && (i + j) < length; j++) {
+			value = in[i + j];
+
+			if (value == '\n' || value == '\r') {
+				// jump over line breaks
+				lastOutLine = outIndex;
+				i++;
+				j--;
+				continue;
 			}
-			
-			if (j > 1)
-				out[k++] = (concat & 0x00ff0000) >> 16;
-			if (j > 2)
-				out[k++] = (concat & 0x0000ff00) >> 8;
-			if (j > 3)
-				out[k++] = (concat & 0x000000ff);
+
+			if ((value >= 'A') && (value <= 'Z'))
+				value -= 'A';
+			else if ((value >= 'a') && (value <= 'z'))
+				value = value - 'a' + 26;
+			else if ((value >= '0') && (value <= '9'))
+				value = value - '0' + 52;
+			else if (value == '+')
+				value = 62;
+			else if (value == '/')
+				value = 63;
+			else if (value == '=')
+				break;
+			else {
+				// there is an invalid character in this line - we will
+				// ignore the whole line and go to the next
+				outIndex = lastOutLine;
+				while (i < length && in[i] != '\n' && in[i] != '\r')
+					i++;
+				concat = 0;
+			}
+
+			value = value << ((3-j)*6);
+
+			concat |= value;
 		}
-		
-		return k;
+
+		if (j > 1)
+			out[outIndex++] = (concat & 0x00ff0000) >> 16;
+		if (j > 2)
+			out[outIndex++] = (concat & 0x0000ff00) >> 8;
+		if (j > 3)
+			out[outIndex++] = (concat & 0x000000ff);
+	}
+
+	return outIndex;
 }
 
 
-_EXPORT ssize_t	decode_qp(char *out, const char *in, off_t length, int underscore_is_space)
+_EXPORT ssize_t
+decode_qp(char *out, const char *in, off_t length, int underscore_is_space)
 {
 	// decode Quoted Printable
 	char *dataout = out;
@@ -217,8 +246,11 @@ _EXPORT ssize_t	decode_qp(char *out, const char *in, off_t length, int underscor
 	return dataout-out;	
 }
 
-_EXPORT ssize_t	encode_qp(register char *out, register const char *in, register off_t length, register int encode_spaces) {
-	register int g = 0, i = 0;
+
+_EXPORT ssize_t
+encode_qp(char *out, const char *in, off_t length, int encode_spaces)
+{
+	int g = 0, i = 0;
 	
 	for (; i < length; i++) {
 		if ((((unsigned char *)(in))[i] > 127) || (in[i] == '?') || (in[i] == '=') || (in[i] == '_')) {
@@ -235,17 +267,22 @@ _EXPORT ssize_t	encode_qp(register char *out, register const char *in, register 
 	return g;
 }
 
-_EXPORT ssize_t	uu_decode(char *out, const char *in, off_t length) {
+
+_EXPORT ssize_t
+uu_decode(char *out, const char *in, off_t length)
+{
 	long n;
-	uchar *p,*inBuffer = (uchar*)in;
-	uchar *outBuffer = (uchar*)out;
+	uchar *p,*inBuffer = (uchar *)in;
+	uchar *outBuffer = (uchar *)out;
 	
-	inBuffer = (uchar*)strstr((char*)inBuffer,"begin");
+	inBuffer = (uchar *)strstr((char *)inBuffer, "begin");
 	goto enterLoop;
-	while (((inBuffer - (uchar *)in) <= length) && strncmp((char*)inBuffer,"end",3)) {
+
+	while (((inBuffer - (uchar *)in) <= length) && strncmp((char *)inBuffer, "end", 3)) {
 		p = inBuffer;
 		n = DEC(inBuffer[0]);
-		for (++inBuffer; n>0; inBuffer+=4, n-=3) {
+
+		for (++inBuffer; n > 0; inBuffer += 4, n -= 3) {
 			if (n >= 3) {
 				*outBuffer++ = DEC(inBuffer[0]) << 2 | DEC (inBuffer[1]) >> 4;
 				*outBuffer++ = DEC(inBuffer[1]) << 4 | DEC (inBuffer[2]) >> 2;
@@ -256,14 +293,15 @@ _EXPORT ssize_t	uu_decode(char *out, const char *in, off_t length) {
 				if (n >= 2) *outBuffer++ = DEC(inBuffer[1]) << 4
 					| DEC (inBuffer[2]) >> 2;
 			}
-		};
+		}
 		inBuffer = p;
-		enterLoop:
+
+	enterLoop:
 		while ((inBuffer[0] != '\n') && (inBuffer[0] != '\r')
 			&& (inBuffer[0] != 0)) inBuffer++;
 		while ((inBuffer[0] == '\n') || (inBuffer[0] == '\r')) inBuffer++;
 	}
-	
-	return (ssize_t)(outBuffer - ((uchar*)in));
+
+	return (ssize_t)(outBuffer - ((uchar *)in));
 }
 
