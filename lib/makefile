@@ -149,14 +149,6 @@ ifeq ($(DEBUG_BUILD), true)
 
 endif
 
-ifeq ($(shell ls 2>/dev/null -1 /boot/develop/headers/be/bone/bone_api.h), /boot/develop/headers/be/bone/bone_api.h)
-	SYSTEM_INCLUDE_PATHS += /boot/develop/headers/be/bone
-	DEFINES += BONE
-	LIBS += socket
-else
-	LIBS += net
-endif
-
 TARGET_DIR=.
 INSTALL_DIR=/boot/beos/system/lib
 

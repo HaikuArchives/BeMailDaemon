@@ -15,22 +15,28 @@
 #include <stdio.h>
 #include <errno.h>
 #include <netdb.h>
-#include <socket.h>
-
+ 
 #include <status.h>
 #include <ProtocolConfigView.h>
 #include <mail_encoding.h>
 #include <MailSettings.h>
 #include <ChainRunner.h>
 #include <crypt.h>
+#include <unistd.h>
 
 #include "smtp.h"
 #include "md5.h"
 
 #include <MDRLanguage.h>
 
-using namespace Zoidberg;
+#ifdef BONE
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#else
+#include <socket.h>
+#endif
 
+using namespace Zoidberg;
 
 #define CRLF "\r\n"
 #define SMTP_RESPONSE_SIZE 8192
@@ -184,7 +190,11 @@ SMTPProtocol::Open(const char *address, int port, bool esmtp)
 		saAddr.sin_addr.s_addr = hostIP;
 		int result = connect(_fd, (struct sockaddr *) &saAddr, sizeof(saAddr));
 		if (result < 0) {
+#ifdef BONE
+			close(_fd);
+#else
 			closesocket(_fd);
+#endif
 			_fd = -1;
 			return errno;
 		}
@@ -423,8 +433,11 @@ SMTPProtocol::Close()
 	if (SendCommand(cmd.String()) != B_OK) {
 		// Error
 	}
-
+#ifdef BONE
+	close(_fd);
+#else
 	closesocket(_fd);
+#endif
 }
 
 

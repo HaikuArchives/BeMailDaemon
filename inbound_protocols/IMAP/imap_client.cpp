@@ -1,5 +1,4 @@
 #include <RemoteStorageProtocol.h>
-#include <socket.h>
 #include <netdb.h>
 #include <errno.h>
 #include <Message.h>
@@ -17,6 +16,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+
+#ifdef BONE
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#else
+#include <socket.h>
+#endif
 
 #include "NestedString.h"
 
@@ -203,7 +209,11 @@ IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Rem
 		saAddr.sin_addr.s_addr = hostIP;
 		int result = connect(net, (struct sockaddr *) &saAddr, sizeof(saAddr));
 		if (result < 0) {
+#ifdef BONE
+			close(net);
+#else
 			closesocket(net);
+#endif
 			net = -1;
 			BString error;
 			error << "Could not connect to IMAP server " << settings->FindString("server");
@@ -277,7 +287,11 @@ IMAP4Client::~IMAP4Client() {
 		delete (struct mailbox_info *)(box_info.ItemAt(i));
 	
 	delete noop;
+#ifdef BONE
+	close(net);
+#else
 	closesocket(net);
+#endif
 }
 
 void IMAP4Client::InitializeMailboxes() {

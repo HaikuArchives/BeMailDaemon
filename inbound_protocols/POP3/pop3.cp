@@ -9,7 +9,6 @@
 #include <DataIO.h>
 #include <Alert.h>
 #include <Debug.h>
-#include <socket.h>
 #include <netdb.h>
 #include <errno.h>
 
@@ -22,6 +21,13 @@
 
 #include "pop3.h"
 #include "md5.h"
+
+#ifdef BONE
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#else
+#include <socket.h>
+#endif
 
 using namespace Zoidberg;
 
@@ -43,7 +49,11 @@ POP3Protocol::~POP3Protocol()
 {
 	SendCommand("QUIT" CRLF);
 
+#ifdef BONE
+	close(conn);
+#else	
 	closesocket(conn);
+#endif
 }
 
 
@@ -84,7 +94,11 @@ status_t POP3Protocol::Open(const char *server, int port, int)
 		saAddr.sin_addr.s_addr = hostIP;
 		int result = connect(conn, (struct sockaddr *) &saAddr, sizeof(saAddr));
 		if (result < 0) {
+#ifdef BONE
+			close(conn);
+#else
 			closesocket(conn);
+#endif
 			conn = -1;
 			error_msg << ": " << strerror(errno);
 			pop3_error(error_msg.String());
