@@ -48,8 +48,15 @@ MDStatus RuleFilter::ProcessMailMessage
 	BMessage* io_headers, BPath* io_folder, BString* 
 ) {
 	const char *data;
-	if (!attribute || io_headers->FindString(attribute,&data) < B_OK)
+	if (!attribute)
 		return MD_OK; //----That field doesn't exist? NO match
+	
+	if (io_headers->FindString(attribute,&data) < B_OK) { //--Maybe the capitalization was wrong?
+		BString capped(attribute);
+		capped.CapitalizeEachWord(); //----Enfore capitalization
+		if (io_headers->FindString(capped.String(),&data) < B_OK) //----This time it's *really* not there
+			return MD_OK; //---No match
+	}
 
 	if (!matcher.Match(data))
 		return MD_OK; //-----There wasn't an error. We're just not supposed to do anything
