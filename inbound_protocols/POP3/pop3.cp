@@ -214,31 +214,6 @@ status_t POP3Protocol::Retrieve(int32 message, BPositionIO *write_to)
 	}
 
 	return returnCode;
-
-#if 0
-    // Occasional bugs with this code, sometimes see "+OK 2881 octets" text in message.
-	int32 message_len = MessageSize(message);
-	if (SendCommand(cmd.String()) != B_OK)
-		return B_ERROR;
-	int32 octets_read = 0;
-	int32 temp;
-	char *buffer = new char[message_len];
-
-	while (octets_read < message_len) {
-		temp = conn.Receive(buffer + octets_read,message_len - octets_read);
-		if (temp < 0)
-			return conn.Error();
-		if (temp == 0)
-			return -1; // Shouldn't happen, but...
-		runner->ReportProgress(temp,0);
-		octets_read += temp;
-	}
-	write_to->Write(buffer,message_len);
-	conn.Receive(buffer,5);
-	delete [] buffer;
-	runner->ReportProgress(0,1);
-	return B_OK;
-#endif
 }
 
 
