@@ -1833,122 +1833,128 @@ TTextView::AddAsContent(Mail::Message *mail, bool wrap, uint32 charset, mail_enc
 		if (mail->SetBody(body = new Mail::TextComponent()) < B_OK)
 			return;
 	}
-	body->SetEncoding(encoding,charset);
-	if (!wrap)
-		body->AppendText(text); //, textLen, mail_encoding);
-	else {
-		// Do word wrapping.
+	body->SetEncoding(encoding, charset);
 
-		BWindow	*window = Window();
-		BRect	saveTextRect = TextRect();
-		
-		// do this before we start messing with the fonts
-		// the user will never know...
-		window->DisableUpdates();
-		Hide();
-		BScrollBar *vScroller = ScrollBar(B_VERTICAL);
-		BScrollBar *hScroller = ScrollBar(B_HORIZONTAL);
-		if (vScroller != NULL)
-			vScroller->SetTarget((BView *)NULL);
-		if (hScroller != NULL)
-			hScroller->SetTarget((BView *)NULL);
+	// Just add the text as a whole if we can, or ...
+	if (!wrap) {
+		body->AppendText(text);
+		return;
+	}
 
-		// Temporarily set the font to a fixed width font for line wrapping
-		// calculations.  If the font doesn't have as many of the symbols as
-		// the preferred font, go back to using the user's preferred font.
+	// ... do word wrapping.
 
-		bool	*boolArray;
-		int		 missingCharactersFixedWidth = 0;
-		int		 missingCharactersPreferredFont = 0;
-		int32	 numberOfCharacters;
-		BString	 textAsBString (text);
+	BWindow	*window = Window();
+	BRect saveTextRect = TextRect();
 
-		numberOfCharacters = textAsBString.CountChars();
-		if (numberOfCharacters > 0 && (boolArray = (bool *)
-			malloc (sizeof (bool) * numberOfCharacters)) != NULL) {
-			int i;
-			memset (boolArray, 0, sizeof (bool) * numberOfCharacters);
-			be_fixed_font->GetHasGlyphs (text, numberOfCharacters, boolArray);
-			for (i = 0; i < numberOfCharacters; i++)
-				if (!boolArray[i])
-					missingCharactersFixedWidth += 1;
-			memset (boolArray, 0, sizeof (bool) * numberOfCharacters);
-			fFont.GetHasGlyphs (text, numberOfCharacters, boolArray);
-			for (i = 0; i < numberOfCharacters; i++)
-				if (!boolArray[i])
-					missingCharactersPreferredFont += 1;
-			free (boolArray);
+	// do this before we start messing with the fonts
+	// the user will never know...
+	window->DisableUpdates();
+	Hide();
+	BScrollBar *vScroller = ScrollBar(B_VERTICAL);
+	BScrollBar *hScroller = ScrollBar(B_HORIZONTAL);
+	if (vScroller != NULL)
+		vScroller->SetTarget((BView *)NULL);
+	if (hScroller != NULL)
+		hScroller->SetTarget((BView *)NULL);
+
+	// Temporarily set the font to a fixed width font for line wrapping
+	// calculations.  If the font doesn't have as many of the symbols as
+	// the preferred font, go back to using the user's preferred font.
+
+	bool *boolArray;
+	int missingCharactersFixedWidth = 0;
+	int missingCharactersPreferredFont = 0;
+	int32 numberOfCharacters;
+
+	numberOfCharacters = BString(text).CountChars();
+	if (numberOfCharacters > 0
+		&& (boolArray = (bool *)malloc(sizeof(bool) * numberOfCharacters)) != NULL) {
+		memset(boolArray, 0, sizeof (bool) * numberOfCharacters);
+		be_fixed_font->GetHasGlyphs(text, numberOfCharacters, boolArray);
+		for (int i = 0; i < numberOfCharacters; i++) {
+			if (!boolArray[i])
+				missingCharactersFixedWidth += 1;
 		}
 
-		if (missingCharactersFixedWidth > missingCharactersPreferredFont)
-			SetFontAndColor(0, textLen, &fFont);
-		else // All things being equal, the fixed font is better for wrapping.
-			SetFontAndColor(0, textLen, be_fixed_font);
+		memset(boolArray, 0, sizeof (bool) * numberOfCharacters);
+		fFont.GetHasGlyphs(text, numberOfCharacters, boolArray);
+		for (int i = 0; i < numberOfCharacters; i++) {
+			if (!boolArray[i])
+				missingCharactersPreferredFont += 1;
+		}
 
-		// calculate a text rect that is 72 columns wide
-		BRect newTextRect = saveTextRect;
-		newTextRect.right = newTextRect.left + (be_fixed_font->StringWidth("m") * 72);
-		SetTextRect(newTextRect);
+		free(boolArray);
+	}
 
-		// hard-wrap, based on TextView's soft-wrapping
-		int32	numLines = CountLines();
-		char	*content = (char *)malloc(textLen + numLines * 72);	// more we'll ever need
-		if (content != NULL) {
-			int32 contentLen = 0;
+	if (missingCharactersFixedWidth > missingCharactersPreferredFont)
+		SetFontAndColor(0, textLen, &fFont);
+	else // All things being equal, the fixed font is better for wrapping.
+		SetFontAndColor(0, textLen, be_fixed_font);
 
-			for (int32 i = 0; i < numLines; i++) {
-				int32 startOffset = OffsetAt(i);
-				int32 endOffset = OffsetAt(i + 1);
-				int32 lineLen = endOffset - startOffset;
+	// calculate a text rect that is 72 columns wide
+	BRect newTextRect = saveTextRect;
+	newTextRect.right = newTextRect.left + (be_fixed_font->StringWidth("m") * 72);
+	SetTextRect(newTextRect);
 
-				memcpy(content + contentLen, text + startOffset, lineLen);
-				contentLen += lineLen;
+	// hard-wrap, based on TextView's soft-wrapping
+	int32 numLines = CountLines();
+	char *content = (char *)malloc(textLen + numLines * 72);	// more we'll ever need
+	if (content != NULL) {
+		int32 contentLen = 0;
 
-				// add a newline to every line except for the ones
-				// that already end in newlines, and the last line
-				if ((text[endOffset - 1] != '\n') && (i < (numLines - 1))) {
-					content[contentLen++] = '\n';
+		for (int32 i = 0; i < numLines; i++) {
+			int32 startOffset = OffsetAt(i);
+			int32 endOffset = OffsetAt(i + 1);
+			int32 lineLen = endOffset - startOffset;
 
-					// count qoute level (to be able to wrap quotes correctly)
+			memcpy(content + contentLen, text + startOffset, lineLen);
+			contentLen += lineLen;
 
-					char *quote = QUOTE;
-					int32 level = 0;
-					for (int32 i = startOffset; i < endOffset; i++) {
-						if (text[i] == *quote)
-							level++;
-						else if (text[i] != ' ' && text[i] != '\t')
-							break;
-					}
+			// add a newline to every line except for the ones
+			// that already end in newlines, and the last line
+			if ((text[endOffset - 1] != '\n') && (i < (numLines - 1))) {
+				content[contentLen++] = '\n';
 
-					// if there are too much quotes, try to preserve the quote color level
-					if (level > 10)
-						level = kNumQuoteColors * 3 + (level % kNumQuoteColors);
+				// count qoute level (to be able to wrap quotes correctly)
 
-					int32 quoteLength = strlen(QUOTE);
-					while (level-- > 0) {
-						strcpy(content + contentLen,QUOTE);
-						contentLen += quoteLength;
-					}
+				char *quote = QUOTE;
+				int32 level = 0;
+				for (int32 i = startOffset; i < endOffset; i++) {
+					if (text[i] == *quote)
+						level++;
+					else if (text[i] != ' ' && text[i] != '\t')
+						break;
+				}
+
+				// if there are too much quotes, try to preserve the quote color level
+				if (level > 10)
+					level = kNumQuoteColors * 3 + (level % kNumQuoteColors);
+
+				int32 quoteLength = strlen(QUOTE);
+				while (level-- > 0) {
+					strcpy(content + contentLen,QUOTE);
+					contentLen += quoteLength;
 				}
 			}
-			content[contentLen] = '\0';
-
-			body->AppendText(content); //, contentLen, mail_encoding);
-			free(content);
 		}
+		content[contentLen] = '\0';
 
-		// reset the text rect and font			
-		SetTextRect(saveTextRect);	
-		SetFontAndColor(0, textLen, &fFont);
-
-		// should be OK to hook these back up now
-		if (vScroller != NULL)
-			vScroller->SetTarget(this);
-		if (hScroller != NULL)
-			hScroller->SetTarget(this);				
-		Show();
-		window->EnableUpdates();
+		body->AppendText(content);
+		free(content);
 	}
+
+	// reset the text rect and font			
+	SetTextRect(saveTextRect);	
+	SetFontAndColor(0, textLen, &fFont);
+
+	// should be OK to hook these back up now
+	if (vScroller != NULL)
+		vScroller->SetTarget(this);
+	if (hScroller != NULL)
+		hScroller->SetTarget(this);				
+
+	Show();
+	window->EnableUpdates();
 }
 
 
@@ -2271,8 +2277,7 @@ TTextView::Reader::Run(void *_this)
 		return B_INTERRUPTED;
 
 	BFile *file = dynamic_cast<BFile *>(reader->fMail->Data());
-	if (file != NULL)
-	{
+	if (file != NULL) {
 		len = header_len(file);
 
 		if (reader->fHeader)
@@ -2289,16 +2294,13 @@ TTextView::Reader::Run(void *_this)
 	}
 
 	// show the header?
-	if (reader->fHeader && len)
-	{
+	if (reader->fHeader && len) {
 		// strip all headers except "From", "To", "Reply-To", "Subject", and "Date"
-	 	if (reader->fStripHeader)
-	 	{
+	 	if (reader->fStripHeader) {
 		 	const char *header = msg;
 		 	char *buffer = NULL;
 
-			while (strncmp(header,"\r\n",2))
-			{
+			while (strncmp(header,"\r\n",2)) {
 				const char *eol = header;
 				while ((eol = strstr(eol,"\r\n")) != NULL && isspace(eol[2]))
 					eol += 2;
@@ -2312,7 +2314,7 @@ TTextView::Reader::Run(void *_this)
 		 		if (buffer == NULL)
 		 			goto done;
 	 		
-		 		memcpy(buffer,header,length);
+		 		memcpy(buffer, header, length);
 
 				length = Mail::rfc2047_to_utf8(&buffer, &length, length);
 
@@ -2333,47 +2335,39 @@ TTextView::Reader::Run(void *_this)
 			goto done;
 	}
 
-	if (reader->fRaw)
-	{
+	if (reader->fRaw) {
 		if (!reader->Process((const char *)msg + len, size - len))
 			goto done;
-	}
-	else
-	{
+	} else {
 		//reader->fFile->Seek(0, 0);
 		//Mail::Message *mail = new Mail::Message(reader->fFile);
 		Mail::Message *mail = reader->fMail;
 
 		// at first, insert the mail body
 		Mail::TextComponent *body = NULL;
-		if (mail->BodyText() && !view->fStopLoading)
-		{
+		if (mail->BodyText() && !view->fStopLoading) {
 			char *bodyText = const_cast<char *>(mail->BodyText());
 			int32 bodyLength = strlen(bodyText);
 			body = mail->Body();
 			bool isHTML = false;
 
 			BMimeType type;
-			if (body->MIMEType(&type) == B_OK && type == "text/html")
-			{
+			if (body->MIMEType(&type) == B_OK && type == "text/html") {
 				// strip out HTML tags
 				char *t = bodyText, *a, *end = bodyText + bodyLength;
 				bodyText = (char *) malloc (bodyLength + 1);
 				isHTML = true;
-				
-				for(a = bodyText; t < end; t++)
-				{
+
+				for (a = bodyText; t < end; t++) {
 					int32 c = *t;
 
 					// compact newlines and spaces
 					bool space = false;
-					while (c && isspace(c))
-					{
+					while (c && isspace(c)) {
 						c = *(++t);
 						space = true;
 					}
-					if (space)
-					{
+					if (space) {
 						c = ' ';
 						t--;
 					}
@@ -3071,8 +3065,6 @@ TTextView::Undo(BClipboard */*clipboard*/)
 {
 	if (fInputMethodUndoState.active)
 		return;
-
-//	UndoBuffer.PrintToStream();
 
 	int32 length, offset, cursorPos;
 	undo_type history;
