@@ -60,9 +60,10 @@ All rights reserved.
 
 #include <MailMessage.h>
 #include <MailSettings.h>
+#include <MailDaemon.h>
 
 #ifndef BONE
-#include <netdb.h>
+#	include <netdb.h>
 #endif
 
 #include "Mail.h"
@@ -2731,11 +2732,25 @@ status_t TMailWindow::Send(bool now)
 			break;
 
 		case B_MAIL_NO_DAEMON:
+		{
 			close = true;
 			fSent = true;
-			sprintf(errorMessage, "The mail_daemon is not running.  The message is "
-				"queued and will be sent when the mail_daemon is started.");
+
+			int32 start = (new BAlert("no daemon","The mail_daemon is not running.  "
+				"The message is queued and will be sent when the mail_daemon is started.",
+				"Start Now", "Ok"))->Go();
+
+			if (start == 0)
+			{
+				result = be_roster->Launch("application/x-vnd.Be-POST");
+				if (result == B_OK)
+					Mail::SendQueuedMail();
+				else
+					sprintf(errorMessage,"The mail_daemon could not be started:\n  (0x%.8lx) %s",
+							result,strerror(result));
+			}
 			break;
+		}
 
 //		case B_MAIL_UNKNOWN_HOST:
 //		case B_MAIL_ACCESS_ERROR:
@@ -2748,13 +2763,13 @@ status_t TMailWindow::Send(bool now)
 //			break;
 
 		default:
-			sprintf(errorMessage, "An error occurred trying to send mail (0x%.8lx).",
-							result);
+			sprintf(errorMessage, "An error occurred trying to send mail (0x%.8lx): %s",
+							result,strerror(result));
 	}
-	if (result != B_NO_ERROR)
+	if (result != B_NO_ERROR && result != B_MAIL_NO_DAEMON)
 	{
 		beep();
-		(new BAlert("", errorMessage, "OK"))->Go();
+		(new BAlert("", errorMessage, "Ok"))->Go();
 	}
 	if (close)
 		PostMessage(B_QUIT_REQUESTED);
