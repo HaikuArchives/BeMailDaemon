@@ -36,17 +36,16 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 	//----Thread messages
 	BString string = headers->FindString(B_MAIL_ATTR_SUBJECT);
 	int32 last_i = 0, index =0;
+		
 	while (index < string.Length()) {
-		last_i = string.FindLast(": ",index);
-		if (last_i < 0)
+		if (string.ByteAt(index) == '[')
+			index = string.FindFirst(']')+2;
+		
+		last_i = string.FindFirst(": ",index) + 2;
+		if (last_i < 2)
 			break;
-		if (string.FindFirst(' ',index) >= 8)
-			break;
-		if (string.FindFirst(' ',index) > last_i) {
-			string.Remove(0,last_i + 2);
-			index = 0;
-		} else
-			index++;
+		
+		string.Remove(index,last_i-index);
 	}
 	headers->AddString("MAIL:thread",string.String());
 	
