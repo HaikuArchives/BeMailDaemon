@@ -497,7 +497,7 @@ TextComponent::ParseRaw()
 	BMessage content_type;
 	HeaderField("Content-Type", &content_type);
 
-	charset = B_ISO1_CONVERSION;
+	charset = MDR_NULL_CONVERSION;
 	if (content_type.HasString("charset")) {
 		for (int32 i = 0; charsets[i].charset != NULL; i++) {
 			if (strcasecmp(content_type.FindString("charset"), charsets[i].charset) == 0) {
@@ -520,8 +520,23 @@ TextComponent::ParseRaw()
 	char *string = decoded.LockBuffer(bytes + 1);
 	bytes = decode(encoding, string, buffer, bytes, 0);
 	decoded.UnlockBuffer(bytes);
+	free (buffer);
+	buffer = NULL;
+
 	decoded.ReplaceAll("\r\n", "\n");
 	bytes = decoded.Length(); // Might have shrunk a bit.
+
+	// If the character set wasn't specified, try to guess.  ISO-2022-JP
+	// contains the escape sequences ESC $ B or ESC $ @ to turn on 2 byte
+	// Japanese, and ESC ( J to switch to Roman, or sometimes ESC ( B for
+	// ASCII.  We'll just try looking for the two switch to Japanese sequences.
+
+	if (charset == MDR_NULL_CONVERSION) {
+		if (decoded.FindFirst ("\e$B") >= 0 || decoded.FindFirst ("\e$@") >= 0)
+			charset = B_JIS_CONVERSION;
+		else
+			charset = B_ISO1_CONVERSION;
+	}
 
 	int32 state;
 	int32 destLength = bytes * 3 /* in case it grows */ + 1 /* +1 so it isn't zero which crashes */;
