@@ -15,6 +15,7 @@
 #include <PopUpMenu.h>
 #include <MenuItem.h>
 #include <Box.h>
+#include <Alert.h>
 #include <List.h>
 #include <String.h>
 #include <FindDirectory.h>
@@ -188,7 +189,6 @@ const char *Account::RealName() const
 	if (fOutbound && fOutbound->MetaData())
 		return fOutbound->MetaData()->FindString("real_name");
 
-	puts("hallo!");
 	if (fInbound)
 		fInbound->MetaData()->PrintToStream();
 
@@ -229,12 +229,10 @@ void Account::CreateInbound()
 
 	if (!(fInbound = mailSettings.NewChain()))
 	{
-		// what about a warning?
-		puts("ALERT! could not create new inbound chain!");
+		(new BAlert("E-mail","Could not create inbound chain.","Ok"))->Go();
 		return;
 	}
 	fInbound->SetChainDirection(inbound);
-	puts("inbound created");
 
 	BPath path,addOnPath;
 	find_directory(B_USER_ADDONS_DIRECTORY,&addOnPath);
@@ -254,7 +252,6 @@ void Account::CreateInbound()
 	path.Append(kSystemFilterAddOnPath);
 	path.Append("Parser");
 	BEntry(path.Path()).GetRef(&ref);
-//	settings.MakeEmpty();
 	fInbound->AddFilter(msg,ref);
 
 	// Notifier	
@@ -262,7 +259,6 @@ void Account::CreateInbound()
 	path.Append(kSystemFilterAddOnPath);
 	path.Append("Notifier");
 	BEntry(path.Path()).GetRef(&ref);
-//	settings.AddInt32("notification_method",2);	
 	fInbound->AddFilter(msg,ref);
 
 	// Folder
@@ -270,7 +266,6 @@ void Account::CreateInbound()
 	path.Append(kSystemFilterAddOnPath);
 	path.Append("Folder");
 	BEntry(path.Path()).GetRef(&ref);
-//	settings.AddString("destination_path","/boot/home/mail/NathanW/in");	
 	fInbound->AddFilter(msg,ref);
 
 	// set already made settings
@@ -284,8 +279,7 @@ void Account::CreateOutbound()
 
 	if (!(fOutbound = mailSettings.NewChain()))
 	{
-		// what about a warning?
-		puts("ALERT! could not create new outbound chain!");
+		(new BAlert("E-mail","Could not create outbound chain.","Ok"))->Go();
 		return;
 	}
 	fOutbound->SetChainDirection(outbound);
@@ -300,7 +294,6 @@ void Account::CreateOutbound()
 	path.Append(kSystemFilterAddOnPath);
 	path.Append("OutFolder");
 	BEntry(path.Path()).GetRef(&ref);
-//	msg.AddString("source_path","/boot/home/mail/out");
 	fOutbound->AddFilter(msg,ref);
 
 	path = addOnPath;

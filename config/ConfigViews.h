@@ -39,6 +39,7 @@ class AccountConfigView : public BBox
 //--------------------------------------------------------------------------------
 
 class ProtocolsConfigView;
+class FiltersConfigView;
 
 class FilterConfigView : public BBox
 {
@@ -53,6 +54,7 @@ class FilterConfigView : public BBox
 
 	private:
 		friend ProtocolsConfigView;
+		friend FiltersConfigView;
 
 		void		Load(BMessage *msg,entry_ref *ref);
 		void		Remove(bool deleteMessage = true);

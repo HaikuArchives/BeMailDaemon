@@ -483,7 +483,7 @@ void ConfigWindow::LoadSettings()
 			MoveTo((screenFrame.Width() - frame.Width()) / 2,(screenFrame.Height() - frame.Height()) / 2);
 	}
 	else
-		printf("Error retrieving general settings: %s\n", strerror(status));
+		fprintf(stderr,"Error retrieving general settings: %s\n", strerror(status));
 
 	delete settings;
 }

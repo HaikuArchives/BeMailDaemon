@@ -709,18 +709,30 @@ void FiltersConfigView::MessageReceived(BMessage *msg)
 			BMessage settings;
 			if (fChain->GetFilter(from,&settings,&ref) == B_OK)
 			{
+				// disable filter view saving
+				if (fFilterView && fFilterView->fIndex == from)
+					fFilterView->fIndex = -1;
+
 				fChain->RemoveFilter(from);
 				
-				// prepare "to" value
-				if (from < to)
-					to--;
-				printf("from = %ld, to = %ld\n",from,to);
-				printf("remove:");
-				settings.PrintToStream();
 				if (fChain->AddFilter(to,settings,ref) < B_OK)
 				{
 					(new BAlert("E-mail","Could not move filter, filter deleted.","Ok"))->Go();
+
+					// the filter view belongs to the moved filter
+					if (fFilterView && fFilterView->fIndex == -1)
+						SelectFilter(-1);
+
 					fListView->RemoveItem(msg->FindInt32("to"));
+				}
+				else if (fFilterView)
+				{
+					if (fFilterView->fIndex == -1)
+						// the view belongs to the moved filter
+						fFilterView->fIndex = to;
+					else if (fFilterView->fIndex >= to)
+						// the view belongs to another filter (below the 'to' position)
+						fFilterView->fIndex++;
 				}
 			}
 			break;
