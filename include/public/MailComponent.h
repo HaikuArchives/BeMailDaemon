@@ -46,14 +46,12 @@ class MailComponent {
 		status_t	HeaderField(const char *key, BMessage *structured_header, int32 index = 0);
 		
 		status_t	RemoveHeader(const char *key);
-
-		virtual status_t FileName(char *name);
 		
 		virtual status_t GetDecodedData(BPositionIO *data);
 		virtual status_t SetDecodedData(BPositionIO *data);
 		
-		virtual status_t Instantiate(BPositionIO *data, size_t length);
-		virtual status_t Render(BPositionIO *render_to);
+		virtual status_t SetToRFC822(BPositionIO *data, size_t length, bool parse_now = false);
+		virtual status_t RenderToRFC822(BPositionIO *render_to);
 		
 		virtual status_t MIMEType(BMimeType *mime);
 	
@@ -82,14 +80,19 @@ class PlainTextBodyComponent : public MailComponent {
 		virtual status_t GetDecodedData(BPositionIO *data);
 		virtual status_t SetDecodedData(BPositionIO *data);
 		
-		virtual status_t Instantiate(BPositionIO *data, size_t length);
-		virtual status_t Render(BPositionIO *render_to);
+		virtual status_t SetToRFC822(BPositionIO *data, size_t length, bool parse_now = false);
+		virtual status_t RenderToRFC822(BPositionIO *render_to);
 	private:
 		BString text;
 		BString decoded;
 		
 		mail_encoding encoding;
 		uint32 charset;
+		
+		void ParseRaw();
+		BPositionIO *raw_data;
+		size_t raw_length;
+		off_t raw_offset;
 };
 
 #endif

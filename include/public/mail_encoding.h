@@ -24,7 +24,7 @@ ssize_t encode(mail_encoding encoding, char *out, const char *in, off_t length, 
 ssize_t decode(mail_encoding encoding, char *out, const char *in, off_t length);
 
 ssize_t max_encoded_length(mail_encoding encoding, off_t cur_length);
-
+mail_encoding encoding_for_cte(const char *content_transfer_encoding);
 ssize_t	encode_base64(char *out, const char *in, off_t length);
 ssize_t	decode_base64(char *out, const char *in, off_t length);
 

@@ -98,7 +98,7 @@ MailComponent *MIMEMultipartContainer::GetComponent(int32 index) {
 	_io_data->Seek(part->start,SEEK_SET);
 	
 	MailComponent component;
-	if (component.Instantiate(_io_data,part->end - part->start) < B_OK)
+	if (component.SetToRFC822(_io_data,part->end - part->start) < B_OK)
 		return NULL;
 
 	MailComponent *piece = component.WhatIsThis();
@@ -112,7 +112,7 @@ MailComponent *MIMEMultipartContainer::GetComponent(int32 index) {
 	printf("Instantiating from %d to %d (%d octets)\n",part->start, part->end, part->end - part->start);
 	*/
 	_io_data->Seek(part->start,SEEK_SET);
-	if (piece->Instantiate(_io_data,part->end - part->start) < B_OK)
+	if (piece->SetToRFC822(_io_data,part->end - part->start) < B_OK)
 	{
 		delete piece;
 		return NULL;
@@ -136,19 +136,6 @@ status_t MIMEMultipartContainer::RemoveComponent(int32 index) {
 	return B_OK;
 }
 
-status_t MIMEMultipartContainer::ManualGetComponent(MailComponent *component, int32 index) {
-	if (_components_in_code.ItemAt(index) != NULL)
-		return B_NAME_IN_USE;
-		
-	message_part *part = (message_part *)(_components_in_raw.ItemAt(index));
-	if (part == NULL)
-		return B_BAD_INDEX;
-	
-	_io_data->Seek(part->start,SEEK_SET);
-	
-	return component->Instantiate(_io_data,part->end - part->start);
-}
-
 status_t MIMEMultipartContainer::GetDecodedData(BPositionIO *) {
 	return B_BAD_TYPE; //------We don't play dat
 }
@@ -169,7 +156,7 @@ static int8 check_state(char *buffer, int32 pos, int32 bytes)
 	return 0;
 }
 
-status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length)
+status_t MIMEMultipartContainer::SetToRFC822(BPositionIO *data, size_t length, bool copy_data)
 {
 	for (int32 i = _components_in_code.CountItems();i-- > 0;)
 		delete (MailComponent *)_components_in_code.RemoveItem(i);
@@ -180,7 +167,7 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length)
 	_io_data = data;
 	
 	off_t position = data->Position();
-	MailComponent::Instantiate(data,length);
+	MailComponent::SetToRFC822(data,length);
 
 	BMessage content_type;
 	HeaderField("Content-Type",&content_type);
@@ -271,11 +258,16 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length)
 			break;
 		offset += bytes;
 	}
+	
+	if (copy_data) {
+		for (int32 i = 0; GetComponent(i) != NULL; i++) {}
+	}
+	
 	return B_OK;
 }
 
-status_t MIMEMultipartContainer::Render(BPositionIO *render_to) {
-	MailComponent::Render(render_to);
+status_t MIMEMultipartContainer::RenderToRFC822(BPositionIO *render_to) {
+	MailComponent::RenderToRFC822(render_to);
 	
 	BString delimiter;
 	delimiter << "\r\n--" << _boundary << "\r\n";
@@ -290,7 +282,7 @@ status_t MIMEMultipartContainer::Render(BPositionIO *render_to) {
 		if (_components_in_code.ItemAt(i) != NULL) { //---- _components_in_code has precedence
 			
 			MailComponent *code = (MailComponent *)_components_in_code.ItemAt(i);
-			code->Render(render_to); //----Easy enough
+			code->RenderToRFC822(render_to); //----Easy enough
 		} else {
 			// copy message contents
 

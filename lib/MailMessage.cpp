@@ -38,7 +38,7 @@ MailMessage::MailMessage(BPositionIO *mail_file)
 	_chain_id = settings.DefaultOutboundChainID();
 		
 	if (mail_file != NULL)
-		Instantiate(mail_file,-1);
+		SetToRFC822(mail_file,-1);
 }
 
 MailMessage::~MailMessage() {
@@ -143,17 +143,6 @@ status_t MailMessage::RemoveComponent(int32 /*index*/) {
 }
 
 
-status_t MailMessage::ManualGetComponent(MailComponent *component, int32 index) {
-	if (dynamic_cast<MIMEMultipartContainer *>(_body))
-		return ((MIMEMultipartContainer *)(_body))->ManualGetComponent(component, index);
-
-	if (_body)
-		return B_NAME_IN_USE;
-
-	return B_BAD_INDEX;
-}
-
-
 MailComponent *MailMessage::GetComponent(int32 i) {
 	if (dynamic_cast<MIMEMultipartContainer *>(_body))
 		return ((MIMEMultipartContainer *)(_body))->GetComponent(i);
@@ -189,9 +178,10 @@ bool MailMessage::IsComponentAttachment(int32 i) {
 	if (_num_components == 1)
 		return _body->IsAttachment();
 		
-	MailComponent component;
-	((MIMEMultipartContainer *)(_body))->ManualGetComponent(&component,i);
-	return component.IsAttachment();
+	MailComponent *component = ((MIMEMultipartContainer *)(_body))->GetComponent(i);
+	if (component == NULL)
+		return false;
+	return component->IsAttachment();
 }
 
 void MailMessage::SetBodyTextTo(const char *text) {
@@ -244,10 +234,7 @@ PlainTextBodyComponent *MailMessage::RetrieveTextBody(MailComponent *component)
 	MIMEMultipartContainer *container = dynamic_cast<MIMEMultipartContainer *>(component);
 	if (container != NULL) {
 		for (int32 i = 0; i < container->CountComponents(); i++) {
-			MailComponent c;
-			if (container->ManualGetComponent(&c,i) == B_OK)
-				component = &c;
-			else if ((component = container->GetComponent(i)) == NULL)
+			if ((component = container->GetComponent(i)) == NULL)
 				continue;
 
 			switch (component->ComponentType())
@@ -263,7 +250,7 @@ PlainTextBodyComponent *MailMessage::RetrieveTextBody(MailComponent *component)
 }
 
 
-status_t MailMessage::Instantiate(BPositionIO *mail_file, size_t length) {
+status_t MailMessage::SetToRFC822(BPositionIO *mail_file, size_t length, bool parse_now) {
 	if (BFile *file = dynamic_cast<BFile *>(mail_file))
 		file->ReadAttr("MAIL:chain",B_INT32_TYPE,0,&_chain_id,sizeof(_chain_id));
 	
@@ -271,12 +258,12 @@ status_t MailMessage::Instantiate(BPositionIO *mail_file, size_t length) {
 	length = mail_file->Position();
 	mail_file->Seek(0,SEEK_SET);
 	
-	MailComponent::Instantiate(mail_file,length);
+	MailComponent::SetToRFC822(mail_file,length,parse_now);
 	
 	_body = WhatIsThis();
 	
 	mail_file->Seek(0,SEEK_SET);
-	_body->Instantiate(mail_file,length);
+	_body->SetToRFC822(mail_file,length,parse_now);
 	
 	//------------Move headers that we use to us, everything else to _body
 	const char *name;
@@ -320,7 +307,7 @@ inline void TrimWhite(BString &string) {
 	string.Truncate(i+1);
 }
 
-status_t MailMessage::Render(BPositionIO *file) {
+status_t MailMessage::RenderToRFC822(BPositionIO *file) {
 	if (_body == NULL)
 		return B_MAIL_INVALID_MAIL;
 	
@@ -429,13 +416,13 @@ status_t MailMessage::Render(BPositionIO *file) {
 	message_id << ">";
 	SetHeaderField("Message-ID", message_id.String());
 	
-	status_t err = MailComponent::Render(file);
+	status_t err = MailComponent::RenderToRFC822(file);
 	if (err < B_OK)
 		return err;
 	
 	file->Seek(-2,SEEK_CUR); //-----Remove division between headers
 	
-	err = _body->Render(file);
+	err = _body->RenderToRFC822(file);
 	return err;
 }
 	
@@ -459,7 +446,7 @@ status_t MailMessage::RenderTo(BDirectory *dir) {
 	BFile file;
 	dir->CreateFile(worker.String(),&file);
 	
-	return Render(&file);
+	return RenderToRFC822(&file);
 }
 	
 status_t MailMessage::Send(bool send_now) {

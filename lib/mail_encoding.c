@@ -73,6 +73,20 @@ _EXPORT ssize_t max_encoded_length(mail_encoding encoding, off_t cur_length) {
 	return -1;
 }
 
+_EXPORT mail_encoding encoding_for_cte(const char *cte) {
+	if (cte == NULL)
+		return no_encoding;
+	
+	if (strcasecmp(cte,"uuencode") == 0)
+		return uuencode;
+	if (strcasecmp(cte,"base64") == 0)
+		return base64;
+	if (strcasecmp(cte,"quoted-printable") == 0)
+		return quoted_printable;
+		
+	return no_encoding;
+}
+
 _EXPORT ssize_t	encode_base64(char *out, const char *in, register off_t length) {
 	register unsigned long concat;
 	register int i = 0;

@@ -1632,9 +1632,7 @@ bool TTextView::Reader::ParseMail(MailContainer *container,PlainTextBodyComponen
 	for (int32 i = 0;i < container->CountComponents();i++)
 	{
 		MailComponent *component;
-		if (container->ManualGetComponent(&c,i) == B_OK)
-			component = &c;
-		else if ((component = container->GetComponent(i)) == NULL)
+		if ((component = container->GetComponent(i)) == NULL)
 		{
 			hyper_text *enclosure = (hyper_text *)malloc(sizeof(hyper_text));
 			memset(enclosure, 0, sizeof(hyper_text));
@@ -1674,7 +1672,8 @@ bool TTextView::Reader::ParseMail(MailContainer *container,PlainTextBodyComponen
 			BString name;
 			char fileName[B_FILE_NAME_LENGTH];
 			strcpy(fileName,"untitled");
-			component->FileName(fileName);
+			if (MailAttachment *att = dynamic_cast <MailAttachment *> (component))
+				att->FileName(fileName);
 
 			BPath path(fileName);
 			enclosure->name = strdup(path.Leaf());

@@ -13,7 +13,6 @@ class MailContainer : public MailComponent {
 		virtual status_t AddComponent(MailComponent *component) = 0;
 		virtual status_t RemoveComponent(int32 index) = 0;
 
-		virtual status_t ManualGetComponent(MailComponent *component, int32 index) = 0;
 		virtual MailComponent *GetComponent(int32 index) = 0;
 		virtual int32 CountComponents() const = 0;
 };
@@ -32,7 +31,6 @@ class MIMEMultipartContainer : public MailContainer {
 		virtual status_t AddComponent(MailComponent *component);
 		virtual status_t RemoveComponent(int32 index);
 
-		virtual status_t ManualGetComponent(MailComponent *component, int32 index);
 		virtual MailComponent *GetComponent(int32 index);
 		virtual int32 CountComponents() const;
 
@@ -40,8 +38,8 @@ class MIMEMultipartContainer : public MailContainer {
 		virtual status_t GetDecodedData(BPositionIO *data);
 		virtual status_t SetDecodedData(BPositionIO *data);
 		
-		virtual status_t Instantiate(BPositionIO *data, size_t length);
-		virtual status_t Render(BPositionIO *render_to);
+		virtual status_t SetToRFC822(BPositionIO *data, size_t length, bool parse_now = false);
+		virtual status_t RenderToRFC822(BPositionIO *render_to);
 	private:
 		const char *_boundary;
 		const char *_MIME_message_warning;

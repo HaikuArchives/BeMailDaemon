@@ -9,17 +9,19 @@
 class MailAttachment {
 	public:
 		virtual void SetFileName(const char *name) = 0;
+		virtual status_t FileName(char *name) = 0;
 };
 
 class SimpleMailAttachment : public MailComponent, public MailAttachment {
 	public:
 		SimpleMailAttachment();
 		
-		SimpleMailAttachment(BPositionIO *data /* data to attach */);
-		SimpleMailAttachment(const void *data, size_t length /* data to attach */);
+		SimpleMailAttachment(BPositionIO *data /* data to attach */, mail_encoding encoding = base64);
+		SimpleMailAttachment(const void *data, size_t length /* data to attach */, mail_encoding encoding = base64);
 		virtual ~SimpleMailAttachment();
 		
 		virtual void SetFileName(const char *name);
+		virtual status_t FileName(char *name);
 		
 		virtual status_t GetDecodedData(BPositionIO *data);
 		virtual status_t SetDecodedData(BPositionIO *data);
@@ -32,11 +34,15 @@ class SimpleMailAttachment : public MailComponent, public MailAttachment {
 		void SetEncoding(mail_encoding encoding = base64 /* note: we only support base64. This is a no-op */);
 		mail_encoding Encoding();
 		
-		virtual status_t Instantiate(BPositionIO *data, size_t length);
-		virtual status_t Render(BPositionIO *render_to);
+		virtual status_t SetToRFC822(BPositionIO *data, size_t length, bool parse_now = false);
+		virtual status_t RenderToRFC822(BPositionIO *render_to);
 	private:
-		BPositionIO *_data;
+		BPositionIO *_data, *_raw_data;
+		size_t _raw_length;
+		off_t _raw_offset;
 		bool _we_own_data;
+		
+		void ParseNow();
 		
 		mail_encoding _encoding;
 };
@@ -55,7 +61,7 @@ class AttributedMailAttachment : public MIMEMultipartContainer, public MailAttac
 		void SaveToDisk(BEntry *entry);
 		//-----we pay no attention to entry, but set it to the location of our file in /tmp
 		
-		void SetEncoding(mail_encoding encoding = base64 /* note: we only support base64. This is a no-op */);
+		void SetEncoding(mail_encoding encoding /* anything but uuencode */);
 		mail_encoding Encoding();
 		
 		virtual status_t FileName(char *name);
@@ -64,8 +70,8 @@ class AttributedMailAttachment : public MIMEMultipartContainer, public MailAttac
 		virtual status_t GetDecodedData(BPositionIO *data);
 		virtual status_t SetDecodedData(BPositionIO *data);
 		
-		virtual status_t Instantiate(BPositionIO *data, size_t length);
-		virtual status_t Render(BPositionIO *render_to);
+		virtual status_t SetToRFC822(BPositionIO *data, size_t length, bool parse_now = false);
+		virtual status_t RenderToRFC822(BPositionIO *render_to);
 		
 		virtual status_t MIMEType(BMimeType *mime);
 	private:
