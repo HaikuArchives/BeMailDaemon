@@ -309,7 +309,9 @@ void FillInQouteTextRuns(BTextView *view,const char *line,int32 length,BFont &fo
 
 	if (!begin)
 	{
-		for (start = end;start > 0;start--)
+		// if the text is not the start of a new line, go back
+		// to the first character in the current line
+		for (start = end; start > 0; start--)
 		{
 			if (text[start - 1] == '\n')
 				break;
@@ -390,6 +392,10 @@ void FillInQouteTextRuns(BTextView *view,const char *line,int32 length,BFont &fo
 		{
 			pos++;
 			begin = true;
+
+			// skip leading spaces (tabs & newlines aren't allowed here)
+			while (line[pos] == ' ')
+				pos++;
 		}
 	}
 	style->count = index;
@@ -2212,30 +2218,48 @@ bool TTextView::Reader::Process(const char *data, int32 data_len, bool isHeader)
 			//
 			//	Search for URL prefix
 			//
-			for (const char **i = urlPrefixes; *i != 0; ++i) {
-				if (!cistrncmp(&data[loop], *i, strlen(*i))) {
+			for (const char **i = urlPrefixes; *i != 0; ++i)
+			{
+				if (!cistrncmp(&data[loop], *i, strlen(*i)))
+				{
 					type = TYPE_URL;
 					break;	
 				}
 			}
 
 			//
-			//	Not a URL? check for mailto.
+			//	Not a URL? check for "mailto:" or "www."
 			//
 			if (type == 0 && !cistrncmp(&data[loop], "mailto:", strlen("mailto:")))
-					type = TYPE_MAILTO;
+				type = TYPE_MAILTO;
+			if (type == 0 && !strncmp(&data[loop], "www.", 4))
+			{
+				// this type will be special cased later (and a http:// is added
+				// for the enclosure address)
+				type = TYPE_URL;
+			}
 
 			if (type)
 			{
 				if (type == TYPE_URL)
 				{
 					index = strcspn(data+loop, " <>\"\r\n");
-					if (data[loop + index - 1] == '.')
+
+					// filter out some punctuation marks if they are the last character
+					char suffix = data[loop + index - 1];
+					if (suffix == '.'
+						|| suffix == '?'
+						|| suffix == '!'
+						|| suffix == ':'
+						|| suffix == ';')
 						index--;
-					
-					char *bracket = strchr(data + loop,'(');
-					if (data[loop + index - 1] == ')' && (bracket == NULL || bracket > data + loop + index))
+
+					// filter out a trailing ')' if there is no left parenthesis before
+					char *parenthesis = strchr(data + loop,'(');
+					if (data[loop + index - 1] == ')'
+						&& (parenthesis == NULL || parenthesis > data + loop + index))
 						index--;
+
 					/*if (!isspace(data[loop + index + 1]) && !isspace(data[loop + index + 2]))
 						index = strcspn(data + loop + index + 1," <>)\"\r\n");*/
 				}
@@ -2268,9 +2292,26 @@ bool TTextView::Reader::Process(const char *data, int32 data_len, bool isHeader)
 				fView->GetSelection(&enclosure->text_start,
 									&enclosure->text_end);
 				enclosure->type = type;
-				enclosure->name = (char *)malloc(index + 1);
-				memcpy(enclosure->name, &data[loop], index);
-				enclosure->name[index] = 0;
+
+				// copy the address to the enclosure				
+				if (type == TYPE_URL && data[loop] == 'w')
+				{
+					// URL starts with "www.", so add the protocol to it
+					enclosure->name = (char *)malloc(index + 1 + 7);
+					if (enclosure->name == NULL)
+						return false;
+					memcpy(enclosure->name, "http://", 7);
+					memcpy(enclosure->name + 7, &data[loop], index);
+					enclosure->name[index + 7] = '\0';
+				} else
+				{
+					enclosure->name = (char *)malloc(index + 1);
+					if (enclosure->name == NULL)
+						return false;
+					memcpy(enclosure->name, &data[loop], index);
+					enclosure->name[index] = '\0';
+				}
+
 				if (bracket) {
 					Insert(&data[loop - 1], index + 2, true, isHeader);
 					enclosure->text_end += index + 2;
@@ -2403,13 +2444,13 @@ TTextView::Reader::Run(void *_this)
 		 			|| !strncasecmp(header,"From: ",6)
 		 			|| !strncasecmp(header,"Subject: ",8)
 		 			|| !strncasecmp(header,"Date: ",6))
-		 			reader->Process(buffer,length,true);
+		 			reader->Process(buffer, length, true);
 
 		 		header = eol;
 	 		}
 	 		if (buffer)
 		 		free(buffer);
-	 		reader->Process("\r\n",2,true);
+	 		reader->Process("\r\n", 2, true);
 	 	}
 	 	else if (!reader->Process(msg, len, true))
 			goto done;
