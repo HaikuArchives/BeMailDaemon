@@ -154,7 +154,7 @@ MailDaemonApp::MailDaemonApp(void)
 	InstallDeskbarIcon();
 	
 	status = new StatusWindow(BRect(40,400,360,400),"Mail Status", settings_file.ShowStatusWindow());
-	auto_check = new BMessageRunner(be_app_messenger,new BMessage('moto'),1000000L);
+	auto_check = new BMessageRunner(be_app_messenger,new BMessage('moto'),0LL,0);
 	UpdateAutoCheck(settings_file.AutoCheckInterval());
 
 	BVolume boot;
