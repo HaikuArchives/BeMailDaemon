@@ -206,7 +206,7 @@ void StatusWindow::RemoveView(StatusView *view) {
 	{
 		// delete view; ?!?
 		for (; StatusView *v = (StatusView *)stat_views.ItemAt(i); i++)
-			v->MoveBy(0, -min_height);
+			v->MoveBy(0, -(min_height+1));
 	}
 	
 	if (stat_views.CountItems() == 0)
