@@ -59,6 +59,8 @@ class MailChain: public BArchivable
 	int32 id;
 	char name[B_FILE_NAME_LENGTH];
 	BMessage *meta_data;
+	
+	status_t _err;
 
   	chain_direction direction;
 

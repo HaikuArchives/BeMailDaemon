@@ -24,14 +24,14 @@ class _EXPORT MailChain;
 /*--------End hacks----*/
 
 MailChain::MailChain(uint32 i)
-: id(i), meta_data(NULL), direction(inbound), settings_ct(0), addons_ct(0) 
+: id(i), meta_data(NULL), direction(inbound), settings_ct(0), addons_ct(0), _err(B_OK) 
 {
 	name[0] = 0;
 	Reload();
 }
 
 MailChain::MailChain(BMessage* settings)
-: id(settings->FindInt32("id")), meta_data(NULL), direction(inbound), settings_ct(0), addons_ct(0)
+: id(settings->FindInt32("id")), meta_data(NULL), direction(inbound), settings_ct(0), addons_ct(0), _err(B_OK) 
 {
 	name[0] = 0;
 	Load(settings);
@@ -103,8 +103,8 @@ status_t MailChain::InitCheck() const
 	if (filter_settings.CountItems()!=settings_ct
 	||  filter_addons.CountItems()!=addons_ct)
 		return B_NO_MEMORY;
-	if (id < 0)
-		return B_BAD_VALUE;
+	if (_err < B_OK)
+		return _err;
 		
 	return B_OK;
 }
@@ -115,7 +115,7 @@ status_t MailChain::Archive(BMessage* archive, bool deep) const
 	status_t ret = B_OK;
 	
 	ret = InitCheck();
-	if (ret!=B_OK) return ret;
+	if ((ret!=B_OK) && (ret != B_FILE_ERROR)) return ret;
 	
 	ret = BArchivable::Archive(archive,deep);
 	if (ret!=B_OK) return ret;
@@ -244,6 +244,7 @@ status_t MailChain::Reload()
 	{
 		fprintf(stderr, "Couldn't find user settings directory: %s\n",
 			strerror(ret));
+		_err = ret;
 		return ret;
 	}
 	
@@ -287,7 +288,7 @@ status_t MailChain::Reload()
 		fprintf(stderr, "Couldn't open chain settings file '%s': %s\n",
 			path.Path(), strerror(ret));
 		Load(&empty);
-		id = -1;
+		_err = B_FILE_ERROR;
 		return ret;
 	}
 	
@@ -299,11 +300,12 @@ status_t MailChain::Reload()
 		fprintf(stderr, "Couldn't read settings from '%s': %s\n",
 			path.Path(), strerror(ret));
 		Load(&tmp);
+		_err = ret;
 		return ret;
 	}
 	
 	// clobber old settings
-	ret = Load(&tmp);
+	_err = ret = Load(&tmp);
 	return ret;
 }
 
