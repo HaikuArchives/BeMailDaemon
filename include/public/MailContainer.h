@@ -22,7 +22,7 @@ class Container : public Component {
 		virtual status_t RemoveComponent(Component *component) = 0;
 		virtual status_t RemoveComponent(int32 index) = 0;
 
-		virtual Component *GetComponent(int32 index) = 0;
+		virtual Component *GetComponent(int32 index, bool parse_now = false) = 0;
 		virtual int32 CountComponents() const = 0;
 	
 	private:
@@ -46,7 +46,7 @@ class MIMEMultipartContainer : public Container {
 		virtual status_t RemoveComponent(Component *component);
 		virtual status_t RemoveComponent(int32 index);
 
-		virtual Mail::Component *GetComponent(int32 index);
+		virtual Mail::Component *GetComponent(int32 index, bool parse_now = false);
 		virtual int32 CountComponents() const;
 
 		// MailComponent

@@ -105,7 +105,7 @@ status_t MIMEMultipartContainer::AddComponent(Mail::Component *component) {
 }
 
 
-Mail::Component *MIMEMultipartContainer::GetComponent(int32 index) {
+Mail::Component *MIMEMultipartContainer::GetComponent(int32 index, bool parse_now) {
 	if (Mail::Component *component = (Mail::Component *)_components_in_code.ItemAt(index))
 		return component;	//--- Handle easy case
 
@@ -130,7 +130,7 @@ Mail::Component *MIMEMultipartContainer::GetComponent(int32 index) {
 	printf("Instantiating from %d to %d (%d octets)\n",part->start, part->end, part->end - part->start);
 	*/
 	_io_data->Seek(part->start,SEEK_SET);
-	if (piece->SetToRFC822(_io_data,part->end - part->start) < B_OK)
+	if (piece->SetToRFC822(_io_data,part->end - part->start, parse_now) < B_OK)
 	{
 		delete piece;
 		return NULL;
@@ -380,7 +380,7 @@ status_t MIMEMultipartContainer::SetToRFC822(BPositionIO *data, size_t length, b
 	// only the positions in the BPositionIO are recorded.
 
 	if (copy_data) {
-		for (i = 0; GetComponent(i) != NULL; i++) {}
+		for (i = 0; GetComponent(i, true /* parse_now */) != NULL; i++) {}
 	}
 	
 	data->Seek (topLevelEnd, SEEK_SET);

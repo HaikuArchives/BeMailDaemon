@@ -440,10 +440,10 @@ Message::RemoveComponent(int32 /*index*/)
 
 
 Mail::Component *
-Message::GetComponent(int32 i)
+Message::GetComponent(int32 i, bool parse_now)
 {
 	if (MIMEMultipartContainer *container = dynamic_cast<MIMEMultipartContainer *>(_body))
-		return container->GetComponent(i);
+		return container->GetComponent(i, parse_now);
 
 	if (i < _num_components)
 		return _body;

@@ -494,6 +494,7 @@ TextComponent::ParseRaw()
 	bytes = decode(encoding, string, buffer, bytes, 0);
 	decoded.UnlockBuffer(bytes);
 	decoded.ReplaceAll("\r\n", "\n");
+	bytes = decoded.Length(); // Might have shrunk a bit.
 
 	int32 state;
 	int32 destLength = bytes * 2 + 1 /* +1 so it isn't zero which crashes */;

@@ -73,7 +73,7 @@ class Message : public Container {
 		virtual status_t RemoveComponent(Mail::Component *component);
 		virtual status_t RemoveComponent(int32 index);
 
-		virtual Mail::Component *GetComponent(int32 index);
+		virtual Mail::Component *GetComponent(int32 index, bool parse_now = false);
 		virtual int32 CountComponents() const;
 
 		void Attach(entry_ref *ref, bool include_attributes = true);
