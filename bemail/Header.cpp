@@ -62,6 +62,7 @@ All rights reserved.
 #include "QueryMenu.h"
 #include "FieldMsg.h"
 
+#include <MDRLanguage.h>
 
 using namespace Zoidberg;
 
@@ -120,7 +121,8 @@ THeaderView::THeaderView(BRect rect,BRect windowRect,bool incoming,Mail::Message
 	BFont font = *be_plain_font;
 	font.SetSize(FONT_SIZE);
 	SetFont(&font);
-	float x = font.StringWidth("Enclosures: ") + 9;
+	float x = font.StringWidth(
+		MDR_DIALECT_CHOICE ("Enclosures: ","添付ファイル：")) + 9;
 	float y = TO_FIELD_V;
 
 	if (!fIncoming)
@@ -515,7 +517,7 @@ THeaderView::AttachedToWindow(void)
 void
 THeaderView::BuildMenus()
 {
-	/*
+	/* Unused code...
 	BMenuItem *item;
 	while (item = fToMenu->ItemAt(0)) {
 		fToMenu->RemoveItem(item);

@@ -50,6 +50,8 @@ All rights reserved.
 
 #include <MailMessage.h>
 
+#include <MDRLanguage.h>
+
 #include "Utilities.h"
 
 
@@ -304,9 +306,13 @@ verify_recipients(char **to)
 		//
 		if (quote)
 		{
-			(new BAlert("Error", "There is an error in the header of this "
-				"message, some information may not appear correctly.",
-				"OK", NULL, NULL, B_WIDTH_AS_USUAL, B_WARNING_ALERT))->Go();
+			(new BAlert(
+				MDR_DIALECT_CHOICE ("Error","エラー"),
+				MDR_DIALECT_CHOICE ("There is an error in the header of this "
+					"message, some information may not appear correctly.",
+					"ヘッダーにエラーがあって、メッセージは正しく表示されない可能性があります。"),
+				MDR_DIALECT_CHOICE ("OK","了解"),
+				NULL, NULL, B_WIDTH_AS_USUAL, B_WARNING_ALERT))->Go();
 			break;
 		}
 
@@ -431,10 +437,13 @@ get_parameter(const char *src, char *param, BString *dest)
 		{
 			if (offset[len++] == '\0')
 			{
-				(new BAlert("Error", "There is an error in the header "
-				  "of this message, some information may not appear "
-				  "correctly.", "OK", NULL, NULL, B_WIDTH_AS_USUAL,
-				  B_WARNING_ALERT))->Go();
+				(new BAlert(
+					MDR_DIALECT_CHOICE ("Error", "エラー"),
+					MDR_DIALECT_CHOICE ("There is an error in the header "
+						"of this message, some information may not appear "
+						"correctly.","ヘッダーにエラーがあります。メッセージは正しく表示されない可能性があります。"),
+					MDR_DIALECT_CHOICE ("OK","了解"),
+					NULL, NULL, B_WIDTH_AS_USUAL, B_WARNING_ALERT))->Go();
 				return false;						
 			}
 		}

@@ -25,6 +25,8 @@
 #include <MailSettings.h>
 #include <stdio.h>
 
+#include <MDRLanguage.h>
+
 using namespace Zoidberg;
 
 static BList gAccounts;
@@ -101,9 +103,9 @@ Account::Account(Mail::Chain *inbound,Mail::Chain *outbound)
 		label << "Unnamed";
 	fAccountItem = new AccountItem(label.String(),this,ACCOUNT_ITEM);
 
-	fInboundItem = new AccountItem("   · Incoming",this,INBOUND_ITEM);
-	fOutboundItem = new AccountItem("   · Outgoing",this,OUTBOUND_ITEM);
-	fFilterItem = new AccountItem("   · E-mail Filters",this,FILTER_ITEM);
+	fInboundItem = new AccountItem(MDR_DIALECT_CHOICE ("   · Incoming","   - 受信"),this,INBOUND_ITEM);
+	fOutboundItem = new AccountItem(MDR_DIALECT_CHOICE ("   · Outgoing","   - 送信"),this,OUTBOUND_ITEM);
+	fFilterItem = new AccountItem(MDR_DIALECT_CHOICE ("   · E-mail Filters","   - フィルター"),this,FILTER_ITEM);
 }
 
 
@@ -253,7 +255,10 @@ void Account::CreateInbound()
 
 	if (!(fInbound = Mail::NewChain()))
 	{
-		(new BAlert("E-mail","Could not create inbound chain.","Ok"))->Go();
+		(new BAlert(
+			MDR_DIALECT_CHOICE ("E-mail","メール"),
+			MDR_DIALECT_CHOICE ("Could not create inbound chain.","受信チェーンは作成できませんでした。"),
+			MDR_DIALECT_CHOICE ("Ok","了解")))->Go();
 		return;
 	}
 	fInbound->SetChainDirection(Mail::inbound);
@@ -302,7 +307,10 @@ void Account::CreateOutbound()
 
 	if (!(fOutbound = Mail::NewChain()))
 	{
-		(new BAlert("E-mail","Could not create outbound chain.","Ok"))->Go();
+		(new BAlert(
+			MDR_DIALECT_CHOICE ("E-mail","メール"),
+			MDR_DIALECT_CHOICE ("Could not create outbound chain.","送信チェーンは作成できませんでした。"),
+			MDR_DIALECT_CHOICE ("Ok","了解")))->Go();
 		return;
 	}
 	fOutbound->SetChainDirection(Mail::outbound);

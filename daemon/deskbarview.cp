@@ -33,6 +33,8 @@
 #include <MailSettings.h>
 #include <MailDaemon.h>
 
+#include <MDRLanguage.h>
+
 #include "deskbarview.h"
 
 using namespace Zoidberg;
@@ -471,7 +473,8 @@ DeskbarView::BuildMenu()
 	}
 	else
 	{
-		menu->AddItem(item = new BMenuItem("No new messages",NULL));
+		menu->AddItem(item = new BMenuItem(
+			MDR_DIALECT_CHOICE ("No new messages","新しいメッセージなし"), NULL));
 		item->SetEnabled(false);
 	}
 	
@@ -480,7 +483,8 @@ DeskbarView::BuildMenu()
 		BList list;
 		Mail::InboundChains(&list);
 
-		BMenu *chainMenu = new BMenu("Check For Mails Only");
+		BMenu *chainMenu = new BMenu(
+			MDR_DIALECT_CHOICE ("Check For Mails Only","メール受信のみ"));
 		BFont font;
 		menu->GetFont(&font);
 		chainMenu->SetFont(&font);
@@ -497,15 +501,23 @@ DeskbarView::BuildMenu()
 		chainMenu->SetTargetForItems(this);
 		menu->AddItem(new BMenuItem(chainMenu,new BMessage(MD_CHECK_FOR_MAILS)));
 
-		//menu->AddItem(new BMenuItem("Check For Mails Only",new BMessage(MD_CHECK_FOR_MAILS)));
-		menu->AddItem(new BMenuItem("Send Pending Mails",new BMessage(MD_SEND_MAILS)));
+		// Not used:
+		// menu->AddItem(new BMenuItem(MDR_DIALECT_CHOICE (
+		// "Check For Mails Only","メール受信のみ"), new BMessage(MD_CHECK_FOR_MAILS)));
+		menu->AddItem(new BMenuItem(
+			MDR_DIALECT_CHOICE ("Send Pending Mails","保留メールを送信"),
+		new BMessage(MD_SEND_MAILS)));
 	}
 	else
 		menu->AddItem(new BMenuItem("Check For Mail Now",new BMessage(MD_CHECK_SEND_NOW)));
 
 	menu->AddSeparatorItem();
-	menu->AddItem(new BMenuItem("Edit Preferences" B_UTF8_ELLIPSIS,new BMessage(MD_OPEN_PREFS)));
-	menu->AddItem(new BMenuItem("Quit",new BMessage(B_QUIT_REQUESTED)));
+	menu->AddItem(new BMenuItem(
+		MDR_DIALECT_CHOICE ("Edit Preferences","プログラム設定") B_UTF8_ELLIPSIS,
+		new BMessage(MD_OPEN_PREFS)));
+	menu->AddItem(new BMenuItem(
+		MDR_DIALECT_CHOICE ("Quit","終了"),
+		new BMessage(B_QUIT_REQUESTED)));
 
 	// Reset Item Targets (only those which aren't already set)
 

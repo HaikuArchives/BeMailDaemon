@@ -27,6 +27,8 @@
 
 #include <MailSettings.h>
 
+#include <MDRLanguage.h>
+
 using namespace Zoidberg;
 
 // AccountConfigView
@@ -49,7 +51,7 @@ AccountConfigView::AccountConfigView(BRect rect,Account *account)
 	:	BBox(rect),
 		fAccount(account)
 {
-	SetLabel("Account Configuration");
+	SetLabel(MDR_DIALECT_CHOICE ("Account Configuration","アカウント設定"));
 	Mail::Chain *settings = account->Inbound() ? account->Inbound() : account->Outbound();
 
 	rect = Bounds().InsetByCopy(8,8);
@@ -65,23 +67,26 @@ AccountConfigView::AccountConfigView(BRect rect,Account *account)
 	rect = view->Bounds();
 	rect.bottom = height + 5;
 
-	float labelWidth = view->StringWidth("Account Name:") + 6;
+	float labelWidth = view->StringWidth(MDR_DIALECT_CHOICE ("Account Name:","アカウント名：")) + 6;
 
-	view->AddChild(fNameControl = new BTextControl(rect,NULL,"Account Name:",NULL,new BMessage(kMsgAccountNameChanged)));
+	view->AddChild(fNameControl = new BTextControl(rect,NULL,MDR_DIALECT_CHOICE ("Account Name:","アカウント名："),NULL,new BMessage(kMsgAccountNameChanged)));
 	fNameControl->SetDivider(labelWidth);
-	view->AddChild(fRealNameControl = new BTextControl(rect,NULL,"Real Name:",NULL,NULL));
+	view->AddChild(fRealNameControl = new BTextControl(rect,NULL,MDR_DIALECT_CHOICE ("Real Name:","名前："),NULL,NULL));
 	fRealNameControl->SetDivider(labelWidth);
-	view->AddChild(fReturnAddressControl = new BTextControl(rect,NULL,"Return Address:",NULL,NULL));
+	view->AddChild(fReturnAddressControl = new BTextControl(rect,NULL,MDR_DIALECT_CHOICE ("Return Address:","返信アドレス"),NULL,NULL));
 	fReturnAddressControl->SetDivider(labelWidth);
 //			control->TextView()->HideTyping(true);
 
 	BPopUpMenu *chainsPopUp = new BPopUpMenu(B_EMPTY_STRING);
-	const char *chainModes[] = {"Inbound Only","Outbound Only","Inbound & Outbound"};
+	const char *chainModes[] = {
+		MDR_DIALECT_CHOICE ("Inbound Only","受信のみ"),
+		MDR_DIALECT_CHOICE ("Outbound Only","送信のみ"),
+		MDR_DIALECT_CHOICE ("Inbound & Outbound","送受信")};
 	BMenuItem *item;
 	for (int32 i = 0;i < 3;i++)
 		chainsPopUp->AddItem(item = new BMenuItem(chainModes[i],new BMessage(kMsgAccountTypeChanged)));
 
-	fTypeField = new BMenuField(rect,NULL,"Account Type:",chainsPopUp);
+	fTypeField = new BMenuField(rect,NULL,MDR_DIALECT_CHOICE ("Account Type:","アカウントの種類："),chainsPopUp);
 	fTypeField->SetDivider(labelWidth + 3);
 	view->AddChild(fTypeField);
 

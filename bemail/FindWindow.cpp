@@ -46,6 +46,8 @@ All rights reserved.
 #include <String.h>
 #include <Box.h>
 
+#include <MDRLanguage.h>
+
 void TextBevel(BView& view, BRect r);
 
 // ============================================================================
@@ -127,7 +129,8 @@ FindPanel::FindPanel(BRect rect)
 	mBTextView->MakeFocus();
 	AddChild(mBTextView);
 	
-	mFindButton = new BButton(BRect(0,0,90,20),"FINDBUTTON","Find",
+	mFindButton = new BButton(BRect(0,0,90,20),"FINDBUTTON",
+		MDR_DIALECT_CHOICE ("Find","検索"),
 		new BMessage(FINDBUTTON),B_FOLLOW_LEFT | B_FOLLOW_BOTTOM);
 	AddChild(mFindButton);
 	r = mFindButton->Bounds();
@@ -206,7 +209,9 @@ void FindPanel::Find()
 
 
 FindWindow::FindWindow()
-	: BWindow(FindWindow::mLastPosition, "Find", B_FLOATING_WINDOW,
+	: BWindow(FindWindow::mLastPosition, 
+		MDR_DIALECT_CHOICE ("Find","検索"),
+		B_FLOATING_WINDOW,
 		B_NOT_RESIZABLE | B_NOT_ZOOMABLE | B_WILL_ACCEPT_FIRST_CLICK)
 {
 	mFindPanel = new FindPanel(Bounds());

@@ -68,6 +68,8 @@ All rights reserved.
 #include <MailAttachment.h>
 #include <mail_util.h>
 
+#include <MDRLanguage.h>
+
 #include "Mail.h"
 #include "Content.h"
 #include "Utilities.h"
@@ -745,10 +747,16 @@ TTextView::TTextView(BRect frame, BRect text, bool incoming, Mail::Message *mail
 	//
 	//	Hyperlink pop up menu
 	//
-	fLinkMenu = new BPopUpMenu("Link", false, false);
+	fLinkMenu = new BPopUpMenu(
+		MDR_DIALECT_CHOICE ("Link","リンク"),
+		false, false);
 	fLinkMenu->SetFont(&menuFont);
-	fLinkMenu->AddItem(new BMenuItem("Open This Link", new BMessage(M_OPEN)));
-	fLinkMenu->AddItem(new BMenuItem("Copy Link Location", new BMessage(M_COPY)));
+	fLinkMenu->AddItem(new BMenuItem(
+		MDR_DIALECT_CHOICE ("Open This Link","リンク先を開く"),
+		new BMessage(M_OPEN)));
+	fLinkMenu->AddItem(new BMenuItem(
+		MDR_DIALECT_CHOICE ("Copy Link Location","リンク先をコピー"),
+		new BMessage(M_COPY)));
 
 	SetDoesUndo(true);
 }
