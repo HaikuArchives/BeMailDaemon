@@ -1,4 +1,11 @@
+#ifndef ZOIDBERG_NUMAIL_MAIL_MESSAGE_H
+#define ZOIDBERG_NUMAIL_MAIL_MESSAGE_H
+
+
+//#include <SupportDefs.h>
+
 #include <MailContainer.h>
+
 
 class MailMessage {
 	public:
@@ -36,14 +43,15 @@ class MailMessage {
 		void SetBodyTextTo(const char *text);
 		const char *BodyText();
 		
-		void RenderTo(BFile *file);
-		void RenderTo(BDirectory *dir);
+		status_t SetBody(PlainTextBodyComponent *body);
+		PlainTextBodyComponent *Body() const;
 
-		void Send(bool send_now);
+		status_t RenderTo(BFile *file);
+		status_t RenderTo(BDirectory *dir);
+
+		status_t Send(bool send_now);
 	
 	private:
-		
-	
 		int32 _chain_id;
 		char *_bcc;
 	
@@ -52,3 +60,10 @@ class MailMessage {
 		PlainTextBodyComponent *_text_body;
 		BMessage *_header_kludge_yikes;
 };
+
+inline PlainTextBodyComponent *MailMessage::Body() const
+{
+	return _text_body;
+}
+
+#endif	/* ZOIDBERG_NUMAIL_MAIL_MESSAGE_H */

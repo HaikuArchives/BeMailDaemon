@@ -3,9 +3,10 @@
 
 #include <UTF8.h>
 #include <Message.h>
+#include <String.h>
 
 class BMimeType;
-class MailComponent;
+//class MailComponent;
 
 typedef enum {
 	base64 				= 'b',
