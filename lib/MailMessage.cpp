@@ -268,6 +268,41 @@ Message::Date()
 	return HeaderField("Date");
 }
 
+int
+Message::Priority()
+{
+	int			priorityNumber;
+	const char *priorityString;
+	
+	/* The usual values are a number from 1 to 5, or one of three words:
+	X-Priority: 1 and/or X-MSMail-Priority: High
+	X-Priority: 3 and/or X-MSMail-Priority: Normal
+	X-Priority: 5 and/or X-MSMail-Priority: Low
+	Also plain Priority: is "normal", "urgent" or "non-urgent", see RFC 1327. */
+
+	priorityString = HeaderField("Priority");
+	if (priorityString == NULL)
+		priorityString = HeaderField("X-Priority");
+	if (priorityString == NULL)
+		priorityString = HeaderField("X-Msmail-Priority");
+	if (priorityString == NULL)
+		return 3;
+	priorityNumber = atoi (priorityString);
+	if (priorityNumber != 0) {
+		if (priorityNumber > 5)
+			priorityNumber = 5;
+		if (priorityNumber < 1)
+			priorityNumber = 1;
+		return priorityNumber;
+	}
+	if (strcasecmp (priorityString, "Low") == 0 ||
+	strcasecmp (priorityString, "non-urgent") == 0)
+		return 5;
+	if (strcasecmp (priorityString, "High") == 0 ||
+	strcasecmp (priorityString, "urgent") == 0)
+		return 1;
+	return 3;
+}
 
 void Message::SetSubject(const char *subject, uint32 charset, mail_encoding encoding) {
 	SetHeaderField("Subject", subject, charset, encoding);
@@ -295,6 +330,27 @@ void Message::SetBCC(const char *bcc) {
 		free(_bcc);
 
 	_bcc = strdup(bcc);
+}
+
+void Message::SetPriority(int to) {
+	char	tempString [20];
+	
+	if (to < 1)
+		to = 1;
+	if (to > 5)
+		to = 5;
+	sprintf (tempString, "%d", to);
+	SetHeaderField("X-Priority", tempString);
+	if (to <= 2) {
+		SetHeaderField("Priority", "urgent");
+		SetHeaderField("X-Msmail-Priority", "High");
+	} else if (to >= 4) {
+		SetHeaderField("Priority", "non-urgent");
+		SetHeaderField("X-Msmail-Priority", "Low");
+	} else {
+		SetHeaderField("Priority", "normal");
+		SetHeaderField("X-Msmail-Priority", "Normal");
+	}
 }
 
 
@@ -603,16 +659,22 @@ Message::SetToRFC822(BPositionIO *mail_file, size_t length, bool parse_now)
 		  && (strcasecmp(name,"From") != 0)
 		  && (strcasecmp(name,"Reply-To") != 0)
 		  && (strcasecmp(name,"Cc") != 0)
+		  && (strcasecmp(name,"Priority") != 0)
+		  && (strcasecmp(name,"X-Priority") != 0)
+		  && (strcasecmp(name,"X-Msmail-Priority") != 0)
 		  && (strcasecmp(name,"Date") != 0)) {
 			RemoveHeader(name);
 		}
 	}
-
+		
 	_body->RemoveHeader("Subject");
 	_body->RemoveHeader("To");
 	_body->RemoveHeader("From");
 	_body->RemoveHeader("Reply-To");
 	_body->RemoveHeader("Cc");
+	_body->RemoveHeader("Priority");
+	_body->RemoveHeader("X-Priority");
+	_body->RemoveHeader("X-Msmail-Priority");
 	_body->RemoveHeader("Date");
 
 	_num_components = 1;
@@ -725,6 +787,11 @@ Message::RenderToRFC822(BPositionIO *file)
 		attributed->WriteAttrString(B_MAIL_ATTR_REPLY,&attr);
 		attr = From();
 		attributed->WriteAttrString(B_MAIL_ATTR_FROM,&attr);
+		if (Priority() != 3 /* Normal is 3 */) {
+			sprintf (attr.LockBuffer (40), "%d", Priority());
+			attr.UnlockBuffer(-1);
+			attributed->WriteAttrString(B_MAIL_ATTR_PRIORITY,&attr);
+		}
 		attr = "Pending";
 		attributed->WriteAttrString(B_MAIL_ATTR_STATUS,&attr);
 		attr = "1.0";
