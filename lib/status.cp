@@ -1,6 +1,6 @@
 /* StatusWindow - the status window while fetching/sending mails
 **
-** Copyright 2001 Dr. Zoidberg Enterprises. All rights reserved.
+** Copyright (c) 2001-2003 Dr. Zoidberg Enterprises. All rights reserved.
 */
 
 
@@ -39,76 +39,76 @@ using namespace Zoidberg;
 using Mail::StatusWindow;
 using Mail::StatusView;
 
-// constructor
+
+static BLocker sLock;
+
+
 StatusWindow::StatusWindow(BRect rect, const char *name, uint32 s)
-			: BWindow(rect, name, B_MODAL_WINDOW_LOOK, B_NORMAL_WINDOW_FEEL,
-			          B_NOT_CLOSABLE | B_NO_WORKSPACE_ACTIVATION | B_NOT_V_RESIZABLE | B_NOT_ZOOMABLE | B_NOT_MINIMIZABLE),
-			  show(s),
-			  default_is_hidden(false),
-			  window_moved(0L)
+	: BWindow(rect, name, B_MODAL_WINDOW_LOOK, B_NORMAL_WINDOW_FEEL,
+          B_NOT_CLOSABLE | B_NO_WORKSPACE_ACTIVATION | B_NOT_V_RESIZABLE | B_NOT_ZOOMABLE | B_NOT_MINIMIZABLE),
+	fShowMode(s),
+	fWindowMoved(0L)
 {
 	BRect frame(Bounds());
 	frame.InsetBy(90.0 + 5.0, 5.0);
 
-	BButton *button = new BButton(frame, "check_mail", MDR_DIALECT_CHOICE ("Check Mail Now","メールチェック"), new BMessage('mbth'),
-								  B_FOLLOW_LEFT_RIGHT,
-								  B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE | B_NAVIGABLE);
+	BButton *button = new BButton(frame, "check_mail",
+							MDR_DIALECT_CHOICE ("Check Mail Now","メールチェック"),
+							new BMessage('mbth'), B_FOLLOW_LEFT_RIGHT,
+							B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE | B_NAVIGABLE);
 	button->ResizeToPreferred();
 	frame = button->Frame();
-	
+
 	button->ResizeTo(button->Bounds().Width(),25);
 	button->SetTarget(be_app_messenger);
 
 	frame.OffsetBy(0.0, frame.Height());
 	frame.InsetBy(-90.0, 0.0);
-	
-	message_view = new BStringView(frame, "message_view", "",
+
+	fMessageView = new BStringView(frame, "message_view", "",
 								   B_FOLLOW_LEFT_RIGHT, B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE);
-	message_view->SetAlignment(B_ALIGN_CENTER);
-	message_view->SetText(MDR_DIALECT_CHOICE ("No new messages.","未読メッセージはありません"));
+	fMessageView->SetAlignment(B_ALIGN_CENTER);
+	fMessageView->SetText(MDR_DIALECT_CHOICE ("No new messages.","未読メッセージはありません"));
 	float framewidth = frame.Width();
-	message_view->ResizeToPreferred();
-	message_view->ResizeTo(framewidth,message_view->Bounds().Height());
-	frame = message_view->Frame();
+	fMessageView->ResizeToPreferred();
+	fMessageView->ResizeTo(framewidth,fMessageView->Bounds().Height());
+	frame = fMessageView->Frame();
 
 	frame.InsetBy(-5.0, -5.0);
 	frame.top = 0.0;
 
-	default_view = new BBox(frame, "default_view", B_FOLLOW_LEFT_RIGHT,
+	fDefaultView = new BBox(frame, "default_view", B_FOLLOW_LEFT_RIGHT,
 							B_WILL_DRAW|B_FRAME_EVENTS|B_NAVIGABLE_JUMP, B_PLAIN_BORDER);
-	default_view->SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
-	
-	default_view->AddChild(button);
-	default_view->AddChild(message_view);
+	fDefaultView->SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
 
-	min_width = default_view->Bounds().Width();
-	min_height = default_view->Bounds().Height();
-	ResizeTo(min_width, min_height);
-	SetSizeLimits(min_width, 2.0 * min_width, min_height, min_height);
+	fDefaultView->AddChild(button);
+	fDefaultView->AddChild(fMessageView);
+
+	fMinWidth = fDefaultView->Bounds().Width();
+	fMinHeight = fDefaultView->Bounds().Height();
+	ResizeTo(fMinWidth, fMinHeight);
+	SetSizeLimits(fMinWidth, 2.0 * fMinWidth, fMinHeight, fMinHeight);
 
 	Mail::Settings general;
-	if (general.InitCheck() == B_OK)
-	{
+	if (general.InitCheck() == B_OK) {
 		// set on-screen location
 
 		frame = general.StatusWindowFrame();
 		BScreen screen(this);
-		if (screen.Frame().Contains(frame))
-		{
+		if (screen.Frame().Contains(frame)) {
 			MoveTo(frame.LeftTop());
-			if (frame.Width() >= min_width && frame.Height() >= min_height)
-			{
-				float x_off_set = frame.Width() - min_width;
+			if (frame.Width() >= fMinWidth && frame.Height() >= fMinHeight) {
+				float x_off_set = frame.Width() - fMinWidth;
 				float y_off_set = 0; //---The height is constant
 
 				ResizeBy(x_off_set, y_off_set);
-				default_view->ResizeBy(x_off_set, y_off_set);
+				fDefaultView->ResizeBy(x_off_set, y_off_set);
 				button->ResizeBy(x_off_set, y_off_set);
-				message_view->ResizeBy(x_off_set, y_off_set);
+				fMessageView->ResizeBy(x_off_set, y_off_set);
 			}
 		}
 		// set workspace for window
-		
+
 		uint32 workspace = general.StatusWindowWorkspaces();
 		int32 workspacesCount = count_workspaces();
 		uint32 workspacesMask = (workspacesCount > 31 ? 0 : 1L << workspacesCount) - 1;
@@ -119,29 +119,25 @@ StatusWindow::StatusWindow(BRect rect, const char *name, uint32 s)
 
 		SetBorderStyle(general.StatusWindowLook());
 	}
-	AddChild(default_view);
+	AddChild(fDefaultView);
 
-	window_frame = Frame();
+	fFrame = Frame();
 
-	if (show == MD_SHOW_STATUS_WINDOW_ALWAYS)
-		Show();
-	else
-	{
+	if (fShowMode != MD_SHOW_STATUS_WINDOW_ALWAYS)
 		Hide();
-		Show();
-	}
+	Show();
 }
 
-// destructor
+
 StatusWindow::~StatusWindow()
 {
 	// remove all status_views, so we don't accidentally delete them
-	while (StatusView *status_view = (StatusView *)stat_views.RemoveItem(0L))
+	while (StatusView *status_view = (StatusView *)fStatusViews.RemoveItem(0L))
 		RemoveView(status_view);
 
 	Mail::Settings general;
-	if (general.InitCheck() == B_OK)
-	{
+	if (general.InitCheck() == B_OK) {
+		// save the current status window properties
 		general.SetStatusWindowFrame(Frame());
 		general.SetStatusWindowWorkspaces((int32)Workspaces());
 		general.Save();
@@ -149,48 +145,49 @@ StatusWindow::~StatusWindow()
 }
 
 
-void StatusWindow::FrameMoved(BPoint /*origin*/)
+void
+StatusWindow::FrameMoved(BPoint /*origin*/)
 {
-	if (last_workspace == current_workspace())
-		window_frame = Frame();
+	if (fLastWorkspace == current_workspace())
+		fFrame = Frame();
 }
 
 
-void StatusWindow::WorkspaceActivated(int32 workspace, bool active)
+void
+StatusWindow::WorkspaceActivated(int32 workspace, bool active)
 {
-	if (active)
-	{
-		MoveTo(window_frame.LeftTop());
-		last_workspace = workspace;
+	if (!active)
+		return;
 
-		// make the window visible if the screen's frame doesn't contain it
-		BScreen screen;
-		if (screen.Frame().bottom < window_frame.top)
-			MoveTo(window_frame.left-1, screen.Frame().bottom - window_frame.Height() - 4);
-		if (screen.Frame().right < window_frame.left)
-			MoveTo(window_frame.left-1, screen.Frame().bottom - window_frame.Height() - 4);
-	}
+	MoveTo(fFrame.LeftTop());
+	fLastWorkspace = workspace;
+
+	// make the window visible if the screen's frame doesn't contain it
+	BScreen screen;
+	if (screen.Frame().bottom < fFrame.top)
+		MoveTo(fFrame.left - 1, screen.Frame().bottom - fFrame.Height() - 4);
+	if (screen.Frame().right < fFrame.left)
+		MoveTo(fFrame.left - 1, screen.Frame().bottom - fFrame.Height() - 4);
 }
 
 
-// MessageReceived
-void StatusWindow::MessageReceived(BMessage *msg)
+void
+StatusWindow::MessageReceived(BMessage *msg)
 {
-	switch (msg->what)
-	{
+	switch (msg->what) {
 		case 'lkch':
 		{
 			int32 look;
-			if (msg->FindInt32("StatusWindowLook",&look) == B_OK)
+			if (msg->FindInt32("StatusWindowLook", &look) == B_OK)
 				SetBorderStyle(look);
 			break;
 		}
 		case 'wsch':
 		{
 			uint32 workspaces;
-			if (msg->FindInt32("StatusWindowWorkSpace", (int32 *) &workspaces) != B_OK)
+			if (msg->FindInt32("StatusWindowWorkSpace", (int32 *)&workspaces) != B_OK)
 				break;
-			if ((Workspaces() != B_ALL_WORKSPACES) && (workspaces != B_ALL_WORKSPACES))
+			if (Workspaces() != B_ALL_WORKSPACES && workspaces != B_ALL_WORKSPACES)
 				break;
 			if (workspaces != Workspaces())
 				SetWorkspaces(workspaces);
@@ -198,72 +195,79 @@ void StatusWindow::MessageReceived(BMessage *msg)
 		}
 		case 'DATA':
 			msg->what = B_REFS_RECEIVED;
-			be_roster->Launch(B_MAIL_TYPE,msg);
-			break;			
+			be_roster->Launch(B_MAIL_TYPE, msg);
+			break;
+
 		default:
 			BWindow::MessageReceived(msg);
 	}
 }
 
-// SetDefaultMessage
-void StatusWindow::SetDefaultMessage(const BString& m)
+
+void
+StatusWindow::SetDefaultMessage(const BString &message)
 {
-	if (Lock())
-	{
-		message_view->SetText(m.String());
+	if (Lock()) {
+		fMessageView->SetText(message.String());
 		Unlock();
 	}
 }
 
-// NewStatusView
-StatusView *StatusWindow::NewStatusView(const char *description,bool upstream) {
-	if (!Lock()) return NULL;
-	
+
+StatusView *
+StatusWindow::NewStatusView(const char *description, bool upstream)
+{
+	if (!Lock())
+		return NULL;
+
 	BRect rect = Bounds();
-	rect.top = stat_views.CountItems() * (min_height + 1);
-	rect.bottom = rect.top + min_height;
-	StatusView *status = new StatusView(rect,description,upstream);
+	rect.top = fStatusViews.CountItems() * (fMinHeight + 1);
+	rect.bottom = rect.top + fMinHeight;
+	StatusView *status = new StatusView(rect, description, upstream);
 	status->window = this;
+
 	Unlock();
-	
 	return status;
 }
 
-// ActuallyAddStatusView
-void StatusWindow::ActuallyAddStatusView(StatusView *status) {
+
+void
+StatusWindow::ActuallyAddStatusView(StatusView *status)
+{
 	if (!Lock())
 		return;
 
 	BRect rect = Bounds();
-	rect.top = stat_views.CountItems() * (min_height + 1);
-	rect.bottom = rect.top + min_height;
-	
+	rect.top = fStatusViews.CountItems() * (fMinHeight + 1);
+	rect.bottom = rect.top + fMinHeight;
+
 	status->MoveTo(rect.LeftTop());
-	status->ResizeTo(rect.Width(),rect.Height());
-	
-	stat_views.AddItem((void *)status);
-	
+	status->ResizeTo(rect.Width(), rect.Height());
+
+	fStatusViews.AddItem((void *)status);
+
 	status->Hide();
 	AddChild(status);
-	if (CountVisibleItems() == 1 && !default_is_hidden)
-	{
-		default_view->Hide();
-		default_is_hidden = true;
-	}
+
+	if (CountVisibleItems() == 1 && !fDefaultView->IsHidden())
+		fDefaultView->Hide();
+
 	status->Show();
 	SetSizeLimits(10.0, 2000.0, 10.0, 2000.0);
-	
+
 	// if the window doesn't fit on screen anymore, move it
+	sLock.Lock();
 	BScreen screen;
-	if (screen.Frame().bottom < Frame().top + rect.bottom)
-	{
-		MoveBy(0, Bounds().Height() - rect.bottom);
-		window_moved++;
+	if (screen.Frame().bottom < Frame().top + rect.bottom) {
+		MoveBy(0, -fMinHeight - 1);
+		fWindowMoved++;
 	}
+
 	ResizeTo(rect.Width(), rect.bottom);
-	
-	if (show != MD_SHOW_STATUS_WINDOW_ALWAYS
-		&& show != MD_SHOW_STATUS_WINDOW_NEVER
+	sLock.Unlock();
+
+	if (fShowMode != MD_SHOW_STATUS_WINDOW_ALWAYS
+		&& fShowMode != MD_SHOW_STATUS_WINDOW_NEVER
 		&& CountVisibleItems() == 1)
 	{
 		SetFlags(Flags() | B_AVOID_FOCUS);
@@ -273,81 +277,93 @@ void StatusWindow::ActuallyAddStatusView(StatusView *status) {
 	Unlock();
 }
 
-// RemoveView
-void StatusWindow::RemoveView(StatusView *view) {
-	if (!view || !Lock()) return;
-	
-	int32 i = stat_views.IndexOf(view);
-	if (i < 0) return;
-	
-	stat_views.RemoveItem((void *)view);
-	if (RemoveChild(view))
-	{
-		// delete view; ?!?
-		for (; StatusView *v = (StatusView *)stat_views.ItemAt(i); i++)
-			v->MoveBy(0, -(min_height+1));
-	}
-	
-	if (window_moved)
-	{
-		window_moved--;
-		MoveBy(0, min_height + 1);
+
+void
+StatusWindow::RemoveView(StatusView *view)
+{
+	if (!view || !Lock())
+		return;
+
+	int32 i = fStatusViews.IndexOf(view);
+	if (i < 0) {
+		Unlock();
+		return;
 	}
 
-	if (CountVisibleItems() == 0)
-	{
-		if (show != MD_SHOW_STATUS_WINDOW_NEVER && show != MD_SHOW_STATUS_WINDOW_ALWAYS)
-		{
+	sLock.Lock();
+		// ToDo: although there already is the outer lock, this seems
+		//	to help... (maybe we should investigate this further...)
+
+	fStatusViews.RemoveItem((void *)view);
+	if (RemoveChild(view)) {
+		while ((view = (StatusView *)fStatusViews.ItemAt(i++)) != NULL)
+			view->MoveBy(0, -fMinHeight - 1);
+
+		// the view will be deleted in the ChainRunner
+		view = NULL;
+	}
+
+	if (fWindowMoved > 0) {
+		fWindowMoved--;
+		MoveBy(0, fMinHeight + 1);
+	}
+	sLock.Unlock();
+
+	if (CountVisibleItems() == 0) {
+		if (fShowMode != MD_SHOW_STATUS_WINDOW_NEVER
+			&& fShowMode != MD_SHOW_STATUS_WINDOW_ALWAYS) {
 			while (!IsHidden())
 				Hide();
 		}
-				
-		if (default_is_hidden)
-		{
-			default_view->Show();
-			default_is_hidden = false;
-		}
-		SetSizeLimits(min_width, 2.0 * min_width, min_height, min_height);
-		ResizeTo(default_view->Frame().Width(), default_view->Frame().Height());
+
+		if (fDefaultView->IsHidden())
+			fDefaultView->Show();
+
+		SetSizeLimits(fMinWidth, 2.0 * fMinWidth, fMinHeight, fMinHeight);
+		ResizeTo(fDefaultView->Frame().Width(), fDefaultView->Frame().Height());
 
 		be_app->PostMessage('stwg');
+			// notify that the status window is gone
 	}
 	else
-		ResizeTo(Bounds().Width(), stat_views.CountItems() * min_height - 1);
+		ResizeTo(Bounds().Width(), fStatusViews.CountItems() * fMinHeight);
 
 	Unlock();
 }
 
 
-int32 StatusWindow::CountVisibleItems()
+int32
+StatusWindow::CountVisibleItems()
 {
-	if (show != MD_SHOW_STATUS_WINDOW_WHEN_SENDING)
-		return stat_views.CountItems();
+	if (fShowMode != MD_SHOW_STATUS_WINDOW_WHEN_SENDING)
+		return fStatusViews.CountItems();
 
 	int32 count = 0;
-	for (int32 i = stat_views.CountItems();i-- > 0;)
-	{
-		StatusView *view = (StatusView *)stat_views.ItemAt(i);
+	for (int32 i = fStatusViews.CountItems(); i-- > 0;) {
+		StatusView *view = (StatusView *)fStatusViews.ItemAt(i);
 		if (view->is_upstream)
 			count++;
 	}
 	return count;
 }
 
-// HasItems
-bool StatusWindow::HasItems(void) {
-	return (CountVisibleItems() > 0);
+
+bool
+StatusWindow::HasItems(void)
+{
+	return CountVisibleItems() > 0;
 }
 
-// SetShowCriterion
-void StatusWindow::SetShowCriterion(uint32 when)
+
+void
+StatusWindow::SetShowCriterion(uint32 when)
 {
 	if (!Lock())
 		return;
 
-	show = when;
-	if (show == MD_SHOW_STATUS_WINDOW_ALWAYS
-		|| (show != MD_SHOW_STATUS_WINDOW_NEVER && HasItems()))
+	fShowMode = when;
+	if (fShowMode == MD_SHOW_STATUS_WINDOW_ALWAYS
+		|| (fShowMode != MD_SHOW_STATUS_WINDOW_NEVER && HasItems()))
 	{
 		while (IsHidden())
 			Show();
@@ -358,11 +374,11 @@ void StatusWindow::SetShowCriterion(uint32 when)
 	Unlock();
 }
 
-// SetBorderStyle
-void StatusWindow::SetBorderStyle(int32 look)
+
+void
+StatusWindow::SetBorderStyle(int32 look)
 {
-	switch (look)
-	{
+	switch (look) {
 		case MD_STATUS_LOOK_TITLED:
 			SetLook(B_TITLED_WINDOW_LOOK);
 			break;
@@ -384,13 +400,13 @@ void StatusWindow::SetBorderStyle(int32 look)
 
 
 //	#pragma mark -
-/*------------------------------------------------
+//------------------------------------------------
+//
+// StatusView
+//
+//------------------------------------------------
 
-StatusView
 
-------------------------------------------------*/
-
-// constructor
 StatusView::StatusView(BRect rect, const char *description,bool upstream)
 		  : BBox(rect, description, B_FOLLOW_LEFT_RIGHT,
 		  		 B_WILL_DRAW | B_FRAME_EVENTS | B_NAVIGABLE_JUMP,
@@ -413,17 +429,18 @@ StatusView::StatusView(BRect rect, const char *description,bool upstream)
 	is_upstream = upstream;
 }
 
-// destructor
+
 StatusView::~StatusView()
 {
 }
 
-// AddProgress
-void StatusView::AddProgress(int32 how_much) {
+
+void
+StatusView::AddProgress(int32 how_much)
+{
 	AddSelfToWindow();
 	
-	if (LockLooper())
-	{
+	if (LockLooper()) {
 		if (status->CurrentValue() == 0)
 			strcpy(pre_text,status->TrailingText());
 		char final[80];
@@ -438,26 +455,29 @@ void StatusView::AddProgress(int32 how_much) {
 	}
 }
 
-// SetMessage
-void StatusView::SetMessage(const char *msg) {
+
+void
+StatusView::SetMessage(const char *msg)
+{
 	AddSelfToWindow();
-	
-	if (LockLooper())
-	{
+
+	if (LockLooper()) {
 		status->SetTrailingText(msg);
 		UnlockLooper();
 	}
 }
 
-void StatusView::Reset(bool hide) {
-	if (LockLooper())
-	{
+
+void
+StatusView::Reset(bool hide)
+{
+	if (LockLooper()) {
 		char old[255];
 		if ((pre_text[0] == 0) && !hide)
-			strcpy(pre_text,status->TrailingText());
+			strcpy(pre_text, status->TrailingText());
 		if (hide)
 			pre_text[0] = 0;
-			
+
 		strcpy(old,status->Label());
 		status->Reset(old);
 		status->SetTrailingText(pre_text);
@@ -467,16 +487,17 @@ void StatusView::Reset(bool hide) {
 		items_now = 0;
 		UnlockLooper();
 	}
-	if (hide)
-		if (Window()) window->RemoveView(this);
+	if (hide && Window())
+		window->RemoveView(this);
 }
 
-// SetMaximum
-void StatusView::SetMaximum(int32 max_bytes) {
+
+void
+StatusView::SetMaximum(int32 max_bytes)
+{
 	AddSelfToWindow();
-	
-	if (LockLooper())
-	{
+
+	if (LockLooper()) {
 		if (max_bytes < 0) {
 			status->SetMaxValue(total_items);
 			by_bytes = false;
@@ -488,39 +509,53 @@ void StatusView::SetMaximum(int32 max_bytes) {
 	}
 }
 
-// SetTotalItems
-void StatusView::SetTotalItems(int32 items) {
+
+void
+StatusView::SetTotalItems(int32 items)
+{
 	AddSelfToWindow();
 	total_items = items;
 }
 
-int32 StatusView::CountTotalItems() {
+
+int32
+StatusView::CountTotalItems()
+{
 	return total_items;
 }
 
-// AddItem
-void StatusView::AddItem(void) {
+
+void
+StatusView::AddItem(void)
+{
 	AddSelfToWindow();
 	items_now++;
-	
+
 	if (!by_bytes)
 		AddProgress(1);
 }
 
-void StatusView::AddSelfToWindow() {
+
+void
+StatusView::AddSelfToWindow()
+{
 	if (Window() != NULL)
 		return;
 	
 	window->ActuallyAddStatusView(this);
 }
 
+
 //--------------------------------------------------------------------------
 //	#pragma mark -
 
-_EXPORT void Mail::ShowAlert(const char *title, const char *body, const char *button, alert_type type)
+
+_EXPORT void
+Mail::ShowAlert(const char *title, const char *body, const char *button, alert_type type)
 {
-printf("Alert (%s): %s [%s]\n",title,body,button);
-	BAlert *alert = new BAlert(title,body,button,NULL,NULL,B_WIDTH_AS_USUAL,type);
+	printf("Alert (%s): %s [%s]\n", title, body, button);
+
+	BAlert *alert = new BAlert(title, body, button, NULL, NULL, B_WIDTH_AS_USUAL, type);
 	alert->SetFeel(B_NORMAL_WINDOW_FEEL);
 	alert->Go(NULL);
 }
