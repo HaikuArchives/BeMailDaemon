@@ -159,22 +159,22 @@ bool	StringList::RemoveItem(const char *item) {
 	struct string_bucket *bkt = (struct string_bucket *)_buckets[string_hash(item)];
 	
 	if ((bkt != NULL) && (strcmp(bkt->string,item) == 0)) {
+		_indexed->RemoveItem(IndexOf(item));
 		_buckets[string_hash(item)] = bkt->next;
 		free((void *)(bkt->string));
 		delete bkt;
 		_items--;
-		_indexed->RemoveItem(IndexOf(item));
 		return true;
 	}
 	
 	while (bkt->next != NULL) {
 		if (strcmp(bkt->next->string,item) == 0) {
+			_indexed->RemoveItem(IndexOf(item));
+			
 			bkt->next = bkt->next->next;
 			free((void *)(bkt->string));
 			delete bkt;
 			_items--;
-			
-			_indexed->RemoveItem(IndexOf(item));
 			
 			return true;
 		}
