@@ -182,8 +182,8 @@ status_t FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	// Note - sometimes the actual message size is a few bytes more than the
 	// registered size, so use >= when testing.  And sometimes the message is
 	// actually slightly smaller, due to POP server errors (some count double
-	// dots correctly, some don't, if it causes problems, don't use partial
-	// messages).
+	// dots correctly, some don't, if it causes problems, you'll get a partial
+	// message and waste time downloading it twice).
 	if (haveReadWholeMessage ||
 		(out_headers->HasInt32("SIZE") && size >= out_headers->FindInt32("SIZE"))) {
 		info.SetType(B_MAIL_TYPE);
