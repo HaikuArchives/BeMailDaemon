@@ -21,3 +21,6 @@
 #  and value is a single-quote delimited value.
 # For example:
 #*.gif -k 'b'
+#
+# Resource files should be stored in binary mode.
+*.rsrc -k 'b'
