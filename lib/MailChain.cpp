@@ -47,7 +47,8 @@ status_t MailChain::Load(BMessage* settings)
 		delete meta_data;
 		
 	meta_data = new BMessage;
-	settings->FindMessage("meta_data",meta_data);
+	if (settings->HasMessage("meta_data"));
+		settings->FindMessage("meta_data",meta_data);
 	
 	const char* n;
 	status_t ret = settings->FindString("name",&n);
@@ -94,8 +95,10 @@ status_t MailChain::InitCheck() const
 	if (filter_settings.CountItems()!=settings_ct
 	||  filter_addons.CountItems()!=addons_ct)
 		return B_NO_MEMORY;
-	else
-		return B_OK;
+	if (id < 0)
+		return B_BAD_VALUE;
+		
+	return B_OK;
 }
 
 
@@ -274,6 +277,7 @@ status_t MailChain::Reload()
 		fprintf(stderr, "Couldn't open chain settings file '%s': %s\n",
 			path.Path(), strerror(ret));
 		Load(&empty);
+		id = -1;
 		return ret;
 	}
 	

@@ -19,7 +19,7 @@ struct CharsetConversionEntry
 	uint32 flavor;
 };
 
-static const CharsetConversionEntry charsets[] =
+extern const CharsetConversionEntry charsets[] =
 {
 	{"iso-8859-1",  B_ISO1_CONVERSION},
 	{"iso-8859-2",  B_ISO2_CONVERSION},

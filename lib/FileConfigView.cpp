@@ -4,14 +4,16 @@
 */
 
 
-#include "FileConfigView.h"
-
 #include <TextControl.h>
 #include <Button.h>
 #include <String.h>
 #include <Message.h>
 #include <Path.h>
 
+class _EXPORT FileControl;
+class _EXPORT FileConfigView;
+
+#include "FileConfigView.h"
 
 const uint32 kMsgSelectButton = 'fsel';
 

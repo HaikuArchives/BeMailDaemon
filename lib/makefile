@@ -7,7 +7,7 @@
 ## Application Specific Settings ---------------------------------------------
 
 # specify the name of the binary
-NAME= libnumail.so
+NAME= libmail.so
 
 # specify the type of binary
 #	APP:	Application
@@ -154,7 +154,7 @@ else
 endif
 
 TARGET_DIR=.
-INSTALL_DIR=/boot/home/config/lib
+INSTALL_DIR=/boot/beos/system/lib
 
 ## include the makefile-engine
 include $(BUILDHOME)/etc/makefile-engine.MailD

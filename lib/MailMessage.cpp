@@ -379,7 +379,7 @@ status_t MailMessage::RenderTo(BFile *file) {
 	#endif
 
 	message_id << ">";
-	_body->AddHeaderField("Message-ID: ", message_id.String());
+	_body->AddHeaderField("Message-ID", message_id.String());
 	
 	return _body->Render(file);
 }
@@ -410,15 +410,17 @@ status_t MailMessage::Send(bool send_now) {
 	if ((via->InitCheck() != B_OK) || (via->ChainDirection() != outbound)) {
 		delete via;
 		via = new MailChain(MailSettings().DefaultOutboundChainID());
+		SendViaAccount(via->ID());
 	}
 	
 	create_directory(via->MetaData()->FindString("path"),0777);
-	BDirectory dir(via->MetaData()->FindString("path"));
+	BDirectory *dir = new BDirectory(via->MetaData()->FindString("path"));
 
-	status_t status = RenderTo(&dir);
+	status_t status = RenderTo(dir);
 	if (status >= B_OK && send_now)
 		status = MailDaemon::SendQueuedMail();
 		
+	delete dir;		
 	delete via;
 	
 	return status;
