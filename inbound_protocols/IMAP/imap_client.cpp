@@ -86,7 +86,7 @@ class IMAP4Client : public Mail::RemoteStorageProtocol {
 
 class NoopWorker : public BHandler {
 	public:
-		NoopWorker(IMAP4Client *a) : us(a) {}
+		NoopWorker(IMAP4Client *a) : us(a), last_run(0) {}
 		void RecentMessages() {
 			int32 num_messages = -1;
 			int32 next_uid = -1;
@@ -153,6 +153,9 @@ class NoopWorker : public BHandler {
 			if (msg->what != 'impn' /* IMaP Noop */)
 				return;
 				
+			if ((time(NULL) - last_run) < 9)
+				return;
+				
 			if (strcasecmp(us->selected_mb.String(),"INBOX"))
 				us->Close();
 			
@@ -166,9 +169,11 @@ class NoopWorker : public BHandler {
 				us->SendCommand("NOOP");
 				RecentMessages();
 			}
+			last_run = time(NULL);
 		}
 	private:
 		IMAP4Client *us;
+		time_t last_run;
 };
 
 IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::RemoteStorageProtocol(settings,run), commandCount(0), net(-1), selected_mb(""), inbox_index(-1), noop(NULL) {
@@ -550,6 +555,8 @@ void IMAP4Client::GetUniqueIDs() {
 	BString tag;
 	BString uid;
 	struct mailbox_info *info;
+	
+	runner->ReportProgress(0,0,"Getting Unique IDs");
 	
 	for (int32 i = 0; i < mailboxes.CountItems(); i++) {
 		Select(mailboxes[i]);
