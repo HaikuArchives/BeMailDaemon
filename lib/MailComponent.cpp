@@ -45,14 +45,17 @@ Component::~Component()
 
 uint32 Component::ComponentType()
 {
+	if (NULL != dynamic_cast<AttributedAttachment *> (this))
+		return MC_ATTRIBUTED_ATTACHMENT;
+
 	BMimeType type, super;
 	MIMEType(&type);
 	type.GetSupertype(&super);
 
 	//---------ATT-This code *desperately* needs to be improved
 	if (super == "multipart") {
-		if (type == "multipart/x-bfile")
-			return MC_ATTRIBUTED_ATTACHMENT;
+		if (type == "multipart/x-bfile") // Not likely, they have the MIME
+			return MC_ATTRIBUTED_ATTACHMENT; // of their data contents.
 		else
 			return MC_MULTIPART_CONTAINER;
 	} else if (!IsAttachment() && (super == "text" || type.Type() == NULL))
@@ -229,7 +232,9 @@ Component::SetToRFC822(BPositionIO *data, size_t /*length*/, bool /* parse_now *
 	size_t	buflen = 0;
 	int32	len;
 	//
-	// Parse the header
+	// Parse the header.
+	// Code similar to ParseFilter::ProcessMailMessage so fix it if
+	// you change this function.
 	//
 	while ((len = readfoldedline(*data, &buf, &buflen)) >= 2)
 	{

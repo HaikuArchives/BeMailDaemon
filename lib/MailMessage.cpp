@@ -200,9 +200,9 @@ Message::ForwardMessage(bool accountFromMail, bool includeAttachments)
 			if (cmpt == _text_body)
 				continue;
 
-		//---I am ashamed to have the written the code between here and the next comment
+			//---I am ashamed to have the written the code between here and the next comment
 			cmpt->GetDecodedData(NULL);
-				// ... and you still managed to get it wrong ;-)), axeld.
+			// ... and you still managed to get it wrong ;-)), axeld.
 			// we should really move this stuff into copy constructors
 			// or something like that
 

@@ -566,13 +566,17 @@ status_t AttributedAttachment::SetToRFC822(BPositionIO *data, size_t length, boo
 	if (strcmp(type.Type(),"multipart/x-bfile") != 0)
 		return B_BAD_TYPE;
 
-	// get data and attributes	
+	// get data and attributes
 	if ((_data = dynamic_cast<SimpleAttachment *>(fContainer->GetComponent(0))) == NULL)
 		return B_BAD_VALUE;
+	if (parse_now)
+		_data->GetDecodedData(); // Force it to make a copy of the data.  Needed for forwarding messages hack.
 
 	if ((_attributes_attach = dynamic_cast<SimpleAttachment *>(fContainer->GetComponent(1))) == NULL
 		|| _attributes_attach->GetDecodedData() == NULL)
 		return B_BAD_VALUE;
+
+	// Convert the attribute binary attachment into a convenient easy to use BMessage.
 
 	int32 len = ((BMallocIO *)(_attributes_attach->GetDecodedData()))->BufferLength();
 	char *start = (char *)malloc(len);
