@@ -98,5 +98,7 @@ cp -v documentation/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/*html $
 cp documentation/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/art/*.* $BUILD_PATH/Extra\ Documentation/Replacement\ Email\ Preferences\ Panel\ Users\ Guide/art/
 mkdir -p $BUILD_PATH/Extra\ Documentation/Mass\ Mailing
 cp --preserve --verbose documentation/Mass\ Mailing/* $BUILD_PATH/Extra\ Documentation/Mass\ Mailing/
+mkdir -p $BUILD_PATH/User\ Provided\ Scripts
+unzip -n build_utils/UserProvidedScripts.zip -d $BUILD_PATH/User\ Provided\ Scripts
 
 mimeset -f $BUILD_PATH
