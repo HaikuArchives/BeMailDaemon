@@ -55,11 +55,11 @@ All rights reserved.
 #define FROM_TEXT			"From:"
 #define TO_FIELD_H			 39
 #define FROM_FIELD_H		 31
-#define TO_FIELD_V			  8
+#define TO_FIELD_V			  7
 #define TO_FIELD_WIDTH		270
 #define FROM_FIELD_WIDTH	280
 #define TO_FIELD_HEIGHT		 16
-#define FIELD_HEIGHT		 25
+#define FIELD_HEIGHT		 24
 
 #define SUBJECT_TEXT		"Subject:"
 #define SUBJECT_FIELD_H		 18

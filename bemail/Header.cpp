@@ -228,6 +228,7 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 		AddChild(fAccount);
 	}
 
+	--y;
 	r.Set(x - font.StringWidth(SUBJECT_TEXT) - 11, y,
 		  windowRect.Width() - SEPERATOR_MARGIN, y + TO_FIELD_HEIGHT);
 	y += FIELD_HEIGHT;
@@ -240,6 +241,7 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 	if (fResending)
 		fSubject->SetEnabled(false);
 	
+	--y;
 	if (!fIncoming)
 	{
 		r.Set(x - 11, y, CC_FIELD_H + CC_FIELD_WIDTH, y + CC_FIELD_HEIGHT);
@@ -292,7 +294,7 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 
 		LoadMessage(file);
 	}
-	ResizeTo(Bounds().Width(),y + 2);
+	ResizeTo(Bounds().Width(),y);
 }
 
 //--------------------------------------------------------------------
