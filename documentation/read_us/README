@@ -145,7 +145,7 @@ ADDON INSTALLATION.
 
 HISTORY:
 
-January 22 2003 - v2.0.0b8
+January 23 2003 - v2.0.0b8
 - Date format changed slightly to make it compliant to RFC-822 (some other mail apps had problems understanding it).
 - decode_base64() should now work with single character line breaks as well.
 - Changed default spam cutoff ratio to 0.95 to correspond to the default Chi-Squared scoring method.
@@ -156,7 +156,7 @@ January 22 2003 - v2.0.0b8
 - Made it internationalize (using utf-8, no choice) the file attachment headers so file names with weird characters will now work.
 - Don't convert words to lower case for spam checking, the case can be an important clue!
 - Updated sample spam database: now has capitalized words and includes fresh spam.  Old uncapitalized databases won't work as well.  Either replace your existing one with the sample one, or be prepared for worse results until more training corrects it.
-- Headers in ISO-2022-JP should now appear correctly.  Fixed up header encoding so that it also turns on the encoding markers for escapes and control characters, which you see in the 7 bit encodings like ISO-2022-JP (previously it only did them when it found 8 bit characters).
+- Headers in ISO-2022-JP should now appear correctly.  Fixed up header encoding so that it also turns on the encoding markers for escapes and control characters, which you see in the 7 bit encodings like ISO-2022-JP (previously it only did them when it found 8 bit characters).  Also use quoted printable for the headers to avoid base64 extra CRLF insertion.
 - Missing Japanese text at the end, or garbage characters at the end bug fixed.  Increased the conversion buffer size calculation so that the ballooning of text due to the excessive number of escape characters in ISO-2022-JP doesn't run it past the end of the buffer (both body text and headers were affected).
 
 December 13 2002 - v2.0.0b7
