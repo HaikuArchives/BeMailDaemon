@@ -868,17 +868,17 @@ TMailApp::FindWindow(const entry_ref &ref)
 	return NULL;
 }
 
-//--------------------------------------------------------------------
 
-void TMailApp::ClearPrintSettings()
+void
+TMailApp::ClearPrintSettings()
 {
 	delete print_settings;
 	print_settings = NULL;
 }
 
-//--------------------------------------------------------------------
 
-void TMailApp::FontChange()
+void
+TMailApp::FontChange()
 {
 	int32		index = 0;
 	BMessage	msg;
@@ -896,9 +896,9 @@ void TMailApp::FontChange()
 	}
 }
 
-//--------------------------------------------------------------------
 
-TMailWindow* TMailApp::NewWindow(const entry_ref *ref, const char *to, bool resend,	BMessenger* msng)
+TMailWindow *
+TMailApp::NewWindow(const entry_ref *ref, const char *to, bool resend, BMessenger *msng)
 {
 	BScreen screen(B_MAIN_SCREEN_ID);
 	BRect screen_frame = screen.Frame();
@@ -2708,17 +2708,17 @@ TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 	int32 chain_id;
 	if (window->fFile->ReadAttr("MAIL:reply_with",B_INT32_TYPE,0,&chain_id,4) < B_OK)
 		chain_id = -1;
+
 	// set mail account
-	if ((gUseAccountFrom == ACCOUNT_FROM_MAIL) || (chain_id > -1))
-	{
+
+	if ((gUseAccountFrom == ACCOUNT_FROM_MAIL) || (chain_id > -1)) {
 		if (gUseAccountFrom == ACCOUNT_FROM_MAIL)
 			fHeaderView->fChain = fMail->Account();
 		else
 			fHeaderView->fChain = chain_id;
 
 		BMenu *menu = fHeaderView->fAccountMenu;
-		for (int32 i = menu->CountItems();i-- > 0;)
-		{
+		for (int32 i = menu->CountItems(); i-- > 0;) {
 			BMenuItem *item = menu->ItemAt(i);
 			BMessage *msg;
 			if (item && (msg = item->Message()) != NULL
@@ -2727,15 +2727,15 @@ TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 		}
 	}
 
+	// create preamble string
+
 	char preamble[1024], *from = gReplyPreamble, *to = preamble;
-	while (*from)
-	{
-		if (*from == '%')
-		{
+	while (*from) {
+		if (*from == '%') {
+			// insert special content
 			int32 length;
 
-			switch (*++from)
-			{
+			switch (*++from) {
 				case 'n':	// full name
 				{
 					BString fullName (mail->From());
@@ -2781,11 +2781,8 @@ TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 				default: // Sometimes a % is just a %.
 					*to++ = *from;
 			}
-		}
-		else if (*from == '\\')
-		{
-			switch (*++from)
-			{
+		} else if (*from == '\\') {
+			switch (*++from) {
 				case 'n':
 					*to++ = '\n';
 					break;
@@ -2793,36 +2790,51 @@ TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 				default:
 					*to++ = *from;
 			}
-		}
-		else
+		} else
 			*to++ = *from;
 
 		from++;
 	}
 	*to = '\0';
 
+	// insert (if selection) or load (if whole mail) message text into text view
+
 	int32 finish, start;
 	window->fContentView->fTextView->GetSelection(&start, &finish);
-	if (start != finish)
-	{
-		char *str = (char *)malloc(finish - start + 1);
-		window->fContentView->fTextView->GetText(start, finish - start, str);
-		if (str[strlen(str) - 1] != '\n')
-		{
-			str[strlen(str)] = '\n';
+	if (start != finish) {
+		char *text = (char *)malloc(finish - start + 1);
+		if (text == NULL)
+			return;
+
+		window->fContentView->fTextView->GetText(start, finish - start, text);
+		if (text[strlen(text) - 1] != '\n') {
+			text[strlen(text)] = '\n';
 			finish++;
 		}
-		fContentView->fTextView->SetText(str, finish - start);
-		free(str);
+		fContentView->fTextView->SetText(text, finish - start);
+		free(text);
 
 		finish = fContentView->fTextView->CountLines() - 1;
-		for (int32 loop = 0; loop < finish; loop++)
-		{
+		for (int32 loop = 0; loop < finish; loop++) {
 			fContentView->fTextView->GoToLine(loop);
 			fContentView->fTextView->Insert((const char *)QUOTE);
 		}
+
+		if (gColoredQuotes) {
+			const BFont *font = fContentView->fTextView->Font();
+			int32 length = fContentView->fTextView->TextLength();
+
+			struct text_runs : text_run_array { text_run _runs[63]; } style;
+			style.count = 0;
+
+			FillInQouteTextRuns(fContentView->fTextView, fContentView->fTextView->Text(),
+				length, font, &style, 64);
+
+			fContentView->fTextView->SetRunArray(0, length, &style);
+		}
+
 		fContentView->fTextView->GoToLine(0);
-		if (strlen (preamble) > 0)
+		if (strlen(preamble) > 0)
 			fContentView->fTextView->Insert(preamble);
 	}
 	else

@@ -291,11 +291,9 @@ FilterHTMLTag(int32 *first,char **t,char *end)
 }
 
 
-// the prototype is obviously needed by mwcc
-void FillInQouteTextRuns(BTextView *view,const char *line,int32 length,BFont &font,text_run_array *style,int32 maxStyles = 5);
-
 void
-FillInQouteTextRuns(BTextView *view,const char *line,int32 length,BFont &font,text_run_array *style,int32 maxStyles)
+FillInQouteTextRuns(BTextView *view, const char *line, int32 length, const BFont &font,
+	text_run_array *style, int32 maxStyles)
 {
 	text_run *runs = style->runs;
 	int32 index = style->count;
@@ -2431,7 +2429,7 @@ TTextView::Reader::Insert(const char *line, int32 count, bool isHyperLink, bool 
 	if (!count)
 		return true;
 
-	BFont font(fView->fFont);
+	BFont font(fView->Font());
 	struct text_runs : text_run_array { text_run _runs[63]; } style;
 	style.count = 0;
 

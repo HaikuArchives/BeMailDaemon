@@ -183,6 +183,8 @@ class TTextView : public BTextView
 		void	Undo(BClipboard* clipboard);
 		void	Redo();
 
+		const BFont *Font() const { return &fFont; }
+
 	private:
 		bool	IM_Active; // For handling Input Method changes in undo.
 		bool	IM_Replace;
@@ -273,4 +275,7 @@ class TSavePanel : public BFilePanel
 		TTextView *fView;
 };
 
-#endif // #ifndef _CONTENT_H
+extern void FillInQouteTextRuns(BTextView *view, const char *line, int32 length,
+				const BFont &font, text_run_array *style, int32 maxStyles = 5);
+
+#endif	/* #ifndef _CONTENT_H */
