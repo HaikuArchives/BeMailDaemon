@@ -155,7 +155,9 @@ INSTALL_DIR=/boot/beos/system/lib
 
 #	Detect BONE
 ifeq ($(shell ls 2>/dev/null -1 /boot/develop/headers/be/bone/bone_api.h), /boot/develop/headers/be/bone/bone_api.h)
-	# do nothing. We just need it for the net_server case.
+	SYSTEM_INCLUDE_PATHS += /boot/develop/headers/be/bone
+	LIBS += socket
+	DEFINES += BONE
 else
 	LIBS += net
 endif
