@@ -578,8 +578,56 @@ and
       <P>- Something else if <FONT FACE="HELVETICA" COLOR="#991122"><I>component</I></FONT>->Instantiate() fails.</P>
 	</BLOCKQUOTE>
 	
+</BLOCKQUOTE>
+<P>
+
+<HR>
+
+<A NAME=RemoveComponent></A><TABLE>
+   <TR>
+      <TD>
+         <P></P>
+      </TD>
+      <TD>
+         <P><FONT SIZE="+2">RemoveComponent() </FONT></P>
+      </TD>
+   </TR>
+</TABLE>
+</P>
+
+<P>&nbsp;</P>
+
+<BLOCKQUOTE><TABLE BORDER=2 BGCOLOR="#550033" WIDTH=1000>
+      <TR>
+         <TD>
+            <P><TABLE BORDER=1 BGCOLOR="#FFFFFF" CELLPADDING=8 WIDTH=1000>
+               <TR>
+                  <TD>
+                     <P>
+                     status_t <FONT SIZE="+1"><B><TT>RemoveComponent(</TT></B></FONT>
+                     int32 <FONT FACE="HELVETICA" COLOR="#991122"><I>index</I></FONT>
+                     <FONT SIZE="+1"><B><TT>)</TT></B></FONT></P>
+                  </TD>
+               </TR>
+            </TABLE>
+            </P>
+         </TD>
+      </TR>
+   </TABLE>
    
-</TABLE></P></BLOCKQUOTE>
+   <P>Removes the component at <FONT FACE="HELVETICA" COLOR="#991122"><I>index</I></FONT> from the container and
+   frees all memory associated with it (i.e. we delete it).</P>
+   
+   <P><B>Return Value:</B></P>
+   
+   <BLOCKQUOTE>- <B>B_OK</B> if everything succeeds.<P>
+      
+      - <B>B_BAD_INDEX</B> if <FONT FACE="HELVETICA" COLOR="#991122"><I>index</I></FONT> is out of range</P>
+	</BLOCKQUOTE>
+	
+</BLOCKQUOTE>   
+
+</TABLE></P>
 
 <P><!--TOP LINKS-->
 
