@@ -112,11 +112,6 @@ IMAP4Reader::FetchInternal(const char * index,BPositionIO *destination, const ch
 	//destination->SetSize(0);
 	BString line;
 	
-	char first_line[50];
-	::sprintf(first_line,"* %ld FETCH",index);
-	char end_line[50];
-	::sprintf(end_line,"\n%.3ld OK FETCH completed",index);
-	
 	int32 pos,r=0,state,content_size=0;
 	int32 session = network->fCommandCount+1;
 	

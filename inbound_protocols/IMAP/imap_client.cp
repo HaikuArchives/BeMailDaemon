@@ -53,8 +53,8 @@ IMAP4Client::IMAP4Client(BMessage *settings,Mail::StatusView *status)
 		if (passwd)
 			password = passwd;
 	
-		BString uname = "\"";
-		uname << settings->FindString("username") << "\"";
+		BString uname;// = "\'";
+		uname << settings->FindString("username");// << "\'";
 		error = Login(uname.String(), password, settings->FindInt32("auth_method"));
 	}
 
@@ -105,16 +105,17 @@ IMAP4Client::Open(const char* addr,int port,int)
 	
 	_status->SetMessage(MDR_DIALECT_CHOICE ("Opening connection...","接続中..."));
 	
-	printf("Connecting to %s:%d\n", addr, port);
+	PRINT("Connecting to %s:%d\n", addr, port);
 	
 	_inherited::Connect(addr,port);
 	
-	printf("Connected!\n");
+	PRINT("Socket Connected!\n");
 	
+	//Send("\n",2);
 	BString out("");
 	if( ReceiveLine(out) <= 0 )
 		return B_ERROR;
-	printf("Connected2!\n");
+	PRINT("Connected2!\n");
 	// for re-connect
 	fAddress = addr; fPort = port;
 	//
@@ -175,7 +176,6 @@ IMAP4Client::Login(const char* login,const char* password,int)
 			result = B_ERROR;
 			break;
 		}
-		
 		state = CheckSessionEnd(out.String(),cmdNumber);		
 		switch(state)
 		{
@@ -589,7 +589,7 @@ IMAP4Client::SendCommand(const char* command)
 	if(fCommandCount > 9999999)
 		fCommandCount = 0;
 // \r\n
-	::sprintf(cmd,"%.7ld %s" CRLF,++fCommandCount,command);
+	::sprintf(cmd,"a%.7ld %s\n"/* CRLF*/,++fCommandCount,command);
 	PRINT(("FULL C: '%s'\n", cmd));
 	int32 cmd_len = strlen(cmd);
 	if(!strstr(cmd,"LOGIN"))
@@ -609,7 +609,7 @@ IMAP4Client::SendCommand(const char* command)
 int32
 IMAP4Client::ReceiveLine(BString &out)
 {
-	unsigned int c = 0;
+	uint8 c = 0;
 	int32 len = 0,r;
 	out = "";
 	if(IsDataPending(kIMAP4ClientTimeout))
@@ -643,15 +643,15 @@ IMAP4Client::CheckSessionEnd(const char* str,int32 session)
 	int32 result = IMAP_SESSION_CONTINUED;
 	char session_end[9];
 
-	::sprintf(session_end,"%.7ld ",session);
+	::sprintf(session_end,"a%.7ld ",session);
 	
-	if( ::strncmp(session_end,str,8) == 0)
+	if( ::strncmp(session_end,str,9) == 0)
 	{
-		if( str[8] == 'O' && str[9] == 'K')
+		if( str[9] == 'O' && str[10] == 'K')
 			result = IMAP_SESSION_OK;
-		else if( str[8] == 'B' && str[9] == 'A' && str[10] == 'D')
+		else if( str[9] == 'B' && str[10] == 'A' && str[11] == 'D')
 			result = IMAP_SESSION_BAD;
-		else if( str[8] == 'N' && str[9] == 'O')
+		else if( str[9] == 'N' && str[10] == 'O')
 			result = IMAP_SESSION_BAD;
 	}
 	
