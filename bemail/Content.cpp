@@ -267,19 +267,10 @@ FilterHTMLTag(int32 *first,char **t,char *end)
 	{
 		for(;*a && a < end;a++)
 		{
-			int c = *a;
-
-			if (c == '<')	// check for "/head"
-			{
-				a++;
-				if (*a == '/')
-				{
-					a++;
-					if (*a && !strncasecmp(a,"head",4))
-						break;
-				}
-			}
-			if (!*a)
+			// Find the end of the HEAD section, or the start of the BODY,
+			// which happens for some malformed spam.
+			if (strncasecmp (a, "</head", 6) == 0 ||
+				strncasecmp (a, "<body", 5) == 0)
 				break;
 		}
 	}
