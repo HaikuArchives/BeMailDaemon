@@ -5,6 +5,7 @@
 #include <E-mail.h>
 #include <Entry.h>
 #include <netdb.h>
+#include <NodeInfo.h>
 
 #include <malloc.h>
 #include <string.h>
@@ -26,12 +27,15 @@ MailMessage::MailMessage(BPositionIO *mail_file)
             ,_num_components(0)
             ,_body(NULL)
             , _text_body(NULL)
+            ,_header_kludge_yikes(NULL)
 {
 	MailSettings settings;
 	_chain_id = settings.DefaultOutboundChainID();
 	
-	if (mail_file == NULL)
+	if (mail_file == NULL) {
+		_header_kludge_yikes = new BMessage;
 		return;
+	}
 		
 	MailComponent headers;
 	mail_file->Seek(0,SEEK_END);
@@ -65,44 +69,55 @@ MailMessage::MailMessage(BPositionIO *mail_file)
 	}
 }
 
+MailMessage::~MailMessage() {
+	if (_bcc != NULL)
+		free(_bcc);
+		
+	if (_body != NULL)
+		delete _body;
+		
+	if (_header_kludge_yikes != NULL)
+		delete _header_kludge_yikes;
+}
+
 const char *MailMessage::To() {
-	return _body->HeaderField("To");
+	return HeaderField("To");
 }
 
 const char *MailMessage::From() {
-	return _body->HeaderField("From");
+	return HeaderField("From");
 }
 
 const char *MailMessage::ReplyTo() {
-	return _body->HeaderField("Reply-To");
+	return HeaderField("Reply-To");
 }
 
 const char *MailMessage::CC() {
-	return _body->HeaderField("Cc");
+	return HeaderField("Cc");
 }
 
 const char *MailMessage::Subject() {
-	return _body->HeaderField("Subject");
+	return HeaderField("Subject");
 }
 
 void MailMessage::SetSubject(const char *subject) {
-	_body->AddHeaderField("Subject",subject);
+	SetHeaderField("Subject",subject);
 }
 
 void MailMessage::SetReplyTo(const char *reply_to) {
-	_body->AddHeaderField("Reply-To",reply_to);
+	SetHeaderField("Reply-To",reply_to);
 }
 
 void MailMessage::SetFrom(const char *from) {
-	_body->AddHeaderField("From",from);
+	SetHeaderField("From",from);
 }
 
 void MailMessage::SetTo(const char *to) {
-	_body->AddHeaderField("To",to);
+	SetHeaderField("To",to);
 }
 
 void MailMessage::SetCC(const char *cc) {
-	_body->AddHeaderField("CC",cc);
+	SetHeaderField("CC",cc);
 }
 
 void MailMessage::SetBCC(const char *bcc) {
@@ -110,6 +125,30 @@ void MailMessage::SetBCC(const char *bcc) {
 		free(_bcc);
 		
 	_bcc = strdup(bcc);
+}
+
+const char *MailMessage::HeaderField(const char *name) {
+	if (_header_kludge_yikes != NULL) {
+		if (_header_kludge_yikes->HasString(name))
+			return _header_kludge_yikes->FindString(name);
+	}
+	
+	if (_body == NULL)
+		return NULL;
+		
+	return _body->HeaderField(name);
+}
+		
+ void MailMessage::SetHeaderField(const char *name, const char *with) {
+	if (_header_kludge_yikes != NULL) {
+		if (_header_kludge_yikes->ReplaceString(name,with) != B_OK)
+			_header_kludge_yikes->AddString(name,with);
+			
+		return;
+	}
+	
+	if (_body != NULL)
+		_body->AddHeaderField(name,with);
 }
 
 void MailMessage::SendViaAccount(const char *account_name) {
@@ -210,6 +249,21 @@ const char *MailMessage::BodyText() {
 }
 
 void MailMessage::RenderTo(BFile *file) {
+	//------Copy in headers from _header_kludge_yikes
+	if (_header_kludge_yikes != NULL) {
+		type_code type;
+		char *name, *data;
+		for (int32 i = 0; _header_kludge_yikes->GetInfo(B_STRING_TYPE,i,&name,&type); i++) {
+			_header_kludge_yikes->FindString(name,&data);
+			_body->AddHeaderField(name,data);
+		}
+		
+		delete _header_kludge_yikes;
+		_header_kludge_yikes = NULL;
+	}
+	
+	//------Do real rendering
+	
 	if (From() == NULL)
 		SendViaAccount(_chain_id); //-----Set the from string
 	
@@ -249,6 +303,8 @@ void MailMessage::RenderTo(BFile *file) {
 	file->WriteAttr(B_MAIL_ATTR_FLAGS,B_INT32_TYPE,0,&int_attr,sizeof(int32));
 	
 	file->WriteAttr("MAIL:chain",B_INT32_TYPE,0,&_chain_id,sizeof(int32));
+	
+	BNodeInfo(file).SetType(B_MAIL_TYPE);
 	
 	/* add a message-id */
 	BString message_id;

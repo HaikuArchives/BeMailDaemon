@@ -27,7 +27,19 @@ MIMEMultipartContainer::MIMEMultipartContainer(const char *boundary, const char 
 		AddHeaderField("Content-Type","multipart/mixed");
 		SetBoundary(boundary);
 	}
-		
+
+MIMEMultipartContainer::~MIMEMultipartContainer() {
+	void *data;
+	for (int32 i = 0; i < _components_in_raw.CountItems(); i++) {
+		if ((data = _components_in_raw.ItemAt(i)) != NULL)
+			delete data;
+	}
+	for (int32 i = 0; i < _components_in_code.CountItems(); i++) {
+		if ((data = _components_in_code.ItemAt(i)) != NULL)
+			delete data;
+	}
+}
+
 void MIMEMultipartContainer::SetBoundary(const char *boundary) {
 	_boundary = boundary;
 	

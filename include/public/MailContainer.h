@@ -10,6 +10,7 @@ class BPositionIO;
 class MIMEMultipartContainer : public MailComponent {
 	public:
 		MIMEMultipartContainer(const char *boundary = NULL, const char *this_is_an_MIME_message_text = NULL);
+		virtual ~MIMEMultipartContainer();
 		
 		void SetBoundary(const char *boundary);
 		void SetThisIsAnMIMEMessageText(const char *text);

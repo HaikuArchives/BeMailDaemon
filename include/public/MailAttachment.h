@@ -12,6 +12,7 @@ class SimpleMailAttachment : public MailComponent {
 		
 		SimpleMailAttachment(BPositionIO *data /* data to attach */);
 		SimpleMailAttachment(const void *data, size_t length /* data to attach */);
+		virtual ~SimpleMailAttachment();
 		
 		virtual status_t FileName(char *name);
 		virtual void SetFileName(const char *name);
@@ -42,6 +43,7 @@ class AttributedMailAttachment : public MIMEMultipartContainer {
 		AttributedMailAttachment(entry_ref *ref);
 		
 		AttributedMailAttachment();
+		virtual ~AttributedMailAttachment();
 		
 		void SetTo(BFile *file, bool delete_file_when_done = false);
 		void SetTo(entry_ref *ref);

@@ -3,6 +3,7 @@
 class MailMessage {
 	public:
 		MailMessage(BPositionIO *mail_file = NULL);
+		~MailMessage();
 				
 		const char *To();
 		const char *From();
@@ -18,6 +19,9 @@ class MailMessage {
 		void SetCC(const char *from);
 		void SetBCC(const char *from);
 		void SetPriority(int priority);
+		
+		const char *HeaderField(const char *key);
+		void SetHeaderField(const char *field, const char *value);
 		
 		void SendViaAccount(const char *account_name);
 		void SendViaAccount(int32 chain_id);
@@ -38,10 +42,13 @@ class MailMessage {
 		void Send(bool send_now);
 	
 	private:
+		
+	
 		int32 _chain_id;
 		char *_bcc;
 	
 		int32 _num_components;
 		MailComponent *_body;
 		PlainTextBodyComponent *_text_body;
+		BMessage *_header_kludge_yikes;
 };

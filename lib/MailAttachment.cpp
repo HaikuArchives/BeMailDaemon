@@ -44,6 +44,10 @@ SimpleMailAttachment::SimpleMailAttachment(const void *data, size_t length)
 		AddHeaderField("Content-Disposition","Attachment");
 	}
 
+SimpleMailAttachment::~SimpleMailAttachment() {
+	if (_we_own_data)
+		delete _data;
+}
 
 status_t SimpleMailAttachment::FileName(char *text) {
 	BString name = HeaderField("Content-Type");
@@ -235,6 +239,10 @@ AttributedMailAttachment::AttributedMailAttachment(entry_ref *ref) {
 	
 	if (ref != NULL)
 		SetTo(ref);
+}
+
+AttributedMailAttachment::~AttributedMailAttachment() {
+	//------------Our SimpleMailAttachments are deleted by MailContainer
 }
 
 void AttributedMailAttachment::SetTo(BFile *file, bool delete_file_when_done) {
