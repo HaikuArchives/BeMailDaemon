@@ -312,18 +312,16 @@ SMTPProtocol::Login(const char *_login, const char *password)
 
 		delete[] base;
 
-		char *resp = new char[(strlen(hex_digest)+loginlen)*2 + 3 + 2];
+		BString preResponse, postResponse;
+		preResponse = login;
+		preResponse << " " << hex_digest << CRLF;
+		char *resp = postResponse.LockBuffer(preResponse.Length() * 2 + 10);
+		baselen = ::encode_base64(resp, preResponse.String(), preResponse.Length(), true /* headerMode */);
+		resp[baselen] = 0;
+		postResponse.UnlockBuffer();
+		postResponse.Append(CRLF);
 
-		::sprintf(resp, "%s %s"CRLF, login, hex_digest);
-		baselen = ::encode_base64(resp, resp, strlen(resp), true /* headerMode */);
-		resp[baselen] = '\0';
-		// Hack! I'm sure there is a better way to do this
-		BString t_resp(resp);
-		t_resp.Append(CRLF);
-
-		SendCommand(t_resp.String());
-
-		delete[] resp;
+		SendCommand(postResponse.String());
 
 		res = fLog.String();
 		if (atol(res) < 500)
@@ -344,50 +342,47 @@ SMTPProtocol::Login(const char *_login, const char *password)
 			return B_ERROR;
 
 		// Send login name as base64
-		char *login64 = new char[loginlen*3 + 3];
+		char *login64 = new char[loginlen*3 + 6];
 		encodedsize = ::encode_base64(login64, (char *)login, loginlen, true /* headerMode */);
-		login64[encodedsize] = '\0';
-		// Hack! I'm sure there is a better way to do this
-		BString t1_login64(login64);
-		t1_login64.Append(CRLF);
-
-		SendCommand(t1_login64.String());
-		delete [] login64;
+		login64[encodedsize] = 0;
+		strcat (login64, CRLF);
+		SendCommand(login64);
+		delete[] login64;
 
 		res = fLog.String();
 		if (strncmp(res,"334",3) != 0)
 			return B_ERROR;
 
 		// Send password as base64
-		login64 = new char[passlen*3 + 3];
+		login64 = new char[passlen*3 + 6];
 		encodedsize = ::encode_base64(login64, (char *)password, passlen, true /* headerMode */);
-		login64[encodedsize] = '\0';
-		// Hack! I'm sure there is a better way to do this
-		BString t2_login64(login64);
-		t2_login64.Append(CRLF);
-
-		SendCommand(t2_login64.String());
+		login64[encodedsize] = 0;
+		strcat (login64, CRLF);
+		SendCommand(login64);
 		delete[] login64;
+
 		res = fLog.String();
 		if (atol(res) < 500)
 			return B_OK;
 	}
 	if (fAuthType & PLAIN) {
 		//******* PLAIN Authentication ( not tested yet.)
-		char *login64 = new char[((loginlen + 1)*2 + passlen) * 3];
-		::memset(login64, 0,((loginlen + 1)*2 + passlen) * 3);
-		::memcpy(login64, login, loginlen);
-		::memcpy(login64 + loginlen + 1, login, loginlen);
-		::memcpy(login64 + loginlen*2 + 2, password, passlen);
+		BString preResponse, postResponse;
+		char *stringPntr;
+		ssize_t encodedLength;
+		stringPntr = preResponse.LockBuffer(loginlen * 2 + passlen + 3);
+		sprintf (stringPntr, "%s%c%s%c%s", login, 0, login, 0, password);
+		preResponse.UnlockBuffer(loginlen * 2 + passlen + 3);
+		stringPntr = postResponse.LockBuffer(preResponse.Length() * 3);
+		encodedLength = ::encode_base64(stringPntr, preResponse.String(),
+			preResponse.Length(), true /* headerMode */);
+		stringPntr[encodedLength] = 0;
+		postResponse.UnlockBuffer();
+		postResponse.Prepend("AUTH PLAIN ");
+		postResponse << CRLF;
 
-		::encode_base64(login64, login64, ((loginlen + 1) * 2 + passlen), true /* headerMode */);
+		SendCommand(postResponse.String());
 
-		char *cmd = new char[strlen(login64) + 12];
-		::sprintf(cmd,"AUTH PLAIN %s"CRLF, login64);
-		delete[] login64;
-
-		SendCommand(cmd);
-		delete[] cmd;
 		const char *res = fLog.String();
 		if (atol(res) < 500)
 			return B_OK;
@@ -566,7 +561,7 @@ SMTPProtocol::ReceiveResponse(BString &out)
 		fLog = "SMTP socket timeout.";
 
 	D(bug("S:%s\n", out.String()));
-
+	printf ("SMTP received \"%s\"\n", out.String());
 	return len;
 }
 
@@ -577,6 +572,7 @@ status_t
 SMTPProtocol::SendCommand(const char *cmd)
 {
 	D(bug("C:%s\n", cmd));
+	printf ("SMTP sending \"%s\"\n", cmd);
 
 	if (fConnection.Send(cmd, ::strlen(cmd)) == B_ERROR)
 		return B_ERROR;
