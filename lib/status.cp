@@ -156,6 +156,13 @@ void StatusWindow::WorkspaceActivated(int32 workspace, bool active)
 	{
 		MoveTo(window_frame.LeftTop());
 		last_workspace = workspace;
+
+		// make the window visible if the screen's frame doesn't contain it
+		BScreen screen;
+		if (screen.Frame().bottom < window_frame.top)
+			MoveTo(window_frame.left, screen.Frame().bottom - window_frame.Height() - 5);
+		if (screen.Frame().right < window_frame.left)
+			MoveTo(window_frame.left, screen.Frame().bottom - window_frame.Height() - 5);
 	}
 }
 
