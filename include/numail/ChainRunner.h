@@ -57,8 +57,12 @@ class ChainRunner : public BLooper {
 		void Stop();
 		void ReportProgress(int bytes, int messages, const char *message = NULL);
 		void ResetProgress(const char *message = NULL);
-		void GetMessages(StringList *list, size_t bytes);
-		void GetSingleMessage(const char *uid, size_t length, BPath *into);
+
+		void GetMessages(StringList *list, int32 bytes);
+		void GetSingleMessage(const char *uid, int32 length, BPath *into);
+		// The bytes or length field is the total size, used for updating the
+		// progress bar.  Use -1 for unknown maximum size.
+
 		bool QuitRequested();
 		
 		void ShowError(const char *error);

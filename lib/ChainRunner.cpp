@@ -378,14 +378,14 @@ void ChainRunner::Stop() {
 	PostMessage('STOP');
 }
 
-void ChainRunner::GetMessages(StringList *list,size_t bytes) {
+void ChainRunner::GetMessages(StringList *list, int32 bytes) {
 	BMessage *msg = new BMessage('GETM');
 	msg->AddFlat("messages",list);
 	msg->AddInt32("bytes",bytes);
 	PostMessage(msg);
 }
 
-void ChainRunner::GetSingleMessage(const char *uid, size_t length, BPath *into) {
+void ChainRunner::GetSingleMessage(const char *uid, int32 length, BPath *into) {
 	BMessage *msg = new BMessage('GTSM');
 	msg->AddString("uid",uid);
 	msg->AddInt32("bytes",length);
