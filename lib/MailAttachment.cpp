@@ -146,11 +146,15 @@ status_t SimpleAttachment::FileName(char *text) {
 
 	const char *fileName = content_type.FindString("name");
 	if (!fileName)
+		fileName = content_type.FindString("filename");
+	if (!fileName)
 	{
 		content_type.MakeEmpty();
 		HeaderField("Content-Disposition",&content_type);
 		fileName = content_type.FindString("name");
 	}
+	if (!fileName)
+		fileName = content_type.FindString("filename");
 	if (!fileName)
 	{
 		content_type.MakeEmpty();
