@@ -143,8 +143,13 @@ void ProtocolConfigView::SetTo(BMessage *archive) {
 	if (archive->HasInt32("auth_method")) {
 		BMenuField *menu = (BMenuField *)(FindView("auth_method"));
 		if (menu != NULL) {
-			if (BMenuItem *item = menu->Menu()->ItemAt(archive->FindInt32("auth_method")))
+			if (BMenuItem *item = menu->Menu()->ItemAt(archive->FindInt32("auth_method"))) {
 				item->SetMarked(true);
+				if (item->Command() != 'none') {
+					enable_control("user");
+					enable_control("pass");
+				}
+			}
 		}
 	}
 
