@@ -100,6 +100,7 @@ public:
 
 	BPopUpMenu		*fAccountMenu;
 	uint32			fChain;
+	TTextControl	*fAccount;
 	TTextControl	*fBcc;
 	TTextControl	*fCc;
 	TTextControl	*fSubject;

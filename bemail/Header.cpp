@@ -96,6 +96,7 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 	:	BBox(rect, "m_header", B_FOLLOW_LEFT_RIGHT, B_WILL_DRAW, B_PLAIN_BORDER),
 		fAccountMenu(NULL),
 		fChain(gDefaultChain),
+		fAccount(NULL),
 		fBcc(NULL),
 		fCc(NULL),
 		fIncoming(incoming),
@@ -217,6 +218,14 @@ THeaderView::THeaderView(BRect rect, BRect windowRect, bool incoming,
 		field->SetDivider(font.StringWidth("From:") + 11);
 		//menu->SetAlignment(B_ALIGN_RIGHT);
 		AddChild(field);
+	}
+	else if (count_pop_accounts() > 0)	// To: account
+	{
+		r.Set(x - font.StringWidth(TO_TEXT) - 11, y,
+			  windowRect.Width() - SEPERATOR_MARGIN, y + TO_FIELD_HEIGHT);
+		y += FIELD_HEIGHT;
+		fAccount = new TTextControl(r, TO_TEXT, NULL, fIncoming, false, B_FOLLOW_LEFT_RIGHT);
+		AddChild(fAccount);
 	}
 
 	r.Set(x - font.StringWidth(SUBJECT_TEXT) - 11, y,
@@ -803,50 +812,38 @@ status_t THeaderView::LoadMessage(BFile *file)
 	//	
 	//	Set contents of header fields
 	//
-	if ((fIncoming) && (!fResending)) {
+	if (fIncoming && !fResending) {
 		if (fBcc != NULL)
 			fBcc->SetEnabled(false);
 
 		if (fCc != NULL)
 			fCc->SetEnabled(false);
 
+		if (fAccount != NULL)
+			fAccount->SetEnabled(false);
+
 		fSubject->SetEnabled(false);
 		fTo->SetEnabled(false);
 	}
 
-	//
 	//	Set Subject
-	//
-	char *string = NULL;
-	attr_info info;
-
-	if ((fFile->GetAttrInfo(B_MAIL_ATTR_SUBJECT, &info) == B_NO_ERROR)
-			&& (info.size > 0)) {
-		string = (char*) malloc(info.size+1);
-		fFile->ReadAttr(B_MAIL_ATTR_SUBJECT, B_STRING_TYPE, 0, string, 
-			info.size);
-		string[info.size] = '\0';
-		fSubject->SetText(string);
-		free(string);
-	}
+	BString string;
+	if (fFile->ReadAttrString(B_MAIL_ATTR_SUBJECT, &string) == B_OK)
+		fSubject->SetText(string.String());
 	else
 		fSubject->SetText("");
 
-
-	//
-	//	Set From/To Field
-	//
-	if ((fFile->GetAttrInfo(B_MAIL_ATTR_FROM, &info) == B_NO_ERROR) &&
-	  (info.size > 0)) 
-	{
-		string = (char*) malloc(info.size+1);
-		fFile->ReadAttr(B_MAIL_ATTR_FROM, B_STRING_TYPE, 0, string, info.size);
-		string[info.size] = '\0';
-		fTo->SetText(string);
-		free(string);
-	}
+	//	Set From Field
+	if (fFile->ReadAttrString(B_MAIL_ATTR_FROM, &string) == B_OK)
+		fTo->SetText(string.String());
 	else
 		fTo->SetText("");
+
+	//	Set Account/To Field
+	if (fFile->ReadAttrString(B_MAIL_ATTR_TO, &string) == B_OK)
+		fAccount->SetText(string.String());
+	else
+		fAccount->SetText("");
 
 	return B_OK;
 }
@@ -859,7 +856,7 @@ TTextControl::TTextControl(BRect rect, char *label, BMessage *msg,
 	//:BTextControl(rect, "happy", label, "", msg, resizingMode)
 {
 	strcpy(fLabel, label);
-	fCommand = msg->what;
+	fCommand = msg != NULL ? msg->what : 0UL;
 	fIncoming = incoming;
 	fResending = resending;
 }

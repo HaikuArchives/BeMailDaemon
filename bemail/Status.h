@@ -90,27 +90,30 @@ class	TStatusView;
 
 //====================================================================
 
-class TStatusWindow : public BWindow {
-public:
-	TStatusWindow(BRect, BWindow*, char*);
+class TStatusWindow : public BWindow
+{
+	public:
+		TStatusWindow(BRect, BWindow *, const char *status);
 
-private:
-	TStatusView *fView;
+	private:
+		TStatusView *fView;
 };
 
 //--------------------------------------------------------------------
 
-class TStatusView : public BBox {
-public:
-	TStatusView(BRect, BWindow*, char*); 
-	virtual	void AttachedToWindow();
-	virtual void MessageReceived(BMessage*);
-	bool Exists(const char*);
+class TStatusView : public BBox
+{
+	public:
+		TStatusView(BRect, BWindow *, const char *);
 
-private:
-	char *fString;
-	BTextControl *fStatus;
-	BWindow *fWindow;
+		virtual	void	AttachedToWindow();
+		virtual void	MessageReceived(BMessage *);
+		bool			Exists(const char *);
+
+	private:
+		const char		*fString;
+		BTextControl	*fStatus;
+		BWindow			*fWindow;
 };
 
 #endif // #ifndef _STATUS_H

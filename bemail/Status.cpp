@@ -50,8 +50,8 @@ All rights reserved.
 
 //====================================================================
 
-TStatusWindow::TStatusWindow(BRect rect, BWindow *window, char *status)
-			  :BWindow(rect, "", B_MODAL_WINDOW, B_NOT_RESIZABLE)
+TStatusWindow::TStatusWindow(BRect rect, BWindow *window, const char *status)
+	:	BWindow(rect, "", B_MODAL_WINDOW, B_NOT_RESIZABLE)
 {
 	BRect		r;
 
@@ -66,8 +66,10 @@ TStatusWindow::TStatusWindow(BRect rect, BWindow *window, char *status)
 
 
 //====================================================================
+//	#pragma mark -
 
-TStatusView::TStatusView(BRect rect, BWindow *window, char *status)
+
+TStatusView::TStatusView(BRect rect, BWindow *window, const char *status)
 			:BBox(rect, "", B_FOLLOW_ALL, B_WILL_DRAW)
 {
 	BFont		font = *be_plain_font;
@@ -130,7 +132,8 @@ void TStatusView::MessageReceived(BMessage *msg)
 	BVolume			vol;
 	BVolumeRoster	roster;
 
-	switch (msg->what) {
+	switch (msg->what)
+	{
 		case STATUS:
 			break;
 
@@ -198,9 +201,9 @@ bool TStatusView::Exists(const char *status)
 	BEntry			entry;
 	BQuery			query;
 	BVolume			vol;
-	BVolumeRoster	volume;
+	BVolumeRoster	roster;
 
-	volume.GetBootVolume(&vol);
+	roster.GetBootVolume(&vol);
 	query.SetVolume(&vol);
 	predicate = (char *)malloc(strlen(INDEX_STATUS) + strlen(status) + 4);
 	sprintf(predicate, "%s = %s", INDEX_STATUS, status);
@@ -210,5 +213,6 @@ bool TStatusView::Exists(const char *status)
 
 	if (query.GetNextEntry(&entry) == B_NO_ERROR)
 		return true;
+
 	return false;
 }

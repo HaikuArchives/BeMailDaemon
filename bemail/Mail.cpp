@@ -127,6 +127,7 @@ static const char *kWordsPath = "/boot/optional/goodies/words";
 static const char *kExact = ".exact";
 static const char *kMetaphone = ".metaphone";
 
+
 //====================================================================
 
 int main()
@@ -135,7 +136,36 @@ int main()
 	return B_NO_ERROR;
 }
 
+
+int32 header_len(BFile *file)
+{
+	char	*buffer;
+	int32	len;
+	int32	result = 0;
+	off_t	size;
+
+	if (file->ReadAttr(B_MAIL_ATTR_HEADER, B_INT32_TYPE, 0, &result, sizeof(int32)) != sizeof(int32)) {
+		file->GetSize(&size);
+		buffer = (char *)malloc(size);
+		if (buffer) {
+			file->Seek(0, 0);
+			if (file->Read(buffer, size) == size) {
+				while ((len = linelen(buffer + result, size - result, true)) > 2) {
+					result += len;
+				}
+				result += len;
+			}
+			free(buffer);
+			file->WriteAttr(B_MAIL_ATTR_HEADER, B_INT32_TYPE, 0, &result, sizeof(int32));
+		}
+	}
+	return result;
+}
+
+
 //--------------------------------------------------------------------
+//	#pragma mark -
+
 
 TMailApp::TMailApp()
 	:	BApplication("application/x-vnd.Be-MAIL"),
@@ -333,21 +363,12 @@ void TMailApp::MessageReceived(BMessage* msg)
 				case M_RESEND:
 				{
 					msg->FindRef("ref", &ref);
-					status_t status;
-					attr_info info;
-					BNode file( &ref );
-					BString string;
+					BNode file(&ref);
+					BString string = "";
 					
-					if( ((status=file.InitCheck()) == B_OK)&&((status=file.GetAttrInfo( B_MAIL_ATTR_TO, &info )) == B_NO_ERROR) )
-					{
-						char *str;
-						
-						str = string.LockBuffer(info.size+1);
-						str[info.size] = 0;
-						file.ReadAttr( B_MAIL_ATTR_TO, B_STRING_TYPE, 0, str, info.size );
-						string.UnlockBuffer( info.size+1 );
-					}
-					
+					if (file.InitCheck() == B_OK)
+						file.ReadAttrString(B_MAIL_ATTR_TO, &string);
+
 					window = NewWindow(&ref, string.String(), true);
 					break;
 				}
@@ -764,17 +785,10 @@ void TMailApp::FontChange()
 
 TMailWindow* TMailApp::NewWindow(const entry_ref *ref, const char *to, bool resend,	BMessenger* msng)
 {
-	char			*str1;
-	char			*str2;
-	char			*title = NULL;
-	BFile			file;
-	BRect			r;
-	TMailWindow		*window;
-	attr_info		info;
-	
 	BScreen screen(B_MAIN_SCREEN_ID);
 	BRect screen_frame = screen.Frame();
 	
+	BRect r;
 	if ((mail_window.Width()) && (mail_window.Height()))
 		r = mail_window;
 	else
@@ -799,40 +813,29 @@ TMailWindow* TMailApp::NewWindow(const entry_ref *ref, const char *to, bool rese
 		
 	fWindowCount++;
 
-	if (!resend && ref) {
-		file.SetTo(ref, O_RDONLY);
-		if (file.InitCheck() == B_NO_ERROR) {
-			if (file.GetAttrInfo(B_MAIL_ATTR_NAME, &info) == B_NO_ERROR) {
-				str1 = (char *)malloc(info.size);
-				file.ReadAttr(B_MAIL_ATTR_NAME, B_STRING_TYPE, 0, str1, 
-			 	  info.size);
-				if (file.GetAttrInfo(B_MAIL_ATTR_SUBJECT, &info) == B_NO_ERROR){
-					str2 = (char *)malloc(info.size);
-					file.ReadAttr(B_MAIL_ATTR_SUBJECT, B_STRING_TYPE, 0, str2, 
-					  info.size);
-					title = (char *)malloc(strlen(str1) + strlen(str2) + 3);
-					sprintf(title, "%s->%s", str1, str2);
-					free(str1);
-					free(str2);
-				}
-				else
-					title = str1;
-			}
+	BString title;
+	BFile file;
+	if (!resend && ref && file.SetTo(ref, O_RDONLY) == B_NO_ERROR) {
+		BString name;
+		if (file.ReadAttrString(B_MAIL_ATTR_NAME, &name) == B_NO_ERROR) {
+			title << name;
+			BString subject;
+			if (file.ReadAttrString(B_MAIL_ATTR_SUBJECT, &subject) == B_NO_ERROR)
+				title << " -> " << subject;
 		}
 	}
-	if (!title) {
-		title = (char *)malloc(strlen("BeMail") + 1);
-		sprintf(title, "BeMail");
-	}
+	if (title == "")
+		title << "BeMail";
 	
-	window = new TMailWindow(r, title, ref, to, &fFont, resend, msng);
-	fWindowList.AddItem( window );
-	free(title);
+	TMailWindow *window = new TMailWindow(r, title.String(), ref, to, &fFont, resend, msng);
+	fWindowList.AddItem(window);
+
 	return window;
 }
 
 
 //====================================================================
+//	#pragma mark -
 
 // static list for tracking of Windows
 BList	TMailWindow::sWindowList;
@@ -1379,21 +1382,15 @@ void TMailWindow::SetTrackerSelectionToCurrent()
 
 void TMailWindow::SetCurrentMessageRead()
 {
-	char status[255];
-	BFile file(fRef, O_RDWR);
-	if (file.InitCheck() == B_NO_ERROR)
+	BNode node(fRef);
+	if (node.InitCheck() == B_NO_ERROR)
 	{
-		attr_info info;
-		if (file.GetAttrInfo(B_MAIL_ATTR_STATUS, &info) 
-		  == B_NO_ERROR)	
+		BString status;
+		if (node.ReadAttrString(B_MAIL_ATTR_STATUS, &status) == B_NO_ERROR
+			&& !status.ICompare("New"))
 		{
-			file.ReadAttr(B_MAIL_ATTR_STATUS, B_STRING_TYPE, 0, 
-			  status, info.size);
-			if (strcmp(status, "New") == 0) {
-				file.RemoveAttr(B_MAIL_ATTR_STATUS);
-				file.WriteAttr(B_MAIL_ATTR_STATUS, B_STRING_TYPE, 
-				  0, "Read", 5);
-			}
+			node.RemoveAttr(B_MAIL_ATTR_STATUS);
+			node.WriteAttr(B_MAIL_ATTR_STATUS, B_STRING_TYPE, 0, "Read", 5);
 		}
 	}
 }
@@ -1516,63 +1513,59 @@ void TMailWindow::MessageReceived(BMessage* msg)
 	bool			now = false;
 	bool			raw;
 	char			*arg;
-	char			*str;
 	BEntry			entry;
 	BMenuItem		*menu;
-	BMessage		*message;
 	BMessage		open(B_REFS_RECEIVED);
-	BMessenger		*me;
-	BMessenger		*tracker;
 	BQuery			query;
 	BRect			r;
 	BVolume			vol;
 	BVolumeRoster	volume;
 	entry_ref		ref;
-	attr_info		info;
 	status_t		result;
 
-	switch(msg->what) {
+	switch (msg->what)
+	{
 		case FIELD_CHANGED:
 		{
-			int32 prevState = fFieldState, fieldMask = msg->FindInt32( "bitmask" );
+			int32 prevState = fFieldState, fieldMask = msg->FindInt32("bitmask");
 			void *source;
 			
-			if( msg->FindPointer( "source", &source ) == B_OK )
+			if (msg->FindPointer("source", &source) == B_OK)
 			{
 				int32 length;
 				
-				if( fieldMask == FIELD_BODY )
+				if (fieldMask == FIELD_BODY)
 					length = ((TTextView *)source)->TextLength();
 				else
 					length = ((BComboBox *)source)->TextView()->TextLength();
 				
-				if( length )
+				if (length)
 					fFieldState |= fieldMask;
 				else
 					fFieldState &= ~fieldMask;
 			}
 			
 			// Has anything changed?
-			if( (prevState != fFieldState)||(!fChanged) )
+			if (prevState != fFieldState || !fChanged)
 			{
 				// Change Buttons to reflect this
-				if( fSaveButton )
-					fSaveButton->SetEnabled( fFieldState );
-				if( fPrintButton )
-					fPrintButton->SetEnabled( fFieldState );
-				if( fSendButton )
-					fSendButton->SetEnabled( (fFieldState & FIELD_TO)||(fFieldState & FIELD_BCC) );
+				if (fSaveButton)
+					fSaveButton->SetEnabled(fFieldState);
+				if (fPrintButton)
+					fPrintButton->SetEnabled(fFieldState);
+				if (fSendButton)
+					fSendButton->SetEnabled((fFieldState & FIELD_TO) || (fFieldState & FIELD_BCC));
 			}
 			fChanged = true;
 			
 			// Update title bar if "subject" has changed 
-			if( fieldMask & FIELD_SUBJECT )
+			if (fieldMask & FIELD_SUBJECT)
 			{
 				// If no subject, set to "BeMail"
-				if( !fHeaderView->fSubject->TextView()->TextLength() )
-					SetTitle( "BeMail" );
+				if (!fHeaderView->fSubject->TextView()->TextLength())
+					SetTitle("BeMail");
 				else
-					SetTitle( fHeaderView->fSubject->Text() );
+					SetTitle(fHeaderView->fSubject->Text());
 			}
 			break;
 		}
@@ -1585,61 +1578,59 @@ void TMailWindow::MessageReceived(BMessage* msg)
 			break;
 
 		case M_NEW:
-			message = new BMessage(M_NEW);
-			message->AddInt32("type", msg->what);
-			be_app->PostMessage(message);
-			delete message;
+		{
+			BMessage message(M_NEW);
+			message.AddInt32("type", msg->what);
+			be_app->PostMessage(&message);
 			break;
-
+		}
 		case M_REPLY:
 			{
 				uint32 buttons;
-				if( (msg->FindInt32( "buttons", (int32 *)&buttons ) == B_OK) && 
-					(buttons == B_SECONDARY_MOUSE_BUTTON) )
+				if (msg->FindInt32("buttons", (int32 *)&buttons) == B_OK
+					&& buttons == B_SECONDARY_MOUSE_BUTTON)
 				{
-					BPopUpMenu menu( "Reply To", false, false );
+					BPopUpMenu menu("Reply To", false, false);
 					BMenuItem *item;
-					BMessage *message;
+					BMessage *message = new BMessage(*msg);
+					message->RemoveName("buttons");
+					message->RemoveName("where");
 					
-					
-					message = new BMessage( *msg );
-					message->RemoveName( "buttons" );
-					message->RemoveName( "where" );
-					
-					menu.AddItem( new BMenuItem( "Reply to Sender", message ) );
-					message = new BMessage( *message );
+					menu.AddItem(new BMenuItem("Reply to Sender", message));
+					message = new BMessage(*message);
 					message->what = M_REPLY_ALL;
-					menu.AddItem( new BMenuItem( "Reply to All", message ) );
+					menu.AddItem(new BMenuItem("Reply to All", message));
 					
 					BPoint	where;
 					
-					msg->FindPoint( "where", &where );
-					if( (item = menu.Go( where, false, false ))  != NULL)
+					msg->FindPoint("where", &where);
+					if ((item = menu.Go(where, false, false)) != NULL)
 					{
-						item->SetTarget( this );
-						PostMessage( item->Message() );
+						item->SetTarget(this);
+						PostMessage(item->Message());
 					}
 					break;
 				}
 			}
-		// Fall Through
+			// Fall Through
 		case M_REPLY_ALL:
 		case M_FORWARD:
 		case M_RESEND:
 		case M_COPY_TO_NEW:
-			message = new BMessage(M_NEW);
-			message->AddRef("ref", fRef);
-			message->AddPointer("window", this);
-			message->AddInt32("type", msg->what);
-			be_app->PostMessage(message);
-			delete message;
+		{
+			BMessage message(M_NEW);
+			message.AddRef("ref", fRef);
+			message.AddPointer("window", this);
+			message.AddInt32("type", msg->what);
+			be_app->PostMessage(&message);
 			break;
-			
+		}	
 		case M_DELETE:
 		case M_DELETE_PREV:
 		case M_DELETE_NEXT:
 		{
-			if (level == L_BEGINNER) {
+			if (level == L_BEGINNER)
+			{
 				beep();
 				if (!(new BAlert("",
 					"Are you sure you want to move this message to the trash?",
@@ -1648,12 +1639,13 @@ void TMailWindow::MessageReceived(BMessage* msg)
 					break;
 			}
 			
-			if( (msg->what == M_DELETE_NEXT)&&(modifiers() & B_SHIFT_KEY) )
+			if (msg->what == M_DELETE_NEXT && (modifiers() & B_SHIFT_KEY))
 				msg->what = M_DELETE_PREV;
 			
 			bool foundRef = false;
 			entry_ref nextRef;
-			if (msg->what == M_DELETE_PREV || msg->what == M_DELETE_NEXT) {
+			if (msg->what == M_DELETE_PREV || msg->what == M_DELETE_NEXT)
+			{
 				//
 				//	Find the next message that should be displayed
 				//
@@ -1661,30 +1653,31 @@ void TMailWindow::MessageReceived(BMessage* msg)
 				foundRef = GetTrackerWindowFile(&nextRef, msg->what == 
 				  M_DELETE_NEXT);
 			}
-			if( fIncoming )
+			if (fIncoming)
 				SetCurrentMessageRead();
 
-			if (trackerMessenger == NULL || !trackerMessenger->IsValid()||(!fIncoming)) {
-			
+			if (trackerMessenger == NULL || !trackerMessenger->IsValid() || !fIncoming)
+			{
 				//
 				//	Not associated with a tracker window.  Create a new
 				//	messenger and ask the tracker to delete this entry
 				//
-				if( fDraft || fIncoming )
+				if (fDraft || fIncoming)
 				{
-					BMessenger *tracker= new BMessenger("application/x-vnd.Be-TRAK",
-					  -1, NULL);
-					if (tracker->IsValid()) {
+					BMessenger tracker("application/x-vnd.Be-TRAK");
+					if (tracker.IsValid())
+					{
 						BMessage msg('Ttrs');
 						msg.AddRef("refs", fRef);	
-						tracker->SendMessage(&msg);
-					} else {
+						tracker.SendMessage(&msg);
+					}
+					else
 						(new BAlert("", "Need tracker to move items to trash",
 						  "sorry"))->Go();
-					}
 				}
-			} else {
-
+			}
+			else
+			{
 				//
 				// This is associated with a tracker window.  Ask the 
 				// window to delete this entry.  Do it this way if we
@@ -1700,52 +1693,54 @@ void TMailWindow::MessageReceived(BMessage* msg)
 				trackerMessenger->SendMessage(&delmsg);
 			}
 
-
 			//
 			// 	If the next file was found, open it.  If it was not,
 			//	we have no choice but to close this window.
 			//
-			if (foundRef) {
+			if (foundRef)
+			{
 				OpenMessage(&nextRef);
 				SetTrackerSelectionToCurrent();
-			} else {
+			}
+			else
+			{
 				fSent = true;
 				BMessage msg(B_CLOSE_REQUESTED);
 				PostMessage(&msg);
 			}
-				
 			break;
 		}
-			
+
 		case M_CLOSE_READ:
-			message = new BMessage(B_CLOSE_REQUESTED);
-			message->AddString("status", "Read");
-			PostMessage(message);
-			delete message;
+		{
+			BMessage message(B_CLOSE_REQUESTED);
+			message.AddString("status", "Read");
+			PostMessage(&message);
 			break;
-
+		}
 		case M_CLOSE_SAVED:
-			message = new BMessage(B_CLOSE_REQUESTED);
-			message->AddString("status", "Saved");
-			PostMessage(message);
-			delete message;
+		{
+			BMessage message(B_CLOSE_REQUESTED);
+			message.AddString("status", "Saved");
+			PostMessage(&message);
 			break;
-
+		}
 		case M_CLOSE_SAME:
-			message = new BMessage(B_CLOSE_REQUESTED);
-			message->AddString("status", "");
-			message->AddString("same", "");
-			PostMessage(message);
-			delete message;
+		{
+			BMessage message(B_CLOSE_REQUESTED);
+			message.AddString("status", "");
+			message.AddString("same", "");
+			PostMessage(&message);
 			break;
-
+		}
 		case M_CLOSE_CUSTOM:
-			if (msg->HasString("status")) {
+			if (msg->HasString("status"))
+			{
+				const char *str;
 				msg->FindString("status", (const char**) &str);
-				message = new BMessage(B_CLOSE_REQUESTED);
-				message->AddString("status", str);
-				PostMessage(message);
-				delete message;
+				BMessage message(B_CLOSE_REQUESTED);
+				message.AddString("status", str);
+				PostMessage(&message);
 			}
 			else {
 				r = Frame();
@@ -1753,70 +1748,70 @@ void TMailWindow::MessageReceived(BMessage* msg)
 				r.right = r.left + STATUS_WIDTH;
 				r.top += 40;
 				r.bottom = r.top + STATUS_HEIGHT;
-				if (fFile->GetAttrInfo(B_MAIL_ATTR_STATUS, &info) == B_NO_ERROR) {
-					str = (char *)malloc(info.size);
-					fFile->ReadAttr(B_MAIL_ATTR_STATUS, B_STRING_TYPE, 0, str, info.size);
-				}
-				else {
-					str = (char *)malloc(1);
-					str[0] = 0;
-				}
-				new TStatusWindow(r, this, str);
-				free(str);
+				
+				BString string;
+				fFile->ReadAttrString(B_MAIL_ATTR_STATUS, &string);
+				new TStatusWindow(r, this, string.String());
 			}
 			break;
 
 		case M_STATUS:
+		{
 			msg->FindPointer("source", (void **)&menu);
-			message = new BMessage(B_CLOSE_REQUESTED);
-			message->AddString("status", menu->Label());
-			PostMessage(message);
-			delete message;
+			BMessage message(B_CLOSE_REQUESTED);
+			message.AddString("status", menu->Label());
+			PostMessage(&message);
 			break;
-
+		}
 		case M_HEADER:
-			header_flag = !(fHeader->IsMarked());
+		{
+			header_flag = !fHeader->IsMarked();
 			fHeader->SetMarked(header_flag);
-			message = new BMessage(M_HEADER);
-			message->AddBool("header", header_flag);
-			PostMessage(message, fContentView->fTextView);
-			delete message;
-			break;
 
+			BMessage message(M_HEADER);
+			message.AddBool("header", header_flag);
+			PostMessage(&message, fContentView->fTextView);
+			break;
+		}
 		case M_RAW:
+		{
 			raw = !(fRaw->IsMarked());
 			fRaw->SetMarked(raw);
-			message = new BMessage(M_RAW);
-			message->AddBool("raw", raw);
-			PostMessage(message, fContentView->fTextView);
-			delete message;
+			BMessage message(M_RAW);
+			message.AddBool("raw", raw);
+			PostMessage(&message, fContentView->fTextView);
 			break;
-
+		}
 		case M_SEND_NOW:
 			now = true;
-			// yes, we are suppose to fall through
+			// yes, we are supposed to fall through
 		case M_SAVE_AS_DRAFT:
 			Send(now);
 			break;
 
 		case M_SAVE:
-			if (msg->FindString("address", (const char**) &str) == B_NO_ERROR) {
+		{
+			char *str;
+			if (msg->FindString("address", (const char **)&str) == B_NO_ERROR)
+			{
 				arg = (char *)malloc(strlen("META:email ") + strlen(str) + 1);
 				volume.GetBootVolume(&vol);
 				query.SetVolume(&vol);
 				sprintf(arg, "META:email=%s", str);
 				query.SetPredicate(arg);
 				query.Fetch();
-				if (query.GetNextEntry(&entry) == B_NO_ERROR) {
-					tracker = new BMessenger("application/x-vnd.Be-TRAK", -1, NULL);
-					if (tracker->IsValid()) {
+				if (query.GetNextEntry(&entry) == B_NO_ERROR)
+				{
+					BMessenger tracker("application/x-vnd.Be-TRAK");
+					if (tracker.IsValid())
+					{
 						entry.GetRef(&ref);
 						open.AddRef("refs", &ref);
-						tracker->SendMessage(&open);
+						tracker.SendMessage(&open);
 					}
-					delete tracker;
 				}
-				else {
+				else
+				{
 					sprintf(arg, "META:email %s", str);
 					result = be_roster->Launch("application/x-person", 1, &arg);
 					if (result != B_NO_ERROR)
@@ -1826,6 +1821,7 @@ void TMailWindow::MessageReceived(BMessage* msg)
 				free(arg);
 			}
 			break;
+		}
 
 		case M_PRINT_SETUP:
 			PrintSetup();
@@ -1852,46 +1848,47 @@ void TMailWindow::MessageReceived(BMessage* msg)
 			break;
 		
 		case M_RANDOM_SIG:
+		{
+			BEntry			entry;
+			BFile			file;
+			BQuery			query;
+			BVolume			vol;
+			entry_ref		ref;
+			BList			sigList;
+			char			predicate[128];
+			BMessage		*message;
+			
+			BVolumeRoster().GetBootVolume(&vol);
+			query.SetVolume(&vol);
+			
+			sprintf(predicate, "%s = *", INDEX_SIGNATURE);
+			query.SetPredicate( predicate );
+			query.Fetch();
+			
+			while (query.GetNextEntry(&entry) == B_NO_ERROR)
 			{
-				BEntry			entry;
-				BFile			file;
-				BQuery			query;
-				BVolume			vol;
-				entry_ref		ref;
-				BList			sigList;
-				char			predicate[128];
-				BMessage		*message;
-				
-				BVolumeRoster().GetBootVolume(&vol);
-				query.SetVolume(&vol);
-				
-				sprintf( predicate, "%s = *", INDEX_SIGNATURE );
-				query.SetPredicate( predicate );
-				query.Fetch();
-				
-				while (query.GetNextEntry(&entry) == B_NO_ERROR) {
-					file.SetTo(&entry, O_RDONLY);
-					if (file.InitCheck() == B_NO_ERROR) {
-						message = new BMessage(M_SIGNATURE);
-						entry.GetRef(&ref);
-						message->AddRef("ref", &ref);
-						sigList.AddItem( message );
-					}
+				file.SetTo(&entry, O_RDONLY);
+				if (file.InitCheck() == B_NO_ERROR)
+				{
+					message = new BMessage(M_SIGNATURE);
+					entry.GetRef(&ref);
+					message->AddRef("ref", &ref);
+					sigList.AddItem(message);
 				}
-				srand(time (0));
-				message = (BMessage *)sigList.ItemAt( rand() % sigList.CountItems() );
-				PostMessage( message );
-				for( int32 i=0; (message=(BMessage *)sigList.ItemAt(i)) != NULL; i++ )
-					delete message;
 			}
+			srand(time(0));
+			PostMessage((BMessage *)sigList.ItemAt(rand() % sigList.CountItems()));
+			for (int32 i = 0; (message = (BMessage *)sigList.ItemAt(i)) != NULL; i++)
+				delete message;
 			break;
+		}
 		case M_SIGNATURE:
-			message = new BMessage(*msg);
-			PostMessage(message, fContentView);
-			delete message;
+		{
+			BMessage message(*msg);
+			PostMessage(&message, fContentView);
 			fSigAdded = true;
 			break;
-		
+		}
 		case M_SIG_MENU:
 		{
 			TMenu *menu;
@@ -1901,34 +1898,34 @@ void TMailWindow::MessageReceived(BMessage* msg)
 			BPoint	where;
 			bool open_anyway = true;
 			
-			if( msg->FindPoint( "where", &where ) != B_OK )
+			if (msg->FindPoint("where", &where) != B_OK)
 			{
 				BRect	bounds;
 				bounds = fSigButton->Bounds();
-				where = fSigButton->ConvertToScreen( BPoint( (bounds.right-bounds.left)/2, (bounds.bottom-bounds.top)/2 ) );
+				where = fSigButton->ConvertToScreen(BPoint((bounds.right-bounds.left)/2,
+														   (bounds.bottom-bounds.top)/2));
 			}
-			else if( msg->FindInt32( "buttons" ) == B_SECONDARY_MOUSE_BUTTON )
+			else if (msg->FindInt32("buttons") == B_SECONDARY_MOUSE_BUTTON)
 				open_anyway = false;	
 			
-			if( (item = menu->Go( where, false, open_anyway ))  != NULL)
+			if ((item = menu->Go(where, false, open_anyway)) != NULL)
 			{
-				item->SetTarget( this );
+				item->SetTarget(this);
 				(dynamic_cast<BInvoker *>(item))->Invoke();
 			}
 			delete menu;
-		}
 			break;
+		}
 
 		case M_ADD:
-			if (!fPanel) {
-				me = new BMessenger(this);
+			if (!fPanel)
+			{
+				BMessenger me(this);
 				BMessage msg(REFS_RECEIVED);
-				fPanel = new BFilePanel(B_OPEN_PANEL, me, &open_dir, 
-								   false, true, &msg);
-				delete me;
+				fPanel = new BFilePanel(B_OPEN_PANEL, &me, &open_dir, false, true, &msg);
 			}
 			else if (!fPanel->Window()->IsHidden())
-					fPanel->Window()->Activate();
+				fPanel->Window()->Activate();
 
 			if (fPanel->Window()->IsHidden())
 				fPanel->Window()->Show();
@@ -1955,13 +1952,14 @@ void TMailWindow::MessageReceived(BMessage* msg)
 		case M_NEXTMSG:
 		{
 			entry_ref nextRef = *fRef;
-			if (GetTrackerWindowFile(&nextRef, (msg->what == M_NEXTMSG))) {
+			if (GetTrackerWindowFile(&nextRef, (msg->what == M_NEXTMSG)))
+			{
 				SetCurrentMessageRead();
 				OpenMessage(&nextRef);
 				SetTrackerSelectionToCurrent();
-			} else {
-				beep();		
 			}
+			else
+				beep();
 			break;
 		}
 		case M_OPEN_MAIL_FOLDER:
@@ -1970,21 +1968,21 @@ void TMailWindow::MessageReceived(BMessage* msg)
 			BEntry folderEntry;
 			BPath path;
 			// Get the user home directory
-			if( find_directory( B_USER_DIRECTORY, &path ) != B_OK )
+			if (find_directory(B_USER_DIRECTORY, &path) != B_OK)
 				break;
-			if(msg->what == M_OPEN_MAIL_FOLDER)
-				path.Append( kMailFolder );
+			if (msg->what == M_OPEN_MAIL_FOLDER)
+				path.Append(kMailFolder);
 			else
-				path.Append( kMailboxFolder );
-			if( folderEntry.SetTo( path.Path() ) == B_OK && folderEntry.Exists() )
+				path.Append(kMailboxFolder);
+			if (folderEntry.SetTo(path.Path()) == B_OK && folderEntry.Exists())
 			{
-				BMessage thePackage( B_REFS_RECEIVED );
-				BMessenger nike( "application/x-vnd.Be-TRAK" );
+				BMessage thePackage(B_REFS_RECEIVED);
+				BMessenger tracker("application/x-vnd.Be-TRAK");
 				
 				entry_ref ref;
-				folderEntry.GetRef( &ref );
-				thePackage.AddRef( "refs", &ref );
-				nike.SendMessage( &thePackage );
+				folderEntry.GetRef(&ref);
+				thePackage.AddRef("refs", &ref);
+				tracker.SendMessage(&thePackage);
 			}
 			break;
 		}
@@ -2010,7 +2008,7 @@ void TMailWindow::MessageReceived(BMessage* msg)
 				fSendButton->SetEnabled( (fFieldState & FIELD_TO)||(fFieldState & FIELD_BCC) );
 			break;
 		case M_CHECK_SPELLING:
-			if( !gDictCount )
+			if (!gDictCount)
 			{
 				beep();
 				(new BAlert("",
@@ -2064,10 +2062,7 @@ TMailWindow::AddEnclosure(BMessage *msg)
 
 bool TMailWindow::QuitRequested()
 {
-	const char	*str = NULL;
-	int32		result;
-	BFile		file;
-	BMessage	message(WINDOW_CLOSED);
+	int32 result;
 
 	if ((!fIncoming ||
 		((fIncoming) && (fResending))) && (fChanged) && (!fSent) &&
@@ -2112,37 +2107,33 @@ bool TMailWindow::QuitRequested()
 		}
 	}
 		
+	BMessage message(WINDOW_CLOSED);
 	message.AddInt32("kind", MAIL_WINDOW);
 	message.AddPointer( "window", this );
 	be_app->PostMessage(&message);
 
-	if ((CurrentMessage()) && (CurrentMessage()->HasString("status"))) {
-
+	if ((CurrentMessage()) && (CurrentMessage()->HasString("status")))
+	{
 		//
 		//	User explicitly requests a status to set this message to.
 		//
-		if (!CurrentMessage()->HasString("same")) {
-			str = CurrentMessage()->FindString("status");
-			if (str != 0) {
-				char status[255];
-				BFile file(fRef, O_RDWR);
-				if (file.InitCheck() == B_NO_ERROR)
+		if (!CurrentMessage()->HasString("same"))
+		{
+			const char *status = CurrentMessage()->FindString("status");
+			if (status != NULL)
+			{
+				BNode node(fRef);
+				if (node.InitCheck() == B_NO_ERROR)
 				{
-					attr_info info;
-					if (file.GetAttrInfo(B_MAIL_ATTR_STATUS, &info) 
-					  == B_NO_ERROR)	
-					{
-						file.ReadAttr(B_MAIL_ATTR_STATUS, B_STRING_TYPE, 0, 
-						  status, 255);
-						file.RemoveAttr(B_MAIL_ATTR_STATUS);
-						file.WriteAttr(B_MAIL_ATTR_STATUS, B_STRING_TYPE, 
-						  0, str, strlen(str) + 1);
-					}
+					node.RemoveAttr(B_MAIL_ATTR_STATUS);
+					node.WriteAttr(B_MAIL_ATTR_STATUS, B_STRING_TYPE, 
+								   0, status, strlen(status) + 1);
 				}
 			}
 		}
 	}
-	else if (fFile) {
+	else if (fFile)
+	{
 		//
 		//	...Otherwise just set the message read
 		//
@@ -2246,26 +2237,17 @@ void TMailWindow::WindowActivated(bool status)
 
 void TMailWindow::Forward(entry_ref *ref)
 {
-	char		*str;
-	char		*str1;
-	BFile		*file;
-	attr_info	info;
-
-	file = new BFile(ref, O_RDONLY);
-	if (file->InitCheck() == B_NO_ERROR) {
-		if (file->GetAttrInfo(B_MAIL_ATTR_SUBJECT, &info) == B_NO_ERROR) {
-			str = (char *)malloc(info.size);
-			file->ReadAttr(B_MAIL_ATTR_SUBJECT, B_STRING_TYPE, 0, str, info.size);
-			if ((strstr(str, "fwd")) || (strstr(str, "forward")) ||
-				(strstr(str, "FW")) || (strstr(str, "FORWARD")))
-				fHeaderView->fSubject->SetText(str);
-			else {
-				str1 = (char *)malloc(strlen(str) + 1 + 6);
-				sprintf(str1, "%s (fwd)", str);
-				fHeaderView->fSubject->SetText(str1);
-				free(str1);
-			}
-			free(str);
+	BFile *file = new BFile(ref, O_RDONLY);
+	if (file->InitCheck() == B_NO_ERROR)
+	{
+		BString subject;
+		if (file->ReadAttrString(B_MAIL_ATTR_SUBJECT, &subject) == B_NO_ERROR)
+		{
+			if (subject.IFindFirst("fwd") == B_ERROR
+				&& subject.IFindFirst("forward") == B_ERROR
+				&& subject.FindFirst("FW") == B_ERROR)
+				subject << " (fwd)";
+			fHeaderView->fSubject->SetText(subject.String());
 		}
 		fContentView->fTextView->fHeader = true;
 		fContentView->fTextView->LoadMessage(file, false, true, "Forwarded message:\n");
@@ -2371,43 +2353,23 @@ TMailWindow::SetTo(const char *mailTo, const char *subject, const char *ccTo,
 	Unlock();
 }
 
-void TMailWindow::CopyMessage( entry_ref *ref, TMailWindow *src )
+void TMailWindow::CopyMessage(entry_ref *ref, TMailWindow *src)
 {
-	status_t status;
-	attr_info info;
-	BNode file( ref );
-	BString string;
-	
-	if( (status=file.InitCheck()) == B_OK )
+	BNode file(ref);
+	if (file.InitCheck() == B_OK)
 	{
-		char *str;
-		
-		if( fHeaderView->fTo && ((status=file.GetAttrInfo( B_MAIL_ATTR_TO, &info )) == B_NO_ERROR) )
-		{
-			str = string.LockBuffer(info.size+1);
-			str[info.size] = 0;
-			file.ReadAttr( B_MAIL_ATTR_TO, B_STRING_TYPE, 0, str, info.size );
-			string.UnlockBuffer( info.size+1 );
-			fHeaderView->fTo->SetText( string.String() );
-		}
-		if( fHeaderView->fSubject && ((status=file.GetAttrInfo( B_MAIL_ATTR_SUBJECT, &info )) == B_NO_ERROR) )
-		{
-			str = string.LockBuffer(info.size+1);
-			str[info.size] = 0;
-			file.ReadAttr( B_MAIL_ATTR_SUBJECT, B_STRING_TYPE, 0, str, info.size );
-			string.UnlockBuffer( info.size+1 );
-			fHeaderView->fSubject->SetText( string.String() );
-		}
-		if( fHeaderView->fCc && ((status=file.GetAttrInfo( B_MAIL_ATTR_CC, &info )) == B_NO_ERROR) )
-		{
-			str = string.LockBuffer(info.size+1);
-			str[info.size] = 0;
-			file.ReadAttr( B_MAIL_ATTR_CC, B_STRING_TYPE, 0, str, info.size );
-			string.UnlockBuffer( info.size+1 );
-			fHeaderView->fCc->SetText( string.String() );
-		}
+		BString string;
+		if (fHeaderView->fTo && file.ReadAttrString(B_MAIL_ATTR_TO, &string) == B_OK)
+			fHeaderView->fTo->SetText(string.String());
+
+		if (fHeaderView->fSubject && file.ReadAttrString(B_MAIL_ATTR_SUBJECT, &string) == B_OK)
+			fHeaderView->fSubject->SetText(string.String());
+
+		if (fHeaderView->fCc && file.ReadAttrString(B_MAIL_ATTR_CC, &string) == B_OK)
+			fHeaderView->fCc->SetText(string.String());
 	}
-	fContentView->fTextView->SetText( src->fContentView->fTextView->Text(), src->fContentView->fTextView->TextLength() );
+	fContentView->fTextView->SetText(src->fContentView->fTextView->Text(),
+									 src->fContentView->fTextView->TextLength());
 }
 
 void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, bool all)
@@ -2415,62 +2377,55 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, bool all)
 	char		*to = NULL;
 	char		*cc;
 	char		*header;
-	char		*str;
-	char		*str1;
 	int32		finish;
 	int32		len;
 	int32		loop;
 	int32		start;
-	BFile		*file = NULL;
 	attr_info	info;
 
 	fRepliedMail = *ref;
 
-	file = new BFile(ref, O_RDONLY);
-	if (file->InitCheck() == B_NO_ERROR) {
+	BFile *file = new BFile(ref, O_RDONLY);
+	if (file->InitCheck() == B_NO_ERROR)
+	{
 		// set reply-to address and subject
 		if (file->GetAttrInfo(B_MAIL_ATTR_REPLY, &info) == B_NO_ERROR
-			&& info.size > 1) {
+			&& info.size > 1)
+		{
 			to = (char *)malloc(info.size);
 			file->ReadAttr(B_MAIL_ATTR_REPLY, B_STRING_TYPE, 0, to, info.size);
 			fHeaderView->fTo->SetText(to);
 		}
-		else if (file->GetAttrInfo(B_MAIL_ATTR_FROM, &info) == B_NO_ERROR) {
+		else if (file->GetAttrInfo(B_MAIL_ATTR_FROM, &info) == B_NO_ERROR)
+		{
 			to = (char *)malloc(info.size);
 			file->ReadAttr(B_MAIL_ATTR_FROM, B_STRING_TYPE, 0, to, info.size);
 			fHeaderView->fTo->SetText(to);
 		}
 
-		if (file->GetAttrInfo(B_MAIL_ATTR_SUBJECT, &info) == B_NO_ERROR) {
-			str = (char *)malloc(info.size);
-			file->ReadAttr(B_MAIL_ATTR_SUBJECT, B_STRING_TYPE, 0, str, info.size);
-			if (cistrncmp(str, "re:", 3) != 0) {
-				str1 = (char *)malloc(strlen(str) + 1 + 4);
-				sprintf(str1, "Re: %s", str);
-				fHeaderView->fSubject->SetText(str1);
-				free(str1);
-			} else {
-				fHeaderView->fSubject->SetText(str);
-			}
-			free(str);
+		BString string;
+		if (file->ReadAttrString(B_MAIL_ATTR_SUBJECT, &string) == B_OK)
+		{
+			if (string.ICompare("re:", 3) != 0)
+				string.Prepend("Re: ");
+
+			fHeaderView->fSubject->SetText(string.String());
 		}
 
 		// set mail account
-		if (gUseAccountFrom == ACCOUNT_FROM_MAIL && file->GetAttrInfo("MAIL:account",&info) == B_NO_ERROR) {
-			str = (char *)malloc(info.size);
-			file->ReadAttr("MAIL:account", B_STRING_TYPE, 0, str, info.size);
-
+		if (gUseAccountFrom == ACCOUNT_FROM_MAIL
+			&& file->ReadAttrString("MAIL:account", &string) == B_NO_ERROR)
+		{
 			MailSettings settings;
 			BList chains;
 			settings.OutboundChains(&chains);
 			for (int32 i = 0;i < chains.CountItems();i++) {
 				MailChain *chain = (MailChain *)chains.ItemAt(i);
-				if (!strcmp(chain->Name(),str))
+				if (!string.Compare(chain->Name()))
 					fHeaderView->fChain = chain->ID();
 
 				delete chain;
 			}
-			free(str);
 
 			BMenu *menu = fHeaderView->fAccountMenu;
 			for (int32 i = menu->CountItems();i-- > 0;) {
@@ -2484,10 +2439,12 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, bool all)
 		}
 		
 		window->fContentView->fTextView->GetSelection(&start, &finish);
-		if (start != finish) {
-			str = (char *)malloc(finish - start + 1);
+		if (start != finish)
+		{
+			char *str = (char *)malloc(finish - start + 1);
 			window->fContentView->fTextView->GetText(start, finish - start, str);
-			if (str[strlen(str) - 1] != '\n') {
+			if (str[strlen(str) - 1] != '\n')
+			{
 				str[strlen(str)] = '\n';
 				finish++;
 			}
@@ -2495,7 +2452,8 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, bool all)
 			free(str);
 
 			finish = fContentView->fTextView->CountLines() - 1;
-			for (loop = 0; loop < finish; loop++) {
+			for (loop = 0; loop < finish; loop++)
+			{
 				fContentView->fTextView->GoToLine(loop);
 				fContentView->fTextView->Insert((const char *)QUOTE);
 			}
@@ -2504,7 +2462,8 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, bool all)
 		else if (file)
 			fContentView->fTextView->LoadMessage(file, true, true, NULL);
 
-		if (all) {
+		if (all)
+		{
 			cc = (char *)malloc(1);
 			cc[0] = 0;
 			len = header_len(file);
@@ -2512,19 +2471,25 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, bool all)
 			file->Seek(0, 0);
 			file->Read(header, len);
 			get_recipients(&cc, header, len, false);
-			if (strlen(cc)) {
-				if (to) {
-					if ((str = cistrstr(cc, to)) != NULL) {
+			if (strlen(cc))
+			{
+				if (to)
+				{
+					char *str;
+					if ((str = cistrstr(cc, to)) != NULL)
+					{
 						len = 0;
-						if (str == cc) {
+						if (str == cc)
+						{
 							while ((strlen(to) + len < strlen(cc)) &&
 								   ((str[strlen(to) + len] == ' ') ||
-									(str[strlen(to) + len] == ','))) {
+								    (str[strlen(to) + len] == ',')))
 								len++;
-							}
 						}
-						else {
-							while ((str > cc) && ((str[-1] == ' ') || (str[-1] == ','))) {
+						else
+						{
+							while ((str > cc) && ((str[-1] == ' ') || (str[-1] == ',')))
+							{
 								str--;
 								len++;
 							}
@@ -2538,10 +2503,9 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, bool all)
 			free(cc);
 			free(header);
 		}
-		if (to) {
+		if (to)
 			free(to);
-		}
-		
+
 		fReplying = true;
 	}
 }
@@ -2820,50 +2784,27 @@ status_t TMailWindow::OpenMessage(entry_ref *ref)
 	//
 	//	Figure out the title of this message and set the title bar
 	//
-	char *title=NULL;
-	BFile file;
-	attr_info info;
-	file.SetTo(ref, O_RDONLY);
-	
-	if (fIncoming && (file.InitCheck() == B_NO_ERROR)) {	
-		if (file.GetAttrInfo(B_MAIL_ATTR_NAME, &info) == B_NO_ERROR) {
-			char *str1 = (char*) malloc(info.size+1);
-			file.ReadAttr(B_MAIL_ATTR_NAME, B_STRING_TYPE, 0, str1, 
-			  info.size);
-			str1[info.size] = 0;
-			if (file.GetAttrInfo(B_MAIL_ATTR_SUBJECT, &info) == B_NO_ERROR){
-				char *str2 = (char*) malloc(info.size+1);
-				str2[info.size] = 0;
-				file.ReadAttr(B_MAIL_ATTR_SUBJECT, B_STRING_TYPE, 0, str2, 
-				  info.size);
-	
-				//	
-				//	Get the title for the window
-				//
-				title = (char *)malloc(strlen(str1) + strlen(str2) + 3);
-				sprintf(title, "%s->%s", str1, str2);
-				free(str1);
-				free(str2);
-			}
-			else
-				title = str1;
-		}
-		else if( fHeaderView->fSubject->TextView()->TextLength() )
+	BString title;
+
+	BFile file(ref, O_RDONLY);
+	if (fIncoming && (file.InitCheck() == B_NO_ERROR))
+	{
+		if (file.ReadAttrString(B_MAIL_ATTR_NAME, &title) == B_OK)
 		{
-			title = (char *) malloc (fHeaderView->fSubject->TextView()->TextLength() + 1);
-			strcpy( title, fHeaderView->fSubject->Text() );
+			BString string;
+			if (file.ReadAttrString(B_MAIL_ATTR_SUBJECT, &string) == B_OK)
+				title << " -> " << string;
 		}
-		else {
-		/* if something slips through the cracks (No NAME, no SUBJECT) */
-		/* we just play it safe. */
-		title = (char *) malloc (strlen("BeMail") + 1);
-		strcpy(title, "BeMail");
-		}
+		else if (fHeaderView->fSubject->TextView()->TextLength())
+			title = fHeaderView->fSubject->Text();
+		else
+			/* if something slips through the cracks (No NAME, no SUBJECT) */
+			/* we just play it safe. */
+			title = "BeMail";
 	}
-	SetTitle(title);
-	free(title);
+	SetTitle(title.String());
 	
-	if( fIncoming )
+	if (fIncoming)
 	{
 		//
 		//	Put the addresses in the 'Save Address' Menu
@@ -2887,14 +2828,17 @@ status_t TMailWindow::OpenMessage(entry_ref *ref)
 		int32 index = 0;
 		bool done = false;
 		BMessage *msg;
-		while (1) {
-			if ((!list[index]) || (list[index] == ',')) {
+		while (1)
+		{
+			if ((!list[index]) || (list[index] == ','))
+			{
 				if (!list[index])
 					done = true;
 				else
 					list[index] = 0;
 				int32 index1 = 0;
-				while ((item = saveAddrMenu->ItemAt(index1)) != NULL) {
+				while ((item = saveAddrMenu->ItemAt(index1)) != NULL)
+				{
 					if (strcmp(list, item->Label()) == 0)
 						goto skip;
 					if (strcmp(list, item->Label()) < 0)
@@ -2905,7 +2849,7 @@ status_t TMailWindow::OpenMessage(entry_ref *ref)
 				msg->AddString("address", list);
 				saveAddrMenu->AddItem(new BMenuItem(list, msg), index1);
 	
-	skip:			if (!done) {
+	skip:		if (!done) {
 					list += index + 1;
 					index = 0;
 					while (*list) {
@@ -2933,70 +2877,42 @@ status_t TMailWindow::OpenMessage(entry_ref *ref)
 	}
 	else
 	{
-		char *str1;
-		
+		BString string;
+
 		// Restore Fields from attributes
-		if( (file.GetAttrInfo( B_MAIL_ATTR_TO, &info ) == B_NO_ERROR) )
-		{
-			str1 = (char*) malloc(info.size+1);
-			str1[info.size] = 0;
-			file.ReadAttr( B_MAIL_ATTR_TO, B_STRING_TYPE, 0, str1, info.size );
-			fHeaderView->fTo->SetText( str1 );
-			free( str1 );
-		}
+
+		if (file.ReadAttrString(B_MAIL_ATTR_TO, &string) == B_OK)
+			fHeaderView->fTo->SetText(string.String());
 		
-		if( (file.GetAttrInfo( B_MAIL_ATTR_SUBJECT, &info ) == B_NO_ERROR) )
-		{
-			str1 = (char*) malloc(info.size+1);
-			str1[info.size] = 0;
-			file.ReadAttr( B_MAIL_ATTR_SUBJECT, B_STRING_TYPE, 0, str1, info.size );
-			fHeaderView->fSubject->SetText( str1 );
-			free( str1 );
-		}
-		
-		if( (file.GetAttrInfo( "MAIL:bcc", &info ) == B_NO_ERROR) )
-		{
-			str1 = (char*) malloc(info.size+1);
-			str1[info.size] = 0;
-			file.ReadAttr( "MAIL:bcc", B_STRING_TYPE, 0, str1, info.size );
-			fHeaderView->fBcc->SetText( str1 );
-			free( str1 );
-		}
-		
-		if( (file.GetAttrInfo( B_MAIL_ATTR_CC, &info ) == B_NO_ERROR) )
-		{
-			str1 = (char*) malloc(info.size+1);
-			str1[info.size] = 0;
-			file.ReadAttr( B_MAIL_ATTR_CC, B_STRING_TYPE, 0, str1, info.size );
-			fHeaderView->fCc->SetText( str1 );
-			free( str1 );
-		}
+		if (file.ReadAttrString(B_MAIL_ATTR_SUBJECT, &string) == B_OK)
+			fHeaderView->fSubject->SetText(string.String());
+
+		if (file.ReadAttrString("MAIL:bcc", &string) == B_OK)
+			fHeaderView->fBcc->SetText(string.String());
+
+		if (file.ReadAttrString(B_MAIL_ATTR_CC, &string) == B_OK)
+			fHeaderView->fCc->SetText(string.String());
 		
 		// Restore attachements
-		if( (file.GetAttrInfo( "MAIL:attachments", &info ) == B_NO_ERROR) )
+		if (file.ReadAttrString("MAIL:attachments", &string) == B_OK)
 		{
-			str1 = (char*) malloc(info.size+1);
-			str1[info.size] = 0;
-			file.ReadAttr( "MAIL:attachments", B_STRING_TYPE, 0, str1, info.size );
-			BMessage msg( REFS_RECEIVED );
-			entry_ref	enc_ref;
-			
-			char *s;
-			s = strtok( str1, ":" );
-			while( s )
+			BMessage msg(REFS_RECEIVED);
+			entry_ref enc_ref;
+
+			char *s = strtok((char *)string.String(), ":");
+			while (s)
 			{
-				BEntry entry( s, true );
-				if( entry.Exists() )
+				BEntry entry(s, true);
+				if (entry.Exists())
 				{
-					entry.GetRef( &enc_ref );
-					msg.AddRef( "refs", &enc_ref );
+					entry.GetRef(&enc_ref);
+					msg.AddRef("refs", &enc_ref);
 				}
-				s = strtok( NULL, ":" );
+				s = strtok(NULL, ":");
 			}
-			AddEnclosure( &msg );
-			free( str1 );
+			AddEnclosure(&msg);
 		}
-		PostMessage( RESET_BUTTONS );
+		PostMessage(RESET_BUTTONS);
 	}
 	
 	return B_OK;
@@ -3012,7 +2928,10 @@ TMailWindow* TMailWindow::FrontmostWindow()
 		return NULL;
 }
 
+
 //====================================================================
+//	#pragma mark -
+
 
 TMenu::TMenu(const char *name, const char *attribute, int32 message, bool popup)
 	  // :	BMenu(name),
@@ -3102,27 +3021,3 @@ void TMenu::BuildMenu()
 
 //====================================================================
 
-int32 header_len(BFile *file)
-{
-	char	*buffer;
-	int32	len;
-	int32	result = 0;
-	off_t	size;
-
-	if (file->ReadAttr(B_MAIL_ATTR_HEADER, B_INT32_TYPE, 0, &result, sizeof(int32)) != sizeof(int32)) {
-		file->GetSize(&size);
-		buffer = (char *)malloc(size);
-		if (buffer) {
-			file->Seek(0, 0);
-			if (file->Read(buffer, size) == size) {
-				while ((len = linelen(buffer + result, size - result, true)) > 2) {
-					result += len;
-				}
-				result += len;
-			}
-			free(buffer);
-			file->WriteAttr(B_MAIL_ATTR_HEADER, B_INT32_TYPE, 0, &result, sizeof(int32));
-		}
-	}
-	return result;
-}
