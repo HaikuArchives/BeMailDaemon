@@ -116,20 +116,19 @@ APP_VERSION =
 #	/dev/video/usb when loaded. Default is "misc".
 DRIVER_PATH = 
 
+ifeq ($(CHECK_MEM), true)
+	COMPILER_FLAGS += -fcheck-memory-usage -D_NO_INLINE_ASM=1 -D_KERNEL_MODE=1
+	DEBUG_BUILD=true
+endif
+
 #   Custom overrides that can be set from the command line.
 ifeq ($(DEBUG_BUILD), true)
 	SYMBOLS := TRUE
 	DEBUGGER := TRUE
 	OPTIMIZE := NONE
-	COMPILER_FLAGS += -DDEBUG=1
+	COMPILER_FLAGS += -DDEBUG=1 -fno-debug-opt
 endif
 
-ifeq ($(CHECK_MEM), true)
-	SYMBOLS := TRUE
-	DEBUGGER := TRUE
-	OPTIMIZE := NONE
-	COMPILER_FLAGS += -fcheck-memory-usage -DDEBUG=1 -D_NO_INLINE_ASM=1 -D_KERNEL_MODE=1
-endif
 
 
 #	Detect BONE
@@ -139,7 +138,7 @@ ifeq ($(shell ls 2>/dev/null -1 /boot/develop/headers/be/bone/bone_api.h), /boot
 	LIBS += socket
 endif
 
-INSTALL_DIR=/boot/beos/system/servers/
+INSTALL_DIR=/boot/beos/system/servers
 
 include $(BUILDHOME)/etc/makefile-engine.MailD
 
