@@ -4,6 +4,7 @@
 #include <VolumeRoster.h>
 
 #include <stdio.h>
+#include <assert.h>
 
 class _EXPORT MailProtocol;
 
@@ -45,6 +46,7 @@ MailProtocol::MailProtocol(BMessage* settings) : MailFilter(settings) {
 	manifest = new StringList;
 	
 	settings->FindPointer("chain_runner",(void **)&parent);
+	//if (strcmp(parent->Chain()->Name(),"NathanW") != 0)
 	parent->Chain()->MetaData()->FindFlat("manifest",manifest); //---no error checking, because if it doesn't exist, it will stay empty anyway
 	
 	parent->RegisterProcessCallback(new DeletePass(this));
@@ -57,6 +59,12 @@ MailProtocol::~MailProtocol() {
 	delete manifest;
 };
 
+
+#define dump_stringlist(a) printf("StringList %s:\n",#a); \
+							for (int32 i = 0; i < a->CountItems(); i++)\
+								puts(a->ItemAt(i)); \
+							puts("Done\n");
+							
 MDStatus MailProtocol::ProcessMailMessage
 	(
 		BPositionIO** io_message, BEntry* /*io_entry*/,
@@ -64,8 +72,12 @@ MDStatus MailProtocol::ProcessMailMessage
 	) {
 		status_t error;
 		
+		printf("LINE: %d\n",__LINE__);
+		
 		if (InitCheck(NULL) < B_OK)
 			return MD_NO_MORE_MESSAGES;
+		
+		printf("LINE: %d\n",__LINE__);
 		
 		if (unique_ids == NULL) {
 			unique_ids = new StringList;
@@ -76,6 +88,10 @@ MDStatus MailProtocol::ProcessMailMessage
 			}
 			PrepareStatusWindow(manifest);
 		}
+		
+		printf("LINE: %d\n",__LINE__);
+		puts(parent->Chain()->Name());
+		dump_stringlist(manifest);
 		
 		error = GetNextNewUid(io_uid,manifest,0); // Added 0 for timeout. Is it correct?
 
@@ -105,11 +121,6 @@ DeletePass::DeletePass(MailProtocol *home) : us(home) {
 	//--do nothing, and do it well
 }
 
-#define dump_stringlist(a) printf("StringList %s:\n",#a); \
-							for (int32 i = 0; i < a.CountItems(); i++)\
-								puts(a.ItemAt(i)); \
-							puts("Done\n");
-
 void DeletePass::Callback(MDStatus /*status*/) {
 	if (us->settings->FindBool("delete_remote_when_local")) {
 		StringList query_contents;
@@ -129,13 +140,9 @@ void DeletePass::Callback(MDStatus /*status*/) {
 			BNode(&entry).ReadAttrString("MAIL:unique_id",&uid);
 			query_contents.AddItem(uid.String());
 		}
-	
-		/*dump_stringlist(query_contents);
-		dump_stringlist((*(us->manifest)));*/
 		
 		StringList to_delete;
 		query_contents.NotHere(*(us->manifest),&to_delete);
-		//dump_stringlist(to_delete);
 		
 		for (int32 i = 0; i < to_delete.CountItems(); i++)
 			us->DeleteMessage(to_delete[i]);
@@ -143,8 +150,9 @@ void DeletePass::Callback(MDStatus /*status*/) {
 		*(us->unique_ids) -= to_delete;
 	}
 	if (us->unique_ids != NULL) {
-		if (us->parent->Chain()->MetaData()->ReplaceFlat("manifest",us->unique_ids) < B_OK)
-			us->parent->Chain()->MetaData()->AddFlat("manifest",us->unique_ids);
+		BMessage *meta_data = us->parent->Chain()->MetaData();
+		meta_data->RemoveName("manifest");
+		meta_data->AddFlat("manifest",us->unique_ids);
 	}
 }
 
