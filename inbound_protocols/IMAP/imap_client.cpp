@@ -248,6 +248,7 @@ void IMAP4Client::InitializeMailboxes() {
 	BString tag;
 	char expected[255];
 	::sprintf(expected,"a%.7ld",commandCount);
+	create_directory(runner->Chain()->MetaData()->FindString("path"),0777);
 	BDirectory dir(runner->Chain()->MetaData()->FindString("path"));
 	BDirectory trash;
 	int val;
