@@ -16,7 +16,10 @@
  * Note that this uses the AGMS coding style, not the OpenTracker one.  That
  * means no tabs, indents are two spaces, m_ is the prefix for member
  * variables, g_ is the prefix for global names, C style comments, constants
- * are in all capital letters and most other things are mixed case.
+ * are in all capital letters and most other things are mixed case, it's word
+ * wrapped to fit in 79 characters per line to make proofreading on paper
+ * easier, and functions are listed in reverse dependency order so that forward
+ * declarations (function prototypes with no code) aren't needed.
  *
  * The Original Design:
  * There is a spam database (just a file listing words and number of times they
@@ -71,6 +74,10 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
+ * Revision 1.63  2002/11/04 03:30:22  nwhitehorn
+ * Now works (or compiles at least) on PowerPC.  I'll get around to testing it
+ * later.
+ *
  * Revision 1.62  2002/11/04 01:03:33  agmsmith
  * Fixed warnings so it compiles under the bemaildaemon system.
  *
@@ -284,14 +291,11 @@
 #include <errno.h>
 
 #if __POWERPC__
-long long atoll(const char *str);
-
-long long atoll(const char *str) {
-	long long val;
-	sscanf(str,"%d",&val); //--- Trust me, this works. -nwhitehorn
-	return val;
+static long long atoll (const char *str) {
+  long long val = 0; // Set to zero in case it half works.  -agmsmith
+  sscanf(str,"%d",&val); //--- Trust me, this works. -nwhitehorn
+  return val;
 }
-
 #endif
 
 /* STL (Standard Template Library) headers. */
@@ -1240,7 +1244,6 @@ static void WrapTextToStream (ostream& OutputStream, char *TextPntr)
 /******************************************************************************
  * Print the usage info to the stream.  Includes a list of all commands.
  */
-ostream& PrintUsage (ostream& OutputStream);
 
 ostream& PrintUsage (ostream& OutputStream)
 {
@@ -4552,7 +4555,8 @@ void CommanderLooper::ProcessRefs (BMessage *MessagePntr)
 
     ErrorCode = Entry.SetTo (&EntryRef, true /* traverse symbolic links */);
     if (ErrorCode != B_OK ||
-    ((ErrorCode = /* assignment */ B_ENTRY_NOT_FOUND) != 0 /* this pacifies mwcc -nwhitehorn */ && !Entry.Exists ()) ||
+    ((ErrorCode = /* assignment */ B_ENTRY_NOT_FOUND) != 0 /* this pacifies
+    mwcc -nwhitehorn */ && !Entry.Exists ()) ||
     ((ErrorCode = Entry.GetPath (&Path)) != B_OK))
     {
       DisplayErrorMessage ("Bad entry reference encountered, will skip it",
