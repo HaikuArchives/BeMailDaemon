@@ -2642,7 +2642,9 @@ TTextView::InsertText(const char *text, int32 length, int32 offset,
 		if (length > 1
 			|| isalpha(text[offset + 1])
 			|| (!isalpha(text[offset]) && text[offset] != '\'')
-			|| color == kSpellTextColor)
+			|| (color.red == kSpellTextColor.red
+				&& color.green == kSpellTextColor.green
+				&& color.blue == kSpellTextColor.blue))
 		{
 			int32 start, end;
 			FindSpellBoundry(length, offset, &start, &end);
