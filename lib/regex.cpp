@@ -851,7 +851,7 @@ reg_syntax_t re_syntax_options = RE_SYNTAX_EMACS;
    The argument SYNTAX is a bit mask comprised of the various bits
    defined in regex.h.  We return the old syntax.  */
 #ifdef JAF_CRAP
-reg_syntax_t
+_EXPORT reg_syntax_t
 re_set_syntax (syntax)
     reg_syntax_t syntax;
 {
@@ -2570,7 +2570,7 @@ typedef struct
 
 int
 re_compile_fastmap (struct re_pattern_buffer * bufp);
-int
+_EXPORT int
 re_compile_fastmap (struct re_pattern_buffer * bufp)
 {
   int j, k;
@@ -2858,7 +2858,7 @@ void
 re_set_registers (struct re_pattern_buffer * bufp, struct re_registers * regs, 
                   unsigned num_regs, regoff_t *starts, regoff_t *ends);
 
-void
+_EXPORT void
 re_set_registers (struct re_pattern_buffer * bufp, struct re_registers * regs, 
                   unsigned num_regs, regoff_t *starts, regoff_t *ends)
 {
@@ -2918,7 +2918,7 @@ re_search_2 (
      int range,
      struct re_registers *regs,
      int stop);
-int
+_EXPORT int
 re_search_2 (
      struct re_pattern_buffer *bufp,
      const char *string1, const char *string2,
@@ -3040,7 +3040,7 @@ re_search_2 (
 int
 re_search (struct re_pattern_buffer *bufp, const char * string, int size, int startpos, int range, struct re_registers * regs);
 
-int
+_EXPORT int
 re_search (struct re_pattern_buffer *bufp, const char * string, int size, int startpos, int range, struct re_registers * regs)
 {
   return re_search_2 (bufp, (const char *)NULL, string, 0, size, startpos, range, regs, size);
@@ -3213,7 +3213,7 @@ re_match (
      const char *string,
      int size, int pos,
      struct re_registers *regs);
-int
+_EXPORT int
 re_match (
      struct re_pattern_buffer *bufp,
      const char *string,
@@ -3238,7 +3238,7 @@ re_match (
    failure stack overflowing).  Otherwise, we return the length of the
    matched substring.  */
 
-int
+_EXPORT int
 re_match_2 (
      struct re_pattern_buffer *bufp,
      const char *string1, const char *string2,
@@ -4699,7 +4699,7 @@ re_compile_pattern (
      const char *pattern,
      int length,
      struct re_pattern_buffer *bufp);
-const char *
+_EXPORT const char *
 re_compile_pattern (
      const char *pattern,
      int length,
@@ -4734,7 +4734,7 @@ static struct re_pattern_buffer re_comp_buf;
 
 char *
 re_comp (const char *s);
-char *
+_EXPORT char *
 re_comp (const char *s)
 {
   reg_errcode_t ret;
@@ -4772,7 +4772,7 @@ re_comp (const char *s)
 
 int
 re_exec (const char * s);
-int
+_EXPORT int
 re_exec (const char * s)
 {
   const int len = strlen (s);
@@ -4818,7 +4818,7 @@ re_exec (const char * s)
 
    It returns 0 if it succeeds, nonzero if it doesn't.  (See regex.h for
    the return codes and their meanings.)  */
-int
+_EXPORT int
 regcomp (
     regex_t *preg,
     const char *pattern,
@@ -4901,7 +4901,7 @@ regexec (
     size_t nmatch,
     regmatch_t pmatch[],
     int eflags);
-int
+_EXPORT int
 regexec (
     const regex_t *preg,
     const char *string,
@@ -4972,7 +4972,7 @@ regerror (
     const regex_t *preg,
     char *errbuf,
     size_t errbuf_size);
-size_t
+_EXPORT size_t
 regerror (
     int errcode,
     const regex_t *preg,
@@ -5016,7 +5016,7 @@ regerror (
 /* Free dynamically allocated space used by PREG.  */
 //void
 //regfree (regex_t * preg);
-void
+_EXPORT void
 regfree (regex_t * preg)
 {
   if (preg->buffer != NULL)
