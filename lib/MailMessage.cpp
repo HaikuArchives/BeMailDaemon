@@ -179,7 +179,7 @@ Message::ForwardMessage(bool accountFromMail, bool includeAttachments)
 	header << "To: " << To() << '\n';
 	header << "From: " << From() << '\n';
 	if (CC() != NULL)
-		header << "CC: " << CC() << '\n';
+		header << "CC: " << CC() << '\n'; // Can use CC rather than "Cc" since display only.
 	header << "Subject: " << Subject() << '\n';
 	header << "Date: " << Date() << "\n\n";
 	header << _text_body->Text() << '\n';
@@ -237,7 +237,7 @@ const char *Message::ReplyTo() {
 }
 
 const char *Message::CC() {
-	return HeaderField("CC");
+	return HeaderField("Cc"); // Note case of CC is "Cc" in our internal headers.
 }
 
 const char *Message::Subject() {
@@ -269,7 +269,7 @@ void Message::SetTo(const char *to) {
 }
 
 void Message::SetCC(const char *cc) {
-	SetHeaderField("CC",cc);
+	SetHeaderField("Cc",cc); // For consistency, use Cc as the name.
 }
 
 void Message::SetBCC(const char *bcc) {
@@ -583,7 +583,7 @@ Message::SetToRFC822(BPositionIO *mail_file, size_t length, bool parse_now)
 		  && (strcasecmp(name,"To") != 0)
 		  && (strcasecmp(name,"From") != 0)
 		  && (strcasecmp(name,"Reply-To") != 0)
-		  && (strcasecmp(name,"CC") != 0)
+		  && (strcasecmp(name,"Cc") != 0)
 		  && (strcasecmp(name,"Date") != 0)) {
 			RemoveHeader(name);
 		}
@@ -593,7 +593,7 @@ Message::SetToRFC822(BPositionIO *mail_file, size_t length, bool parse_now)
 	_body->RemoveHeader("To");
 	_body->RemoveHeader("From");
 	_body->RemoveHeader("Reply-To");
-	_body->RemoveHeader("CC");
+	_body->RemoveHeader("Cc");
 	_body->RemoveHeader("Date");
 
 	_num_components = 1;
