@@ -100,11 +100,11 @@ const rgb_color kQuoteColors[] =
 };
 const int32 kNumQuoteColors = 3;
 
+extern bool header_flag;
+extern bool gColoredQuotes;
 
-extern bool		header_flag;
-extern bool		gColoredQuotes;
+void Unicode2UTF8(int32 c, char **out);
 
-void Unicode2UTF8(int32 c,char **out);
 
 inline bool
 IsInitialUTF8Byte(uchar b)	
@@ -114,7 +114,7 @@ IsInitialUTF8Byte(uchar b)
 
 
 void
-Unicode2UTF8(int32 c,char **out)
+Unicode2UTF8(int32 c, char **out)
 {
 	char *s = *out;
 
@@ -144,11 +144,8 @@ Unicode2UTF8(int32 c,char **out)
 }
 
 
-// the prototype is obviously needed by mwcc
-bool FilterHTMLTag(int32 *first,char **t,char *end);
-
-bool
-FilterHTMLTag(int32 *first,char **t,char *end)
+static bool
+FilterHTMLTag(int32 *first, char **t, char *end)
 {
 	const char *newlineTags[] = {
 		"br",
@@ -158,10 +155,9 @@ FilterHTMLTag(int32 *first,char **t,char *end)
 	char *a = *t;
 
 	// check for some common entities (in ISO-Latin-1)
-	if (*first == '&')
-	{
+	if (first[0] == '&') {
 		// filter out and convert decimal values
-		if (*(a + 1) == '#' && sscanf(a + 1,"%ld;",first) == 1)
+		if (a[1] == '#' && sscanf(a + 1, "%ld;", first) == 1)
 			return false;
 
 		const struct { char *name; int32 code; } entities[] = {
@@ -230,21 +226,19 @@ FilterHTMLTag(int32 *first,char **t,char *end)
 			{NULL, 0}
 		};
 
-		for (int32 i = 0;entities[i].name;i++)
-		{
+		for (int32 i = 0; entities[i].name; i++) {
 			// entities are case-sensitive
 			int32 length = strlen(entities[i].name);
-			if (!strncmp(a + 1,entities[i].name,length))
-			{
-				*t += length;	// note that the '&' is included here
-				*first = entities[i].code;
+			if (!strncmp(a + 1, entities[i].name, length)) {
+				t[0] += length;	// note that the '&' is included here
+				first[0] = entities[i].code;
 				return false;
 			}
 		}
 	}
 
 	// no tag to filter
-	if (*first != '<')
+	if (first[0] != '<')
 		return false;
 
 	a++;
@@ -252,11 +246,9 @@ FilterHTMLTag(int32 *first,char **t,char *end)
 	// is the tag one of the newline tags?
 
 	bool newline = false;
-	for (int i = 0;newlineTags[i];i++)
-	{
-		int len = strlen(newlineTags[i]);
-		if (!strncasecmp(a,(char *)newlineTags[i],len) && !isalnum(*(a + len)))
-		{
+	for (int i = 0; newlineTags[i]; i++) {
+		int length = strlen(newlineTags[i]);
+		if (!strncasecmp(a, (char *)newlineTags[i], length) && !isalnum(a[length])) {
 			newline = true;
 			break;
 		}
@@ -264,10 +256,8 @@ FilterHTMLTag(int32 *first,char **t,char *end)
 	
 	// oh, it's not, so skip it!
 
-	if (!strncasecmp(a,"head",4))	// skip "head" completely
-	{
-		for(;*a && a < end;a++)
-		{
+	if (!strncasecmp(a, "head", 4)) {	// skip "head" completely
+		for (; a[0] && a < end; a++) {
 			// Find the end of the HEAD section, or the start of the BODY,
 			// which happens for some malformed spam.
 			if (strncasecmp (a, "</head", 6) == 0 ||
@@ -277,13 +267,12 @@ FilterHTMLTag(int32 *first,char **t,char *end)
 	}
 
 	// skip until tag end
-	while(*a && *a != '>' && a < end) a++;
+	while (a[0] && a[0] != '>' && a < end) a++;
 	
-	*t = a;
+	t[0] = a;
 
-	if (newline)
-	{
-		*first = '\n';
+	if (newline) {
+		first[0] = '\n';
 		return false;
 	}
 	
@@ -673,12 +662,12 @@ TTextView::TTextView(BRect frame, BRect text, bool incoming, Mail::Message *mail
 	SetDoesUndo(true);
 
 	//Undo function
-	UndoBuffer.On();
-	IM_UndoBuffer.On();
-	Replaced = false;
-	Deleted = false;
-	IM_Active = false;
-	IM_Replace = false;
+	fUndoBuffer.On();
+	fInputMethodUndoBuffer.On();
+	fUndoState.replaced = false;
+	fUndoState.deleted = false;
+	fInputMethodUndoState.active = false;
+	fInputMethodUndoState.replace = false;
 }
 
 
@@ -929,16 +918,16 @@ TTextView::MakeFocus(bool focus)
 		// MakeFocus(false) は、IM も Inactive になり、そのまま確定される。
 		// しかしこの場合、input_server が B_INPUT_METHOD_EVENT(B_INPUT_METHOD_STOPPED)
 		// を送ってこないまま矛盾してしまうので、やむを得ずここでつじつまあわせ処理している。
-		IM_Active = false;
-		// IM_UndoBufferに溜まっている最後のデータがK_INSERTEDなら（確定）正規のバッファへ追加
-		if (IM_UndoBuffer.CountItems()>0) {
-			KUndoItem *im_undo = IM_UndoBuffer.ItemAt(IM_UndoBuffer.CountItems()-1);
-			if (im_undo->History == K_INSERTED) {
-				UndoBuffer.MakeNewUndoItem();
-				UndoBuffer.AddUndo(	im_undo->RedoText, im_undo->Length, im_undo->Offset, im_undo->History, im_undo->CursorPos);
-				UndoBuffer.MakeNewUndoItem();
+		fInputMethodUndoState.active = false;
+		// fInputMethodUndoBufferに溜まっている最後のデータがK_INSERTEDなら（確定）正規のバッファへ追加
+		if (fInputMethodUndoBuffer.CountItems() > 0) {
+			KUndoItem *item = fInputMethodUndoBuffer.ItemAt(fInputMethodUndoBuffer.CountItems() - 1);
+			if (item->History == K_INSERTED) {
+				fUndoBuffer.MakeNewUndoItem();
+				fUndoBuffer.AddUndo(item->RedoText, item->Length, item->Offset, item->History, item->CursorPos);
+				fUndoBuffer.MakeNewUndoItem();
 			}
-			IM_UndoBuffer.MakeEmpty();
+			fInputMethodUndoBuffer.MakeEmpty();
 		}
 	}
 	BTextView::MakeFocus(focus);
@@ -1235,30 +1224,30 @@ TTextView::MessageReceived(BMessage *msg)
 					switch(im_op){
 						case B_INPUT_METHOD_STARTED:
 							//printf("be:opcode=B_INPUT_METHOD_STARTED\n");
-							IM_Replace = true;
-							IM_Active = true;
+							fInputMethodUndoState.replace = true;
+							fInputMethodUndoState.active = true;
 							break;
 						case B_INPUT_METHOD_STOPPED:
 							//printf("be:opcode=B_INPUT_METHOD_STOPPED\n");
-							IM_Active = false;
-							// IM_UndoBufferに溜まっている最後のデータがK_INSERTEDなら（これは確定文字列だから）正規のバッファへ追加
-							if(IM_UndoBuffer.CountItems()>0){
-								KUndoItem *im_undo = IM_UndoBuffer.ItemAt(IM_UndoBuffer.CountItems()-1);
-								if(im_undo->History == K_INSERTED){
-									UndoBuffer.MakeNewUndoItem();
-									UndoBuffer.AddUndo(	im_undo->RedoText, im_undo->Length, im_undo->Offset, im_undo->History, im_undo->CursorPos);
-									UndoBuffer.MakeNewUndoItem();
+							fInputMethodUndoState.active = false;
+							// fInputMethodUndoBufferに溜まっている最後のデータがK_INSERTEDなら（これは確定文字列だから）正規のバッファへ追加
+							if (fInputMethodUndoBuffer.CountItems()>0){
+								KUndoItem *im_undo = fInputMethodUndoBuffer.ItemAt(fInputMethodUndoBuffer.CountItems()-1);
+								if (im_undo->History == K_INSERTED){
+									fUndoBuffer.MakeNewUndoItem();
+									fUndoBuffer.AddUndo(im_undo->RedoText, im_undo->Length, im_undo->Offset, im_undo->History, im_undo->CursorPos);
+									fUndoBuffer.MakeNewUndoItem();
 								}
-								IM_UndoBuffer.MakeEmpty();
+								fInputMethodUndoBuffer.MakeEmpty();
 							}
 							break;
 						case B_INPUT_METHOD_CHANGED:
 							//printf("be:opcode=B_INPUT_METHOD_CHANGED\n");
-							IM_Active = true;
+							fInputMethodUndoState.active = true;
 							break;
 						case B_INPUT_METHOD_LOCATION_REQUEST:
 							//printf("be:opcode=B_INPUT_METHOD_LOCATION_REQUEST\n");
-							IM_Active = true;
+							fInputMethodUndoState.active = true;
 							break;
 					}
 				}
@@ -2593,6 +2582,7 @@ void TSavePanel::SetEnclosure(hyper_text *enclosure)
 		SetSaveText(enclosure->name);
 	else
 		SetSaveText("");
+
 	if (!IsShowing())
 		Show();
 	Window()->Activate();
@@ -2609,36 +2599,34 @@ TTextView::InsertText(const char *insertText, int32 length, int32 offset,
 {
 	ContentChanged();
 
-	//Undo function
-	int32 cursor_pos, cursor_pos0;
-	GetSelection(&cursor_pos, &cursor_pos0);
-	if (IM_Active) {
+	// Undo function
+
+	int32 cursorPos, dummy;
+	GetSelection(&cursorPos, &dummy);
+
+	if (fInputMethodUndoState.active) {
 		// IMアクティブ時は、一旦別のバッファへ記憶
-		IM_UndoBuffer.AddUndo(insertText, length, offset, K_INSERTED, cursor_pos);
-		IM_Replace = false;
-//		printf("- Insert IM -\n");
-//		IM_UndoBuffer.PrintToStream();
+		fInputMethodUndoBuffer.AddUndo(insertText, length, offset, K_INSERTED, cursorPos);
+		fInputMethodUndoState.replace = false;
 	} else {
-		if (Replaced){
-			UndoBuffer.AddUndo(insertText, length, offset, K_REPLACED, cursor_pos);
-//			printf("- Replace -\n");
-//			UndoBuffer.PrintToStream();
+		if (fUndoState.replaced) {
+			fUndoBuffer.AddUndo(insertText, length, offset, K_REPLACED, cursorPos);
 		} else {
-			if (length==1) if (insertText[0]==0x0a) UndoBuffer.MakeNewUndoItem();
-			UndoBuffer.AddUndo(insertText, length, offset, K_INSERTED, cursor_pos);
-			if (length==1) if (insertText[0]==0x0a) UndoBuffer.MakeNewUndoItem();
-//			printf("- Insert -\n");
-//			UndoBuffer.PrintToStream();
+			if (length == 1 && insertText[0] == 0x0a)
+				fUndoBuffer.MakeNewUndoItem();
+
+			fUndoBuffer.AddUndo(insertText, length, offset, K_INSERTED, cursorPos);
+
+			if (length == 1 && insertText[0] == 0x0a)
+				fUndoBuffer.MakeNewUndoItem();
 		}
 	}
 
-//	}
-	Replaced = false;
-	Deleted = false;
+	fUndoState.replaced = false;
+	fUndoState.deleted = false;
 
 	struct text_runs : text_run_array { text_run _runs[1]; } style;
-	if (runs == NULL && IsEditable())
-	{
+	if (runs == NULL && IsEditable()) {
 		style.count = 1;
 		style.runs[0].offset = 0;
 		style.runs[0].font = fFont;
@@ -2680,32 +2668,25 @@ TTextView::DeleteText(int32 start, int32 finish)
 {
 	ContentChanged();
 
-	//Undo function
-	int32 cursor_pos, cursor_pos0;
-	GetSelection(&cursor_pos, &cursor_pos0);
-	if (IM_Active) {
-		if (IM_Replace) {
-			UndoBuffer.AddUndo( &Text()[start], finish - start, start, K_DELETED, cursor_pos);
-			IM_Replace = false;
-//			printf("- Delete -\n");
-//			UndoBuffer.PrintToStream();
+	// Undo function
+	int32 cursorPos, dummy;
+	GetSelection(&cursorPos, &dummy);
+	if (fInputMethodUndoState.active) {
+		if (fInputMethodUndoState.replace) {
+			fUndoBuffer.AddUndo(&Text()[start], finish - start, start, K_DELETED, cursorPos);
+			fInputMethodUndoState.replace = false;
 		} else {
-			IM_UndoBuffer.AddUndo(&Text()[start], finish - start, start, K_DELETED, cursor_pos);
-//			printf("- Delete IM -\n");
-//			UndoBuffer.PrintToStream();
+			fInputMethodUndoBuffer.AddUndo(&Text()[start], finish - start, start,
+				K_DELETED, cursorPos);
 		}
-	} else {
-		UndoBuffer.AddUndo( &Text()[start], finish - start, start, K_DELETED, cursor_pos);
-//		printf("- Delete -\n");
-//		UndoBuffer.PrintToStream();
-	}
+	} else
+		fUndoBuffer.AddUndo(&Text()[start], finish - start, start, K_DELETED, cursorPos);
 
-	Deleted = true;
-	Replaced = true;
+	fUndoState.deleted = true;
+	fUndoState.replaced = true;
 
 	BTextView::DeleteText(start, finish);
-	if (fSpellCheck && IsEditable())
-	{
+	if (fSpellCheck && IsEditable()) {
 		UpdateSpellMarks(start, start - finish);
 
 		int32 s, e;
@@ -2733,60 +2714,51 @@ void
 TTextView::CheckSpelling(int32 start, int32 end, int32 flags)
 {
 	const char 	*text = Text();
-	const char 	*next, *endPtr, *word;
-	int32 		wordLength, wordOffset;
+	const char 	*next, *endPtr, *word = NULL;
+	int32 		wordLength = 0, wordOffset;
 	int32		nextHighlight = start;
 	BString 	testWord;
 	bool		isCap = false;
 	bool		isAlpha;
 	bool		isApost;
 
-	for (next = text + start, endPtr = text + end, wordLength = 0, word = NULL;
-		next <= endPtr; next++)
-	{
+	for (next = text + start, endPtr = text + end; next <= endPtr; next++) {
 		//printf("next=%c\n", *next);
 		// ToDo: this has to be refined to other languages...
 		// Alpha signifies the start of a word
 		isAlpha = isalpha(*next);
 		isApost = (*next == '\'');
-		if (!word && isAlpha)
-		{
+		if (!word && isAlpha) {
 			//printf("Found word start\n");
 			word = next;
 			wordLength++;
 			isCap = isupper(*word);
-		}
-		// Word continues check
-		else if (word && (isAlpha || isApost) && !(isApost && !isalpha(next[1]))
-			&& !(isCap && isApost && (next[1] == 's')))
-		{
+		} else if (word && (isAlpha || isApost) && !(isApost && !isalpha(next[1]))
+					&& !(isCap && isApost && (next[1] == 's'))) {
+			// Word continues check
 			wordLength++;
 			//printf("Word continues...\n");
-		}
-		// End of word reached
-		else if (word)
-		{
+		} else if (word) {
+			// End of word reached
+
 			//printf("Word End\n");
 			// Don't check single characters
-			if (wordLength > 1)
-			{
+			if (wordLength > 1) {
 				bool isUpper = true;
 
 				// Look for all uppercase
-				for (int32 i = 0; i < wordLength; i++)
-				{
+				for (int32 i = 0; i < wordLength; i++) {
 					if (word[i] == '\'')
 						break;
-					if (islower(word[i]))
-					{
+
+					if (islower(word[i])) {
 						isUpper = false;
 						break;
 					}
 				}
 
 				// Don't check all uppercase words
-				if (!isUpper)
-				{
+				if (!isUpper) {
 					bool foundMatch = false;
 					wordOffset = word - text;
 					testWord.SetTo(word, wordLength);
@@ -2799,24 +2771,20 @@ TTextView::CheckSpelling(int32 start, int32 end, int32 flags)
 						key = gExactWords[0]->GetKey(testWord.String());
 
 					// Search all dictionaries
-					for (int32 i = 0; i < gDictCount; i++)
-					{
-						if (gExactWords[i]->Lookup(key) >= 0)
-						{
+					for (int32 i = 0; i < gDictCount; i++) {
+						if (gExactWords[i]->Lookup(key) >= 0) {
 							foundMatch = true;
 							break;
 						}
 					}
 
-					if (!foundMatch)
-					{
+					if (!foundMatch) {
 						if (flags & S_CLEAR_ERRORS)
 							RemoveSpellMark(nextHighlight, wordOffset);
 
 						if (flags & S_SHOW_ERRORS)
 							AddSpellMark(wordOffset, wordOffset + wordLength);
-					}
-					else if (flags & S_CLEAR_ERRORS)
+					} else if (flags & S_CLEAR_ERRORS)
 						RemoveSpellMark(nextHighlight, wordOffset + wordLength);
 
 					nextHighlight = wordOffset + wordLength;
@@ -2827,6 +2795,7 @@ TTextView::CheckSpelling(int32 start, int32 end, int32 flags)
 			wordLength = 0;
 		}
 	}
+
 	if (nextHighlight <= end
 		&& (flags & S_CLEAR_ERRORS) != 0
 		&& nextHighlight < TextLength())
@@ -2843,7 +2812,9 @@ TTextView::FindSpellBoundry(int32 length, int32 offset, int32 *_start, int32 *_e
 
 	for (start = offset - 1; start >= 0
 		&& (isalpha(text[start]) || text[start] == '\''); start--) {}
+
 	start++;
+
 	for (end = offset + length; end < textLength
 		&& (isalpha(text[end]) || text[end] == '\''); end++) {}
 
@@ -2856,10 +2827,9 @@ TTextView::spell_mark *
 TTextView::FindSpellMark(int32 start, int32 end, spell_mark **_previousMark)
 {
 	spell_mark *lastMark = NULL;
-	for (spell_mark *spellMark = fFirstSpellMark; spellMark; spellMark = spellMark->next)
-	{
-		if (spellMark->start < end && spellMark->end > start)
-		{
+
+	for (spell_mark *spellMark = fFirstSpellMark; spellMark; spellMark = spellMark->next) {
+		if (spellMark->start < end && spellMark->end > start) {
 			if (_previousMark)
 				*_previousMark = lastMark;
 			return spellMark;
@@ -2877,8 +2847,7 @@ TTextView::UpdateSpellMarks(int32 offset, int32 length)
 	DSPELL(printf("UpdateSpellMarks: offset = %ld, length = %ld\n", offset, length));
 
 	spell_mark *spellMark;
-	for (spellMark = fFirstSpellMark; spellMark; spellMark = spellMark->next)
-	{
+	for (spellMark = fFirstSpellMark; spellMark; spellMark = spellMark->next) {
 		DSPELL(printf("\tfound: %ld - %ld\n", spellMark->start, spellMark->end));
 
 		if (spellMark->end < offset)
@@ -2942,8 +2911,7 @@ TTextView::RemoveSpellMark(int32 start, int32 end)
 	// find spell mark
 	spell_mark *lastMark = NULL;
 	spell_mark *spellMark = FindSpellMark(start, end, &lastMark);
-	if (spellMark == NULL)
-	{
+	if (spellMark == NULL) {
 		DSPELL(printf("\tnot found!\n"));
 		return false;
 	}
@@ -3017,6 +2985,7 @@ TTextView::EnableSpellCheck(bool enable)
 		RemoveSpellMarks();
 }
 
+
 void
 TTextView::WindowActivated(bool flag)
 {
@@ -3025,16 +2994,17 @@ TTextView::WindowActivated(bool flag)
 		// しかしこの場合、input_server が B_INPUT_METHOD_EVENT(B_INPUT_METHOD_STOPPED)
 		// を送ってこないまま矛盾してしまうので、やむを得ずここでつじつまあわせ処理している。
 		// OpenBeOSで修正されることを願って暫定処置としている。
-		IM_Active = false;
-		// IM_UndoBufferに溜まっている最後のデータがK_INSERTEDなら（確定）正規のバッファへ追加
-		if (IM_UndoBuffer.CountItems()>0) {
-			KUndoItem *im_undo = IM_UndoBuffer.ItemAt(IM_UndoBuffer.CountItems()-1);
-			if (im_undo->History == K_INSERTED) {
-				UndoBuffer.MakeNewUndoItem();
-				UndoBuffer.AddUndo(	im_undo->RedoText, im_undo->Length, im_undo->Offset, im_undo->History, im_undo->CursorPos);
-				UndoBuffer.MakeNewUndoItem();
+		fInputMethodUndoState.active = false;
+		// fInputMethodUndoBufferに溜まっている最後のデータがK_INSERTEDなら（確定）正規のバッファへ追加
+		if (fInputMethodUndoBuffer.CountItems() > 0) {
+			KUndoItem *item = fInputMethodUndoBuffer.ItemAt(fInputMethodUndoBuffer.CountItems() - 1);
+			if (item->History == K_INSERTED) {
+				fUndoBuffer.MakeNewUndoItem();
+				fUndoBuffer.AddUndo(item->RedoText, item->Length, item->Offset,
+					item->History, item->CursorPos);
+				fUndoBuffer.MakeNewUndoItem();
 			}
-			IM_UndoBuffer.MakeEmpty();
+			fInputMethodUndoBuffer.MakeEmpty();
 		}
 	}
 	BTextView::WindowActivated(flag);
@@ -3206,32 +3176,35 @@ TTextView::RemoveQuote(int32 start, int32 finish)
 void
 TTextView::Undo(BClipboard */*clipboard*/)
 {
-	if (IM_Active)
+	if (fInputMethodUndoState.active)
 		return;
 
 //	UndoBuffer.PrintToStream();
 
-	int32 length, offset, cursor_pos;
+	int32 length, offset, cursorPos;
 	undo_type history;
 	char *text;
 	status_t status;
 
-	status = UndoBuffer.Undo(&text, &length, &offset, &history, &cursor_pos);
+	status = fUndoBuffer.Undo(&text, &length, &offset, &history, &cursorPos);
 	if (status == B_OK) {
-		UndoBuffer.Off();
-		switch(history) {
+		fUndoBuffer.Off();
+
+		switch (history) {
 			case K_INSERTED:
 				BTextView::Delete(offset, offset + length);
 				Select(offset, offset);
 				break;
+
 			case K_DELETED:
 				BTextView::Insert(offset, text, length);
 				Select(offset, offset + length);
 				break;
+
 			case K_REPLACED:
 				BTextView::Delete(offset, offset + length);
-				status = UndoBuffer.Undo(&text, &length, &offset, &history, &cursor_pos);
-				if ((status == B_OK) && (history==K_DELETED)){
+				status = fUndoBuffer.Undo(&text, &length, &offset, &history, &cursorPos);
+				if (status == B_OK && history == K_DELETED) {
 					BTextView::Insert(offset, text, length);
 					Select(offset, offset + length);
 				} else {
@@ -3244,37 +3217,42 @@ TTextView::Undo(BClipboard */*clipboard*/)
 		}
 		ScrollToSelection();
 		ContentChanged();
-		UndoBuffer.On();
+		fUndoBuffer.On();
 	}
 }
+
 
 void
 TTextView::Redo()
 {
-	if (IM_Active) return;
+	if (fInputMethodUndoState.active)
+		return;
 
-	int32 length, offset, cursor_pos;
+	int32 length, offset, cursorPos;
 	undo_type history;
 	char *text;
 	status_t status;
 	bool replaced;
 
-	status = UndoBuffer.Redo(&text, &length, &offset, &history, &cursor_pos, &replaced);
+	status = fUndoBuffer.Redo(&text, &length, &offset, &history, &cursorPos, &replaced);
 	if (status == B_OK) {
-		UndoBuffer.Off();
-		switch(history) {
+		fUndoBuffer.Off();
+
+		switch (history) {
 			case K_INSERTED:
 				BTextView::Insert(offset, text, length);
 				Select(offset, offset + length);
 				break;
+
 			case K_DELETED:
 				BTextView::Delete(offset, offset + length);
 				if (replaced) {
-					UndoBuffer.Redo(&text, &length, &offset, &history, &cursor_pos, &replaced);
+					fUndoBuffer.Redo(&text, &length, &offset, &history, &cursorPos, &replaced);
 					BTextView::Insert(offset, text, length);
 				}
 				Select(offset, offset + length);
 				break;
+
 			case K_REPLACED:
 				::beep();
 				(new BAlert("",
@@ -3284,6 +3262,6 @@ TTextView::Redo()
 		}
 		ScrollToSelection();
 		ContentChanged();
-		UndoBuffer.On();
+		fUndoBuffer.On();
 	}
 }

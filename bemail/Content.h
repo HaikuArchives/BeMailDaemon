@@ -100,8 +100,7 @@ enum ENCLOSURE_TYPE
 	TYPE_MAILTO
 };
 
-typedef struct
-{
+struct hyper_text {
 	int32 type;
 	char *name;
 	char *content_type;
@@ -113,7 +112,7 @@ typedef struct
 	bool have_ref;
 	entry_ref ref;
 	node_ref node;
-} hyper_text;
+};
 
 class TSavePanel;
 
@@ -175,22 +174,22 @@ class TTextView : public BTextView
 		void AddQuote(int32 start, int32 finish);
 		void RemoveQuote(int32 start, int32 finish);
 
-		bool fHeader;
-		bool fReady;
-
-		bool	Replaced;
-		bool	Deleted;
-		KUndoBuffer	UndoBuffer;
-		KUndoBuffer	IM_UndoBuffer;
 		void	WindowActivated(bool flag);
-		void	Undo(BClipboard* clipboard);
+		void	Undo(BClipboard *clipboard);
 		void	Redo();
 
 		const BFont *Font() const { return &fFont; }
 
+		bool fHeader;
+		bool fReady;
+
 	private:
-		bool	IM_Active; // For handling Input Method changes in undo.
-		bool	IM_Replace;
+		struct { bool replaced, deleted; } fUndoState;
+		KUndoBuffer	fUndoBuffer;
+
+		struct { bool active, replace; } fInputMethodUndoState;
+		KUndoBuffer	fInputMethodUndoBuffer;
+			// For handling Input Method changes in undo.
 
 		struct spell_mark;
 
