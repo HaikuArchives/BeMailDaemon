@@ -125,7 +125,7 @@ const EncodingItem kEncodings[] =
 	{"DOS-437 (common)", B_MS_DOS_CONVERSION},
 	{"DOS-866 (rarer)", B_MS_DOS_866_CONVERSION},
 	{"Macintosh Roman", B_MAC_ROMAN_CONVERSION},
-	{"UTF-8 (BeOS Native)", MDR_UTF8_CONVERSION},
+	{"UTF-8 (BeOS!)", MDR_UTF8_CONVERSION},
 	{NULL, MDR_NULL_CONVERSION}
 };
 

@@ -210,7 +210,8 @@ THeaderView::THeaderView (
 				widestStringWidth = font.StringWidth (kEncodings[i].name);
 		}
 
-		r.Set (windowRect.Width() - widestStringWidth - 40,
+		r.Set (windowRect.Width() - widestStringWidth -
+			font.StringWidth (ENCODING_TEXT) - 2 * SEPARATOR_MARGIN,
 			y - 1, windowRect.Width() - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT);
 		field = new BMenuField (r, "encoding", ENCODING_TEXT, fEncodingMenu,
 			B_FOLLOW_TOP | B_FOLLOW_LEFT,
