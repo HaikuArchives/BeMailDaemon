@@ -82,8 +82,6 @@ All rights reserved.
 #include "Words.h"
 
 
-using namespace Zoidberg;
-
 const char *kUndoStrings[] = {
 	"Undo",
 	"Undo Typing",
@@ -2271,8 +2269,6 @@ void TMailWindow::Show()
 	}
 	BWindow::Show();
 }
-
-
 void TMailWindow::Zoom(BPoint /*pos*/, float /*x*/, float /*y*/)
 {
 	float		height;
@@ -2369,6 +2365,7 @@ void TMailWindow::Forward(entry_ref *ref)
 	fChanged = false;
 	fFieldState = 0;
 }
+
 
 
 void TMailWindow::Print()
@@ -2493,7 +2490,7 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 	fRepliedMail = *ref;
 	SetOriginatingWindow(window);
 
-	Mail::Message *mail = window->Mail();
+	Zoidberg::Mail::Message *mail = window->Mail();
 
 	BFile file(ref, O_RDONLY);
 	if (file.InitCheck() != B_OK)
@@ -2522,7 +2519,7 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, uint32 type)
 			Mail::OutboundChains(&chains);
 			for (int32 i = 0;i < chains.CountItems();i++)
 			{
-				Mail::Chain *chain = (Mail::Chain *)chains.ItemAt(i);
+				Zoidberg::Mail::Chain *chain = (Zoidberg::Mail::Chain *)chains.ItemAt(i);
 				if (!string.Compare(chain->Name()))
 					fHeaderView->fChain = chain->ID();
 	
@@ -2632,7 +2629,7 @@ status_t TMailWindow::Send(bool now)
 		result = file.InitCheck();
 		if (result == B_OK)
 		{
-			Mail::Message mail(&file);
+			Zoidberg::Mail::Message mail(&file);
 			mail.SetTo(fHeaderView->fTo->Text());
 	
 			if (fHeaderView->fChain != ~0UL)
@@ -2643,7 +2640,7 @@ status_t TMailWindow::Send(bool now)
 	}
 	else
 	{
-		Mail::Message mail;
+		Zoidberg::Mail::Message mail;
 				
 		if (strlen(fHeaderView->fTo->Text()) != 0)
 			mail.SetTo(fHeaderView->fTo->Text());

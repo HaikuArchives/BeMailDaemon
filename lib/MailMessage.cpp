@@ -440,7 +440,7 @@ TrimWhite(BString &string)
 		length--;
 	buffer[length] = '\0';
 
-	for (i = 0; buffer[i] && isspace(buffer[i]); i++);
+	for (i = 0; buffer[i] && isspace(buffer[i]); i++) {}
 	if (i != 0) {
 		length -= i;
 		memmove(buffer,buffer + i,length + 1);

@@ -94,6 +94,7 @@ extern bool		header_flag;
 extern uint32	gMailEncoding;
 extern bool		gColoredQuotes;
 
+void Unicode2UTF8(int32 c,char **out);
 
 inline bool IsInitialUTF8Byte(uchar b)	
 {
@@ -1292,20 +1293,20 @@ TTextView::MouseDown(BPoint where)
 				
 				for (first = offset;
 					(first >= 0) && (((c = text[first]) == '\'') || isalpha(c));
-					first--);
+					first--) {}
 				isCap = isupper(text[++first]);
 				
 				for (start = offset, c = text[start], isAlpha = isalpha(c), isApost = (c=='\'');
 					(start >= 0) && (isAlpha || (isApost
 					&& (((c = text[start+1]) != 's') || !isCap) && isalpha(c)
 					&& isalpha(text[start-1])));
-					start--, c = text[start], isAlpha = isalpha(c), isApost = (c == '\''));
+					start--, c = text[start], isAlpha = isalpha(c), isApost = (c == '\'')) {}
 				start++;
 				
 				for (end = offset, c = text[end], isAlpha = isalpha(c), isApost = (c == '\'');
 					(end < length) && (isAlpha || (isApost
-					&& (((c = text[end + 1]) != 's') || !isCap) && isalpha(c))); 
-					end++, c = text[end], isAlpha = isalpha(c), isApost = (c == '\''));
+					&& (((c = text[end + 1]) != 's') || !isCap) && isalpha(c)));
+					end++, c = text[end], isAlpha = isalpha(c), isApost = (c == '\'')) {}
 
 				length = end-start;
 				BString srcWord;

@@ -1042,10 +1042,10 @@ QPopupMenu::EntryCreated(const entry_ref &ref, ino_t node)
 		
 		// trim white spaces
 		int32 i = 0;
-		for (i = 0;isspace(group.ByteAt(i));i++);
+		for (i = 0;isspace(group.ByteAt(i));i++) {}
 		if (i)
 			group.Remove(0,i);
-		for (i = group.Length() - 1;isspace(group.ByteAt(i));i--);
+		for (i = group.Length() - 1;isspace(group.ByteAt(i));i--) {}
 		group.Truncate(i + 1);
 
 		groupMenu = NULL;

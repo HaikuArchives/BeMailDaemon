@@ -337,7 +337,9 @@ int32 POP3Protocol::ReceiveLine(BString &line) {
 	if (conn.IsDataPending(POP3_RETRIEVAL_TIMEOUT)) {	
 		while (true) {
 			rcv = conn.Receive(&c,1);
-			if((rcv <=0) || (c == '\n') || (c == EOF))
+			if (rcv < 0)
+				return rcv; //--An error!
+			if((c == '\n') || (c == EOF))
 				break;
 
 			if (c == '\r') {

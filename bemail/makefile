@@ -87,7 +87,7 @@ LOCAL_INCLUDE_PATHS =
 
 #	specify the level of optimization that you desire
 #	NONE, SOME, FULL
-OPTIMIZE= SOME
+OPTIMIZE= FULL
 
 #	specify any preprocessor symbols to be defined.  The symbols will not
 #	have their values set automatically; you must supply the value (if any)
@@ -132,7 +132,7 @@ DRIVER_PATH =
 
 MACHINE=$(shell uname -m)
 ifneq ($(MACHINE),BePC)
-	COMPILER_FLAGS += 
+	COMPILER_FLAGS += -w iserr
 else
 	COMPILER_FLAGS += -Werror
 endif

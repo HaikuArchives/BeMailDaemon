@@ -57,6 +57,9 @@ MDStatus RuleFilter::ProcessMailMessage
 		if (io_headers->FindString(capped.String(),&data) < B_OK) //----This time it's *really* not there
 			return MD_OK; //---No match
 	}
+	
+	if (data == NULL) //--- How would this happen? No idea
+		return MD_OK;
 
 	if (!matcher.Match(data))
 		return MD_OK; //-----There wasn't an error. We're just not supposed to do anything
