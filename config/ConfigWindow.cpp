@@ -11,6 +11,7 @@
 #include <Application.h>
 #include <ListView.h>
 #include <ScrollView.h>
+#include <StringView.h>
 #include <Button.h>
 #include <CheckBox.h>
 #include <MenuField.h>
@@ -372,14 +373,23 @@ ConfigWindow::ConfigWindow()
 	fStatusWorkspaceField->SetDivider(labelWidth);
 	box->AddChild(fStatusWorkspaceField);
 
-	rect = box->Frame();  rect.bottom = rect.top + 2*height + 13;
+	rect = box->Frame();  rect.bottom = rect.top + 3*height + 13;
 	box = new BBox(rect);
 	box->SetLabel("Deskbar Icon");
 	view->AddChild(box);
 
 	rect = box->Bounds().InsetByCopy(8,8);
+	rect.top += 7;	rect.bottom = rect.top + height + 5;
+	BStringView *stringView = new BStringView(rect,B_EMPTY_STRING,"The menu links are links to folders in a real folder like the Be menu.");
+	box->AddChild(stringView);
+	stringView->SetAlignment(B_ALIGN_CENTER);
+	stringView->ResizeToPreferred();
+	// BStringView::ResizeToPreferred() changes the width, so that the
+	// alignment has no effect anymore
+	stringView->ResizeTo(rect.Width(),stringView->Bounds().Height());
+
 	rect.left += 100;  rect.right -= 100;
-	rect.top += 7;
+	rect.OffsetBy(0,height + 1);
 	BButton *button = new BButton(rect,B_EMPTY_STRING,"Configure Menu Links",msg = new BMessage(B_REFS_RECEIVED));
 	box->AddChild(button);
 	button->SetTarget(BMessenger("application/x-vnd.Be-TRAK"));
@@ -507,6 +517,10 @@ void ConfigWindow::MakeHowToView()
 	rect = text->Bounds();
 	text->ResizeTo(rect.Width(),text->TextHeight(0,42));
 	text->SetTextRect(rect);
+
+	text->MakeEditable(false);
+	text->MakeSelectable(false);
+
 	fConfigView->AddChild(text);
 	
 	static_cast<CenterContainer *>(fConfigView)->Layout();
