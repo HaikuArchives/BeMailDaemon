@@ -74,6 +74,9 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
+ * Revision 1.64  2002/11/05 18:05:16  agmsmith
+ * Looked at Nathan's PPC changes (thanks!), modified style a bit.
+ *
  * Revision 1.63  2002/11/04 03:30:22  nwhitehorn
  * Now works (or compiles at least) on PowerPC.  I'll get around to testing it
  * later.
@@ -405,11 +408,15 @@ static bool g_ServerMode;
   pop-up dialog boxes, but you can still see them in stderr.  Also the window
   is minimized, if it exists. */
 
-bool g_QuitAtNextPulseEvent;
-  /* Set to TRUE to make the program quit at the next Pulse timing event.
-  FALSE to make pulses do nothing special.  It also checks to see that there is
-  no more work to do before trying to quit.  This lets other pending messages
-  get processed before the program quits. */
+static int g_QuitCountdown = -1;
+  /* Set to the number of pulse timing events (about one every half second) to
+  count down before the program quits.  Negative means stop counting.  Zero
+  means quit at the next pulse event.  This is used to keep the program alive
+  for a short while after someone requests that it quit, in case more scripting
+  commands come in, which will stop the countdown.  Needed to handle the case
+  where there are multiple e-mail accounts all requesting spam identification,
+  and one finishes first and tells the server to quit.  It also checks to see
+  that there is no more work to do before trying to quit. */
 
 static class CommanderLooper *g_CommanderLooperPntr = NULL;
 static BMessenger *g_CommanderMessenger = NULL;
@@ -988,6 +995,7 @@ public:
   virtual status_t GetSupportedSuites (BMessage *MessagePntr);
   virtual void MessageReceived (BMessage *MessagePntr);
   virtual void Pulse ();
+  virtual bool QuitRequested ();
   virtual void ReadyToRun ();
   virtual void RefsReceived (BMessage *MessagePntr);
   virtual BHandler *ResolveSpecifier (BMessage *MessagePntr, int32 Index,
@@ -1253,41 +1261,44 @@ ostream& PrintUsage (ostream& OutputStream)
   OutputStream << "Copyright © 2002 by Alexander G. M. Smith.  ";
   OutputStream << "Released to the public domain.\n\n";
   WrapTextToStream (OutputStream, "Compiled on " __DATE__ " at " __TIME__
-   ".  $Revision$  $Header$");
-  OutputStream <<
-"This is a program for classifying e-mail messages as spam (junk mail which you"
-"don't want to read) and regular genuine messages.  It can learn what's spam and"
-"what's genuine.  You just give it a bunch of spam messages and a bunch of"
-"non-spam ones.  It uses them to make a list of the words from the messages with"
-"the probability that each word is from a spam message or from a genuine"
-"message.  Later on, it can use those probabilities to classify new messages as"
-"spam or not spam.  If the classifier stops working well (because the spammers"
-"have changed their writing style and vocabulary, or your regular correspondants"
-"are writing like spammers), you can use this program to update the list of"
-"words to identify the new messages correctly.\n\n"
-
-"The original idea was from Paul Graham's algorithm, which has an excellent"
-"writeup at: http://www.paulgraham.com/spam.html\n\n"
-
-"Gary Robinson came up with the improved algorithm, which you can read about at:"
-"http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html\n\n"
-
-"Thanks go to Isaac Yonemoto for providing a better icon.\n\n"
-
-"Usage: Specify the operation as the first argument followed by more information"
-"as appropriate.  The program's configuration will affect the actual operation"
-"(things like the name of the database file to use, or whether it should allow"
-"non-email messages to be added).  In command line mode it will do the operation"
-"and exit.  In GUI/server mode a command line invocation will just send the"
-"command to the server.  You can also use BeOS scripting (see the \"Hey\""
-"command which you can get from http://www.bebits.com/app/2042 ) to control the"
-"Spam updater.  And finally, there's also a GUI interface which shows up if you"
-"start it without any command line arguments.\n\n"
-
-"Commands:\n\n"
-
+".  $Revision$  $Header$");
+  OutputStream << "\n"
+"This is a program for classifying e-mail messages as spam (junk mail which\n"
+"you don't want to read) and regular genuine messages.  It can learn what's\n"
+"spam and what's genuine.  You just give it a bunch of spam messages and a\n"
+"bunch of non-spam ones.  It uses them to make a list of the words from the\n"
+"messages with the probability that each word is from a spam message or from\n"
+"a genuine message.  Later on, it can use those probabilities to classify\n"
+"new messages as spam or not spam.  If the classifier stops working well\n"
+"(because the spammers have changed their writing style and vocabulary, or\n"
+"your regular correspondants are writing like spammers), you can use this\n"
+"program to update the list of words to identify the new messages\n"
+"correctly.\n"
+"\n"
+"The original idea was from Paul Graham's algorithm, which has an excellent\n"
+"writeup at: http://www.paulgraham.com/spam.html\n"
+"\n"
+"Gary Robinson came up with the improved algorithm, which you can read about at:\n"
+"http://radio.weblogs.com/0101454/stories/2002/09/16/spamDetection.html\n"
+"\n"
+"Thanks go to Isaac Yonemoto for providing a better icon.\n"
+"\n"
+"Usage: Specify the operation as the first argument followed by more\n"
+"information as appropriate.  The program's configuration will affect the\n"
+"actual operation (things like the name of the database file to use, or\n"
+"whether it should allow non-email messages to be added).  In command line\n"
+"mode it will do the operation and exit.  In GUI/server mode a command line\n"
+"invocation will just send the command to the server.  You can also use BeOS\n"
+"scripting (see the \"Hey\" command which you can get from\n"
+"http://www.bebits.com/app/2042 ) to control the Spam server.  And finally,\n"
+"there's also a GUI interface which shows up if you start it without any\n"
+"command line arguments.\n"
+"\n"
+"Commands:\n"
+"\n"
 "Quit\n"
-"Stop the program.  Useful if it's running as a server.\n\n";
+"Stop the program.  Useful if it's running as a server.\n"
+"\n";
 
   /* Go through all our scripting commands and add a description of each one to
   the usage text. */
@@ -3077,6 +3088,12 @@ void ABSApp::ProcessScriptingMessage (
   BPath       TempPath;
   char        TempString [PATH_MAX + 1024];
 
+  if (g_QuitCountdown >= 0 && !g_CommandLineMode)
+  {
+    g_QuitCountdown = -1;
+    cerr << "Quit countdown aborted due to a scripting command arriving.\n";
+  }
+
   SetCursor (g_BusyCursor);
 
   ErrorCode = MessagePntr->FindData (g_DataName, B_STRING_TYPE,
@@ -3503,19 +3520,39 @@ ErrorExit: /* Error message in TempString, return code in ErrorCode. */
 /* Since quitting stops the program before the results of a script command are
 received, we use a time delay to do the quit and make sure there are no pending
 commands being processed by the auxiliary looper which is sending us commands.
-*/
+Also, we have a countdown which can be interrupted by an incoming scripting
+message in case one client tells us to quit while another one is still using us
+(happens when you have two or more e-mail accounts). */
 
 void ABSApp::Pulse ()
 {
-  if (g_QuitAtNextPulseEvent)
+  if (g_QuitCountdown == 0)
   {
     if (g_CommanderLooperPntr == NULL ||
     !g_CommanderLooperPntr->IsBusy ())
-    {
-      g_QuitAtNextPulseEvent = false;
       PostMessage (B_QUIT_REQUESTED);
-    }
   }
+  else if (g_QuitCountdown > 0)
+  {
+    cerr << "AGMSBayesianSpamServer quitting in " << g_QuitCountdown << ".\n";
+    g_QuitCountdown--;
+  }
+}
+
+
+/* A quit request message has come in.  If the quit countdown has reached zero,
+allow the request, otherwise reject it (and start the countdown if it hasn't
+been started). */
+
+bool ABSApp::QuitRequested ()
+{
+  if (g_QuitCountdown == 0)
+    return BApplication::QuitRequested ();
+
+  if (g_QuitCountdown < 0)
+    g_QuitCountdown = 10; /* Start the countdown. */
+
+  return false;
 }
 
 
@@ -3616,7 +3653,7 @@ void ABSApp::ReadyToRun ()
   {
     DisplayErrorMessage ("Unable to create temporary window for finding "
       "sizes of controls.");
-    g_QuitAtNextPulseEvent = true;
+    g_QuitCountdown = 0;
     return;
   }
 
@@ -3719,14 +3756,14 @@ void ABSApp::ReadyToRun ()
   SetPulseRate (500000);
 
   if (g_CommandLineMode)
-    g_QuitAtNextPulseEvent = true;
+    g_QuitCountdown = 0; /* Quit as soon as queued up commands done. */
   else /* GUI mode, make a window. */
   {
     DatabaseWindowPntr = new DatabaseWindow ();
     if (DatabaseWindowPntr == NULL)
     {
       DisplayErrorMessage ("Unable to create window.");
-      g_QuitAtNextPulseEvent = true;
+      g_QuitCountdown = 0;
     }
     else
       DatabaseWindowPntr->Show ();
@@ -4340,7 +4377,7 @@ void CommanderLooper::ProcessArgs (BMessage *MessagePntr)
 
   if (strcasecmp (CommandWord, "quit") == 0)
   {
-    g_QuitAtNextPulseEvent = true;
+    g_QuitCountdown = 10;
     goto ErrorExit;
   }
 
@@ -6339,6 +6376,6 @@ int main (int argc, char**)
     snooze (100000); /* Let the CommanderLooper thread run so it quits. */
   }
 
-  cerr << "AGMSBayesianSpamUpdater shutting down..." << endl;
+  cerr << "AGMSBayesianSpamServer shutting down..." << endl;
   return 0; /* And implicitly destroys MyApp, which writes out the database. */
 }
