@@ -181,7 +181,7 @@ BEOS Mail Daemon Replacement v2.1.0 Release Candidate 3
 
 履歴：
 
-July 14 2003 - v2.1.0rc3
+July 15 2003 - v2.1.0rc3
 - Added Mark Heeren's alternate new mail deskbar icons to the mail daemon resource.  They're a blue and red envelope, rather than the empty and full mailbox icon.  Use QuickRes to copy them over the existing icons in /boot/beos/system/servers/mail_daemon if you want to use them.
 - Fixed AGMSBayesianSpamServer race bug with the classification choices dialog box coming up mangled due to default sizes of controls being zero.  Happens when the RefsReceived message gets processed before ReadyToRun has finished setting things up.
 - Make Drafts query non-temporary, so it doesn't disappear after a few days.  Also split the Today's Mail query into Received Today and Sent Today queries.
@@ -191,6 +191,7 @@ July 14 2003 - v2.1.0rc3
 - Also stops when it encounters an error while reading message contents from the server, rather than putting up error alerts for each and every remaining message.
 - Changed BeMail to use a flattened BMessage for its settings, rather than the unreliable binary dump.
 - Added an option to start with spell checking on.
+- Added people's names to the auto-complete word list.  So if you want to send e-mail to Dane, type a double quote then the first few letters of his name; typing "Da… will expand to "Dane Scott" <dane@somewhere.com>.  The usual pure e-mail address expansion is unchanged, typing da… without the quote mark will expand to only dane@somewhere.com.  We don't have it include the name since the auto-complete is simple text substitution - would need a fancy post processing stage to figure out the right addresses and full names.
 
 July 6 2003 - v2.1.0rc2
 - Fixed some IMAP bugs.  Not all IMAP servers are the same, or even standard.

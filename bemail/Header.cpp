@@ -421,9 +421,27 @@ THeaderView::InitEmailCompletion()
 		BNode file;
 		if (file.SetTo(&ref) == B_OK)
 		{
+			// Add the e-mail address as an auto-complete string.
 			BString email;
 			if (file.ReadAttrString("META:email", &email) >= B_OK)
 				fEmailList.AddChoice(email.String());
+
+			// Also add the quoted full name as an auto-complete string.  Can't
+			// do unquoted since auto-complete isn't that smart, so the user
+			// will have to type a quote mark if he wants to select someone by
+			// name.
+			BString fullName;
+			if (file.ReadAttrString("META:name", &fullName) >= B_OK) {
+				if (email.FindFirst('<') < 0) {
+					email.ReplaceAll('>', '_');
+					email.Prepend("<");
+					email.Append(">");
+				}
+				fullName.ReplaceAll('\"', '_');
+				fullName.Prepend("\"");
+				fullName << "\" " << email;
+				fEmailList.AddChoice(fullName.String());
+			}
 
 			// support for 3rd-party People apps.  Looks like a job for
 			// multiple keyword (so you can have several e-mail addresses in
