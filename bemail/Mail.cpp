@@ -144,13 +144,12 @@ static const char *kWordsPath = "/boot/optional/goodies/words";
 static const char *kExact = ".exact";
 static const char *kMetaphone = ".metaphone";
 
-// Text for both the main menu and the pop-up menu.  The short form (for the
-// main menu) stops at the first period.
-static const char * kSpamMenuItemTextArray [4] = {
-	"Spam Training, then Move to Trash.  The system learns this message as an example of spam, then deletes it.", // M_TRAIN_SPAM_AND_DELETE
-	"Spam Training.  Shows the system this message as an example of what your junk e-mail looks like.", // M_TRAIN_SPAM
-	"Untrain.  Useful for undoing previously trained confusing messages, such as your friends talking about spam.", // M_UNTRAIN
-	"Genuine Training.  The system needs to know what good messages look like too, and have roughly as many examples of good as bad!" // M_TRAIN_GENUINE
+// Text for both the main menu and the pop-up menu.
+static const char *kSpamMenuItemTextArray[] = {
+	"Train as Spam, then Move to Trash",	// M_TRAIN_SPAM_AND_DELETE
+	"Train as Spam",						// M_TRAIN_SPAM
+	"Untrain this Message",					// M_UNTRAIN
+	"Train as Genuine"						// M_TRAIN_GENUINE
 };
 
 
@@ -1420,20 +1419,17 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 		fDeleteNext = new BMenuItem(MDR_DIALECT_CHOICE ("Move to Trash","T) 削除"), new BMessage(M_DELETE_NEXT), 'T');
 		menu->AddItem(fDeleteNext);
 		menu->AddSeparatorItem();
+
 		if (gShowSpamGUI) {
-			int i;
-			int messageCode;
-			char tempString [200];
-			for (i = 0; i < 4; i++) {
-				messageCode = M_TRAIN_SPAM_AND_DELETE + i;
-				strcpy (tempString, kSpamMenuItemTextArray [i]);
-				strchr (tempString, '.') [0] = 0; // Cut off text at the first period.
-				menu->AddItem(new BMenuItem(tempString, new BMessage(messageCode),
+			for (int i = 0; i < 4; i++) {
+				int messageCode = M_TRAIN_SPAM_AND_DELETE + i;
+				menu->AddItem(new BMenuItem(kSpamMenuItemTextArray[i], new BMessage(messageCode),
 					(messageCode == M_TRAIN_SPAM || messageCode == M_TRAIN_GENUINE) ? 'K' : 0,
 					(messageCode == M_TRAIN_GENUINE) ? B_SHIFT_KEY : 0));
 			}
 			menu->AddSeparatorItem();
 		}
+
 		fPrevMsg = new BMenuItem(MDR_DIALECT_CHOICE ("Previous Message","B) 前のメッセージ"), new BMessage(M_PREVMSG),
 		 B_UP_ARROW);
 		menu->AddItem(fPrevMsg);
@@ -2020,21 +2016,20 @@ TMailWindow::MessageReceived(BMessage *msg)
 		case M_SPAM_BUTTON:
 		{
 			uint32 buttons;
-			int    i;
 			if (msg->FindInt32("buttons", (int32 *)&buttons) == B_OK
 				&& buttons == B_SECONDARY_MOUSE_BUTTON)
 			{
 				BPopUpMenu menu("Spam Actions", false, false);
-				for (i = 0; i < 4; i++)
-					menu.AddItem(new BMenuItem(kSpamMenuItemTextArray [i], new BMessage(M_TRAIN_SPAM_AND_DELETE + i)));
+				for (int i = 0; i < 4; i++)
+					menu.AddItem(new BMenuItem(kSpamMenuItemTextArray[i], new BMessage(M_TRAIN_SPAM_AND_DELETE + i)));
+
 				BPoint where;
 				msg->FindPoint("where", &where);
 				BMenuItem *item;
 				if ((item = menu.Go(where, false, false)) != NULL)
 					PostMessage(item->Message());
 				break;
-			}
-			else // Default action for left clicking on the spam button.
+			} else // Default action for left clicking on the spam button.
 				PostMessage (new BMessage (M_TRAIN_SPAM_AND_DELETE));
 			break;
 		}
