@@ -211,8 +211,9 @@ const char *Component::HeaderAt(int32 index) {
 status_t Component::GetDecodedData(BPositionIO *) {return B_OK;}
 status_t Component::SetDecodedData(BPositionIO *) {return B_OK;}
 
-status_t Component::SetToRFC822(BPositionIO *data, size_t /*length*/, bool /* lazy */) {
-
+status_t
+Component::SetToRFC822(BPositionIO *data, size_t /*length*/, bool /* parse_now */)
+{
 	headers.MakeEmpty();
 
 	char *	buf = NULL;
@@ -398,85 +399,99 @@ status_t TextComponent::SetDecodedData(BPositionIO *data)  {
 	return B_OK;
 }
 
-status_t TextComponent::SetToRFC822(BPositionIO *data, size_t length, bool copy_data) {
+
+status_t
+TextComponent::SetToRFC822(BPositionIO *data, size_t length, bool parseNow)
+{
 	off_t position = data->Position();
-	Component::SetToRFC822(data,length);
-	
+	Component::SetToRFC822(data, length);
+
 	length -= data->Position() - position;
-	
+
 	raw_data = data;
 	raw_length = length;
 	raw_offset = data->Position();
-	
-	if (copy_data)
-		ParseRaw();
-		
+
+	if (parseNow) {
+		// copies the data stream and sets the raw_data variable to NULL
+		return ParseRaw();
+	}
+
 	return B_OK;
 }
 		
-void TextComponent::ParseRaw() {
+
+status_t
+TextComponent::ParseRaw()
+{
 	if (raw_data == NULL)
-		return;
-	
-	raw_data->Seek(raw_offset,SEEK_SET);
-	
+		return B_OK;
+
+	raw_data->Seek(raw_offset, SEEK_SET);
+
 	BMessage content_type;
-	HeaderField("Content-Type",&content_type);
-	
+	HeaderField("Content-Type", &content_type);
+
 	charset = B_ISO1_CONVERSION;
 	if (content_type.HasString("charset")) {
 		for (int32 i = 0; i < 21; i++) {
-			if (strcasecmp(content_type.FindString("charset"),charsets[i].charset) == 0) {
+			if (strcasecmp(content_type.FindString("charset"), charsets[i].charset) == 0) {
 				charset = charsets[i].flavor;
 				break;
 			}
 		}
 	}
-	
+
 	encoding = encoding_for_cte(HeaderField("Content-Transfer-Encoding"));
-	
+
 	char *buffer = (char *)malloc(raw_length + 1);
 	if (buffer == NULL)
-		return;
-	
+		return B_NO_MEMORY;
+
 	ssize_t bytes;
-	if ((bytes = raw_data->Read(buffer,raw_length)) < 0)
-		return;
+	if ((bytes = raw_data->Read(buffer, raw_length)) < 0)
+		return B_IO_ERROR;
 
 	char *string = decoded.LockBuffer(bytes + 1);
-	bytes = decode(encoding,string,buffer,bytes,0);
+	bytes = decode(encoding, string, buffer, bytes, 0);
 	decoded.UnlockBuffer(bytes);
-	decoded.ReplaceAll("\r\n","\n");
-	
+	decoded.ReplaceAll("\r\n", "\n");
+
 	string = text.LockBuffer(bytes * 2);
 	int32 destLength = bytes * 2;
 	int32 state;
-	convert_to_utf8(charset,decoded.String(),&bytes,string,&destLength,&state);
+	convert_to_utf8(charset, decoded.String(), &bytes, string, &destLength, &state);
 	if (destLength > 0)
 		text.UnlockBuffer(destLength);
 	else {
 		text.UnlockBuffer(0);
 		text.SetTo(decoded);
 	}
-	
+
 	raw_data = NULL;
+	return B_OK;
 }
 
-status_t TextComponent::RenderToRFC822(BPositionIO *render_to) {
-	ParseRaw();
-	
+
+status_t
+TextComponent::RenderToRFC822(BPositionIO *render_to)
+{
+	status_t status = ParseRaw();
+	if (status < B_OK)
+		return status;
+
 	BString content_type;
 	content_type << "text/plain; ";
-	
+
 	for (uint32 i = 0; i < sizeof(charsets); i++) {
 		if (charsets[i].flavor == charset) {
 			content_type << "charset=\"" << charsets[i].charset << "\"";
 			break;
 		}
 	}
-	
-	SetHeaderField("Content-Type",content_type.String());
-	
+
+	SetHeaderField("Content-Type", content_type.String());
+
 	const char *transfer_encoding = NULL;
 	switch (encoding) {
 		case base64:

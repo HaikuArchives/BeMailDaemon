@@ -745,13 +745,16 @@ Message::RenderToRFC822(BPositionIO *file)
 	if (err < B_OK)
 		return err;
 	
-	file->Seek(-2,SEEK_CUR); //-----Remove division between headers
+	file->Seek(-2, SEEK_CUR); //-----Remove division between headers
 	
 	err = _body->RenderToRFC822(file);
 	return err;
 }
 	
-status_t Message::RenderTo(BDirectory *dir) {
+
+status_t
+Message::RenderTo(BDirectory *dir)
+{
 	BString name = Subject();
 	name.Prepend("\"");
 	name << "\": <" << To();
