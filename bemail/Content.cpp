@@ -2281,9 +2281,6 @@ TTextView::Reader::Process(const char *data, int32 data_len, bool isHeader)
 			strcpy(&line[count], QUOTE);
 			count += strlen(QUOTE);
 		}
-		if (!fRaw && loop && data[loop - 1] == '\n' && data[loop] == '.')
-			continue;
-
 		if (!fRaw && fIncoming && (loop < data_len - 7)) {
 			int32 type = 0;
 
