@@ -244,7 +244,9 @@ Mail::TextComponent *Message::RetrieveTextBody(Mail::Component *component)
 			switch (component->ComponentType())
 			{
 				case MC_PLAIN_TEXT_BODY:
-					return (Mail::TextComponent *)container->GetComponent(i);
+					// AttributedAttachment returns the MIME type of its contents, so
+					// we have to use dynamic_cast here
+					return dynamic_cast<Mail::TextComponent *>(container->GetComponent(i));
 				case MC_MULTIPART_CONTAINER:
 					return RetrieveTextBody(component = container->GetComponent(i));
 			}
