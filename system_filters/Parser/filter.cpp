@@ -2,6 +2,8 @@
 #include <String.h>
 #include <E-mail.h>
 
+#include <malloc.h>
+
 #include <MailAddon.h>
 
 #include "mail_util.h"
@@ -65,6 +67,8 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 		headers->AddString(piece.String(),string.String() + piece.Length() + 2);
 	}
 		
+	free(buf);
+	
 	string.SetTo(headers->FindString("subject"));
 	int32 last_i = 0, index =0;
 		
