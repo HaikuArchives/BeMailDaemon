@@ -2,30 +2,45 @@
 
 #include <string.h>
 #include <malloc.h>
+#include <assert.h>
 
 class _EXPORT StringList;
 
 #include "StringList.h"
 
-StringList::StringList(int32 itemsPerBlock)
-	: BFlattenable(),
-	strings(new BList(itemsPerBlock))
+uint8 string_hash(const char *string);
+
+uint8 string_hash(const char *string) {
+	uint8 hash = 0;
+	for (int i = 0; string[i] != 0; i++)
+		hash ^= string[i];
+		
+	return hash;
+}
+
+struct string_bucket {
+	const char *string;
+	
+	struct string_bucket *next;
+};
+
+StringList::StringList()
+	: BFlattenable(), _items(0), _indexed(new BList)
 {
-		//----do nothing, and do it well------
+	for (int32 i = 0; i < 256; i++)
+		_buckets[i] = NULL;
 }
 	
 StringList::StringList(const StringList& from)
-	: BFlattenable(),
-	strings(new BList)
+	: BFlattenable(), _items(0), _indexed(new BList)
 {
-		*this = from;
+	AddList(&from);
 }
 
 StringList	&StringList::operator=(const StringList &from) {
 	MakeEmpty();
-	for (int32 i = 0; i < from.CountItems(); i++)
-		strings->AddItem(strdup(from.ItemAt(i)));
-		
+	
+	AddList(&from);
 	return *this;
 }
 
@@ -39,9 +54,14 @@ type_code	StringList::TypeCode() const {
 
 ssize_t		StringList::FlattenedSize() const {
 	ssize_t size = 0;
-	for (int32 i = 0; i < CountItems(); i++)
-		size += (strlen(ItemAt(i)) + 1);
-		
+	struct string_bucket *bkt;
+	for (int32 i = 0; i < 256; i++) {
+		bkt = (struct string_bucket *)(_buckets[i]);
+		while (bkt != NULL) {
+			size += (strlen(bkt->string) + 1);
+			bkt = bkt->next;
+		}
+	}
 	return size;
 }
 
@@ -77,130 +97,155 @@ status_t	StringList::Unflatten(type_code c, const void *buf, ssize_t size) {
 	return B_OK;
 }	
 
-bool	StringList::AddItem(const char *item) {
-	return strings->AddItem(strdup(item));
-}
-
-bool	StringList::AddItem(const char *item, int32 atIndex) {
-	return strings->AddItem(strdup(item),atIndex);
-}
-
-bool	StringList::AddList(StringList *newItems) {
-	for (int32 i = 0; i < newItems->CountItems(); i++)
-		strings->AddItem(strdup(newItems->ItemAt(i)));
+void	StringList::AddItem(const char *item) {
+	struct string_bucket *new_bkt;
+	
+	new_bkt = (struct string_bucket *)_buckets[string_hash(item)];
+	if (new_bkt == NULL) {
+		new_bkt = new struct string_bucket;
+		new_bkt->string = strdup(item);
+		_indexed->AddItem((void *)(new_bkt->string));
+		new_bkt->next = NULL;
+		_buckets[string_hash(item)] = new_bkt;
 		
-	return true;
+		_items++;
+		return;
+	}
+	
+	while (new_bkt->next != NULL) new_bkt = new_bkt->next;
+	
+	new_bkt->next = new struct string_bucket;
+	new_bkt = new_bkt->next;
+	new_bkt->string = strdup(item);
+	_indexed->AddItem((void *)(new_bkt->string));
+	
+	new_bkt->next = NULL;
+	_items++;
 }
 
-bool	StringList::AddList(StringList *newItems, int32 atIndex) {
-	for (int32 i = newItems->CountItems() - 1; i >= 0; i--)
-		strings->AddItem(strdup(newItems->ItemAt(i)),atIndex);
-
-	return true;
+void	StringList::AddList(const StringList *newItems) {
+	for (int32 i = 0; i < newItems->CountItems(); i++)
+		AddItem((const char *)(newItems->ItemAt(i)));
+	
+	/*struct string_bucket *bkt, *new_bkt;
+	for (int32 i = 0; i < 256; i++) {
+		bkt = (struct string_bucket *)(newItems->_buckets[i]);
+		while (bkt != NULL) {
+			new_bkt = (struct string_bucket *)_buckets[i];
+			if (new_bkt == NULL) {
+				new_bkt = new struct string_bucket;
+				new_bkt->string = strdup(bkt->string);
+				_indexed->Add
+				new_bkt->next = NULL;
+				_buckets[i] = new_bkt;
+				_items++;
+				continue;
+			}
+			
+			while (new_bkt->next != NULL) new_bkt = new_bkt->next;
+			
+			new_bkt->next = new struct string_bucket;
+			new_bkt = new_bkt->next;
+			new_bkt->string = strdup(bkt->string);
+			new_bkt->next = NULL;
+			_items++;
+			
+			bkt = bkt->next;
+		}
+	}*/
 }
 
 bool	StringList::RemoveItem(const char *item) {
-	int32 index = -1;
-	for (int32 i = 0; i < CountItems(); i++) {
-		if (strcmp(ItemAt(i),item) == 0) {
-			index = i;
-			break;
+	struct string_bucket *bkt = (struct string_bucket *)_buckets[string_hash(item)];
+	
+	if ((bkt != NULL) && (strcmp(bkt->string,item) == 0)) {
+		_buckets[string_hash(item)] = bkt->next;
+		free((void *)(bkt->string));
+		delete bkt;
+		_items--;
+		_indexed->RemoveItem(IndexOf(item));
+		return true;
+	}
+	
+	while (bkt->next != NULL) {
+		if (strcmp(bkt->next->string,item) == 0) {
+			bkt->next = bkt->next->next;
+			free((void *)(bkt->string));
+			delete bkt;
+			_items--;
+			
+			_indexed->RemoveItem(IndexOf(item));
+			
+			return true;
 		}
+		
+		bkt = bkt->next;
 	}
 	
-	return RemoveItem(index);
-}
-
-bool StringList::RemoveItem(int32 index) {
-	void *item = strings->RemoveItem(index);
-	if (item == NULL)
-		return false;
-		
-	free(item);
-	return true;
-}
-	
-bool	StringList::RemoveItems(int32 index, int32 count) {
-	for (int32 i = 0; i < count; i++) {
-		if (!RemoveItem(index))
-			return false;
-	}
-	
-	return true;
-}
-
-bool	StringList::ReplaceItem(int32 index, const char *newItem) {
-	if (!RemoveItem(index))
-		return false;
-		
-	AddItem(newItem,index);
-	return true;
+	return false;
 }
 
 void	StringList::MakeEmpty() {
-	for (int32 i = 0; i < CountItems(); i++)
-		free(strings->ItemAt(i));
+	struct string_bucket *bkt, *next_bkt;
+	
+	for (int i = 0; i < 256; i++) {
+		bkt = (struct string_bucket *)_buckets[i];
+		_buckets[i] = NULL;
 		
-	strings->MakeEmpty();
-}
-
-void	StringList::SortItems(int (*cmp)(const char *, const char *)) {
-	strings->SortItems((int (*)(const void *,const void *))(cmp));
-}
-
-bool	StringList::SwapItems(int32 indexA, int32 indexB) {
-	return strings->SwapItems(indexA,indexB);
-}
-
-bool	StringList::MoveItem(int32 fromIndex, int32 toIndex) {
-	return strings->MoveItem(fromIndex,toIndex);
-}
-
-const char *StringList::ItemAt(int32 index) const {
-	return (const char *)(strings->ItemAt(index));
-}
-
-const char *StringList::ItemAtFast(int32 index) const {
-	return (const char *)(strings->ItemAtFast(index));
-}
-
-const char *StringList::FirstItem() const {
-	return (const char *)(strings->FirstItem());
-}
-
-const char *StringList::LastItem() const {
-	return (const char *)(strings->LastItem());
-}
-
-const char *StringList::Items() const {
-	return (const char *)(strings->Items());
-}
-
-bool	StringList::HasItem(const char *item) const {
-	return (IndexOf(item) > -1);
-}
-
-int32	StringList::IndexOf(const char *item) const {
-	int32 index = -1;
-	for (int32 i = 0; i < CountItems(); i++) {
-		if (strcmp(ItemAt(i),item) == 0) {
-			index = i;
-			break;
+		while (bkt != NULL) {
+			free ((void *)(bkt->string));
+			next_bkt = bkt->next;
+			delete bkt;
+			
+			bkt = next_bkt;
 		}
 	}
 	
-	return index;
+	_indexed->MakeEmpty();
+	
+	_items = 0;
+}
+
+const char *StringList::ItemAt(int32 index) const {
+	return (const char *)(_indexed->ItemAt(index));
+}
+
+int32 StringList::IndexOf(const char *item) const {
+	for (int32 i = 0; i < _indexed->CountItems(); i++) {
+		if (strcmp(item,(const char *)_indexed->ItemAt(i)) == 0)
+			return i;
+	}
+	
+	return -1;
+}
+
+bool	StringList::HasItem(const char *item) const {
+	struct string_bucket *bkt = (struct string_bucket *)_buckets[string_hash(item)];
+	
+	while (bkt != NULL) {
+		if (strcmp(bkt->string,item) == 0)
+			return true;
+			
+		bkt = bkt->next;
+	}
+	
+	return false;
 }
 
 int32	StringList::CountItems() const {
-	return strings->CountItems();
+	return _items;
 }
 
 bool	StringList::IsEmpty() const {
-	return strings->IsEmpty();
+	return (_items == 0);
 }
 
 void StringList::NotHere(StringList &other_list, StringList *results) {
+	#if DEBUG
+	 assert(_items == _indexed->CountItems());
+	 assert(other_list._items == other_list._indexed->CountItems());
+	#endif
+	
 	for (int32 i = 0; i < other_list.CountItems(); i++) {
 		if (!HasItem(other_list[i]))
 			results->AddItem(other_list[i]);
@@ -286,6 +331,7 @@ const char *StringList::operator [] (int32 index) {
 }
 
 StringList::~StringList() {
-	for (int32 i = 0; i < CountItems(); i++)
-		free(strings->ItemAt(i));
+	MakeEmpty();
+	
+	delete _indexed;
 }

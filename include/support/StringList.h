@@ -4,7 +4,7 @@ class BList;
 
 class StringList : public BFlattenable {
 	public:
-		StringList(int32 itemsPerBlock = 20);
+		StringList();
 		StringList(const StringList&);
 		
 		~StringList(void);
@@ -20,31 +20,17 @@ class StringList : public BFlattenable {
 		virtual	status_t	Unflatten(type_code c, const void *buf, ssize_t size);
 
 /* Adding and removing items. */		
-		bool	AddItem(const char *item);
-		bool	AddItem(const char *item, int32 atIndex);
-		bool	AddList(StringList *newItems);
-		bool	AddList(StringList *newItems, int32 atIndex);
+		void	AddItem(const char *item);
+		void	AddList(const StringList *newItems);
 		bool	RemoveItem(const char *item);
-		bool	RemoveItem(int32 index);
-		bool	RemoveItems(int32 index, int32 count);
-		bool	ReplaceItem(int32 index, const char *newItem);
 		void	MakeEmpty();
-		
-/* Reordering items. */
-		void	SortItems(int (*cmp)(const char *, const char *));
-		bool	SwapItems(int32 indexA, int32 indexB);
-		bool	MoveItem(int32 fromIndex, int32 toIndex);
 
 /* Retrieving items. */
 		const char *ItemAt(int32) const;
-		const char *ItemAtFast(int32) const;
-		const char *FirstItem() const;
-		const char *LastItem() const;
-		const char *Items() const;
+		int32 IndexOf(const char *) const;
 
 /* Querying the list. */
 		bool	HasItem(const char *item) const;
-		int32	IndexOf(const char *item) const;
 		int32	CountItems() const;
 		bool	IsEmpty() const;
 
@@ -69,5 +55,7 @@ class StringList : public BFlattenable {
 		const char *operator [] (int32 index);
 		
 	private:
-		BList *strings;
+		void *_buckets[256];
+		int32 _items;
+		BList *_indexed;
 };
