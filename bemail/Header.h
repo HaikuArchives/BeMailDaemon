@@ -94,13 +94,13 @@ class	QPopupMenu;
 class THeaderView : public BBox
 {
 	public:
-		THeaderView(BRect, BRect, bool, BFile*, bool); 
-	
-		virtual void	MessageReceived(BMessage*);
+		THeaderView(BRect, BRect, bool incoming, Mail::Message *mail, bool resending);
+
+		virtual void	MessageReceived(BMessage *);
 		virtual void	AttachedToWindow(void);
 		void			BuildMenus();
 		void			SetAddress(BMessage*);
-		status_t		LoadMessage(BFile*);
+		status_t		LoadMessage(Mail::Message *);
 	
 		BPopUpMenu		*fAccountMenu;
 		uint32			fChain;
@@ -120,7 +120,6 @@ class THeaderView : public BBox
 		QPopupMenu *fBccMenu;
 		QPopupMenu *fCcMenu;
 		QPopupMenu *fToMenu;
-		BFile *fFile;
 		BStringView *fDate;
 		BDefaultChoiceList fEmailList;
 };
@@ -145,4 +144,4 @@ class TTextControl : public BComboBox
 		int32 fCommand;
 };
 
-#endif // #ifndef _HEADER_H
+#endif	/* _HEADER_H */

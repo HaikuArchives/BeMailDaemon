@@ -54,6 +54,7 @@ All rights reserved.
 #include <map>
 
 #include <MailSettings.h>
+#include <MailMessage.h>
 
 #include "Mail.h"
 #include "Header.h"
@@ -99,7 +100,7 @@ struct evil
 //====================================================================
 
 
-THeaderView::THeaderView(BRect rect,BRect windowRect,bool incoming,BFile *file,bool resending)
+THeaderView::THeaderView(BRect rect,BRect windowRect,bool incoming,Mail::Message *mail,bool resending)
 	:	BBox(rect, "m_header", B_FOLLOW_LEFT_RIGHT, B_WILL_DRAW, B_NO_BORDER),
 		fAccountMenu(NULL),
 		fChain(gDefaultChain),
@@ -112,7 +113,6 @@ THeaderView::THeaderView(BRect rect,BRect windowRect,bool incoming,BFile *file,b
 		fBccMenu(NULL),
 		fCcMenu(NULL),
 		fToMenu(NULL),
-		fFile(NULL),
 		fDate(NULL)
 {
 	BFont font = *be_plain_font;
@@ -313,7 +313,7 @@ THeaderView::THeaderView(BRect rect,BRect windowRect,bool incoming,BFile *file,b
 		fDate->SetFont(&font);	
 		fDate->SetHighColor(0, 0, 0);
 
-		LoadMessage(file);
+		LoadMessage(mail);
 	}
 	ResizeTo(Bounds().Width(),y);
 }
@@ -385,9 +385,9 @@ THeaderView::InitGroupCompletion()
 	{
 		if (file.SetTo(&ref) != B_OK)
 			continue;
-		
+
 		BString groups;
-		if (ReadAttrString(&file, "META:group", &groups) < B_OK)
+		if (ReadAttrString(&file, "META:group", &groups) < B_OK || groups.Length() == 0)
 			continue;
 
 		BString address;
@@ -396,17 +396,17 @@ THeaderView::InitGroupCompletion()
 		// avoid adding an empty address
 		if (address.Length() == 0)
 			continue;
-			
+
 		char *grp = groups.LockBuffer(groups.Length());
 		char *next = strchr(grp, ',');
-		
+
 		for (;;)
 		{
 			if (next) *next = 0;
 			while (*grp && *grp == ' ') grp++;
-		
+
 			BString *group = new BString(grp);
-			
+
 			// nobody is in this group yet, start it off
 			if (group_map[group] == NULL)
 			{
@@ -426,7 +426,7 @@ THeaderView::InitGroupCompletion()
 
 			if (!next)
 				break;
-				
+	
 			grp = next+1;
 			next = strchr(grp, ',');
 		}
@@ -787,48 +787,15 @@ THeaderView::SetAddress(BMessage *msg)
 
 
 status_t
-THeaderView::LoadMessage(BFile *file)
+THeaderView::LoadMessage(Mail::Message *mail)
 {
-	char		dateStr[129] = "Unknown";
-	char		theString[257] = "";
-	int32		headerLen;
-	
-	//
-	//	Note: I didn't delete the old file because it's not mine to delete.
-	//	It was handed to me by TMailWindow, who retains responsibility for
-	//	deleting it.
-	//
-	fFile = file;
-
-	//
-	//	Read the header
-	//
-	headerLen = header_len(fFile);
-	char *header = (char *)malloc(headerLen + 1);
-	fFile->Seek(0, SEEK_SET);
-	fFile->Read(header, headerLen);
-	header[headerLen] = '\0';
-
 	//
 	//	Set the date on this message
 	//
-	const char *dateHeader = strstr(header, "Date: ");
-	if (dateHeader != NULL)
-	{
-		dateHeader += strlen("Date: ");
-
-		int32 i = 0;
-		while ((dateHeader[i] >= 32) || (dateHeader[i] == '\t'))
-			i++;
-		i = (i > 128) ? 128 : i;				
-
-		memcpy(dateStr, dateHeader, i);
-		dateStr[i] = '\0';
-	}
-
-	free(header);
-	sprintf(theString, "%s   %s", kDateLabel, dateStr);
-	fDate->SetText(theString);
+	const char *dateField = mail->Date();
+	char string[256];
+	sprintf(string, "%s   %s", kDateLabel, dateField != NULL ? dateField : "Unknown");
+	fDate->SetText(string);
 
 	//	
 	//	Set contents of header fields
@@ -851,26 +818,16 @@ THeaderView::LoadMessage(BFile *file)
 		fTo->SetEnabled(false);
 	}
 
-	//	Set Subject
-	BString string;
-	ReadAttrString(fFile, B_MAIL_ATTR_SUBJECT, &string);
-	fSubject->SetText(string.String());
-
-	//	Set From Field
-	ReadAttrString(fFile, B_MAIL_ATTR_FROM, &string);
-	fTo->SetText(string.String());
+	//	Set Subject: & From: fields
+	fSubject->SetText(mail->Subject());
+	fTo->SetText(mail->From());
 
 	//	Set Account/To Field
 	if (fAccountTo != NULL)
-	{
-		ReadAttrString(fFile, B_MAIL_ATTR_TO, &string);
-		fAccountTo->SetText(string.String());
-	}
-	if (fAccount != NULL)
-	{
-		ReadAttrString(fFile, "MAIL:account", &string);
-		fAccount->SetText(string.String());
-	}
+		fAccountTo->SetText(mail->To());
+
+	if (fAccount != NULL && mail->GetAccountName(string,sizeof(string)) == B_OK)
+		fAccount->SetText(string);
 
 	return B_OK;
 }
