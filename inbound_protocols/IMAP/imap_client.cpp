@@ -173,7 +173,7 @@ class NoopWorker : public BHandler {
 			if (msg->what != 'impn' /* IMaP Noop */)
 				return;
 				
-			if (strcasecmp(us->selected_mb.String(),"INBOX")) {
+			if (strcasecmp(us->selected_mb.String(),"INBOX") && (us->selected_mb != "")) {
 				us->SendCommand("CLOSE");
 				BString blork;
 				us->WasCommandOkay(blork);
@@ -340,8 +340,8 @@ void IMAP4Client::SyncAllBoxes() {
 	
 	if (selected_mb != "") {
 		SendCommand("CLOSE");
-		WasCommandOkay(command);
 		selected_mb = "";
+		WasCommandOkay(command);
 	}
 	
 	StringList folders;
@@ -398,9 +398,9 @@ void IMAP4Client::SyncAllBoxes() {
 		struct mailbox_info *mailbox = (struct mailbox_info *)(box_info.ItemAt(i));
 		if (next_uid == mailbox->next_uid) /* Either nothing changed, or a message was deleted, which we don't care about */ {
 			SendCommand("CLOSE");
+			selected_mb = "";
 			WasCommandOkay(tag);
 			mailbox->exists = num_messages;
-			selected_mb = "";
 			continue;
 		}
 		
@@ -423,8 +423,8 @@ void IMAP4Client::SyncAllBoxes() {
 			mailbox->next_uid = next_uid;
 			
 			SendCommand("CLOSE");
-			WasCommandOkay(uid);
 			selected_mb = "";
+			WasCommandOkay(uid);
 			continue;
 		} else /* Something more complicated has happened. Time to do the full processing */ {
 			command = "FETCH 1:";
@@ -447,8 +447,8 @@ void IMAP4Client::SyncAllBoxes() {
 			mailbox->exists = num_messages;
 			mailbox->next_uid = next_uid;
 			SendCommand("CLOSE");
-			WasCommandOkay(uid);
 			selected_mb = "";
+			WasCommandOkay(uid);
 		}
 	}
 	
@@ -528,8 +528,8 @@ void IMAP4Client::SyncAllBoxes() {
 				if (selected_mb != "") {
 					BString trash;
 					SendCommand("CLOSE");
-					WasCommandOkay(trash);
 					selected_mb = "";
+					WasCommandOkay(trash);
 				}
 				command = "APPEND \"";
 				off_t size;
@@ -548,8 +548,8 @@ void IMAP4Client::SyncAllBoxes() {
 				if (selected_mb != "") {
 					BString trash;
 					SendCommand("CLOSE");
-					WasCommandOkay(trash);
 					selected_mb = "";
+					WasCommandOkay(trash);
 				}
 				BString cmd = "SELECT \"";
 				cmd << boxes[i] << '\"';
@@ -606,8 +606,8 @@ status_t IMAP4Client::Select(const char *mb) {
 		if (selected_mb != "") {
 			BString trash;
 			SendCommand("CLOSE");
-			WasCommandOkay(trash);
 			selected_mb = "";
+			WasCommandOkay(trash);
 		}
 		BString cmd = "SELECT \"";
 		cmd << mb << '\"';
