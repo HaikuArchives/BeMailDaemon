@@ -17,6 +17,7 @@
 #include <malloc.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/utsname.h>
 #include <ctype.h>
 
@@ -223,24 +224,37 @@ Message::ForwardMessage(bool accountFromMail, bool includeAttachments)
 }
 
 
-const char *Message::To()
+const char *
+Message::To()
 {
 	return HeaderField("To");
 }
 
-const char *Message::From() {
+
+const char *
+Message::From()
+{
 	return HeaderField("From");
 }
 
-const char *Message::ReplyTo() {
+
+const char *
+Message::ReplyTo()
+{
 	return HeaderField("Reply-To");
 }
 
-const char *Message::CC() {
+
+const char *
+Message::CC()
+{
 	return HeaderField("Cc"); // Note case of CC is "Cc" in our internal headers.
 }
 
-const char *Message::Subject() {
+
+const char *
+Message::Subject()
+{
 	return HeaderField("Subject");
 }
 
@@ -691,13 +705,17 @@ Message::RenderToRFC822(BPositionIO *file)
 	{
 		char date[128];
 		struct tm tm;
-		localtime_r(&creationTime,&tm);
+		localtime_r(&creationTime, &tm);
 
-		strftime(date,128,"%a, %d %b %Y %H:%M:%S %Z",&tm);
+		strftime(date, 128, "%a, %d %b %Y %H:%M:%S",&tm);
 
 		// GMT offsets are full hours, yes, but you never know :-)
 		if (tm.tm_gmtoff)
-			sprintf(date + strlen(date)," (%+03d%02d)",tm.tm_gmtoff / 3600,(tm.tm_gmtoff / 60) % 60);
+			sprintf(date + strlen(date)," %+03d%02d",tm.tm_gmtoff / 3600,(tm.tm_gmtoff / 60) % 60);
+
+		uint32 length = strlen(date);
+		if (length < sizeof(date) - 5)
+			strftime(date + length, length - sizeof(date), " %Z", &tm);
 
 		SetHeaderField("Date", date);
 	}
@@ -786,24 +804,33 @@ Message::RenderTo(BDirectory *dir)
 
 	BString worker;
 	int32 uniquer = time(NULL);
-	worker = name;
-	
-	while (dir->Contains(worker.String())) {
+	worker << name << uniquer;
+
+	int32 tries = 30;
+	bool exists;
+	while ((exists = dir->Contains(worker.String())) && --tries > 0) {
+		srand(rand());
+		uniquer += (rand() >> 16) - 16384;
+
 		worker = name;
-		uniquer++;
-		
 		worker << ' ' << uniquer;
 	}
 
+	if (exists)
+		printf("could not create mail! (should be: %s)\n", worker.String());
+
 	BFile file;
-	status_t status = dir->CreateFile(worker.String(),&file);
+	status_t status = dir->CreateFile(worker.String(), &file);
 	if (status < B_OK)
 		return status;
 
 	return RenderToRFC822(&file);
 }
 	
-status_t Message::Send(bool send_now) {
+
+status_t
+Message::Send(bool send_now)
+{
 	Mail::Chain *via = new Mail::Chain(_chain_id);
 	if ((via->InitCheck() != B_OK) || (via->ChainDirection() != outbound)) {
 		delete via;
