@@ -91,6 +91,7 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 	MailChain *chain;
 	ChainRunner *runner;
 	StatusView *status;
+	StatusWindow *stat_win;
 	bool self_destruct;
 	bool destroy_chain;
 	bool save_chain;
@@ -103,7 +104,8 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 		runner = args->runner;
 		
 		desc << ((chain->ChainDirection() == inbound) ? "Fetching" : "Sending") << " mail for " << chain->Name();
-		status = args->status->NewStatusView(desc.String(),chain->ChainDirection() == outbound);
+		stat_win = args->status;
+		status = stat_win->NewStatusView(desc.String(),chain->ChainDirection() == outbound);
 		self_destruct = args->self_destruct;
 		destroy_chain = args->destruct_chain;
 		save_chain = args->save_chain;
@@ -219,7 +221,11 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 		delete img;
 	}
 	
-	((StatusWindow *)(status->Window()))->RemoveView(status);
+	if (status->Window() != NULL)
+		stat_win->RemoveView(status);
+	else
+		delete status;
+		
 	if (self_destruct)
 		delete runner;
 		
