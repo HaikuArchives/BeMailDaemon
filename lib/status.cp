@@ -237,6 +237,8 @@ StatusWindow::ActuallyAddStatusView(StatusView *status)
 	if (!Lock())
 		return;
 
+	sLock.Lock();
+
 	BRect rect = Bounds();
 	rect.top = fStatusViews.CountItems() * (fMinHeight + 1);
 	rect.bottom = rect.top + fMinHeight;
@@ -249,14 +251,13 @@ StatusWindow::ActuallyAddStatusView(StatusView *status)
 	status->Hide();
 	AddChild(status);
 
-	if (CountVisibleItems() == 1 && !fDefaultView->IsHidden())
+	if (CountVisibleItems() == 1)
 		fDefaultView->Hide();
 
 	status->Show();
 	SetSizeLimits(10.0, 2000.0, 10.0, 2000.0);
 
 	// if the window doesn't fit on screen anymore, move it
-	sLock.Lock();
 	BScreen screen;
 	if (screen.Frame().bottom < Frame().top + rect.bottom) {
 		MoveBy(0, -fMinHeight - 1);
@@ -264,7 +265,6 @@ StatusWindow::ActuallyAddStatusView(StatusView *status)
 	}
 
 	ResizeTo(rect.Width(), rect.bottom);
-	sLock.Unlock();
 
 	if (fShowMode != MD_SHOW_STATUS_WINDOW_ALWAYS
 		&& fShowMode != MD_SHOW_STATUS_WINDOW_NEVER
@@ -274,6 +274,7 @@ StatusWindow::ActuallyAddStatusView(StatusView *status)
 		Show();
 		SetFlags(Flags() ^ B_AVOID_FOCUS);
 	}
+	sLock.Unlock();
 	Unlock();
 }
 
@@ -284,15 +285,15 @@ StatusWindow::RemoveView(StatusView *view)
 	if (!view || !Lock())
 		return;
 
+	sLock.Lock();
+		// ToDo: although there already is the outer lock, this seems
+		//	to help... (maybe we should investigate this further...)
+
 	int32 i = fStatusViews.IndexOf(view);
 	if (i < 0) {
 		Unlock();
 		return;
 	}
-
-	sLock.Lock();
-		// ToDo: although there already is the outer lock, this seems
-		//	to help... (maybe we should investigate this further...)
 
 	fStatusViews.RemoveItem((void *)view);
 	if (RemoveChild(view)) {
@@ -307,7 +308,6 @@ StatusWindow::RemoveView(StatusView *view)
 		fWindowMoved--;
 		MoveBy(0, fMinHeight + 1);
 	}
-	sLock.Unlock();
 
 	if (CountVisibleItems() == 0) {
 		if (fShowMode != MD_SHOW_STATUS_WINDOW_NEVER
@@ -316,8 +316,7 @@ StatusWindow::RemoveView(StatusView *view)
 				Hide();
 		}
 
-		if (fDefaultView->IsHidden())
-			fDefaultView->Show();
+		fDefaultView->Show();
 
 		SetSizeLimits(fMinWidth, 2.0 * fMinWidth, fMinHeight, fMinHeight);
 		ResizeTo(fDefaultView->Frame().Width(), fDefaultView->Frame().Height());
@@ -328,6 +327,7 @@ StatusWindow::RemoveView(StatusView *view)
 	else
 		ResizeTo(Bounds().Width(), fStatusViews.CountItems() * fMinHeight);
 
+	sLock.Unlock();
 	Unlock();
 }
 
