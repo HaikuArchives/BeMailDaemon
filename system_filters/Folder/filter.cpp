@@ -14,6 +14,10 @@
 #include <MailSettings.h>
 #include <NodeMessage.h>
 
+
+_EXPORT const char *pretty_name = "Incoming Mail Folder";
+
+
 struct mail_header_field
 {
 	const char *rfc_name;

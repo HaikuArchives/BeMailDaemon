@@ -163,7 +163,7 @@ void AccountConfigView::UpdateViews()
 //---------------------------------------------------------------------------------------
 //	#pragma mark -
 
-
+#include <stdio.h>
 FilterConfigView::FilterConfigView(MailChain *chain,int32 index,BMessage *msg,entry_ref *ref)
 	:	BBox(BRect(0,0,100,100)),
 		fConfigView(NULL),
@@ -174,8 +174,15 @@ FilterConfigView::FilterConfigView(MailChain *chain,int32 index,BMessage *msg,en
 {
 	Load(msg,ref);
 
-	BPath addon(ref);
-	SetLabel(addon.Leaf());
+	const char **pretty_name = NULL;
+	if (get_image_symbol(fImage,"pretty_name",B_SYMBOL_TYPE_DATA,(void **)&pretty_name) < B_OK
+		|| !pretty_name)
+	{
+		BPath addon(ref);
+		SetLabel(addon.Leaf());
+	}
+	else
+		SetLabel(*pretty_name);
 }
 
 
@@ -206,8 +213,8 @@ void FilterConfigView::Load(BMessage *msg,entry_ref *ref)
 
 	float w = fConfigView->Bounds().Width();
 	float h = fConfigView->Bounds().Height();
-	fConfigView->MoveTo(3,12);
-	ResizeTo(w + 6,h + 15);
+	fConfigView->MoveTo(3,13);
+	ResizeTo(w + 6,h + 16);
 	AddChild(fConfigView);
 }
 

@@ -12,6 +12,9 @@
 
 #include "ConfigView.h"
 
+_EXPORT const char *pretty_name = "Outgoing Mail Folder";
+
+
 class StatusChanger : public MailCallback {
 	public:
 		StatusChanger(entry_ref entry);
