@@ -273,6 +273,11 @@ void Account::CreateInbound()
 	path = addOnPath;
 	path.Append(kInboundProtocolAddOnPath);
 	path.Append("POP3");
+	if (!BEntry(path.Path()).Exists()) {
+		find_directory(B_BEOS_ADDONS_DIRECTORY,&path);
+		path.Append(kInboundProtocolAddOnPath);
+		path.Append("POP3");
+	}
 	BEntry(path.Path()).GetRef(&ref);
 	fInbound->AddFilter(msg,ref);
 
@@ -280,6 +285,11 @@ void Account::CreateInbound()
 	path = addOnPath;
 	path.Append(kSystemFilterAddOnPath);
 	path.Append("Message Parser");
+	if (!BEntry(path.Path()).Exists()) {
+		find_directory(B_BEOS_ADDONS_DIRECTORY,&path);
+		path.Append(kSystemFilterAddOnPath);
+		path.Append("Message Parser");
+	}
 	BEntry(path.Path()).GetRef(&ref);
 	fInbound->AddFilter(msg,ref);
 
@@ -287,6 +297,11 @@ void Account::CreateInbound()
 	path = addOnPath;
 	path.Append(kSystemFilterAddOnPath);
 	path.Append(MDR_DIALECT_CHOICE ("New Mail Notification", "着信通知方法"));
+	if (!BEntry(path.Path()).Exists()) {
+		find_directory(B_BEOS_ADDONS_DIRECTORY,&path);
+		path.Append(kSystemFilterAddOnPath);
+		path.Append(MDR_DIALECT_CHOICE ("New Mail Notification", "着信通知方法"));
+	}
 	BEntry(path.Path()).GetRef(&ref);
 	fInbound->AddFilter(msg,ref);
 
@@ -294,6 +309,11 @@ void Account::CreateInbound()
 	path = addOnPath;
 	path.Append(kSystemFilterAddOnPath);
 	path.Append(MDR_DIALECT_CHOICE ("Inbox", "受信箱"));
+	if (!BEntry(path.Path()).Exists()) {
+		find_directory(B_BEOS_ADDONS_DIRECTORY,&path);
+		path.Append(kSystemFilterAddOnPath);
+		path.Append(MDR_DIALECT_CHOICE ("Inbox", "受信箱"));
+	}
 	BEntry(path.Path()).GetRef(&ref);
 	fInbound->AddFilter(msg,ref);
 
@@ -324,12 +344,22 @@ void Account::CreateOutbound()
 	path = addOnPath;
 	path.Append(kSystemFilterAddOnPath);
 	path.Append(MDR_DIALECT_CHOICE ("Outbox", "送信箱"));
+	if (!BEntry(path.Path()).Exists()) {
+		find_directory(B_BEOS_ADDONS_DIRECTORY,&path);
+		path.Append(kSystemFilterAddOnPath);
+		path.Append(MDR_DIALECT_CHOICE ("Outbox", "送信箱"));
+	}
 	BEntry(path.Path()).GetRef(&ref);
 	fOutbound->AddFilter(msg,ref);
 
 	path = addOnPath;
 	path.Append(kOutboundProtocolAddOnPath);
 	path.Append("SMTP");
+	if (!BEntry(path.Path()).Exists()) {
+		find_directory(B_BEOS_ADDONS_DIRECTORY,&path);
+		path.Append(kOutboundProtocolAddOnPath);
+		path.Append("SMTP");
+	}
 	BEntry(path.Path()).GetRef(&ref);
 	fOutbound->AddFilter(msg,ref);
 

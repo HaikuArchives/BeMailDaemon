@@ -699,31 +699,33 @@ void FiltersConfigView::SetTo(Mail::Chain *chain)
 		BMenuItem *item = menu->RemoveItem(i);
 		delete item;
 	}
-
-	BPath path;
-	status_t status = find_directory(B_USER_ADDONS_DIRECTORY,&path);
-	if (status != B_OK)
-		return;
-
-	path.Append("mail_daemon");
 	
-	if (fChain->ChainDirection() == Mail::inbound)
-		path.Append("inbound_filters");
-	else
-		path.Append("outbound_filters");
+	for (int i = 0; i < 2; i++) {
+		BPath path;
+		status_t status = find_directory((i == 0) ? B_USER_ADDONS_DIRECTORY : B_BEOS_ADDONS_DIRECTORY,&path);
+		if (status != B_OK)
+			return;
+	
+		path.Append("mail_daemon");
 		
-	BDirectory dir(path.Path());
-	entry_ref ref;
-	while (dir.GetNextRef(&ref) == B_OK)
-	{
-		char name[B_FILE_NAME_LENGTH];
-		BPath path(&ref);
-		GetPrettyDescriptiveName(path, name);
-
-		BMenuItem *item;
-		BMessage *msg;
-		menu->AddItem(item = new BMenuItem(name,msg = new BMessage(kMsgAddFilter)));
-		msg->AddRef("filter",&ref);
+		if (fChain->ChainDirection() == Mail::inbound)
+			path.Append("inbound_filters");
+		else
+			path.Append("outbound_filters");
+			
+		BDirectory dir(path.Path());
+		entry_ref ref;
+		while (dir.GetNextRef(&ref) == B_OK)
+		{
+			char name[B_FILE_NAME_LENGTH];
+			BPath path(&ref);
+			GetPrettyDescriptiveName(path, name);
+	
+			BMenuItem *item;
+			BMessage *msg;
+			menu->AddItem(item = new BMenuItem(name,msg = new BMessage(kMsgAddFilter)));
+			msg->AddRef("filter",&ref);
+		}
 	}
 	menu->SetTargetForItems(this);
 }
