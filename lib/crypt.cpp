@@ -7,7 +7,6 @@
 #include <Message.h>
 
 #include <string.h>
-#include <bsd_mem.h>
 #include <crypt.h>
 
 
@@ -49,8 +48,7 @@ _EXPORT void passwd_crypt(char *in,char *out,int length)
 {
 	int i;
 
-	bzero(out,length);
-	strncpy(out,in,length);
+	memcpy(out,in,length);
 	if (length > PASSWORD_LENGTH)
 		length = PASSWORD_LENGTH;
 

@@ -26,11 +26,12 @@ class _EXPORT MailMessage;
 #define mime_warning "This is a multipart message in MIME format."
 
 MailMessage::MailMessage(BPositionIO *mail_file)
-            :_chain_id(0)
+            :_status(B_NO_ERROR)
+			,_chain_id(0)
             ,_bcc(NULL)
             ,_num_components(0)
             ,_body(NULL)
-            , _text_body(NULL)
+            ,_text_body(NULL)
 {
 	MailSettings settings;
 	_chain_id = settings.DefaultOutboundChainID();
@@ -209,7 +210,6 @@ status_t MailMessage::Instantiate(BPositionIO *mail_file, size_t length) {
 	if (BFile *file = dynamic_cast<BFile *>(mail_file))
 		file->ReadAttr("MAIL:chain",B_INT32_TYPE,0,&_chain_id,sizeof(_chain_id));
 	
-	MailComponent headers;
 	mail_file->Seek(0,SEEK_END);
 	length = mail_file->Position();
 	mail_file->Seek(0,SEEK_SET);
@@ -217,6 +217,7 @@ status_t MailMessage::Instantiate(BPositionIO *mail_file, size_t length) {
 	MailComponent::Instantiate(mail_file,length);
 	mail_file->Seek(0,SEEK_SET);
 	
+	MailComponent headers;
 	headers.Instantiate(mail_file,length);
 	_body = headers.WhatIsThis();
 	
@@ -241,7 +242,6 @@ status_t MailMessage::Instantiate(BPositionIO *mail_file, size_t length) {
 	_body->RemoveHeader("Reply-To");
 	_body->RemoveHeader("CC");
 	
-			
 	MIMEMultipartContainer *cont = dynamic_cast<MIMEMultipartContainer *> (_body);
 	
 	_num_components = (cont == NULL) ? 1 : cont->CountComponents();
@@ -261,7 +261,9 @@ status_t MailMessage::Instantiate(BPositionIO *mail_file, size_t length) {
 				delete it_is;
 		}
 	}
-	
+
+	// what about a better error handling/checking?
+	_status = B_OK;	
 	return B_OK;
 }
 
