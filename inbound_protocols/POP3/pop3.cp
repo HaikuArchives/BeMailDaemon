@@ -200,7 +200,7 @@ status_t POP3Protocol::Retrieve(int32 message, BPositionIO *write_to)
 	BString cmd;
 	cmd << "RETR " << message + 1 << CRLF;
 	//status_t result = RetrieveInternal(cmd.String(),message,write_to, true);
-	size_t message_len = MessageSize(message);
+	int32 message_len = MessageSize(message);
 	if (SendCommand(cmd.String()) != B_OK)
 		return B_ERROR;
 	int32 octets_read = 0;
@@ -209,6 +209,10 @@ status_t POP3Protocol::Retrieve(int32 message, BPositionIO *write_to)
 
 	while (octets_read < message_len) {
 		temp = conn.Receive(buffer + octets_read,message_len - octets_read);
+		if (temp < 0)
+			return conn.Error();
+		if (temp == 0)
+			return -1; // Shouldn't happen, but...
 		runner->ReportProgress(temp,0);
 		octets_read += temp;
 	}
@@ -231,6 +235,7 @@ status_t POP3Protocol::GetHeader(int32 message, BPositionIO *write_to)
 status_t POP3Protocol::RetrieveInternal(const char *command, int32,
 	BPositionIO *write_to, bool post_progress)
 {
+	const int bufSize = 10240;
 	BString content = "";
 	
 	if (SendCommand(command) != B_OK)
@@ -238,7 +243,7 @@ status_t POP3Protocol::RetrieveInternal(const char *command, int32,
 		
 	int32 r;
 	
-	char *buf = new char[1024];
+	char *buf = new char[bufSize];
 	if (!buf) {
 		fLog = "Memory was exhausted";
 		return B_ERROR;
@@ -251,10 +256,12 @@ status_t POP3Protocol::RetrieveInternal(const char *command, int32,
 	
 	while (cont) {
 		if (conn.IsDataPending(POP3_RETRIEVAL_TIMEOUT)) {
-			r = conn.Receive(buf, 1023);
-			if (r <= 0) 
-				return B_ERROR;
-				
+			r = conn.Receive(buf, bufSize-1);
+			if (r < 0)
+				return conn.Error();
+			if (r == 0)
+				return B_ERROR; // Shouldn't happen, but...
+
 			if (post_progress)
 				runner->ReportProgress(r,0);
 				
@@ -327,7 +334,7 @@ status_t POP3Protocol::UniqueIDs() {
 		else
 			b = 0;
 		sizes[i] = b;
-		printf("Size of message %d is %d bytes (%s)\n",i,b,result.String());
+		printf("Size of message %ld is %ld bytes (%s)\n",i,b,result.String());
 		i++;
 	}
 
