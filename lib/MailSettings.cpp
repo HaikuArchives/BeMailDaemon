@@ -316,6 +316,7 @@ void MailSettings::SetDefaultOutboundChainID(uint32 to) {
 	//      to the dustbin of history
 	
 	/*--------Hack!!! Hack!!! Hack!!!------------*/
+//#ifdef HACK
 	MailChain new_acc(to);
 	create_directory("/boot/home/config/settings/Mail/MailPop/",0777);
 	create_directory("/boot/home/config/settings/Mail/MailSmtp/",0777);
@@ -343,4 +344,5 @@ void MailSettings::SetDefaultOutboundChainID(uint32 to) {
 	
 	old_settings.Flatten(&old_daemon);
 	/*-------Phew! Hackage is done!-------------*/
+//#endif
 }

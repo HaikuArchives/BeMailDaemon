@@ -417,53 +417,54 @@ status_t PlainTextBodyComponent::Render(BPositionIO *render_to) {
 	BString alt;
 	
 	int32 len = this->text.Length();
-	int32 dest_len = len * 2;
-	char *raw = alt.LockBuffer(dest_len);
-	int32 state;
-	convert_from_utf8(charset,this->text.String(),&len,raw,&dest_len,&state);
-	raw[dest_len] = 0;
-	alt.UnlockBuffer(dest_len);
-	
-	raw = modified.LockBuffer((alt.Length()*3)+1);
-	switch (encoding) {
-		case 'b':
-			len = encode_base64(raw,alt.String(),alt.Length());
-			text[len] = 0;
-			break;
-		case 'q':
-			len = encode_qp(raw,alt.String(),alt.Length(), false);
-			text[len] = 0;
-			break;
-		default:
-			len = alt.Length();
-			strcpy(raw,alt.String());
-	}
-	modified.UnlockBuffer(len);
-	
-	//------Desperate bid to wrap lines
-	modified.ReplaceAll("\n","\r\n");
-	
-	int32 curr_line_length = 0;
-	int32 last_space = 0;
-	
-	for (int32 i = 0; i < modified.Length(); i++) {
-		if (isspace(modified.ByteAt(i)))
-			last_space = i;
-			
-		if ((modified.ByteAt(i) == '\r') && (modified.ByteAt(i+1) == '\n'))
-			curr_line_length = 0;
-		else
-			curr_line_length++;
-			
-		if (curr_line_length > 80) {
-			if (last_space >= 0) {
-				modified.Insert("\r\n",last_space);
-				last_space = -1;
+	if (len > 0) {
+		int32 dest_len = len * 2;
+		char *raw = alt.LockBuffer(dest_len);
+		int32 state;
+		convert_from_utf8(charset,this->text.String(),&len,raw,&dest_len,&state);
+		raw[dest_len] = 0;
+		alt.UnlockBuffer(dest_len);
+		
+		raw = modified.LockBuffer((alt.Length()*3)+1);
+		switch (encoding) {
+			case 'b':
+				len = encode_base64(raw,alt.String(),alt.Length());
+				text[len] = 0;
+				break;
+			case 'q':
+				len = encode_qp(raw,alt.String(),alt.Length(), false);
+				text[len] = 0;
+				break;
+			default:
+				len = alt.Length();
+				strcpy(raw,alt.String());
+		}
+		modified.UnlockBuffer(len);
+		
+		//------Desperate bid to wrap lines
+		modified.ReplaceAll("\n","\r\n");
+		
+		int32 curr_line_length = 0;
+		int32 last_space = 0;
+		
+		for (int32 i = 0; i < modified.Length(); i++) {
+			if (isspace(modified.ByteAt(i)))
+				last_space = i;
+				
+			if ((modified.ByteAt(i) == '\r') && (modified.ByteAt(i+1) == '\n'))
 				curr_line_length = 0;
+			else
+				curr_line_length++;
+				
+			if (curr_line_length > 80) {
+				if (last_space >= 0) {
+					modified.Insert("\r\n",last_space);
+					last_space = -1;
+					curr_line_length = 0;
+				}
 			}
 		}
-	}
-	
+	}	
 	modified << "\r\n";
 	
 	render_to->Write(modified.String(),modified.Length());
