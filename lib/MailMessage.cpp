@@ -309,7 +309,7 @@ status_t MailMessage::RenderTo(BFile *file) {
 			i = last_i = recipients.FindFirst(',',i) + 1;
 			
 			if (i <= 0) {
-				i = recipients.Length();
+				i = recipients.Length()+1;
 				last_i = -1;
 			}
 			
