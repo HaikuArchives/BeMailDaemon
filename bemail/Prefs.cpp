@@ -151,12 +151,12 @@ TPrefsWindow::TPrefsWindow(BRect rect,BFont *font,int32 *level,bool *wrap,bool *
 
 	// group boxes
 
-	r.Set(8,4,Bounds().right - 8,4 + 7 * (height + ITEM_SPACE));
+	r.Set(8,4,Bounds().right - 8,4 + 6 * (height + ITEM_SPACE));
 	BBox *interfaceBox = new BBox(r,NULL,B_FOLLOW_LEFT_RIGHT | B_FOLLOW_TOP);
 	interfaceBox->SetLabel("User Interface");
 	view->AddChild(interfaceBox);
 
-	r.top = r.bottom + 8;  r.bottom = r.top + 5 * (height + ITEM_SPACE);
+	r.top = r.bottom + 8;  r.bottom = r.top + 6 * (height + ITEM_SPACE);
 	BBox *mailBox = new BBox(r,NULL,B_FOLLOW_LEFT_RIGHT | B_FOLLOW_TOP);
 	mailBox->SetLabel("Mailing");
 	view->AddChild(mailBox);
@@ -200,14 +200,6 @@ TPrefsWindow::TPrefsWindow(BRect rect,BFont *font,int32 *level,bool *wrap,bool *
 	r.OffsetBy(0,height + ITEM_SPACE);
 	fSizeMenu = BuildSizeMenu(font);
 	menu = new BMenuField(r, "size", SIZE_TEXT, fSizeMenu,B_FOLLOW_ALL,
-				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
-	menu->SetDivider(labelWidth);
-	menu->SetAlignment(B_ALIGN_RIGHT);
-	interfaceBox->AddChild(menu);
-
-	r.OffsetBy(0,height + ITEM_SPACE);
-	fWrapMenu = BuildWrapMenu(*wrap);
-	menu = new BMenuField(r, "wrap", WRAP_TEXT, fWrapMenu,B_FOLLOW_ALL,
 				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
 	menu->SetDivider(labelWidth);
 	menu->SetAlignment(B_ALIGN_RIGHT);
@@ -261,6 +253,14 @@ TPrefsWindow::TPrefsWindow(BRect rect,BFont *font,int32 *level,bool *wrap,bool *
 	r.OffsetBy(0,height + ITEM_SPACE);
 	fEncodingMenu = BuildEncodingMenu(fEncoding);
 	menu = new BMenuField(r, "enc", ENCODING_TEXT, fEncodingMenu,B_FOLLOW_ALL,
+				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
+	menu->SetDivider(labelWidth);
+	menu->SetAlignment(B_ALIGN_RIGHT);
+	mailBox->AddChild(menu);
+
+	r.OffsetBy(0,height + ITEM_SPACE);
+	fWrapMenu = BuildWrapMenu(*wrap);
+	menu = new BMenuField(r, "wrap", WRAP_TEXT, fWrapMenu,B_FOLLOW_ALL,
 				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
 	menu->SetDivider(labelWidth);
 	menu->SetAlignment(B_ALIGN_RIGHT);
