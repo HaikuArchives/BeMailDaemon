@@ -2739,8 +2739,18 @@ void TTextView::EnableSpellCheck(bool enable)
 		int32 textLength = TextLength();
 		if (fSpellCheck)
 		{
+			// work-around for a bug in the BTextView class
+			// which causes lots of flicker
+			int32 start,end;
+			GetSelection(&start,&end);
+			if (start != end)
+				Select(start,start);
+
 			SetStylable(true);
 			CheckSpelling(0, textLength);
+
+			if (start != end)
+				Select(start,end);
 		}
 		else
 		{
