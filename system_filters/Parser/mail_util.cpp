@@ -59,6 +59,20 @@ ssize_t rfc2047_to_utf8(char **bufp, size_t *bufLen, size_t strLen)
 	char lastChar = (*bufp)[strLen];
 	(*bufp)[strLen] = '\0';
 	
+	//---------Handle *&&^%*&^ non-RFC compliant, 8bit mail
+	{
+	int32 new_len = strLen * 1.5;
+	int32 state = 0;
+	int32 len = strLen;
+	char *new_bufp = (char *)malloc(new_len);
+	//-----Just try
+	convert_to_utf8(B_ISO1_CONVERSION,*bufp,&len,new_bufp,&new_len,&state);
+	free(*bufp);
+	*bufp = new_bufp;
+	strLen = new_len;
+	}
+	
+	//---------Whew! Now for RFC compliant mail
 	for (head = tail = string;
 		(charset = strstr(tail, "=?"))
 		&& ((encoding = strchr(charset + 2, '?')) != NULL
