@@ -59,6 +59,8 @@ class MailDaemonApp : public BApplication {
 		
 		BQuery *query;
 		LEDAnimation *led;
+		
+		BString alert_string;
 };
 
 
@@ -281,6 +283,11 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 				delete msg;
 			}
 			}
+			if (alert_string != B_EMPTY_STRING) {
+				alert_string.Truncate(alert_string.Length()-1);
+				(new BAlert("New Messages",alert_string.String(),"OK"))->Go(NULL);
+				alert_string = B_EMPTY_STRING;
+			}
 			break;
 		case 'mnum': //----Number of new messages
 			{
@@ -294,10 +301,20 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 			msg->SendReply(&reply);
 			}
 			break;
-		case 'numg':
+		case 'mblk': //-----Mail BLinK
 			if (new_messages > 0)
 				led->Start();
-			break;			
+			break;
+		case 'numg':
+			{
+			int32 num_messages = msg->FindInt32("num_messages");
+			alert_string << num_messages << " new message";
+			if (num_messages > 1)
+				alert_string << 's';
+				
+			alert_string << " for " << msg->FindString("chain_name") << '\n';
+			}
+			break;
 		case B_QUERY_UPDATE:
 			{
 			int32 what;

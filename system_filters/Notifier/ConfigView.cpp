@@ -12,12 +12,6 @@
 
 #include <MailAddon.h>
 
-enum {
-	do_beep = 1,
-	alert = 2,
-	blink_leds = 4
-};
-
 ConfigView::ConfigView()
 	:	BView(BRect(0,0,20,20),"notifier_config",B_FOLLOW_LEFT | B_FOLLOW_TOP,0)
 {
@@ -53,7 +47,7 @@ void ConfigView::SetTo(BMessage *archive)
 	
 	if (method & do_beep)
 		((BCheckBox *)(FindView("beep")))->SetValue(B_CONTROL_ON);
-	if (method & alert)
+	if (method & big_doozy_alert)
 		((BCheckBox *)(FindView("alert")))->SetValue(B_CONTROL_ON);
 	if (method & blink_leds)
 		((BCheckBox *)(FindView("blink")))->SetValue(B_CONTROL_ON);
@@ -66,7 +60,7 @@ status_t ConfigView::Archive(BMessage *into,bool) const
 	if (((BCheckBox *)(FindView("beep")))->Value() == B_CONTROL_ON)
 		method |= do_beep;
 	if (((BCheckBox *)(FindView("alert")))->Value() == B_CONTROL_ON)
-		method |= alert;
+		method |= big_doozy_alert;
 	if (((BCheckBox *)(FindView("blink")))->Value() == B_CONTROL_ON)
 		method |= blink_leds;
 		

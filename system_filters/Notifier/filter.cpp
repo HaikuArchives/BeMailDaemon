@@ -8,11 +8,7 @@
 #include <ChainRunner.h>
 #include <status.h>
 
-enum {
-	do_beep = 1,
-	alert = 2,
-	blink_leds = 4
-};
+#include "ConfigView.h"
 
 class NotifyCallback : public MailCallback {
 	public:
@@ -76,7 +72,10 @@ void NotifyCallback::Callback(MDStatus result) {
 		ShowAlert("New Messages", text.String());
 	}
 	
-	if (strategy & blink_leds) {
+	if (strategy & big_doozy_alert)
+		be_app->PostMessage('mblk');
+	
+	if (strategy & big_doozy_alert) {
 		BMessage msg('numg');
 		msg.AddInt32("num_messages",num_messages);
 		msg.AddString("chain_name",chain->Name());

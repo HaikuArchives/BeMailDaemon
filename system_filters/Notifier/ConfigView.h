@@ -8,6 +8,12 @@
 
 #include <View.h>
 
+enum {
+	do_beep = 1,
+	alert = 2,
+	blink_leds = 4,
+	big_doozy_alert = 8
+};
 
 class ConfigView : public BView
 {
