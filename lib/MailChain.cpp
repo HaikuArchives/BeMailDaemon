@@ -39,6 +39,12 @@ MailChain::MailChain(BMessage* settings)
 MailChain::~MailChain() {
 	if (meta_data != NULL)
 		delete meta_data;
+		
+	for (int32 i = 0; i < settings_ct; i++)
+		delete filter_settings.ItemAt(i);
+		
+	for (int32 i = 0; i < addons_ct; i++)
+		delete filter_addons.ItemAt(i);
 }
 
 status_t MailChain::Load(BMessage* settings)
