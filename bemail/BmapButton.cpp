@@ -68,6 +68,7 @@ struct BitmapItem
 	int32 openCount;
 };
 
+
 BmapButton::BmapButton(BRect frame, 
 	const char *name, 
 	const char *label,
@@ -92,6 +93,7 @@ BmapButton::BmapButton(BRect frame,
 	fPressedBM = RetrieveBitmap(pressedID);
 }
 
+
 BmapButton::~BmapButton(void)
 {
 	ReleaseBitmap(fEnabledBM);
@@ -100,7 +102,9 @@ BmapButton::~BmapButton(void)
 	ReleaseBitmap(fPressedBM);
 }
 
-const BBitmap *BmapButton::RetrieveBitmap(int32 id)
+
+const BBitmap *
+BmapButton::RetrieveBitmap(int32 id)
 {
 	// Lock access to the list
 	BAutolock lock(fBmCacheLock);
@@ -142,7 +146,9 @@ const BBitmap *BmapButton::RetrieveBitmap(int32 id)
 	return bm;
 }
 
-status_t BmapButton::ReleaseBitmap(const BBitmap *bm)
+
+status_t
+BmapButton::ReleaseBitmap(const BBitmap *bm)
 {
 	// Lock access to the list
 	BAutolock lock(fBmCacheLock);
@@ -166,7 +172,9 @@ status_t BmapButton::ReleaseBitmap(const BBitmap *bm)
 }
 
 #define F_SHOW_GEOMETRY 0
-void BmapButton::Draw(BRect updateRect)
+
+void
+BmapButton::Draw(BRect updateRect)
 {
 	BRect bounds(Bounds());
 	float labelHeight, labelWidth;
@@ -203,9 +211,10 @@ void BmapButton::Draw(BRect updateRect)
 			StrokeLine(BPoint(textRect.left, baseLine),
 				BPoint(textRect.right, baseLine));
 			
-			if (IsEnabled()) SetHighColor(0, 0, 0);
+			if (IsEnabled())
+				SetHighColor(0, 0, 0);
 			else {
-				const rgb_color black = { 0, 0, 0, 0 };
+				const rgb_color black = { 0, 0, 0, 255 };
 				SetHighColor(disable_color(black, ViewColor()));
 			}
 			MovePenTo(textRect.left, baseLine);
@@ -220,12 +229,12 @@ void BmapButton::Draw(BRect updateRect)
 		labelHeight = 0;
 		labelWidth = 0;
 	}
-	
+
 	// Draw Bitmap
-	
+
 	// Select the bitmap to use
 	const BBitmap *bm;
-	
+
 	if (!IsEnabled())
 		bm = fDisabledBM;
 	else if (fPressing) {
@@ -239,7 +248,7 @@ void BmapButton::Draw(BRect updateRect)
 		else
 			bm = fEnabledBM;
 	}
-	
+
 	// Draw the bitmap
 	if (bm) {
 		fBitmapRect = bm->Bounds();
@@ -256,7 +265,9 @@ void BmapButton::Draw(BRect updateRect)
 	}
 }
 
-void BmapButton::GetPreferredSize(float *width, float *height)
+
+void
+BmapButton::GetPreferredSize(float *width, float *height)
 {
 	BRect prefBounds;
 	
@@ -286,7 +297,9 @@ void BmapButton::GetPreferredSize(float *width, float *height)
 	*height = prefBounds.IntegerHeight();
 }
 
-void BmapButton::MouseMoved(BPoint where, uint32 code, const BMessage *msg)
+
+void
+BmapButton::MouseMoved(BPoint where, uint32 code, const BMessage *msg)
 {
 	// eliminate unused parameter warnings
 	(void)where;
@@ -307,7 +320,9 @@ void BmapButton::MouseMoved(BPoint where, uint32 code, const BMessage *msg)
 	}
 }
 
-void BmapButton::MouseDown(BPoint point)
+
+void
+BmapButton::MouseDown(BPoint point)
 {
 	if (!IsEnabled())
 		return;
@@ -328,7 +343,10 @@ void BmapButton::MouseDown(BPoint point)
 	Invalidate(fBitmapRect);
 }
 
-void BmapButton::MouseUp(BPoint where) {
+
+void
+BmapButton::MouseUp(BPoint where)
+{
 	if (atomic_and(&fPressing, 0)) {
 		SetMouseEventMask(0, 0);
 		if (Bounds().Contains(where) && IsEnabled()) {
@@ -341,12 +359,16 @@ void BmapButton::MouseUp(BPoint where) {
 	}
 }
 
-void BmapButton::ShowLabel(bool show)
+
+void
+BmapButton::ShowLabel(bool show)
 {
 	fShowLabel = show;
 }
 
-void BmapButton::WindowActivated(bool active)
+
+void
+BmapButton::WindowActivated(bool active)
 {
 	fActive = active;
 	if (IsFocus() || fIsInBounds) {
@@ -356,7 +378,10 @@ void BmapButton::WindowActivated(bool active)
 	BControl::WindowActivated(active);
 }
 
-void BmapButton::InvokeOnButton(uint32 button)
+
+void
+BmapButton::InvokeOnButton(uint32 button)
 {
 	fIButtons = button;
 }
+
