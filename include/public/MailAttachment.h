@@ -1,37 +1,54 @@
+#ifndef ZOIDBERG_NUMAIL_MAILATTACHMENT_H
+#define ZOIDBERG_NUMAIL_MAILATTACHMENT_H
+
 #include <MailContainer.h>
 #include <MailComponent.h>
 
-class Base64Encoded;
-
-class MailAttachment : public MIMEMultipartContainer {
+class SimpleMailAttachment : public MailComponent {
 	public:
-		MailAttachment(BNode *node, bool send_attributes = true);
-		MailAttachment(entry_ref *ref, bool send_attributes = true);
+		SimpleMailAttachment();
 		
-		void SetTo(BNode *node, bool send_attributes = true);
-		void SetTo(entry_ref *ref, bool send_attributes = true);
+		SimpleMailAttachment(BPositionIO *data /* data to attach */);
+		SimpleMailAttachment(const void *data, size_t length /* data to attach */);
+		
+		virtual status_t GetDecodedData(BPositionIO *data);
+		virtual status_t SetDecodedData(BPositionIO *data);
+		
+		virtual status_t SetDecodedData(const void *data, size_t length /* data to attach */);
+		
+		void SetEncoding(mail_encoding encoding = base64 /* note: we only support base64. This is a no-op */);
+		mail_encoding Encoding();
+		
+		virtual status_t Instantiate(BPositionIO *data, size_t length);
+		virtual status_t Render(BPositionIO *render_to);
+	private:
+		BPositionIO *_data;
+		bool _we_own_data;
+		
+		mail_encoding _encoding;
+};
+
+class AttributedMailAttachment : public MIMEMultipartContainer {
+	public:
+		AttributedMailAttachment(BNode *node);
+		AttributedMailAttachment(entry_ref *ref);
+		
+		void SetTo(BNode *node);
+		void SetTo(entry_ref *ref);
+		
+		void SetEncoding(mail_encoding encoding = base64 /* note: we only support base64. This is a no-op */);
+		mail_encoding Encoding();
+		
+		virtual status_t GetDecodedData(BPositionIO *data);
+		virtual status_t SetDecodedData(BPositionIO *data);
 		
 		virtual status_t MIMEType(BMimeType *mime);
 		
-		virtual status_t Instantiate(BDataIO *data, size_t length);
-		virtual status_t Render(BDataIO *render_to);
-		
-		virtual void AttachedToParent(MailComponent *parent);
+		virtual status_t Instantiate(BPositionIO *data, size_t length);
+		virtual status_t Render(BPositionIO *render_to);
 		
 	private:
-		Base64Encoded *data, *attributes;
+		BNode *data;
 };
 
-class Base64Encoded : public MailComponent {
-	public:
-		Base64Encoded(BDataIO *data);
-		Base64Encoded(const void *data, size_t length);
-		
-		void SetTo(BDataIO *data);
-		void SetTo(const void *data, size_t length);
-		
-		virtual status_t Instantiate(BDataIO *data, size_t length);
-		virtual status_t Render(BDataIO *render_to);
-	private:
-		BMallocIO data;
-};
+#endif

@@ -30,7 +30,7 @@ TYPE= SHARED
 #	if two source files with the same name (source.c or source.cpp)
 #	are included from different directories.  Also note that spaces
 #	in folder names do not work well with this makefile.
-SRCS= MailAddon.cpp numailkit.cpp MailProtocol.cpp SimpleMailProtocol.cpp MessageIO.cpp MailChain.cpp MailSettings.cpp StringList.cpp status.cp ChainRunner.cpp NodeMessage.cpp MailDaemon.cpp c_mail_api.cpp base64.c qp.c ProtocolConfigView.cpp mail_util.cpp MailComponent.cpp MailContainer.cpp
+SRCS= MailAddon.cpp numailkit.cpp MailProtocol.cpp SimpleMailProtocol.cpp MessageIO.cpp MailChain.cpp MailSettings.cpp StringList.cpp status.cp ChainRunner.cpp NodeMessage.cpp MailDaemon.cpp c_mail_api.cpp base64.c qp.c ProtocolConfigView.cpp mail_util.cpp MailComponent.cpp MailContainer.cpp MailAttachment.cpp
 
 #	specify the resource files to use
 #	full path or a relative path to the resource file can be used.

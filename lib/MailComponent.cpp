@@ -46,7 +46,7 @@ static const CharsetConversionEntry charsets[] =
 
 MailComponent::MailComponent() {}
 		
-void MailComponent::AddHeaderField(const char *key, const char *value, uint32 charset, char encoding, bool replace_existing) {
+void MailComponent::AddHeaderField(const char *key, const char *value, uint32 charset, mail_encoding encoding, bool replace_existing) {
 	if (replace_existing)
 		headers.RemoveName(key);
 	
@@ -62,9 +62,14 @@ const char *MailComponent::HeaderField(const char *key, int32 index) {
 	return string;
 }
 
+status_t MailComponent::GetDecodedData(BPositionIO *) {return B_OK;}
+status_t MailComponent::SetDecodedData(BPositionIO *) {return B_OK;}
+
 status_t MailComponent::Instantiate(BPositionIO *data, size_t length) {
+	headers.MakeEmpty();
+	
 	BString string,piece;
-	char *		buf = NULL;
+	char *		buf = (char *)malloc(1);
 	size_t		buflen = 0;
 	int32		len;
 	//
@@ -74,7 +79,7 @@ status_t MailComponent::Instantiate(BPositionIO *data, size_t length) {
 	{
 		if (buf[len-2] == '\r') len -= 2;
 		else if (buf[len-1] == '\n') --len;
-		
+				
 		// convert to UTF-8
 		len = rfc2047_to_utf8(&buf, &buflen, len);
 		
@@ -145,8 +150,11 @@ status_t MailComponent::Render(BPositionIO *render_to) {
 }
 
 status_t MailComponent::MIMEType(BMimeType *mime) {
-	BString string = HeaderField("content-type");
-	string.Truncate(string.FindFirst(';'));
+	BString string = HeaderField("Content-Type");
+	
+	if (string.FindFirst(';') >= 0)
+		string.Truncate(string.FindFirst(';'));
+	
 	mime->SetTo(string.String());
 	
 	return B_OK;
@@ -156,7 +164,7 @@ MailComponent::~MailComponent() {}
 
 PlainTextBodyComponent::PlainTextBodyComponent(const char *text) 
 	: MailComponent(),
-	encoding('q'),
+	encoding(quoted_printable),
 	charset(B_ISO1_CONVERSION) {
 		if (text != NULL)
 			SetText(text);
@@ -164,23 +172,13 @@ PlainTextBodyComponent::PlainTextBodyComponent(const char *text)
 		AddHeaderField("MIME-Version","1.0");
 }
 
-void PlainTextBodyComponent::SetEncoding(char encoding, int32 charset) {
+void PlainTextBodyComponent::SetEncoding(mail_encoding encoding, int32 charset) {
 	this->encoding = encoding;
 	this->charset = charset;
 }
 
 void PlainTextBodyComponent::SetText(const char *text) {
 	this->text.SetTo(text);
-}
-
-void PlainTextBodyComponent::SetText(BDataIO *text) {
-	char buffer[255];
-	size_t buf_len;
-	
-	while ((buf_len = text->Read(buffer,254)) > 0) {
-		buffer[buf_len] = 0;
-		this->text << buffer;
-	}
 }
 
 void PlainTextBodyComponent::AppendText(const char *text) {
@@ -191,13 +189,34 @@ const char *PlainTextBodyComponent::Text() {
 	return text.String();
 }
 
+
+status_t PlainTextBodyComponent::GetDecodedData(BPositionIO *data) {
+	data->Write(text.String(),text.Length());
+	return B_OK;
+}
+
+status_t PlainTextBodyComponent::SetDecodedData(BPositionIO *data)  {
+	char buffer[255];
+	size_t buf_len;
+	
+	while ((buf_len = data->Read(buffer,254)) > 0) {
+		buffer[buf_len] = 0;
+		this->text << buffer;
+	}
+	
+	return B_OK;
+}
+
 status_t PlainTextBodyComponent::Instantiate(BPositionIO *data, size_t length) {
 	off_t position = data->Position();
 	MailComponent::Instantiate(data,length);
 	
 	length -= (data->Position() - position);
 	
-	if (HeaderField("MIME-Version") == NULL) {
+	printf("Position %d, new position %d, length %d\n",(int32)position,(int32)data->Position(),length);
+	
+	//--------Note: the following code blows up on MIME components. Not sure how to fix.
+	/*if (HeaderField("MIME-Version") == NULL) {
 		text = "";
 		char buffer[255];
 		size_t buf_len;
@@ -205,7 +224,8 @@ status_t PlainTextBodyComponent::Instantiate(BPositionIO *data, size_t length) {
 			buffer[buf_len] = 0;
 			text << buffer;
 		}
-	}
+		return;
+	}*/
 	
 	BString content_type = HeaderField("Content-Type");
 	content_type.Truncate(content_type.FindFirst("; ") + 2);
@@ -219,12 +239,12 @@ status_t PlainTextBodyComponent::Instantiate(BPositionIO *data, size_t length) {
 	}
 	
 	content_type = HeaderField("Content-Transfer-Encoding");
-	encoding = -1;
+	encoding = no_encoding;
 	
 	if (content_type.IFindFirst("base64") >= 0)
-		encoding = 'b';
+		encoding = base64;
 	if (content_type.IFindFirst("quoted-printable") >= 0)
-		encoding = 'q';
+		encoding = quoted_printable;
 	
 	char buffer[255];
 	size_t buf_len;
@@ -279,10 +299,10 @@ status_t PlainTextBodyComponent::Render(BPositionIO *render_to) {
 	
 	const char *transfer_encoding = NULL;
 	switch (encoding) {
-		case 'b':
+		case base64:
 			transfer_encoding = "base64";
 			break;
-		case 'q':
+		case quoted_printable:
 			transfer_encoding = "quoted-printable";
 			break;
 		default:

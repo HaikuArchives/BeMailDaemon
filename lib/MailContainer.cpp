@@ -9,6 +9,7 @@
 class _EXPORT MIMEMultipartContainer;
 
 #include <MailContainer.h>
+#include <MailAttachment.h>
 
 typedef struct message_part {
 	message_part(off_t start, off_t end) {this->start = start; this->end = end;}
@@ -60,21 +61,32 @@ MailComponent *MIMEMultipartContainer::GetComponent(int32 index) {
 	component.MIMEType(&type);
 	type.GetSupertype(&super);
 	
+	puts(type.Type());
+	
 	MailComponent *piece;
 	//---------ATT-This code *desperately* needs to be improved
 	if (super == "multipart") {
 		/*if (type == "multipart/x-bfile")
-			piece = new MailAttachment;
+			piece = new AttributedMailAttachment;
 		else*/
 			piece = new MIMEMultipartContainer;
 	} else {
-		piece = new PlainTextBodyComponent;
+		const char *disposition = component.HeaderField("Content-Disposition");
+		if ((disposition == NULL) || (strncasecmp(disposition,"Attachment",strlen("Attachment")) != 0))
+			piece = new PlainTextBodyComponent;
+		else
+			piece = new SimpleMailAttachment;
 	}
+	/* Debug code 
+	_io_data->Seek(part->start,SEEK_SET);
+	char *data = new char[part->end - part->start + 1];
+	_io_data->Read(data,part->end - part->start);
+	data[part->end - part->start] = 0;
+	puts((char *)(data));
+	printf("Instantiating from %d to %d (%d octets)\n",part->start, part->end, part->end - part->start);
+	*/
 	
 	_io_data->Seek(part->start,SEEK_SET);
-	
-	printf("Instantiating from %d to %d\n", (int)part->start, (int)part->end);
-	
 	piece->Instantiate(_io_data,part->end - part->start);
 	
 	_components_in_code.ReplaceItem(index,piece);
@@ -86,6 +98,14 @@ int32 MIMEMultipartContainer::CountComponents() const {
 	return _components_in_code.CountItems();
 }
 
+status_t MIMEMultipartContainer::GetDecodedData(BPositionIO *data) {
+	return B_BAD_TYPE; //------We don't play dat
+}
+
+status_t MIMEMultipartContainer::SetDecodedData(BPositionIO *data) {
+	return B_BAD_TYPE; //------We don't play dat
+}
+
 status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length) {
 	_io_data = data;
 	
@@ -93,22 +113,24 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length) {
 	MailComponent::Instantiate(data,length);
 	
 	length -= (data->Position() - position);
-	
+		
 	BString end_delimiter;
 	BString type = HeaderField("Content-Type");
-	if (strncmp(type.String(),"multipart",9) != 0)
+	if (type.FindFirst("multipart") < 0)
 		return B_BAD_TYPE;
 		
 	if (type.FindFirst("boundary=") < 0)
 		return B_BAD_TYPE;
-	
+		
 	type.Remove(0, type.FindFirst("boundary=") + 9);
-	//type.Truncate(type.FindFirst(' '));
-	
+	if (type.FindFirst(' ') >= 0)
+		type.Truncate(type.FindFirst(' '));
+			
 	if (type.ByteAt(0) == '\"')
 		type.RemoveAll("\"");
 		
 	type.Prepend("--");
+
 	end_delimiter << type << "--";
 	
 	int32 start = data->Position();
@@ -124,9 +146,7 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length) {
 		len = data->ReadAt(offset,buf,90);
 		buf[len] = 0;
 		line.UnlockBuffer(len);
-		
-		printf("Offset: %d\n", (int)offset);
-		
+				
 		if (len <= 0)
 			break;
 		
@@ -142,13 +162,11 @@ status_t MIMEMultipartContainer::Instantiate(BPositionIO *data, size_t length) {
 		
 		if (strncmp(line.String(),type.String(), type.Length()) == 0) {
 			if (last_boundary >= 0) {
-				printf("Last boundary %d", (int)last_boundary);
-				printf(", offset %d\n", (int)offset);
 				_components_in_raw.AddItem(new message_part(last_boundary, offset));
 				_components_in_code.AddItem(NULL);
 			}
 			
-			last_boundary = offset;
+			last_boundary = offset + len + 2;
 			
 			if (strncmp(line.String(),end_delimiter.String(), end_delimiter.Length()) == 0)
 				break;
