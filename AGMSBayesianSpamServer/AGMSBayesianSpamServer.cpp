@@ -57,23 +57,17 @@
  * The spam database updates and the test for spam have been combined into one
  * program which runs as a server.  That way there won't be as long a delay
  * when the e-mail system wants to check for spam, because the database is
- * already loaded by the server and in memory.  The mail filter add-on will
- * simply send scripting commands to the server (and be able to start it up if
- * it isn't already running).
- *
- * Future Enhancements:
- * AlienSoldier requested a special header mode, where only the headers of
- * messages would be examined for spam.  This would require a slightly
- * different mail add-on to delete messages on the mail server before
- * downloading them, and modifications to ignore message bodies when updating
- * the database.
- *
- * Another one would be to use the Mail Kit to parse e-mail messages into their
- * various attachments, and only enter text/anything components into the
- * database.  As a bonus, it would also convert e-mail to a common character
- * set encoding (UTF-8) rather than blindly copying the characters.
+ * already loaded by the server and in memory.  The MDR mail filter add-on
+ * simply sends scripting commands to the server (and starts it up if it isn't
+ * already running).  The filter takes care of marking the messages when it
+ * gets the rating back from the server, and then the rest of the mail system
+ * rule chain can delete the message or otherwise manipulate it.
  *
  * $Log$
+ * Revision 1.82  2003/06/16 14:57:13  agmsmith
+ * Detect spam which uses mislabeled text attachments, going by the file name
+ * extension.
+ *
  * Revision 1.81  2003/04/08 20:27:04  agmsmith
  * AGMSBayesianSpamServer now shuts down immediately and returns true if
  * it is asked to quit by the registrar.
@@ -513,6 +507,7 @@ typedef enum PropertyNumbersEnum
   PN_SPAM_STRING,
   PN_GENUINE,
   PN_GENUINE_STRING,
+  PN_UNCERTAIN,
   PN_IGNORE_PREVIOUS_CLASSIFICATION,
   PN_SERVER_MODE,
   PN_FLUSH,
@@ -536,6 +531,7 @@ static char * g_PropertyNames [PN_MAX] =
   "SpamString",
   "Genuine",
   "GenuineString",
+  "Uncertain",
   "IgnorePreviousClassification",
   "ServerMode",
   "Flush",
@@ -609,6 +605,11 @@ static struct property_info g_ScriptingPropertyList [] =
     {B_DIRECT_SPECIFIER, 0}, "Adds the genuine message in the given string "
     "(assumed to be the text of a whole e-mail message, not just a file name) "
     "to the database.", PN_GENUINE_STRING, {}, {}, {}},
+  {g_PropertyNames[PN_UNCERTAIN], {B_SET_PROPERTY, 0}, {B_DIRECT_SPECIFIER, 0},
+    "Similar to adding spam except that the message file is removed from the "
+    "database, undoing the previous classification.  Obviously, it needs to "
+    "have been classified previously (using the file attributes) so it can "
+    "tell if it is removing spam or genuine words.", PN_UNCERTAIN, {}, {}, {}},
   {g_PropertyNames[PN_IGNORE_PREVIOUS_CLASSIFICATION], {B_SET_PROPERTY, 0},
     {B_DIRECT_SPECIFIER, 0}, "If set to true then the previous classification "
     "(which was saved as an attribute of the e-mail message file) will be "
@@ -783,6 +784,24 @@ static char * g_TokenizeModeNames [TM_MAX] =
   "AllParts",
   "AllPartsAndHeader",
   "JustHeader"
+};
+
+
+/* Possible message classifications. */
+
+typedef enum ClassificationTypesEnum
+{
+  CL_GENUINE = 0,
+  CL_SPAM,
+  CL_UNCERTAIN,
+  CL_MAX
+} ClassificationTypes;
+
+static const char * g_ClassificationTypeNames [CL_MAX] =
+{
+  g_ClassifiedGenuine,
+  g_ClassifiedSpam,
+  "Uncertain"
 };
 
 
@@ -1137,11 +1156,12 @@ public:
 
 private:
   /* Our member functions. */
-  status_t AddFileToDatabase (bool IsSpam,
+  status_t AddFileToDatabase (ClassificationTypes IsSpamOrWhat,
     const char *FileName, char *ErrorMessage);
-  status_t AddPositionIOToDatabase (bool IsSpam, BPositionIO *MessageIOPntr,
-    const char *OptionalFileName, char *ErrorMessage);
-  status_t AddStringToDatabase (bool IsSpam,
+  status_t AddPositionIOToDatabase (ClassificationTypes IsSpamOrWhat,
+    BPositionIO *MessageIOPntr, const char *OptionalFileName,
+    char *ErrorMessage);
+  status_t AddStringToDatabase (ClassificationTypes IsSpamOrWhat,
     const char *String, char *ErrorMessage);
   void AddWordsToSet (const char *InputString,
     size_t NumberOfBytes, set<string> &WordSet);
@@ -1429,7 +1449,9 @@ ostream& PrintUsage (ostream& OutputStream)
 "for one of the earlier messages leading from the central limit theorem to\n"
 "the current chi-squared scoring method.\n"
 "\n"
-"Thanks go to Isaac Yonemoto for providing a better icon.\n"
+"Thanks go to Isaac Yonemoto for providing a better icon, which we can\n"
+"unfortunately no longer use, since the Hormel company wants people to\n"
+"avoid associating their meat product with junk e-mail.\n"
 "\n"
 "Usage: Specify the operation as the first argument followed by more\n"
 "information as appropriate.  The program's configuration will affect the\n"
@@ -1868,11 +1890,12 @@ developed the even better chi-squared scoring method.\n\n"
 
 
 /* Add the text in the given file to the database as an example of a spam or
-genuine message.  Also resets the spam ratio attribute to show the effect of
-the database change. */
+genuine message, or removes it from the database if you claim it is
+CL_UNCERTAIN.  Also resets the spam ratio attribute to show the effect of the
+database change. */
 
 status_t ABSApp::AddFileToDatabase (
-  bool IsSpam,
+  ClassificationTypes IsSpamOrWhat,
   const char *FileName,
   char *ErrorMessage)
 {
@@ -1887,8 +1910,8 @@ status_t ABSApp::AddFileToDatabase (
     return ErrorCode;
   }
 
-  ErrorCode =
-    AddPositionIOToDatabase (IsSpam, &MessageFile, FileName, ErrorMessage);
+  ErrorCode = AddPositionIOToDatabase (IsSpamOrWhat,
+    &MessageFile, FileName, ErrorMessage);
   MessageFile.Unset ();
   if (ErrorCode != B_OK)
     return ErrorCode;
@@ -1901,15 +1924,20 @@ status_t ABSApp::AddFileToDatabase (
 /* Add the given text to the database.  The unique words found in MessageIOPntr
 will be added to the database (incrementing the count for the number of
 messages using each word, either the spam or genuine count depending on
-IsSpam).  An attribute will be added to MessageIOPntr (if it is a file) to
-record that it has been marked as Spam or Genuine (so that it doesn't get added
-to the database a second time).  If things go wrong, a non-zero error code will
-be returned and an explanation written to ErrorMessage (assumed to be at least
-PATH_MAX + 1024 bytes long).  OptionalFileName is just used in the error
-message to identify the file to the user. */
+IsSpamOrWhat).  It will remove the message (decrement the word counts) if you
+specify CL_UNCERTAIN as the new classification.  And if it switches from spam
+to genuine or vice versa, it will do both - decrement the counts for the old
+class and increment the counts for the new one.  An attribute will be added to
+MessageIOPntr (if it is a file) to record that it has been marked as Spam or
+Genuine (so that it doesn't get added to the database a second time).  If it is
+being removed from the database, the classification attribute gets removed too.
+If things go wrong, a non-zero error code will be returned and an explanation
+written to ErrorMessage (assumed to be at least PATH_MAX + 1024 bytes long).
+OptionalFileName is just used in the error message to identify the file to the
+user. */
 
 status_t ABSApp::AddPositionIOToDatabase (
-  bool IsSpam,
+  ClassificationTypes IsSpamOrWhat,
   BPositionIO *MessageIOPntr,
   const char *OptionalFileName,
   char *ErrorMessage)
@@ -1921,8 +1949,7 @@ status_t ABSApp::AddPositionIOToDatabase (
   pair<StatisticsMap::iterator,bool> InsertResult;
   uint32                             NewAge;
   StatisticsRecord                   NewStatistics;
-  bool                               PreviouslyClassified;
-  bool                               PreviouslySpam = false;
+  ClassificationTypes                PreviousClassification;
   StatisticsPointer                  StatisticsPntr;
   set<string>::iterator              WordEndIter;
   set<string>::iterator              WordIter;
@@ -1939,7 +1966,7 @@ status_t ABSApp::AddPositionIOToDatabase (
 
   /* Check that this file hasn't already been added to the database. */
 
-  PreviouslyClassified = false;
+  PreviousClassification = CL_UNCERTAIN;
   BNodePntr = dynamic_cast<BNode *> (MessageIOPntr);
   if (BNodePntr != NULL) /* If this thing might have attributes. */
   {
@@ -1952,34 +1979,32 @@ status_t ABSApp::AddPositionIOToDatabase (
       ClassificationString [ErrorCode] = 0;
 
     if (strcasecmp (ClassificationString, g_ClassifiedSpam) == 0)
-    {
-      PreviouslyClassified = true;
-      PreviouslySpam = true;
-    }
+      PreviousClassification = CL_SPAM;
     else if (strcasecmp (ClassificationString, g_ClassifiedGenuine) == 0)
-    {
-      PreviouslyClassified = true;
-      PreviouslySpam = false;
-    }
+      PreviousClassification = CL_GENUINE;
   }
 
-  if (!m_IgnorePreviousClassification && PreviouslyClassified)
+  if (!m_IgnorePreviousClassification &&
+  PreviousClassification != CL_UNCERTAIN)
   {
-    if (IsSpam == PreviouslySpam)
+    if (IsSpamOrWhat == PreviousClassification)
     {
       sprintf (ErrorMessage, "Ignoring file \"%s\" since it seems to have "
         "already been classified as %s.", OptionalFileName,
-        IsSpam ? g_ClassifiedSpam : g_ClassifiedGenuine);
-      DisplayErrorMessage (ErrorMessage, 0, "Note");
-      return B_OK; /* It has already been classified correctly. */
+        g_ClassificationTypeNames [IsSpamOrWhat]);
     }
-
-    sprintf (ErrorMessage, "Changing existing classification of file \"%s\" "
-      "from %s to %s.", OptionalFileName,
-      PreviouslySpam ? g_ClassifiedSpam : g_ClassifiedGenuine,
-      IsSpam ? g_ClassifiedSpam : g_ClassifiedGenuine);
+    else
+    {
+      sprintf (ErrorMessage, "Changing existing classification of file \"%s\" "
+        "from %s to %s.", OptionalFileName,
+        g_ClassificationTypeNames [PreviousClassification],
+        g_ClassificationTypeNames [IsSpamOrWhat]);
+    }
     DisplayErrorMessage (ErrorMessage, 0, "Note");
   }
+
+  if (IsSpamOrWhat == PreviousClassification)
+    return B_OK; /* Nothing to do, already classified correctly. */
 
   /* Get the list of unique words in the file. */
 
@@ -1993,20 +2018,19 @@ status_t ABSApp::AddPositionIOToDatabase (
 
   m_DatabaseHasChanged = true;
 
-  if (IsSpam)
-  {
+  if (!m_IgnorePreviousClassification &&
+  PreviousClassification == CL_SPAM && m_TotalSpamMessages > 0)
+    m_TotalSpamMessages--;
+
+  if (IsSpamOrWhat == CL_SPAM)
     m_TotalSpamMessages++;
-    if (!m_IgnorePreviousClassification && PreviouslyClassified &&
-    m_TotalGenuineMessages > 0)
+
+  if (!m_IgnorePreviousClassification &&
+  PreviousClassification == CL_GENUINE && m_TotalGenuineMessages > 0)
       m_TotalGenuineMessages--;
-  }
-  else /* A genuine message. */
-  {
+
+  if (IsSpamOrWhat == CL_GENUINE)
     m_TotalGenuineMessages++;
-    if (!m_IgnorePreviousClassification && PreviouslyClassified &&
-    m_TotalSpamMessages > 0)
-      m_TotalSpamMessages--;
-  }
 
   /* Mark the file's attributes with the new classification.  Don't care if it
   fails. */
@@ -2014,11 +2038,13 @@ status_t ABSApp::AddPositionIOToDatabase (
   if (BNodePntr != NULL) /* If this thing might have attributes. */
   {
     ErrorCode = BNodePntr->RemoveAttr (g_AttributeNameClassification);
-    strcpy (ClassificationString,
-      IsSpam ? g_ClassifiedSpam : g_ClassifiedGenuine);
-    ErrorCode = BNodePntr->WriteAttr (g_AttributeNameClassification,
-      B_STRING_TYPE, 0 /* offset */,
-      ClassificationString, strlen (ClassificationString) + 1);
+    if (IsSpamOrWhat != CL_UNCERTAIN)
+    {
+      strcpy (ClassificationString, g_ClassificationTypeNames [IsSpamOrWhat]);
+      ErrorCode = BNodePntr->WriteAttr (g_AttributeNameClassification,
+        B_STRING_TYPE, 0 /* offset */,
+        ClassificationString, strlen (ClassificationString) + 1);
+    }
   }
 
   /* Add the words to the database by incrementing or decrementing the counts
@@ -2029,7 +2055,12 @@ status_t ABSApp::AddPositionIOToDatabase (
   {
     if ((DataIter = m_WordMap.find (*WordIter)) == m_WordMap.end ())
     {
-      /* No record in the database for the word.  Create a new one. */
+      /* No record in the database for the word. */
+
+      if (IsSpamOrWhat == CL_UNCERTAIN)
+        continue; /* Not adding words, don't have to subtract from nothing. */
+
+      /* Create a new one record in the database for the new word. */
 
       memset (&NewStatistics, 0, sizeof (NewStatistics));
       InsertResult = m_WordMap.insert (
@@ -2055,20 +2086,19 @@ status_t ABSApp::AddPositionIOToDatabase (
     find the next older age.  Since it's only used for display, we'll let it be
     slightly incorrect.  The next database load or purge will fix it. */
 
-    if (IsSpam)
-    {
+    if (IsSpamOrWhat == CL_SPAM)
       StatisticsPntr->spamCount++;
-      if (!m_IgnorePreviousClassification && PreviouslyClassified &&
-      StatisticsPntr->genuineCount > 0)
-        StatisticsPntr->genuineCount--;
-    }
-    else /* A genuine message. */
-    {
+
+    if (IsSpamOrWhat == CL_GENUINE)
       StatisticsPntr->genuineCount++;
-      if (!m_IgnorePreviousClassification && PreviouslyClassified &&
-      StatisticsPntr->spamCount > 0)
-        StatisticsPntr->spamCount--;
-    }
+
+    if (!m_IgnorePreviousClassification &&
+    PreviousClassification == CL_SPAM && StatisticsPntr->spamCount > 0)
+      StatisticsPntr->spamCount--;
+
+    if (!m_IgnorePreviousClassification &&
+    PreviousClassification == CL_GENUINE && StatisticsPntr->genuineCount > 0)
+      StatisticsPntr->genuineCount--;
   }
 
   return B_OK;
@@ -2079,13 +2109,13 @@ status_t ABSApp::AddPositionIOToDatabase (
 genuine message. */
 
 status_t ABSApp::AddStringToDatabase (
-  bool IsSpam,
+  ClassificationTypes IsSpamOrWhat,
   const char *String,
   char *ErrorMessage)
 {
   BMemoryIO MemoryIO (String, strlen (String));
 
-  return AddPositionIOToDatabase (IsSpam, &MemoryIO,
+  return AddPositionIOToDatabase (IsSpamOrWhat, &MemoryIO,
    "Memory Buffer" /* OptionalFileName */, ErrorMessage);
 }
 
@@ -3639,6 +3669,7 @@ void ABSApp::ProcessScriptingMessage (
     case PN_SPAM_STRING:
     case PN_GENUINE:
     case PN_GENUINE_STRING:
+    case PN_UNCERTAIN:
       switch (PropInfoPntr->commands[0])
       {
         case B_COUNT_PROPERTIES: /* Get the number of spam/genuine messages. */
@@ -3651,7 +3682,7 @@ void ABSApp::ProcessScriptingMessage (
             ReplyMessage.AddInt32 (g_ResultName, m_TotalGenuineMessages);
           break;
 
-        case B_SET_PROPERTY: /* Add a spam/genuine message to the database. */
+        case B_SET_PROPERTY: /* Add spam/genuine/uncertain to database. */
           if (!ArgumentGotString)
           {
             ErrorCode = B_BAD_TYPE;
@@ -3667,13 +3698,17 @@ void ABSApp::ProcessScriptingMessage (
           if ((ErrorCode = LoadDatabaseIfNeeded (TempString)) != B_OK)
             goto ErrorExit;
           if (PropInfoPntr->extra_data == PN_GENUINE ||
-          PropInfoPntr->extra_data == PN_SPAM)
+          PropInfoPntr->extra_data == PN_SPAM ||
+          PropInfoPntr->extra_data == PN_UNCERTAIN)
             ErrorCode = AddFileToDatabase (
-              PropInfoPntr->extra_data == PN_SPAM,
+              (PropInfoPntr->extra_data == PN_SPAM) ? CL_SPAM :
+              ((PropInfoPntr->extra_data == PN_GENUINE) ? CL_GENUINE :
+              CL_UNCERTAIN),
               ArgumentString, TempString /* ErrorMessage */);
           else
             ErrorCode = AddStringToDatabase (
-              PropInfoPntr->extra_data == PN_SPAM_STRING,
+              (PropInfoPntr->extra_data == PN_SPAM_STRING) ?
+              CL_SPAM : CL_GENUINE,
               ArgumentString, TempString /* ErrorMessage */);
           if (ErrorCode != B_OK)
             goto ErrorExit;
