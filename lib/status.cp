@@ -124,7 +124,7 @@ void StatusWindow::MessageReceived(BMessage *msg)
 		case 'lkch':
 		{
 			int32 look;
-			if (msg->FindInt32("look", &look) == B_OK)
+			if (msg->FindInt32("StatusWindowLook", &look) == B_OK)
 				SetBorderStyle(look);
 		}
 		default:

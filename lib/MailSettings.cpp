@@ -5,6 +5,7 @@
 #include <Entry.h>
 #include <Path.h>
 #include <String.h>
+#include <Messenger.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -47,7 +48,12 @@ status_t MailSettings::Save(bigtime_t timeout)
 	}
 	
 	path.Append("Mail");
-	return WriteMessageFile(data,path,"new_mail_daemon");
+	
+	status_t result = WriteMessageFile(data,path,"new_mail_daemon");
+	if (result < B_OK)
+		return result;
+		
+	BMessenger("application/x-vnd.Be-POST").SendMessage('mrrs');
 }
 
 status_t MailSettings::Reload()
@@ -266,6 +272,10 @@ void MailSettings::SetStatusWindowLook(int32 look)
 {
 	if (data.ReplaceInt32("StatusWindowLook",look))
 		data.AddInt32("StatusWindowLook",look);
+		
+	BMessage msg('lkch');
+	msg.AddInt32("StatusWindowLook",look);
+	BMessenger("application/x-vnd.Be-POST").SendMessage(&msg);
 }
 
 bigtime_t MailSettings::AutoCheckInterval() {
