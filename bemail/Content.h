@@ -98,9 +98,6 @@ typedef struct {
 	int32 text_start;
 	int32 text_end;
 	MailComponent *component;
-//	bool delete_component;
-//	off_t file_offset;
-//	off_t file_length;
 	bool saved;
 	bool have_ref;
 	entry_ref ref;
@@ -150,7 +147,7 @@ public:
 	virtual void  DeleteText(int32 start, int32 finish);
             
 	void ClearList();
-	void LoadMessage(BFile*, bool, bool, const char*);
+	void LoadMessage(BFile *file, bool quoteIt, const char *insertText);
 	void Open(hyper_text*);
 	status_t Save(BMessage *, bool makeNewFile = true);
 	void StopLoad();
@@ -190,7 +187,7 @@ private:
 	class Reader
 	{
 		public:
-			Reader(bool header,bool raw,bool quote,bool incoming,bool close,bool mime,
+			Reader(bool header,bool raw,bool quote,bool incoming,bool mime,
 				TTextView *view,BFile *file,BList *list,sem_id sem);
 
 			static status_t Run(void *);
@@ -207,7 +204,6 @@ private:
 			bool fRaw;
 			bool fQuote;
 			bool fIncoming;
-			bool fClose;
 			bool fMime;
 			TTextView *fView;
 			BFile fFile;

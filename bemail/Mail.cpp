@@ -2260,25 +2260,23 @@ void TMailWindow::WindowActivated(bool status)
 
 void TMailWindow::Forward(entry_ref *ref)
 {
-	BFile *file = new BFile(ref, O_RDONLY);
-	if (file->InitCheck() == B_NO_ERROR)
+	BFile file(ref, O_RDONLY);
+	if (file.InitCheck() < B_NO_ERROR)
+		return;
+
+	BString subject;
+	if (ReadAttrString(&file, B_MAIL_ATTR_SUBJECT, &subject) == B_NO_ERROR)
 	{
-		BString subject;
-		if (ReadAttrString(file, B_MAIL_ATTR_SUBJECT, &subject) == B_NO_ERROR)
-		{
-			if (subject.IFindFirst("fwd") == B_ERROR
-				&& subject.IFindFirst("forward") == B_ERROR
-				&& subject.FindFirst("FW") == B_ERROR)
-				subject << " (fwd)";
-			fHeaderView->fSubject->SetText(subject.String());
-		}
-		fContentView->fTextView->fHeader = true;
-		fContentView->fTextView->LoadMessage(file, false, true, "Forwarded message:\n");
-		fChanged = false;
-		fFieldState = 0;
+		if (subject.IFindFirst("fwd") == B_ERROR
+			&& subject.IFindFirst("forward") == B_ERROR
+			&& subject.FindFirst("FW") == B_ERROR)
+			subject << " (fwd)";
+		fHeaderView->fSubject->SetText(subject.String());
 	}
-	else
-		delete file;
+	fContentView->fTextView->fHeader = true;
+	fContentView->fTextView->LoadMessage(&file, false, "Forwarded message:\n");
+	fChanged = false;
+	fFieldState = 0;
 }
 
 //--------------------------------------------------------------------
@@ -2480,7 +2478,7 @@ void TMailWindow::Reply(entry_ref *ref, TMailWindow *window, bool all)
 		fContentView->fTextView->GoToLine(0);
 	}
 	else
-		fContentView->fTextView->LoadMessage(&file, true, false, NULL);
+		fContentView->fTextView->LoadMessage(&file, true, NULL);
 
 	if (all)
 	{
@@ -2900,7 +2898,7 @@ status_t TMailWindow::OpenMessage(entry_ref *ref)
 		//
 		fContentView->fTextView->SetText("", (int32)0);
 	
-		fContentView->fTextView->LoadMessage(fFile, false, false, NULL);
+		fContentView->fTextView->LoadMessage(fFile, false, NULL);
 	}
 	else
 	{

@@ -420,7 +420,7 @@ void TTextView::AttachedToWindow()
 	fFont.SetSpacing(B_FIXED_SPACING);
 	SetFontAndColor(&fFont);
 	if (fFile) {
-		LoadMessage(fFile, false, false, NULL);
+		LoadMessage(fFile, false, NULL);
 		if (fIncoming)
 			MakeEditable(false);
 	}
@@ -696,7 +696,7 @@ void TTextView::MessageReceived(BMessage *msg)
 		case M_HEADER:
 			msg->FindBool("header", &fHeader);
 			SetText(NULL);
-			LoadMessage(fFile, false, false, NULL);
+			LoadMessage(fFile, false, NULL);
 			break;
 
 		case M_RAW:
@@ -705,7 +705,7 @@ void TTextView::MessageReceived(BMessage *msg)
 			Window()->Lock();
 			msg->FindBool("raw", &fRaw);
 			SetText(NULL);
-			LoadMessage(fFile, false, false, NULL);
+			LoadMessage(fFile, false, NULL);
 			break;
 
 		case M_SELECT:
@@ -1240,7 +1240,7 @@ void TTextView::ClearList()
 }
 
 
-void TTextView::LoadMessage(BFile *file, bool quoteIt, bool close, const char *text)
+void TTextView::LoadMessage(BFile *file, bool quoteIt, const char *text)
 {
 	Window()->Unlock();
 	StopLoad();		
@@ -1257,10 +1257,8 @@ void TTextView::LoadMessage(BFile *file, bool quoteIt, bool close, const char *t
 
 	attr_info attrInfo;
 	TTextView::Reader *reader = new TTextView::Reader(fHeader, fRaw, quoteIt, fIncoming,
-				close, file->GetAttrInfo(B_MAIL_ATTR_MIME, &attrInfo) == B_OK,
+				file->GetAttrInfo(B_MAIL_ATTR_MIME, &attrInfo) == B_OK,
 				this, file, fEnclosures, fStopSem);
-	if (close)
-		delete fFile;
 
 	resume_thread(fThread = spawn_thread(Reader::Run, "reader", B_NORMAL_PRIORITY, reader));
 }
@@ -1439,7 +1437,10 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 			result = file.SetTo(&dir, name, B_WRITE_ONLY);
 		}
 	}
-		
+	
+	if (enclosure->component == NULL)
+		result = B_ERROR;
+
 	if (result == B_NO_ERROR)
 	{
 		//
@@ -1472,7 +1473,6 @@ status_t TTextView::Save(BMessage *msg, bool makeNewFile)
 
 void TTextView::StopLoad()
 {
-//	thread_id thread = fThread;
 	thread_info	info;
 	if (fThread != 0 && get_thread_info(fThread, &info) == B_NO_ERROR)
 	{
@@ -1600,13 +1600,12 @@ void TTextView::AddAsContent(MailMessage *mail, bool wrap)
 //	#pragma mark -
 
 
-TTextView::Reader::Reader(bool header, bool raw, bool quote, bool incoming, bool close,
-				bool mime, TTextView *view, BFile *file, BList *list, sem_id sem)
+TTextView::Reader::Reader(bool header, bool raw, bool quote, bool incoming, bool mime, 
+				TTextView *view, BFile *file, BList *list, sem_id sem)
 	:	fHeader(header),
 		fRaw(raw),
 		fQuote(quote),
 		fIncoming(incoming),
-		fClose(close),
 		fMime(mime),
 		fView(view),
 		fFile(*file),
@@ -1618,15 +1617,30 @@ TTextView::Reader::Reader(bool header, bool raw, bool quote, bool incoming, bool
 
 bool TTextView::Reader::ParseMail(MailContainer *container,PlainTextBodyComponent *ignore)
 {
-	//MailComponent *c = new MailComponent();
+	//MailComponent c;
 	int32 count = 0;
 	for (int32 i = 0;i < container->CountComponents();i++)
 	{
 		MailComponent *component;
 		/*if (container->ManualGetComponent(c,i) == B_OK)
-			component = c;
+			component = &c;
 		else*/ if ((component = container->GetComponent(i)) == NULL)
+		{
+			hyper_text *enclosure = (hyper_text *)malloc(sizeof(hyper_text));
+			memset(enclosure, 0, sizeof(hyper_text));
+
+			enclosure->type = TYPE_ENCLOSURE;
+			
+			char *name = "\n<Enclosure: could not handle>\n";
+
+			fView->GetSelection(&enclosure->text_start, &enclosure->text_end);
+			enclosure->text_start++;
+			enclosure->text_end += strlen(name) - 1;
+
+			Insert(name, strlen(name), true);
+			fEnclosures->AddItem(enclosure);
 			continue;
+		}
 
 		count++;
 		if (component == ignore)
@@ -1645,19 +1659,12 @@ bool TTextView::Reader::ParseMail(MailContainer *container,PlainTextBodyComponen
 
 			enclosure->type = TYPE_ENCLOSURE;
 			enclosure->component = component;
-//			enclosure->delete_component = component == c;
-//			if (component == c)
-//				c = new MailComponent();
 
 			BString name;
 			char fileName[B_FILE_NAME_LENGTH];
 			strcpy(fileName,"untitled");
 			if (MailAttachment *attachment = dynamic_cast<MailAttachment *>(component))
 				attachment->FileName(fileName);
-
-//			if (!get_parameter(component->HeaderField("Content-Type"),"name=",&name)
-//				&& !get_parameter(component->HeaderField("Content-Disposition"),"name=",&name))
-//				name << "untitled";
 
 			BPath path(fileName);
 			enclosure->name = strdup(path.Leaf());
@@ -1672,12 +1679,11 @@ bool TTextView::Reader::ParseMail(MailContainer *container,PlainTextBodyComponen
 			
 			name = "\n<Enclosure: ";
 			name << enclosure->name << " (Type: " << typeDescription << ")>\n";
-//					strcpy(enclosure->content_type, contentType);
+
 			fView->GetSelection(&enclosure->text_start, &enclosure->text_end);
 			enclosure->text_start++;
 			enclosure->text_end += strlen(name.String()) - 1;
-//					enclosure->file_offset = offset - base;
-//					enclosure->file_length = len;
+
 			Insert(name.String(), name.Length(), true);
 			fEnclosures->AddItem(enclosure);
 		}
@@ -1689,7 +1695,6 @@ bool TTextView::Reader::ParseMail(MailContainer *container,PlainTextBodyComponen
 //					Insert(text, strlen(text), false);
 //			}
 	}
-//	delete c;
 	return count > 0;
 }
 
@@ -1849,21 +1854,28 @@ bool TTextView::Reader::Insert(const char *line, int32 count, bool isHyperLink, 
 status_t TTextView::Reader::Run(void *_this)
 {
 	Reader *reader = (Reader *)_this;
-	char		*msg;
-	int32		len;
-	off_t		size;
+	char	*msg;
+	int32	len;
+	off_t	size;
 
-	reader->fFile.GetSize(&size);
+	len = header_len(&reader->fFile);
+
+	if (reader->fHeader)
+		size = len;
+	else if (reader->fRaw || !reader->fMime)
+		reader->fFile.GetSize(&size);
+
 	if ((msg = (char *)malloc(size)) == NULL)
 		goto done;
 	reader->fFile.Seek(0, 0);
 	size = reader->fFile.Read(msg, size);
-	len = header_len(&reader->fFile);
 
 	// show the header?
-	if (reader->fHeader && len && !reader->Process(msg, len, true))
-		goto done;
-
+	if (reader->fHeader && len)
+	{
+		if (!reader->Process(msg, size, true))
+			goto done;
+	}
 	if (reader->fRaw)
 	{
 		if (!reader->Process((const char *)msg + len, size - len))
@@ -1902,8 +1914,6 @@ status_t TTextView::Reader::Run(void *_this)
 		}
 		reader->fView->fMail = mail;
 	}
-//	else if (!parse_header(msg, msg, size, NULL, info, NULL))
-//		goto done;
 
 	if (reader->Lock())
 	{
