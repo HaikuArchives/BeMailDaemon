@@ -490,11 +490,11 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length, uint32 charset, ch
 			switch (encoding) {
 				case quoted_printable:
 					encoded = (char *) malloc (convertedLength * 3);
-					encoded_len = encode_qp (encoded, convertedBuffer, convertedLength, true);
+					encoded_len = encode_qp (encoded, convertedBuffer, convertedLength, true /* headerMode */);
 					break;
 				case base64:
 					encoded = (char *) malloc (convertedLength * 2);
-					encoded_len = encode_base64 (encoded, convertedBuffer, convertedLength);
+					encoded_len = encode_base64 (encoded, convertedBuffer, convertedLength, true /* headerMode */);
 					break;
 				default: // Unknown encoding type, shouldn't happen.
 					encoded = (char *) convertedBuffer;

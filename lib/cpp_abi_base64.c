@@ -15,7 +15,7 @@ ssize_t encode_base64__local_abi(char *out, char *in, off_t length);
 ssize_t decode_base64__local_abi(char *out, char *in, off_t length, char);
 
 _EXPORT ssize_t encode_base64__local_abi(char *out, char *in, off_t length) {
-	return encode_base64(out,in,length);
+	return encode_base64(out,in,length,0 /* headerMode */);
 }
 
 _EXPORT ssize_t decode_base64__local_abi(char *out, char *in, off_t length, char nothing) {

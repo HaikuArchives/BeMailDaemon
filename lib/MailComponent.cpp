@@ -613,11 +613,11 @@ TextComponent::RenderToRFC822(BPositionIO *render_to)
 		raw = modified.LockBuffer((alt.Length()*3)+1);
 		switch (encoding) {
 			case base64:
-				len = encode_base64(raw,alt.String(),alt.Length());
+				len = encode_base64(raw,alt.String(),alt.Length(),false);
 				raw[len] = 0;
 				break;
 			case quoted_printable:
-				len = encode_qp(raw,alt.String(),alt.Length(), false);
+				len = encode_qp(raw,alt.String(),alt.Length(),false);
 				raw[len] = 0;
 				break;
 			case eight_bit:

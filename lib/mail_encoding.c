@@ -19,13 +19,13 @@ const char hex_alphabet[16] = {'0','1','2','3','4','5','6','7','8','9','A','B','
 
 
 _EXPORT ssize_t
-encode(mail_encoding encoding, char *out, const char *in, off_t length, int encode_spaces)
+encode(mail_encoding encoding, char *out, const char *in, off_t length, int headerMode)
 {
 	switch (encoding) {
 		case base64:
-			return encode_base64(out,in,length);
+			return encode_base64(out,in,length,headerMode);
 		case quoted_printable:
-			return encode_qp(out,in,length,encode_spaces);
+			return encode_qp(out,in,length,headerMode);
 		case seven_bit:
 		case eight_bit:
 		case no_encoding:
@@ -112,7 +112,7 @@ encoding_for_cte(const char *cte)
 
 
 _EXPORT ssize_t
-encode_base64(char *out, const char *in, off_t length)
+encode_base64(char *out, const char *in, off_t length, int headerMode)
 {
 	unsigned long concat;
 	int i = 0;
@@ -142,7 +142,10 @@ encode_base64(char *out, const char *in, off_t length)
 
 		curr_linelength += 4;
 		
-		if (curr_linelength > BASE64_LINELENGTH) {
+		// No line breaks in header mode, since the text is part of a Subject:
+		// line or some other single header line.  The header code will do word
+		// wrapping separately from this encoding stuff.
+		if (!headerMode && curr_linelength > BASE64_LINELENGTH) {
 			out[k++] = '\r';
 			out[k++] = '\n';
 			
@@ -260,7 +263,7 @@ decode_qp(char *out, const char *in, off_t length, int underscore_is_space)
 
 
 _EXPORT ssize_t
-encode_qp(char *out, const char *in, off_t length, int encode_spaces)
+encode_qp(char *out, const char *in, off_t length, int headerMode)
 {
 	int g = 0, i = 0;
 	
@@ -283,9 +286,9 @@ encode_qp(char *out, const char *in, off_t length, int encode_spaces)
 			out[g++] = hex_alphabet[(in[i] >> 4) & 0x0f];
 			out[g++] = hex_alphabet[in[i] & 0x0f];
 		}
-		else if (encode_spaces && (in[i] == ' ' || in[i] == '\t'))
+		else if (headerMode && (in[i] == ' ' || in[i] == '\t'))
 			out[g++] = '_';
-		else if (encode_spaces && (in[i] >= 0 && in[i] < 32)) {
+		else if (headerMode && (in[i] >= 0 && in[i] < 32)) {
 			// Control codes in headers need to be sanitized, otherwise certain
 			// Japanese ISPs mangle the headers badly.  But they don't mangle
 			// the body.

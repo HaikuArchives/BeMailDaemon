@@ -2810,7 +2810,8 @@ status_t
 TMailWindow::Send(bool now)
 {
 	uint32			characterSetToUse = gMailCharacterSet;
-	mail_encoding	encodingRelatedToCharset = quoted_printable;
+	mail_encoding	encodingForBody = quoted_printable;
+	mail_encoding	encodingForHeaders = quoted_printable;
 
 	if (fHeaderView != NULL)
 		characterSetToUse = fHeaderView->fCharacterSetUserSees;
@@ -2821,11 +2822,20 @@ TMailWindow::Send(bool now)
 	// prefer it for the smaller size.
 	if (characterSetToUse == B_SJIS_CONVERSION ||
 		characterSetToUse == B_EUC_CONVERSION)
-		encodingRelatedToCharset = base64;
+		encodingForBody = base64;
 	else if (characterSetToUse == B_JIS_CONVERSION)
-		encodingRelatedToCharset = seven_bit;
+		encodingForBody = seven_bit;
 	else if (characterSetToUse == B_EUC_KR_CONVERSION)
-		encodingRelatedToCharset = eight_bit;
+		encodingForBody = eight_bit;
+
+	// Using quoted printable on almost completely non-ASCII Japanese is a
+	// waste of time.  Besides, some stupid cell phone services need base64 in
+	// the headers.
+	if (characterSetToUse == B_SJIS_CONVERSION ||
+		characterSetToUse == B_EUC_CONVERSION ||
+		characterSetToUse == B_JIS_CONVERSION ||
+		characterSetToUse == B_EUC_KR_CONVERSION)
+		encodingForHeaders = base64;
 
 	if (!now)
 	{
@@ -2850,7 +2860,7 @@ TMailWindow::Send(bool now)
 		if (result == B_OK)
 		{
 			Zoidberg::Mail::Message mail(&file);
-			mail.SetTo(fHeaderView->fTo->Text(), characterSetToUse, quoted_printable);
+			mail.SetTo(fHeaderView->fTo->Text(), characterSetToUse, encodingForHeaders);
 
 			if (fHeaderView->fChain != ~0L)
 				mail.SendViaAccount(fHeaderView->fChain);
@@ -2864,17 +2874,15 @@ TMailWindow::Send(bool now)
 			// the mail will be deleted when the window is closed
 			fMail = new Zoidberg::Mail::Message;
 
-		// Headers are always in quoted_printable since base64 encoding tends
-		// to add line feeds at the wrong times, which is bad for headers.  Had
-		// an embarrassing bug where replying to a message and clearing the CC
-		// field meant that it got sent out anyway, so pass in empty strings
+		// Had an embarrassing bug where replying to a message and clearing the
+		// CC field meant that it got sent out anyway, so pass in empty strings
 		// when changing the header to force it to remove the header.
 
-		fMail->SetTo(fHeaderView->fTo->Text(), characterSetToUse, quoted_printable);
+		fMail->SetTo(fHeaderView->fTo->Text(), characterSetToUse, encodingForHeaders);
 
-		fMail->SetSubject(fHeaderView->fSubject->Text(), characterSetToUse, quoted_printable);
+		fMail->SetSubject(fHeaderView->fSubject->Text(), characterSetToUse, encodingForHeaders);
 
-		fMail->SetCC(fHeaderView->fCc->Text(), characterSetToUse, quoted_printable);
+		fMail->SetCC(fHeaderView->fCc->Text(), characterSetToUse, encodingForHeaders);
 
 		fMail->SetBCC(fHeaderView->fBcc->Text());
 
@@ -2883,7 +2891,7 @@ TMailWindow::Send(bool now)
 		// the content text is always added to make sure there is a mail body
 		fMail->SetBodyTextTo("");
 		fContentView->fTextView->AddAsContent(fMail, wrap_mode, characterSetToUse,
-			encodingRelatedToCharset);
+			encodingForBody);
 
 		if (fEnclosuresView != NULL)
 		{

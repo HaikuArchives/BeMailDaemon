@@ -372,7 +372,7 @@ status_t SimpleAttachment::RenderToRFC822(BPositionIO *render_to) {
 	if (dest == NULL)
 		return B_NO_MEMORY;
 
-	destSize = encode (_encoding, dest, src, read, false /* encode_spaces */);
+	destSize = encode (_encoding, dest, src, read, false /* headerMode */);
 	if (destSize < B_OK)
 		return destSize;
 	if (destSize > 0)

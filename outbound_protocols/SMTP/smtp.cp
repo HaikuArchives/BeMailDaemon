@@ -316,7 +316,7 @@ SMTPProtocol::Login(const char *_login, const char *password)
 		char *resp = new char[(strlen(hex_digest)+loginlen)*2 + 3 + 2];
 
 		::sprintf(resp, "%s %s"CRLF, login, hex_digest);
-		baselen = ::encode_base64(resp, resp, strlen(resp));
+		baselen = ::encode_base64(resp, resp, strlen(resp), true /* headerMode */);
 		resp[baselen] = '\0';
 		// Hack! I'm sure there is a better way to do this
 		BString t_resp(resp);
@@ -346,7 +346,7 @@ SMTPProtocol::Login(const char *_login, const char *password)
 
 		// Send login name as base64
 		char *login64 = new char[loginlen*3 + 3];
-		encodedsize = ::encode_base64(login64, (char *)login, loginlen);
+		encodedsize = ::encode_base64(login64, (char *)login, loginlen, true /* headerMode */);
 		login64[encodedsize] = '\0';
 		// Hack! I'm sure there is a better way to do this
 		BString t1_login64(login64);
@@ -361,7 +361,7 @@ SMTPProtocol::Login(const char *_login, const char *password)
 
 		// Send password as base64
 		login64 = new char[passlen*3 + 3];
-		encodedsize = ::encode_base64(login64, (char *)password, passlen);
+		encodedsize = ::encode_base64(login64, (char *)password, passlen, true /* headerMode */);
 		login64[encodedsize] = '\0';
 		// Hack! I'm sure there is a better way to do this
 		BString t2_login64(login64);
@@ -381,7 +381,7 @@ SMTPProtocol::Login(const char *_login, const char *password)
 		::memcpy(login64 + loginlen + 1, login, loginlen);
 		::memcpy(login64 + loginlen*2 + 2, password, passlen);
 
-		::encode_base64(login64, login64, ((loginlen + 1) * 2 + passlen));
+		::encode_base64(login64, login64, ((loginlen + 1) * 2 + passlen), true /* headerMode */);
 
 		char *cmd = new char[strlen(login64) + 12];
 		::sprintf(cmd,"AUTH PLAIN %s"CRLF, login64);

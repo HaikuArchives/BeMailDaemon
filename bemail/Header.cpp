@@ -191,14 +191,14 @@ THeaderView::THeaderView (
 	{
 		// Set up the character set pop-up menu on the right of "To" box.
 		r.Set (windowRect.Width() - widestCharacterSet -
-			font.StringWidth (ENCODING_TEXT) - 2 * SEPARATOR_MARGIN,
+			font.StringWidth (DECODING_TEXT) - 2 * SEPARATOR_MARGIN,
 			y - 2, windowRect.Width() - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT + 2);
-		field = new BMenuField (r, "encoding", ENCODING_TEXT, fEncodingMenu,
+		field = new BMenuField (r, "decoding", DECODING_TEXT, fEncodingMenu,
 			true /* fixedSize */,
 			B_FOLLOW_TOP | B_FOLLOW_RIGHT,
 			B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
 		field->SetFont (&font);
-		field->SetDivider (font.StringWidth(ENCODING_TEXT) + 5);
+		field->SetDivider (font.StringWidth(DECODING_TEXT) + 5);
 		AddChild(field);
 		r.Set(x - font.StringWidth(FROM_TEXT) - 11, y,
 			  field->Frame().left - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT);

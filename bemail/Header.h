@@ -54,6 +54,7 @@ All rights reserved.
 #define TO_TEXT				"To:"
 #define FROM_TEXT			"From:"
 #define ENCODING_TEXT		"Encoding:"
+#define DECODING_TEXT		"Decoding:"
 #define TO_FIELD_H			 39
 #define FROM_FIELD_H		 31
 #define TO_FIELD_V			  7

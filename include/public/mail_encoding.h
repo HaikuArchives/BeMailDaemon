@@ -32,19 +32,19 @@ extern "C" {
 #endif
 
 ssize_t encode(mail_encoding encoding, char *out, const char *in,
-	off_t length, int mask_spaces);
- // the value of mask_spaces only matters for quoted_printable
+	off_t length, int headerMode);
+	// boolean headerMode only matters for quoted_printable and base64.
 ssize_t decode(mail_encoding encoding, char *out, const char *in, off_t length,
 	int underscore_is_space);
- // the value of underscore_is_space only matters for quoted_printable
+	// the value of underscore_is_space only matters for quoted_printable.
 
 ssize_t max_encoded_length(mail_encoding encoding, off_t cur_length);
 mail_encoding encoding_for_cte(const char *content_transfer_encoding);
 
-ssize_t	encode_base64(char *out, const char *in, off_t length);
+ssize_t	encode_base64(char *out, const char *in, off_t length, int headerMode);
 ssize_t	decode_base64(char *out, const char *in, off_t length);
 
-ssize_t	encode_qp(char *out, const char *in, off_t length, int mask_spaces);
+ssize_t	encode_qp(char *out, const char *in, off_t length, int headerMode);
 ssize_t	decode_qp(char *out, const char *in, off_t length, int underscore_is_space);
 	//---underscore_is_space should be 1 if and only if you are decoding a header field
 
