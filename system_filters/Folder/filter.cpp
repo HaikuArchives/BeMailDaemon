@@ -79,9 +79,9 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 	BDirectory dir;
 	
 	BPath path = dest_string.String();
-	if (out_headers->HasString("destination")) {
+	if (out_headers->HasString("DESTINATION")) {
 		const char *string;
-		out_headers->FindString("destination",&string);
+		out_headers->FindString("DESTINATION",&string);
 		if (string[0] == '/')
 			path = string;
 		else
