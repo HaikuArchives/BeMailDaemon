@@ -2248,6 +2248,7 @@ bool TTextView::Reader::Process(const char *data, int32 data_len, bool isHeader)
 					// filter out some punctuation marks if they are the last character
 					char suffix = data[loop + index - 1];
 					if (suffix == '.'
+						|| suffix == ','
 						|| suffix == '?'
 						|| suffix == '!'
 						|| suffix == ':'
