@@ -23,11 +23,16 @@ files:
     pretty cool. Enjoy. And sorry about the spaces.
 
   SampleSpamDatabase
-    This contains a... sample spam database. It goes with the spam server, and
-    helps it figure out what is and isn't spam based on spam it has seen before.
-    Since it obviously hasn't seen any spam yet when you install this, we give
-    you some, already in machine format., Chief Justice Rehnquist: "I can't define
-    it, but I know it when I see it."
+    This contains a... sample spam database.  It goes with the spam server,
+    and helps it figure out what is and isn't spam based on spam it has seen
+    before.  Since it obviously hasn't seen any spam yet when you install this,
+    we give you some, already in machine format.  Chief Justice Rehnquist: "I
+    can't define it, but I know it when I see it."  Due to file size
+    complaints, it's now a very small (10 spam, 10 genuine example messages)
+    database, so you'll need to train it before it gets accurate.  Or you could
+    get the huge (976KB, 484 spam, 1009 genuine messages) one from version
+    2.0.0 Beta 8, available at:
+    http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/*checkout*/bemaildaemon/AGMSBayesianSpamServer/SampleDatabase?rev=release-2-0-0-beta8
 
   libmail.so
    This library provides the backend for the new mail_daemon.
