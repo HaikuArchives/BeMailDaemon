@@ -740,14 +740,14 @@ status_t Message::Send(bool send_now) {
 		if (settings_file.SendOnlyIfPPPUp()) {
 #ifdef BONE
 			int s = socket(AF_INET, SOCK_DGRAM, 0);
-			bsppp_status_t status;
+			bsppp_status_t ppp_status;
 		
-			strcpy(status.if_name, "ppp0");
-			if (ioctl(s, BONE_SERIAL_PPP_GET_STATUS, &status, sizeof(status)) != 0) {
-				close(s):
+			strcpy(ppp_status.if_name, "ppp0");
+			if (ioctl(s, BONE_SERIAL_PPP_GET_STATUS, &ppp_status, sizeof(ppp_status)) != 0) {
+				close(s);
 				return B_OK;
 			} else {
-				if (status.connection_status != BSPPP_CONNECTED) {
+				if (ppp_status.connection_status != BSPPP_CONNECTED) {
 					close(s);
 					return B_OK;
 				}
