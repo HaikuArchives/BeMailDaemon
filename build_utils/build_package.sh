@@ -76,7 +76,7 @@ for f in inbound_* outbound_* system_* ; do
 done
 
 cp documentation/read_us/README $BUILD_PATH
-mdir $BUILD_PATH/Extra\ Documentation
+mkdir $BUILD_PATH/Extra\ Documentation
 cp documentation/read_us/* $BUILD_PATH/Extra\ Documentation
 rm -f $BUILD_PATH/Extra\ Documentation/README
 cp build_utils/ExtraMenuLinksForR5Tracker.zip $BUILD_PATH/bin
