@@ -462,6 +462,7 @@ ChainRunner::GetMessages(StringList *list, int32 bytes)
 	msg->AddFlat("messages",list);
 	msg->AddInt32("bytes",bytes);
 	PostMessage(msg);
+	delete msg;
 }
 
 
@@ -473,6 +474,7 @@ ChainRunner::GetSingleMessage(const char *uid, int32 length, BPath *into)
 	msg->AddInt32("bytes",length);
 	msg->AddString("into",into->Path());
 	PostMessage(msg);
+	delete msg;
 }
 
 
