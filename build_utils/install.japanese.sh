@@ -72,7 +72,7 @@ mv -f -v "${HOME}/config/settings/Mail/Menu Links/Open Draft" "${HOME}/config/se
 mv -f -v "${HOME}/config/settings/Mail/Menu Links/Open Inbox Folder" "${HOME}/config/settings/Mail/Menu Links/I) 受信箱を開く"
 mv -f -v "${HOME}/config/settings/Mail/Menu Links/Open Mail Folder" "${HOME}/config/settings/Mail/Menu Links/M) 郵便箱を開く"
 mv -f -v "${HOME}/config/settings/Mail/Menu Links/Subject Contains…" "${HOME}/config/settings/Mail/Menu Links/S) 見出しで検索…"
-mv -f -v "${HOME}/config/settings/Mail/Menu Links/Today's E-Mail" "${HOME}/config/settings/Mail/Menu Links/T) 本日のメール"
+mv -f -v "${HOME}/config/settings/Mail/Menu Links/Received Today" "${HOME}/config/settings/Mail/Menu Links/R) 本日のメール"
 
 # Set up the spam classifier server.
 copyattr -d -m bin/AGMSBayesianSpamServer ~/config/bin/AGMSBayesianSpamServer

@@ -52,7 +52,7 @@ rm -v "${HOME}/config/settings/Mail/Menu Links/D) ドラフトを開く…"
 rm -v "${HOME}/config/settings/Mail/Menu Links/I) 受信箱を開く"
 rm -v "${HOME}/config/settings/Mail/Menu Links/M) 郵便箱を開く"
 rm -v "${HOME}/config/settings/Mail/Menu Links/S) 見出しで検索…"
-rm -v "${HOME}/config/settings/Mail/Menu Links/T) 本日のメール"
+rm -v "${HOME}/config/settings/Mail/Menu Links/R) 本日のメール"
 
 # Set up the spam classifier server.
 copyattr -d -m bin/AGMSBayesianSpamServer ~/config/bin/AGMSBayesianSpamServer
