@@ -826,6 +826,8 @@ status_t IMAP4Client::DeleteMessage(const char* uid) {
 		return B_ERROR;
 	}
 	
+	(*unique_ids) -= uid;
+	
 	return B_OK;
 }
 	
