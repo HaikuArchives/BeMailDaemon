@@ -60,7 +60,7 @@ class IMAP4Client : public Mail::RemoteStorageProtocol {
 		status_t ReceiveLine(BString &out);
 		status_t SendCommand(const char *command);
 		
-		status_t Select(const char *mb, bool force_reselect = false, bool queue_new_messages = true, bool noop = true, bool no_command = false);
+		status_t Select(const char *mb, bool force_reselect = false, bool queue_new_messages = true, bool noop = true, bool no_command = false, bool ignore_forced_reselect = false);
 		status_t Close();
 		
 		virtual status_t InitCheck(BString *) { if (net < 0 && err == B_OK) return net; return err; }
@@ -82,6 +82,8 @@ class IMAP4Client : public Mail::RemoteStorageProtocol {
 		BString selected_mb, inbox_name, hierarchy_delimiter, mb_root;
 		BList box_info;
 		status_t err;
+		
+		bool force_reselect;
 };
 
 class NoopWorker : public BHandler {
@@ -102,7 +104,7 @@ class NoopWorker : public BHandler {
 		time_t last_run;
 };
 
-IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::RemoteStorageProtocol(settings,run), commandCount(0), net(-1), selected_mb(""), noop(NULL) {
+IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::RemoteStorageProtocol(settings,run), commandCount(0), net(-1), selected_mb(""), noop(NULL), force_reselect(false) {
 	err = B_OK;
 	
 	mb_root = settings->FindString("root");
@@ -387,7 +389,7 @@ status_t IMAP4Client::DeleteMessage(const char *mailbox, const char *message) {
 	BString command = "UID STORE ";
 	command << message << " +FLAGS.SILENT (\\Deleted)";
 	
-	if (Select(mailbox) < B_OK)
+	if (Select(mailbox,false,true,true,false,true) < B_OK)
 		return B_ERROR;
 	
 	SendCommand(command.String());
@@ -396,6 +398,8 @@ status_t IMAP4Client::DeleteMessage(const char *mailbox, const char *message) {
 		runner->ShowError(command.String());
 		return B_ERROR;
 	}
+	
+	force_reselect = true;
 	
 	return B_OK;
 }
@@ -555,10 +559,15 @@ status_t IMAP4Client::Close() {
 	return B_OK;
 }
 
-status_t IMAP4Client::Select(const char *mb, bool reselect, bool queue_new_messages, bool noop, bool no_command) {
+status_t IMAP4Client::Select(const char *mb, bool reselect, bool queue_new_messages, bool noop, bool no_command, bool ignore_forced_reselect) {
+	if (force_reselect && !ignore_forced_reselect) {
+		reselect = true;
+		force_reselect = false;
+	}
+	
 	if (reselect)
 		Close();
-
+	
 	struct mailbox_info *info = (struct mailbox_info *)(box_info.ItemAt(mailboxes.IndexOf(mb)));
 	if (info == NULL)
 		return B_NAME_NOT_FOUND;
