@@ -24,7 +24,7 @@ ConfigView::ConfigView()
 
 	BRect rect(5,4,250,25);
 	rect.bottom = rect.top - 2 + itemHeight;
-	FileConfigView *fview = new FileConfigView("Fortune File:","fortune_file",true,"/boot/beos/etc/fortunes/default");
+	FileConfigView *fview = new FileConfigView("Fortune File:","fortune_file",false,"/boot/beos/etc/fortunes/default");
 	AddChild(fview);
 	
 	rect.top = rect.bottom + 8;
