@@ -12,7 +12,7 @@
 
 class ParseFilter: public MailFilter
 {
-	BString name;
+	BString name_field;
 	
   public:
 	ParseFilter(BMessage*);
@@ -25,19 +25,16 @@ class ParseFilter: public MailFilter
 };
 
 ParseFilter::ParseFilter(BMessage* msg)
-: MailFilter(msg), name()
+: MailFilter(msg), name_field("from")
 {
 	const char *n = msg->FindString("name_field");
-	if (n==NULL) n = "from";
-	name = n;
+	if (n) name_field = n;
 }
 
 status_t ParseFilter::InitCheck(BString* err){ return B_OK; }
 
 MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* headers, BPath*, BString*)
 {
-	   
-	//----Thread messages
 	char *		buf = NULL;
 	size_t		buflen = 0;
 	int32		len;
@@ -85,7 +82,7 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 	//
 	string.SetTo(headers->FindString("subject"));
 	
-	static regex_t *rebuf, re;
+	static regex_t *rebuf=NULL, re;
 	static BLocker remakelock;
 	if (rebuf==NULL && remakelock.Lock())
 	{
@@ -114,7 +111,7 @@ MDStatus ParseFilter::ProcessMailMessage(BPositionIO** data, BEntry*, BMessage* 
 //	headers->PrintToStream();
 	
 	// name
-	if (headers->FindString(name.String(),0,&string)==B_OK)
+	if (headers->FindString(name_field.String(),0,&string)==B_OK)
 	{
 		StripGook(&string);
 		headers->AddString("NAME",string);
