@@ -26,6 +26,7 @@
 #ifdef BONE
 #	include <bone_serial_ppp.h>
 #	include <unistd.h>
+#   include <sys/socket.h>
 #endif
 
 
