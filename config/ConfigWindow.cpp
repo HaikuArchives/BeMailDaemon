@@ -40,6 +40,9 @@
 #include <string.h>
 
 
+// define if you want to have an apply button
+//#define HAVE_APPLY_BUTTON
+
 const char *kEMail = "zoidberg@bug-br.org.br";
 const char *kMailto = "mailto:zoidberg@bug-br.org.br";
 const char *kWebsite = "http://www.bug-br.org.br/zoidberg/";
@@ -380,19 +383,29 @@ ConfigWindow::ConfigWindow()
 	BButton *cancelButton = new BButton(rect,"cancel","Cancel",new BMessage(kMsgCancelSettings));
 	cancelButton->GetPreferredSize(&w,&h);
 	cancelButton->ResizeTo(w,h);
+#ifdef HAVE_APPLY_BUTTON
 	cancelButton->MoveTo(saveButton->Frame().left - w - 5,rect.top);
+#else
+	cancelButton->MoveTo(saveButton->Frame().left - w - 20,rect.top);
+#endif
 	top->AddChild(cancelButton);
 
+#ifdef HAVE_APPLY_BUTTON
 	BButton *applyButton = new BButton(rect,"apply","Apply",new BMessage(kMsgApplySettings));
 	applyButton->GetPreferredSize(&w,&h);
 	applyButton->ResizeTo(w,h);
 	applyButton->MoveTo(cancelButton->Frame().left - w - 20,rect.top);
 	top->AddChild(applyButton);
+#endif
 
 	BButton *revertButton = new BButton(rect,"revert","Revert",new BMessage(kMsgRevertSettings));
 	revertButton->GetPreferredSize(&w,&h);
 	revertButton->ResizeTo(w,h);
+#ifdef HAVE_APPLY_BUTTON
 	revertButton->MoveTo(applyButton->Frame().left - w - 5,rect.top);
+#else
+	revertButton->MoveTo(cancelButton->Frame().left - w - 6,rect.top);
+#endif
 	top->AddChild(revertButton);
 
 	LoadSettings();
