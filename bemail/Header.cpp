@@ -1098,12 +1098,13 @@ QPopupMenu::EntryCreated(const entry_ref &ref, ino_t node)
 		
 		BString	name;
 		ReadAttrString(&file,"META:name",&name);
-	
+
 		BString email;
 		ReadAttrString(&file,"META:email",&email);
-	
-		AddPersonItem(&ref,node,name,email,NULL,groupMenu,superItem);
-	
+
+		if (email.Length() != 0 || name.Length() != 0)
+			AddPersonItem(&ref,node,name,email,NULL,groupMenu,superItem);
+
 		// support for 3rd-party People apps
 		for (int16 i = 2;i < 6;i++)
 		{
