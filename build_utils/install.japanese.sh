@@ -43,6 +43,18 @@ else
 	exit -1
 fi
 
+# This should be translated
+if [[ `uname -m` == BePC ]] && test ! -e ~/config/lib/libssl.so; then
+
+RETURN=`alert "You don't seem to have OpenSSL installed, which is required for IMAP." "Get OpenSSL" "I Don't Care"`
+
+if [[ $RETURN = "Get OpenSSL" ]]
+then
+	NetPositive http://www.bebits.com/app/1020 &
+fi
+
+fi
+
 quit "application/x-vnd.Be-POST"
 quit "application/x-vnd.Be-TSKB"
 quit "application/x-vnd.agmsmith.AGMSBayesianSpamServer"

@@ -57,8 +57,6 @@ copyattr -d AGMSBayesianSpamServer/SoundUncertain $BUILD_PATH/bin/SoundUncertain
 copyattr -d daemon/obj.$CPU/mail_daemon $BUILD_PATH/bin
 copyattr -d lib/libmail.so $BUILD_PATH/bin
 copyattr -d config/obj.$CPU/E-mail $BUILD_PATH/bin
-copyattr -d ~/config/lib/libcrypto.so $BUILD_PATH/bin
-copyattr -d ~/config/lib/libssl.so $BUILD_PATH/bin
 
 for f in inbound_* outbound_* system_* ; do
 	 if [ "$f" != "CVS" -a -d "$f" ]; then
