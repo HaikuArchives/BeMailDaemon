@@ -6,7 +6,7 @@
 
 #include <MailAddon.h>
 
-#include "mail_util.h"
+#include <mail_util.h>
 
 class ParseFilter: public MailFilter
 {
