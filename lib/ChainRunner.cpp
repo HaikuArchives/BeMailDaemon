@@ -65,7 +65,8 @@ ErrorLogWindow *win = NULL;
 	}
 	
 	status_t ChainRunner::init_addons() {
-		thread_id thread = spawn_thread(&thread_sync_func,NULL,10,this);
+		thread_id thread = spawn_thread(&thread_sync_func,
+			"ChainRunnerGetHostByNameHack",10,this);
 		Unlock();
 		resume_thread(thread);
 		status_t result;
