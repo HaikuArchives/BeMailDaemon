@@ -15,6 +15,7 @@
 #include <Alert.h>
 #include <Directory.h>
 #include <Application.h>
+#include <Locker.h>
 #include <MessageFilter.h>
 
 #include <stdio.h>
@@ -43,13 +44,19 @@ struct filter_image {
 
 void unload(void *id);
 
+BLocker list_lock("mdr_chainrunner_lock");
 BList running_chains, running_chain_pointers;
 	
 _EXPORT ChainRunner *
 Mail::GetRunner(int32 chain_id, Mail::StatusWindow *status, bool selfDestruct)
 {
-	if (running_chains.HasItem((void *)(chain_id)))
-		return (ChainRunner *)running_chain_pointers.ItemAt(running_chains.IndexOf((void *)(chain_id)));
+	list_lock.Lock();
+	if (running_chains.HasItem((void *)(chain_id))) {
+		ChainRunner *runner = (ChainRunner *)running_chain_pointers.ItemAt(running_chains.IndexOf((void *)(chain_id)));
+		list_lock.Unlock();
+		return runner;
+	}
+	list_lock.Unlock();
 
 	ChainRunner *runner = new ChainRunner(Mail::GetChain(chain_id), status,
 		selfDestruct, true, selfDestruct);
@@ -69,9 +76,11 @@ class DeathFilter : public BMessageFilter {
 		virtual	filter_result Filter(BMessage *, BHandler **)
 		{
 			be_app->MessageReceived(new BMessage('enda')); //---Stop new chains from starting
-
+			
+			list_lock.Lock();
 			for (int32 i = 0; i < running_chain_pointers.CountItems(); i++)
 				((ChainRunner *)(running_chain_pointers.ItemAt(i)))->Stop();
+			list_lock.Unlock();
 
 			while(running_chains.CountItems() > 0)
 				snooze(10000); // 1/100th of a second to avoid wasting CPU.
@@ -106,9 +115,11 @@ ChainRunner::~ChainRunner()
 		delete (Mail::ChainCallback *)process_cb.ItemAt(i);
 	for (int32 i = chain_cb.CountItems();i-- > 0;)
 		delete (Mail::ChainCallback *)chain_cb.ItemAt(i);*/
-		
+	
+	list_lock.Lock();
 	running_chains.RemoveItem((void *)(_chain->ID()));
 	running_chain_pointers.RemoveItem(this);
+	list_lock.Unlock();
 }
 
 
@@ -143,10 +154,12 @@ ChainRunner::Chain()
 status_t
 ChainRunner::RunChain(bool asynchronous)
 {
+	list_lock.Lock();
 	if (running_chains.HasItem((void *)(_chain->ID()))) {
 		if (destroy_chain)
 			delete _chain;
 		delete this;
+		list_lock.Unlock();
 		return B_NAME_IN_USE;
 	}
 
@@ -154,6 +167,7 @@ ChainRunner::RunChain(bool asynchronous)
 
 	running_chains.AddItem((void *)(_chain->ID()));
 	running_chain_pointers.AddItem(this);
+	list_lock.Unlock();
 
 	PostMessage('INIT');
 
@@ -280,9 +294,11 @@ ChainRunner::MessageReceived(BMessage *msg)
 					delete _statview;
 				_status->Unlock();
 			}				
-
+			
+			list_lock.Lock();
 			running_chains.RemoveItem((void *)(_chain->ID()));
 			running_chain_pointers.RemoveItem(this);
+			list_lock.Unlock();
 
 			if (save_chain)
 				_chain->Save();
