@@ -248,6 +248,7 @@ Component::SetToRFC822(BPositionIO *data, size_t /*length*/, bool /* parse_now *
 		BString header(buf, delimiter - buf);
 		header.CapitalizeEachWord(); //-------Unified case for later fetch
 
+		delimiter++; // Skip the colon.
 		while (isspace (*delimiter))
 			delimiter++; // Skip over leading white space and tabs.  To do: (comments in brackets).
 		headers.AddString(header.String(),delimiter);
