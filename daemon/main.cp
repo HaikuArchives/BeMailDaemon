@@ -163,7 +163,10 @@ void MailDaemonApp::ReadyToRun() {
 			string << new_messages;
 		else
 			string << "No";
-		string << " new messages.";,
+		if (new_messages != 1)
+			string << " new messages.";
+		else
+			string << " new message.";,
 		if (new_messages > 0)
 			string << new_messages << " 通の未読メッセージがあります ";
 		else
@@ -340,7 +343,10 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 					string << new_messages;
 				else
 					string << "No";
-				string << " new messages.";,
+				if (new_messages != 1)
+					string << " new messages.";
+				else
+					string << " new message.";,
 				if (new_messages > 0)
 					string << new_messages << " 通の未読メッセージがあります";
 				else
