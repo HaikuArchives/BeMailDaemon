@@ -18,6 +18,7 @@
  */
 
 #include <des.h>
+#include <string.h>
 
 #define ZOIDBERG_KEY "Zoidberg"
 
@@ -65,11 +66,11 @@ static unsigned char pc2[48] = {
 
 void des_decrypt(char *in,int length,char *out)
 {
-	des_setkey(ZOIDBERG_KEY,DES_DECRYPT);
+	des_setkey((unsigned char *)(ZOIDBERG_KEY),DES_DECRYPT);
 	length = (length + 7) / 8;
 	while (length-- > 0)
 	{
-		des_crypt(in,out);
+		des_crypt((unsigned char *)(in),(unsigned char *)(out));
 		in += 8;	out += 8;
 	}
 }
@@ -79,10 +80,10 @@ void des_encrypt(char *in,char *out)
 {
 	int length = (strlen(in) + 7) / 8;
 
-	des_setkey(ZOIDBERG_KEY,DES_ENCRYPT);
+	des_setkey((unsigned char *)(ZOIDBERG_KEY),DES_ENCRYPT);
 	while (length-- > 0)
 	{
-		des_crypt(in,out);
+		des_crypt((unsigned char *)(in),(unsigned char *)(out));
 		in += 8;	out += 8;
 	}
 }

@@ -33,12 +33,16 @@ bool set_passwd(BMessage *msg,const char *name,const char *password)
 	if (!password)
 		return false;
 
-	char buffer[password ? strlen(password) + 1 : 0];
+	char *buffer = new char[password ? strlen(password) + 1 : 0];
 	passwd_crypt((char *)password,buffer,sizeof(buffer));
 
-	if (msg->ReplaceData(name,B_RAW_TYPE,buffer,sizeof(buffer)) < B_OK)
-		return msg->AddData(name,B_RAW_TYPE,buffer,sizeof(buffer)) >= B_OK; 
-
+	if (msg->ReplaceData(name,B_RAW_TYPE,buffer,sizeof(buffer)) < B_OK) {
+		status_t err =  msg->AddData(name,B_RAW_TYPE,buffer,sizeof(buffer));
+		delete [] buffer;
+		return (err >= B_OK);
+	} 
+	
+	delete [] buffer;
 	return true;
 }
 
