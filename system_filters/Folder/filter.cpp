@@ -177,7 +177,7 @@ MDStatus FolderFilter::ProcessMailMessage(BPositionIO**io, BEntry* e, BMessage* 
 
 	int32 tries = 20;
 	while ((err = e->Rename(worker.String())) == B_FILE_EXISTS && --tries > 0) {
-		srand(uniquer);
+		srand(rand());
 		uniquer += (rand() >> 16) - 16384;
 
 		worker = name;
