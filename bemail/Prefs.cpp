@@ -102,7 +102,7 @@ const EncodingItem kEncodings[] =
 	// we still don't want to pretend we would use the Windows 1252 codetable;
 	// this should only be done at decoding stage, axeld.
 	// {"ISO-8859-1", B_MS_WINDOWS_CONVERSION},
-	{"ISO-8859-1", B_ISO1_CONVERSION},
+	{"ISO-8859-1 (Latin-1)", B_ISO1_CONVERSION},
 	{"ISO-8859-2", B_ISO2_CONVERSION},
 	{"ISO-8859-3", B_ISO3_CONVERSION},
 	{"ISO-8859-4", B_ISO4_CONVERSION},
@@ -125,7 +125,8 @@ const EncodingItem kEncodings[] =
 	{"DOS-437 (common)", B_MS_DOS_CONVERSION},
 	{"DOS-866 (rarer)", B_MS_DOS_866_CONVERSION},
 	{"Macintosh Roman", B_MAC_ROMAN_CONVERSION},
-	{"UTF-8 (BeOS!)", MDR_UTF8_CONVERSION},
+	{"UTF-8 (BeOS)", MDR_UTF8_CONVERSION},
+
 	{"Automatic", MDR_NULL_CONVERSION /* marks end of list, only visible when decoding */}
 };
 
