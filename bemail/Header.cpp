@@ -237,7 +237,7 @@ THeaderView::THeaderView (
 		// Put the character set box on the right of the From field.
 		r.Set (windowRect.Width() - widestCharacterSet -
 			font.StringWidth (ENCODING_TEXT) - 2 * SEPARATOR_MARGIN,
-			y - 2, windowRect.Width() - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT + 3);
+			y - 2, windowRect.Width() - SEPARATOR_MARGIN, y + TO_FIELD_HEIGHT + 2);
 		field = new BMenuField (r, "encoding", ENCODING_TEXT, fEncodingMenu,
 			true /* fixedSize */,
 			B_FOLLOW_TOP | B_FOLLOW_LEFT,
