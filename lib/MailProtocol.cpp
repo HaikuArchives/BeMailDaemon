@@ -133,23 +133,25 @@ Protocol::Protocol(BMessage *settings, ChainRunner *run)
 	runner->Chain()->MetaData()->FindFlat("manifest", manifest); //---no error checking, because if it doesn't exist, it will stay empty anyway
 	
 	uids_on_disk = new StringList;
-	BQuery fido;
-	BVolume boot;
-	entry_ref entry;
-	BVolumeRoster().GetBootVolume(&boot);
-
-	fido.SetVolume(&boot);
-	fido.PushAttr("MAIL:chain");
-	fido.PushInt32(settings->FindInt32("chain"));
-	fido.PushOp(B_EQ);
-	fido.Fetch();
-
-	BString uid;
-	while (fido.GetNextRef(&entry) == B_OK) {
-		BNode(&entry).ReadAttrString("MAIL:unique_id",&uid);
-		uids_on_disk->AddItem(uid.String());
-	}
+	BVolumeRoster volumes;
+	BVolume volume;
+	while (volumes.GetNextVolume(&volume) == B_OK) {
+		BQuery fido;
+		entry_ref entry;
 	
+		fido.SetVolume(&volume);
+		fido.PushAttr("MAIL:chain");
+		fido.PushInt32(settings->FindInt32("chain"));
+		fido.PushOp(B_EQ);
+		fido.Fetch();
+	
+		BString uid;
+		while (fido.GetNextRef(&entry) == B_OK) {
+			BNode(&entry).ReadAttrString("MAIL:unique_id",&uid);
+			uids_on_disk->AddItem(uid.String());
+		}
+	}
+		
 	(*manifest) |= (*uids_on_disk);
 	
 	if (!settings->FindBool("login_and_do_nothing_else_of_any_importance")) {
@@ -225,23 +227,26 @@ void Protocol::CheckForDeletedMessages() {
 		
 		if (uids_on_disk == NULL) {
 			StringList query_contents;
-			BQuery fido;
-			BVolume boot;
-			entry_ref entry;
-			BVolumeRoster().GetBootVolume(&boot);
-	
-			fido.SetVolume(&boot);
-			fido.PushAttr("MAIL:chain");
-			fido.PushInt32(settings->FindInt32("chain"));
-			fido.PushOp(B_EQ);
-			fido.Fetch();
-	
-			BString uid;
-			while (fido.GetNextRef(&entry) == B_OK) {
-				BNode(&entry).ReadAttrString("MAIL:unique_id",&uid);
-				query_contents.AddItem(uid.String());
+			BVolumeRoster volumes;
+			BVolume volume;
+			
+			while (volumes.GetNextVolume(&volume) == B_OK) {
+				BQuery fido;
+				entry_ref entry;
+		
+				fido.SetVolume(&volume);
+				fido.PushAttr("MAIL:chain");
+				fido.PushInt32(settings->FindInt32("chain"));
+				fido.PushOp(B_EQ);
+				fido.Fetch();
+		
+				BString uid;
+				while (fido.GetNextRef(&entry) == B_OK) {
+					BNode(&entry).ReadAttrString("MAIL:unique_id",&uid);
+					query_contents.AddItem(uid.String());
+				}
 			}
-	
+			
 			query_contents.NotHere(*manifest,&to_delete);
 		} else {
 			uids_on_disk->NotHere(*manifest,&to_delete);

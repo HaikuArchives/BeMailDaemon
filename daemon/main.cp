@@ -89,7 +89,7 @@ class MailDaemonApp : public BApplication {
 			// filter sends us, cleared when the beep is done.
 		BList fetch_done_respondents;
 		
-		BQuery *query;
+		BList queries;
 		LEDAnimation *led;
 		
 		BString alert_string;
@@ -131,28 +131,37 @@ MailDaemonApp::MailDaemonApp(void)
 void MailDaemonApp::ReadyToRun() {
 	UpdateAutoCheck(settings_file.AutoCheckInterval());
 
-	BVolume boot;
-	query = new BQuery;
+	BVolume volume;
+	BVolumeRoster roster;
 	
-	BVolumeRoster().GetBootVolume(&boot);
-	query->SetTarget(this);
-	query->SetVolume(&boot);
-	query->PushAttr(B_MAIL_ATTR_STATUS);
-	query->PushString("New");
-	query->PushOp(B_EQ);
-	query->PushAttr("BEOS:TYPE");
-	query->PushString("text/x-email");
-	query->PushOp(B_EQ);
-	query->PushAttr("BEOS:TYPE");
-	query->PushString("text/x-partial-email");
-	query->PushOp(B_EQ);
-	query->PushOp(B_OR);
-	query->PushOp(B_AND);
-	query->Fetch();
+	new_messages = 0;
 	
-	BEntry entry;
-	for (new_messages = 0; query->GetNextEntry(&entry) == B_OK; new_messages++);
-	
+	while (roster.GetNextVolume(&volume) == B_OK) {
+		{char name[255];volume.GetName(name);printf("Volume: %s\n",name);}
+		
+		BQuery *query = new BQuery;
+		
+		query->SetTarget(this);
+		query->SetVolume(&volume);
+		query->PushAttr(B_MAIL_ATTR_STATUS);
+		query->PushString("New");
+		query->PushOp(B_EQ);
+		query->PushAttr("BEOS:TYPE");
+		query->PushString("text/x-email");
+		query->PushOp(B_EQ);
+		query->PushAttr("BEOS:TYPE");
+		query->PushString("text/x-partial-email");
+		query->PushOp(B_EQ);
+		query->PushOp(B_OR);
+		query->PushOp(B_AND);
+		query->Fetch();
+		
+		BEntry entry;
+		for (; query->GetNextEntry(&entry) == B_OK; new_messages++);
+		
+		queries.AddItem(query);
+	}
+		
 	BString string;
 	MDR_DIALECT_CHOICE (
 		if (new_messages > 0)
@@ -179,7 +188,10 @@ MailDaemonApp::~MailDaemonApp()
 {
 	if (auto_check != NULL)
 		delete auto_check;
-	delete query;
+	
+	for (int32 i = 0; i < queries.CountItems(); i++)
+		delete ((BQuery *)(queries.ItemAt(i)));
+		
 	delete led;
 }
 
@@ -443,102 +455,104 @@ void MailDaemonApp::GetNewMessages(BMessage *msg) {
 }
 
 void MailDaemonApp::SendPendingMessages(BMessage *msg) {
-	BQuery query;
-	BVolume boot;
+	BVolumeRoster roster;
+	BVolume volume;
 	
-	BVolumeRoster().GetBootVolume(&boot);
-	query.SetVolume(&boot);
-	query.PushAttr(B_MAIL_ATTR_FLAGS);
-	query.PushInt32(B_MAIL_PENDING);
-	query.PushOp(B_EQ);
-	
-	query.PushAttr(B_MAIL_ATTR_FLAGS);
-	query.PushInt32(B_MAIL_PENDING | B_MAIL_SAVE);
-	query.PushOp(B_EQ);
-	
-	query.PushOp(B_OR);
-	
-	int32 chain_id = -1;
-	
-	if (msg->FindInt32("chain",&chain_id) == B_OK) {
-		query.PushAttr("MAIL:chain");
-		query.PushInt32(chain_id);
+	while (roster.GetNextVolume(&volume) == B_OK) {
+		BQuery query;
+		query.SetVolume(&volume);
+		query.PushAttr(B_MAIL_ATTR_FLAGS);
+		query.PushInt32(B_MAIL_PENDING);
 		query.PushOp(B_EQ);
-		query.PushOp(B_AND);
-	} else {
-		chain_id = -1;
-	}
-	
-	if (!msg->HasString("message_path")) {
-		if (chain_id == -1) {
-			map <int32,snuzzwut *> messages;
-			
-			query.Fetch();
-			BEntry entry;
-			BPath path;
-			BNode node;
-			int32 chain, default_chain(Mail::Settings().DefaultOutboundChainID());
-			off_t size;
-			
-			while (query.GetNextEntry(&entry) == B_OK) {
-				while (node.SetTo(&entry) == B_BUSY) snooze(100);
-				if (node.ReadAttr("MAIL:chain",B_INT32_TYPE,0,&chain,4) < B_OK)
-					chain = default_chain;
-				entry.GetPath(&path);
-				node.GetSize(&size);
-				if (messages[chain] == NULL) {
-					messages[chain] = new snuzzwut;
-					messages[chain]->bytes = 0;
-				}
-					
-				messages[chain]->msgs += path.Path();
-				messages[chain]->bytes += size;
-			}
-			
-			map<int32,snuzzwut *>::iterator iter = messages.begin();
-			map<int32,snuzzwut *>::iterator end = messages.end();
-			while (iter != end) {
-				if ((iter->first > 0) && (Mail::Chain(iter->first).ChainDirection() == outbound)) {
-					Mail::ChainRunner *runner = Mail::GetRunner(iter->first,status);
-					runner->GetMessages(&messages[iter->first]->msgs,messages[iter->first]->bytes);
-					delete messages[iter->first];
-					runner->Stop();
+		
+		query.PushAttr(B_MAIL_ATTR_FLAGS);
+		query.PushInt32(B_MAIL_PENDING | B_MAIL_SAVE);
+		query.PushOp(B_EQ);
+		
+		query.PushOp(B_OR);
+		
+		int32 chain_id = -1;
+		
+		if (msg->FindInt32("chain",&chain_id) == B_OK) {
+			query.PushAttr("MAIL:chain");
+			query.PushInt32(chain_id);
+			query.PushOp(B_EQ);
+			query.PushOp(B_AND);
+		} else {
+			chain_id = -1;
+		}
+		
+		if (!msg->HasString("message_path")) {
+			if (chain_id == -1) {
+				map <int32,snuzzwut *> messages;
+				
+				query.Fetch();
+				BEntry entry;
+				BPath path;
+				BNode node;
+				int32 chain, default_chain(Mail::Settings().DefaultOutboundChainID());
+				off_t size;
+				
+				while (query.GetNextEntry(&entry) == B_OK) {
+					while (node.SetTo(&entry) == B_BUSY) snooze(100);
+					if (node.ReadAttr("MAIL:chain",B_INT32_TYPE,0,&chain,4) < B_OK)
+						chain = default_chain;
+					entry.GetPath(&path);
+					node.GetSize(&size);
+					if (messages[chain] == NULL) {
+						messages[chain] = new snuzzwut;
+						messages[chain]->bytes = 0;
+					}
+						
+					messages[chain]->msgs += path.Path();
+					messages[chain]->bytes += size;
 				}
 				
-				iter++;
-			}
+				map<int32,snuzzwut *>::iterator iter = messages.begin();
+				map<int32,snuzzwut *>::iterator end = messages.end();
+				while (iter != end) {
+					if ((iter->first > 0) && (Mail::Chain(iter->first).ChainDirection() == outbound)) {
+						Mail::ChainRunner *runner = Mail::GetRunner(iter->first,status);
+						runner->GetMessages(&messages[iter->first]->msgs,messages[iter->first]->bytes);
+						delete messages[iter->first];
+						runner->Stop();
+					}
+					
+					iter++;
+				}
+			} else {
+				StringList ids;
+				size_t bytes = 0;
+				
+				query.Fetch();
+				BEntry entry;
+				BPath path;
+				BNode node;
+				off_t size;
+				
+				while (query.GetNextEntry(&entry) == B_OK) {
+					node.SetTo(&entry);
+					entry.GetPath(&path);
+					node.GetSize(&size);
+					ids += path.Path();
+					bytes += size;
+				}
+				
+				Mail::ChainRunner *runner = Mail::GetRunner(chain_id,status);
+				runner->GetMessages(&ids,bytes);
+				runner->Stop();
+			}	
 		} else {
+			const char *path;
+			msg->FindString("message_path",&path);
 			StringList ids;
-			size_t bytes = 0;
-			
-			query.Fetch();
-			BEntry entry;
-			BPath path;
-			BNode node;
+			ids += path;
 			off_t size;
-			
-			while (query.GetNextEntry(&entry) == B_OK) {
-				node.SetTo(&entry);
-				entry.GetPath(&path);
-				node.GetSize(&size);
-				ids += path.Path();
-				bytes += size;
-			}
-			
+			BNode(path).GetSize(&size);
 			Mail::ChainRunner *runner = Mail::GetRunner(chain_id,status);
-			runner->GetMessages(&ids,bytes);
+			runner->GetMessages(&ids,size);
 			runner->Stop();
-		}	
-	} else {
-		const char *path;
-		msg->FindString("message_path",&path);
-		StringList ids;
-		ids += path;
-		off_t size;
-		BNode(path).GetSize(&size);
-		Mail::ChainRunner *runner = Mail::GetRunner(chain_id,status);
-		runner->GetMessages(&ids,size);
-		runner->Stop();
+		}
 	}
 }
 

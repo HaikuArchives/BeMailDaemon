@@ -54,8 +54,8 @@ class _EXPORT DeskbarView : public BView {
 	
 		BBitmap		*fIcon;
 		int32		fCurrentIconState;
-	
-		BQuery		*fNewMailQuery;
+		
+		BList		fNewMailQueries;
 		int32		fNewMessages;
 
 		int32		fLastButtons;

@@ -82,7 +82,6 @@ DeskbarView::DeskbarView(BRect frame)
 	: BView(frame, "mail_daemon", B_FOLLOW_NONE, B_WILL_DRAW | B_PULSE_NEEDED)
 	, fIcon(NULL)
 	, fCurrentIconState(NEW_MAIL)
-	, fNewMailQuery(NULL)
 {
 }
 
@@ -90,7 +89,6 @@ DeskbarView::DeskbarView(BMessage *message)
 	: BView(message)
 	, fIcon(NULL)
 	, fCurrentIconState(NEW_MAIL)
-	, fNewMailQuery(NULL)
 {
 	ChangeIcon(NO_MAIL);
 }
@@ -98,35 +96,43 @@ DeskbarView::DeskbarView(BMessage *message)
 DeskbarView::~DeskbarView()
 {
 	delete fIcon;
+	for (int32 i = 0; i < fNewMailQueries.CountItems(); i++)
+		delete ((BQuery *)(fNewMailQueries.ItemAt(i)));
 }
 
 void DeskbarView::AttachedToWindow()
 {
 	if (be_roster->IsRunning("application/x-vnd.Be-POST"))
 	{
-		BVolume boot;
-		fNewMailQuery = new BQuery;
-	
-		BVolumeRoster().GetBootVolume(&boot);
-		fNewMailQuery->SetTarget(this);
-		fNewMailQuery->SetVolume(&boot);
-		fNewMailQuery->PushAttr(B_MAIL_ATTR_STATUS);
-		fNewMailQuery->PushString("New");
-		fNewMailQuery->PushOp(B_EQ);
-		fNewMailQuery->PushAttr("BEOS:TYPE");
-		fNewMailQuery->PushString("text/x-email");
-		fNewMailQuery->PushOp(B_EQ);
-		fNewMailQuery->PushAttr("BEOS:TYPE");
-		fNewMailQuery->PushString("text/x-partial-email");
-		fNewMailQuery->PushOp(B_EQ);
-		fNewMailQuery->PushOp(B_OR);
-		fNewMailQuery->PushOp(B_AND);
-		fNewMailQuery->Fetch();
+		BVolumeRoster volumes;
+		BVolume volume;
+		fNewMessages = 0;
 		
-		BEntry entry;
-		for (fNewMessages = 0; fNewMailQuery->GetNextEntry(&entry) == B_OK;)
-			if (entry.InitCheck() == B_OK)
-				fNewMessages++;
+		while (volumes.GetNextVolume(&volume) == B_OK) {
+			BQuery *fNewMailQuery = new BQuery;
+		
+			fNewMailQuery->SetTarget(this);
+			fNewMailQuery->SetVolume(&volume);
+			fNewMailQuery->PushAttr(B_MAIL_ATTR_STATUS);
+			fNewMailQuery->PushString("New");
+			fNewMailQuery->PushOp(B_EQ);
+			fNewMailQuery->PushAttr("BEOS:TYPE");
+			fNewMailQuery->PushString("text/x-email");
+			fNewMailQuery->PushOp(B_EQ);
+			fNewMailQuery->PushAttr("BEOS:TYPE");
+			fNewMailQuery->PushString("text/x-partial-email");
+			fNewMailQuery->PushOp(B_EQ);
+			fNewMailQuery->PushOp(B_OR);
+			fNewMailQuery->PushOp(B_AND);
+			fNewMailQuery->Fetch();
+			
+			BEntry entry;
+			while (fNewMailQuery->GetNextEntry(&entry) == B_OK)
+				if (entry.InitCheck() == B_OK)
+					fNewMessages++;
+			
+			fNewMailQueries.AddItem(fNewMailQuery);
+		}
 
 		ChangeIcon((fNewMessages > 0) ? NEW_MAIL : NO_MAIL);
 	}
