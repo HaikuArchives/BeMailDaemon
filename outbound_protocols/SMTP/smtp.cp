@@ -246,6 +246,63 @@ status_t SMTPProtocol::Login(const char* _login, const char* password)
 	int32 loginlen = ::strlen(login);
 	int32 passlen = ::strlen(password);
 	
+	if(fAuthType&LOGIN){
+	//******* LOGIN Authentication ( tested. works fine)
+		ssize_t encodedsize; // required by our base64 implementation
+		
+		SendCommand("AUTH LOGIN"CRLF);
+		const char* res = fLog.String();
+		
+		if(strncmp(res,"334",3)!=0)
+			return B_ERROR;
+		// Send login name as base64
+		char* login64 = new char[loginlen*3+3];
+		encodedsize = ::encode_base64(login64, (char *)login, loginlen);
+		login64[encodedsize]='\0';		
+		// Hack! I'm sure there is a better way to do this
+		BString t1_login64(login64);
+		t1_login64.Append(CRLF);
+		
+		SendCommand(t1_login64.String());
+		delete [] login64;
+		
+		res = fLog.String();
+		if(strncmp(res,"334",3)!=0)
+			return B_ERROR;
+		// Send password as base64
+		login64 = new char[passlen*3+3];
+		encodedsize = ::encode_base64(login64,(char*)password,passlen);
+		login64[encodedsize]='\0';
+		// Hack! I'm sure there is a better way to do this
+		BString t2_login64(login64);
+		t2_login64.Append(CRLF);
+
+		SendCommand(t2_login64.String());
+		delete[] login64;
+		res = fLog.String();
+		if(atol(res)<500)
+			return B_OK;
+	}
+	//******* PLAIN Authentication ( not tested yet.)
+	if(fAuthType&PLAIN){	
+		char* login64 = new char[((loginlen+1)*2+passlen)*3];
+		::memset(login64,0,((loginlen+1)*2+passlen)*3);
+		::memcpy(login64,login,loginlen);
+		::memcpy(login64+loginlen+1,login,loginlen);
+		::memcpy(login64+loginlen*2+2,password,passlen);
+		
+		::encode_base64(login64,login64,((loginlen+1)*2+passlen));
+		
+		char *cmd = new char[strlen(login64)+12];
+		::sprintf(cmd,"AUTH PLAIN %s"CRLF,login64);
+		delete[] login64;
+		
+		SendCommand(cmd);
+		delete[] cmd;	
+		const char* res = fLog.String();
+		if(atol(res)<500)
+			return B_OK;
+	}
 	if(fAuthType&CRAM_MD5)
 	{
 		//******* CRAM-MD5 Authentication ( not tested yet.)
@@ -272,7 +329,11 @@ status_t SMTPProtocol::Login(const char* _login, const char* password)
 		::sprintf(resp,"%s %s"CRLF, login, hex_digest);
 		baselen = ::encode_base64(resp,resp,strlen(resp));
 		resp[baselen]='\0';
-		SendCommand(resp);
+		// Hack! I'm sure there is a better way to do this
+		BString t_resp(resp);
+		t_resp.Append(CRLF);
+		
+		SendCommand(t_resp.String());
 		
 		delete[] resp;
 		
@@ -284,60 +345,6 @@ status_t SMTPProtocol::Login(const char* _login, const char* password)
 	if(fAuthType&DIGEST_MD5){
 	//******* DIGEST-MD5 Authentication ( not written yet..)
 		fLog = "DIGEST-MD5 Authentication is not supported";
-		return B_ERROR;
-	}
-	if(fAuthType&LOGIN){
-	//******* LOGIN Authentication ( tested. work fine)
-		SendCommand("AUTH LOGIN"CRLF);
-		const char* res = fLog.String();
-		
-		if(strncmp(res,"334",3)!=0)
-			return B_ERROR;
-		// Send login name as base64
-		char* login64 = new char[loginlen*3+3];
-		::encode_base64(login64,(char*)login,loginlen);
-		// Hack! I'm sure there is a better way to do this
-		BString t1_login64(login64);
-		t1_login64.Append(CRLF);
-		
-		SendCommand(t1_login64.String());
-		delete [] login64;
-		
-		res = fLog.String();
-		if(strncmp(res,"334",3)!=0)
-			return B_ERROR;
-		// Send password as base64
-		login64 = new char[passlen*3+3];
-		::encode_base64(login64,(char*)password,passlen);
-		// Hack! I'm sure there is a better way to do this
-		BString t2_login64(login64);
-		t2_login64.Append(CRLF);
-
-		SendCommand(t2_login64.String());
-		delete[] login64;
-		res = fLog.String();
-		if(atol(res)<500)
-			return B_OK;
-	}
-	//******* PLAIN Authentication ( not test yet.)
-	if(fAuthType&PLAIN){	
-		char* login64 = new char[((loginlen+1)*2+passlen)*3];
-		::memset(login64,0,((loginlen+1)*2+passlen)*3);
-		::memcpy(login64,login,loginlen);
-		::memcpy(login64+loginlen+1,login,loginlen);
-		::memcpy(login64+loginlen*2+2,password,passlen);
-		
-		::encode_base64(login64,login64,((loginlen+1)*2+passlen));
-		
-		char *cmd = new char[strlen(login64)+12];
-		::sprintf(cmd,"AUTH PLAIN %s"CRLF,login64);
-		delete[] login64;
-		
-		SendCommand(cmd);
-		delete[] cmd;	
-		const char* res = fLog.String();
-		if(atol(res)<500)
-			return B_OK;
 	}
 		
 	return B_ERROR;
