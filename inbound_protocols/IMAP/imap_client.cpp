@@ -773,16 +773,28 @@ status_t IMAP4Client::GetMessage(const char *mailbox, const char *message, BPosi
 		NestedString response;
 		if (GetResponse(command,&response) != NOT_COMMAND_RESPONSE && command == cmd)
 			return B_ERROR;
-		
+				
 		WasCommandOkay(command);
-		headers->AddInt32("SIZE",atoi(response[2][3]()));
-
-		for (int32 i = 0; i < response[2][5].CountItems(); i++) {
-			if (strcmp(response[2][5][i](),"\\Seen") == 0)
-				headers->AddString("STATUS","Read");
-		}
 		
-		(*data)->Write(response[2][7](),strlen(response[2][7]()));
+		for (int32 i = 0; i < response[2].CountItems(); i++) {
+			if (strcmp(response[2][i](),"RFC822.SIZE") == 0) {
+				i++;
+				headers->AddInt32("SIZE",atoi(response[2][i]()));
+			} else if (strcmp(response[2][i](),"FLAGS") == 0) {
+				i++;
+				for (int32 j = 0; j < response[2][i].CountItems(); j++) {
+					if (strcmp(response[2][i][j](),"\\Seen") == 0)
+						headers->AddString("STATUS","Read");
+					else if (strcmp(response[2][i][j](),"\\Answered") == 0) {
+						if (headers->ReplaceString("STATUS","Replied") != B_OK)
+							headers->AddString("STATUS","Replied");
+					}
+				}
+			} else if (strcmp(response[2][i](),"RFC822.HEADER") == 0) {
+				i++;
+				(*data)->Write(response[2][i](),strlen(response[2][i]()));
+			}
+		}
 		
 		*data = new IMAP4PartialReader(this,*data,message);
 		return B_OK;
