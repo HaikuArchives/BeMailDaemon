@@ -11,8 +11,6 @@
 #include <MailAddon.h>
 #include <MailSettings.h>
 
-extern "C" _IMPEXP_MAIL BMessenger* mail_messenger;
-
 //
 // Notification states:
 //

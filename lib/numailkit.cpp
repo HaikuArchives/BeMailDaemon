@@ -11,8 +11,6 @@
 
 #define timeout 5e5
 
-BMessenger *mail_daemon_messenger = new BMessenger("application/x-vnd.Be-POST");
-
 status_t WriteMessageFile(const BMessage& archive, const BPath& path, const char* name)
 {
 	status_t ret = B_OK;
