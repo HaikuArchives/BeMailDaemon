@@ -83,6 +83,7 @@ All rights reserved.
 #include "FieldMsg.h"
 #include "Words.h"
 
+
 const char *kUndoStrings[] = {
 	MDR_DIALECT_CHOICE ("Undo","Z) 取り消し"),
 	MDR_DIALECT_CHOICE ("Undo Typing","Z) 取り消し（入力）"),
@@ -101,8 +102,8 @@ const char *kRedoStrings[] = {
 	MDR_DIALECT_CHOICE ("Redo Drop", "Z) やり直し（ドロップ）")
 };
 
-bool		gHelpOnly = false;
 
+bool		gHelpOnly = false;
 bool		header_flag = false;
 bool		wrap_mode = true;
 bool		attachAttributes_mode = true;
@@ -1085,8 +1086,10 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 	//	Edit Menu
 	//
 	menu = new BMenu(MDR_DIALECT_CHOICE ("Edit","E) 編集"));
-	menu->AddItem(fUndo = new BMenuItem(MDR_DIALECT_CHOICE ("Undo","Z) やり直し"), new BMessage(B_UNDO), 'Z'));
+	menu->AddItem(fUndo = new BMenuItem(MDR_DIALECT_CHOICE ("Undo","Z) 元に戻す"), new BMessage(B_UNDO), 'Z', 0));
 	fUndo->SetTarget(NULL, this);
+	menu->AddItem(fRedo = new BMenuItem(MDR_DIALECT_CHOICE ("Redo","Z) やり直し"), new BMessage(M_REDO), 'Z', B_SHIFT_KEY));
+	fRedo->SetTarget(NULL, this);
 	menu->AddSeparatorItem();
 	menu->AddItem(fCut = new BMenuItem(MDR_DIALECT_CHOICE ("Cut","X) 切り取り"), new BMessage(B_CUT), 'X'));
 	fCut->SetTarget(NULL, this);
@@ -1668,7 +1671,7 @@ void TMailWindow::MenusBeginning()
 	if (focusTextView != NULL)
 		undoState = focusTextView->UndoState(&isRedo);
 
-	fUndo->SetLabel((isRedo) ? kRedoStrings[undoState] : kUndoStrings[undoState]);
+//	fUndo->SetLabel((isRedo) ? kRedoStrings[undoState] : kUndoStrings[undoState]);
 	fUndo->SetEnabled(undoState != B_UNDO_UNAVAILABLE);
 }
 

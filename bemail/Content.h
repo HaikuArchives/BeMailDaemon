@@ -47,6 +47,9 @@ All rights reserved.
 #include <fs_attr.h>
 #include <Point.h>
 #include <Rect.h>
+#include <MessageFilter.h>
+
+#include "KUndoBuffer.h"
 
 #define MESSAGE_TEXT		"Message:"
 #define MESSAGE_TEXT_H		 16
@@ -172,7 +175,18 @@ class TTextView : public BTextView
 		bool fHeader;
 		bool fReady;
 
+		bool	Replaced;
+		bool	Deleted;
+		KUndoBuffer	UndoBuffer;
+		KUndoBuffer	IM_UndoBuffer;
+		void	WindowActivated(bool flag);
+		void	Undo(BClipboard* clipboard);
+		void	Redo();
+
 	private:
+		bool	IM_Active; // For handling Input Method changes in undo.
+		bool	IM_Replace;
+
 		struct spell_mark;
 
 		spell_mark *FindSpellMark(int32 start, int32 end, spell_mark **_previousMark = NULL);

@@ -139,7 +139,9 @@ enum MENUS
 	/* nav */
 	M_NEXTMSG,
 	M_PREVMSG,
-	M_SAVE_POSITION
+	M_SAVE_POSITION,
+	
+	M_REDO
 };
 
 enum USER_LEVEL
@@ -282,6 +284,7 @@ class TMailWindow : public BWindow
 		BMenuItem *fSendNow;
 		BMenuItem *fSendLater;
 		BMenuItem *fUndo;
+		BMenuItem *fRedo;
 		BMenuItem *fNextMsg;
 		BMenuItem *fPrevMsg;
 		BMenuItem *fDeleteNext;

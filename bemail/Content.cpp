@@ -63,6 +63,7 @@ All rights reserved.
 #include <UTF8.h>
 #include <MenuItem.h>
 #include <Roster.h>
+#include <Input.h>
 
 #include <MailMessage.h>
 #include <MailAttachment.h>
@@ -748,6 +749,14 @@ TTextView::TTextView(BRect frame, BRect text, bool incoming, Mail::Message *mail
 		new BMessage(M_COPY)));
 
 	SetDoesUndo(true);
+
+	//Undo function
+	UndoBuffer.On();
+	IM_UndoBuffer.On();
+	Replaced = false;
+	Deleted = false;
+	IM_Active = false;
+	IM_Replace = false;
 }
 
 
@@ -994,7 +1003,24 @@ TTextView::KeyDown(const char *key, int32 count)
 void
 TTextView::MakeFocus(bool focus)
 {
-    BTextView::MakeFocus(focus);
+	if (!focus) {
+		// MakeFocus(false) は、IM も Inactive になり、そのまま確定される。
+		// しかしこの場合、input_server が B_INPUT_METHOD_EVENT(B_INPUT_METHOD_STOPPED)
+		// を送ってこないまま矛盾してしまうので、やむを得ずここでつじつまあわせ処理している。
+		IM_Active = false;
+		// IM_UndoBufferに溜まっている最後のデータがK_INSERTEDなら（確定）正規のバッファへ追加
+		if (IM_UndoBuffer.CountItems()>0) {
+			KUndoItem *im_undo = IM_UndoBuffer.ItemAt(IM_UndoBuffer.CountItems()-1);
+			if (im_undo->History == K_INSERTED) {
+				UndoBuffer.MakeNewUndoItem();
+				UndoBuffer.AddUndo(	im_undo->RedoText, im_undo->Length, im_undo->Offset, im_undo->History, im_undo->CursorPos);
+				UndoBuffer.MakeNewUndoItem();
+			}
+			IM_UndoBuffer.MakeEmpty();
+		}
+	}
+	BTextView::MakeFocus(focus);
+
 	fParent->Focus(focus);
 }
 
@@ -1280,6 +1306,48 @@ TTextView::MessageReceived(BMessage *msg)
 			}
 			break;
 		}
+		case B_INPUT_METHOD_EVENT:
+			{
+				int32 im_op;
+				//BMessenger("application/x-vnd.Geb-ViewIt").SendMessage(msg);
+				if(msg->FindInt32("be:opcode", &im_op)==B_OK){
+					switch(im_op){
+						case B_INPUT_METHOD_STARTED:
+							//printf("be:opcode=B_INPUT_METHOD_STARTED\n");
+							IM_Replace = true;
+							IM_Active = true;
+							break;
+						case B_INPUT_METHOD_STOPPED:
+							//printf("be:opcode=B_INPUT_METHOD_STOPPED\n");
+							IM_Active = false;
+							// IM_UndoBufferに溜まっている最後のデータがK_INSERTEDなら（これは確定文字列だから）正規のバッファへ追加
+							if(IM_UndoBuffer.CountItems()>0){
+								KUndoItem *im_undo = IM_UndoBuffer.ItemAt(IM_UndoBuffer.CountItems()-1);
+								if(im_undo->History == K_INSERTED){
+									UndoBuffer.MakeNewUndoItem();
+									UndoBuffer.AddUndo(	im_undo->RedoText, im_undo->Length, im_undo->Offset, im_undo->History, im_undo->CursorPos);
+									UndoBuffer.MakeNewUndoItem();
+								}
+								IM_UndoBuffer.MakeEmpty();
+							}
+							break;
+						case B_INPUT_METHOD_CHANGED:
+							//printf("be:opcode=B_INPUT_METHOD_CHANGED\n");
+							IM_Active = true;
+							break;
+						case B_INPUT_METHOD_LOCATION_REQUEST:
+							//printf("be:opcode=B_INPUT_METHOD_LOCATION_REQUEST\n");
+							IM_Active = true;
+							break;
+					}
+				}
+				this->BTextView::MessageReceived(msg);
+			}
+		case M_REDO:
+			{
+				Redo();
+			}
+			break;
 
 		default:
 			BTextView::MessageReceived(msg);
@@ -2621,6 +2689,33 @@ TTextView::InsertText(const char *insertText, int32 length, int32 offset,
 {
 	ContentChanged();
 
+	//Undo function
+	int32 cursor_pos, cursor_pos0;
+	GetSelection(&cursor_pos, &cursor_pos0);
+	if (IM_Active) {
+		// IMアクティブ時は、一旦別のバッファへ記憶
+		IM_UndoBuffer.AddUndo(insertText, length, offset, K_INSERTED, cursor_pos);
+		IM_Replace = false;
+//		printf("- Insert IM -\n");
+//		IM_UndoBuffer.PrintToStream();
+	} else {
+		if (Replaced){
+			UndoBuffer.AddUndo(insertText, length, offset, K_REPLACED, cursor_pos);
+//			printf("- Replace -\n");
+//			UndoBuffer.PrintToStream();
+		} else {
+			if (length==1) if (insertText[0]==0x0a) UndoBuffer.MakeNewUndoItem();
+			UndoBuffer.AddUndo(insertText, length, offset, K_INSERTED, cursor_pos);
+			if (length==1) if (insertText[0]==0x0a) UndoBuffer.MakeNewUndoItem();
+//			printf("- Insert -\n");
+//			UndoBuffer.PrintToStream();
+		}
+	}
+
+//	}
+	Replaced = false;
+	Deleted = false;
+
 	struct text_runs : text_run_array { text_run _runs[1]; } style;
 	if (runs == NULL && IsEditable())
 	{
@@ -2664,6 +2759,30 @@ void
 TTextView::DeleteText(int32 start, int32 finish)
 {
 	ContentChanged();
+
+	//Undo function
+	int32 cursor_pos, cursor_pos0;
+	GetSelection(&cursor_pos, &cursor_pos0);
+	if (IM_Active) {
+		if (IM_Replace) {
+			UndoBuffer.AddUndo( &Text()[start], finish - start, start, K_DELETED, cursor_pos);
+			IM_Replace = false;
+//			printf("- Delete -\n");
+//			UndoBuffer.PrintToStream();
+		} else {
+			IM_UndoBuffer.AddUndo(&Text()[start], finish - start, start, K_DELETED, cursor_pos);
+//			printf("- Delete IM -\n");
+//			UndoBuffer.PrintToStream();
+		}
+	} else {
+		UndoBuffer.AddUndo( &Text()[start], finish - start, start, K_DELETED, cursor_pos);
+//		printf("- Delete -\n");
+//		UndoBuffer.PrintToStream();
+	}
+
+	Deleted = true;
+	Replaced = true;
+
 	BTextView::DeleteText(start, finish);
 	if (fSpellCheck && IsEditable())
 	{
@@ -2978,3 +3097,111 @@ TTextView::EnableSpellCheck(bool enable)
 		RemoveSpellMarks();
 }
 
+void
+TTextView::WindowActivated(bool flag)
+{
+	if (!flag) {
+		// WindowActivated(false) は、IM も Inactive になり、そのまま確定される。
+		// しかしこの場合、input_server が B_INPUT_METHOD_EVENT(B_INPUT_METHOD_STOPPED)
+		// を送ってこないまま矛盾してしまうので、やむを得ずここでつじつまあわせ処理している。
+		// OpenBeOSで修正されることを願って暫定処置としている。
+		IM_Active = false;
+		// IM_UndoBufferに溜まっている最後のデータがK_INSERTEDなら（確定）正規のバッファへ追加
+		if (IM_UndoBuffer.CountItems()>0) {
+			KUndoItem *im_undo = IM_UndoBuffer.ItemAt(IM_UndoBuffer.CountItems()-1);
+			if (im_undo->History == K_INSERTED) {
+				UndoBuffer.MakeNewUndoItem();
+				UndoBuffer.AddUndo(	im_undo->RedoText, im_undo->Length, im_undo->Offset, im_undo->History, im_undo->CursorPos);
+				UndoBuffer.MakeNewUndoItem();
+			}
+			IM_UndoBuffer.MakeEmpty();
+		}
+	}
+	BTextView::WindowActivated(flag);
+}
+
+void
+TTextView::Undo(BClipboard* clipboard)
+{
+	if (clipboard) ;
+
+	if (IM_Active) return;
+
+//	UndoBuffer.PrintToStream();
+
+	int32 length, offset, cursor_pos;
+	undo_type history;
+	char *text;
+	status_t status;
+
+	status = UndoBuffer.Undo(&text, &length, &offset, &history, &cursor_pos);
+	if (status == B_OK) {
+		UndoBuffer.Off();
+		switch(history) {
+			case K_INSERTED:
+				BTextView::Delete(offset, offset + length);
+				Select(offset, offset);
+				break;
+			case K_DELETED:
+				BTextView::Insert(offset, text, length);
+				Select(offset, offset + length);
+				break;
+			case K_REPLACED:
+				BTextView::Delete(offset, offset + length);
+				status = UndoBuffer.Undo(&text, &length, &offset, &history, &cursor_pos);
+				if ((status == B_OK) && (history==K_DELETED)){
+					BTextView::Insert(offset, text, length);
+					Select(offset, offset + length);
+				} else {
+					::beep();
+					(new BAlert("",
+						MDR_DIALECT_CHOICE("Inconsistency occurred in the Undo/Redo buffer.",
+						"Undo/Redoバッファに矛盾が発生しました！"),"OK"))->Go();
+				}
+				break;
+		}
+		ScrollToSelection();
+		ContentChanged();
+		UndoBuffer.On();
+	}
+}
+
+void
+TTextView::Redo()
+{
+	if (IM_Active) return;
+
+	int32 length, offset, cursor_pos;
+	undo_type history;
+	char *text;
+	status_t status;
+	bool replaced;
+
+	status = UndoBuffer.Redo(&text, &length, &offset, &history, &cursor_pos, &replaced);
+	if (status == B_OK) {
+		UndoBuffer.Off();
+		switch(history) {
+			case K_INSERTED:
+				BTextView::Insert(offset, text, length);
+				Select(offset, offset + length);
+				break;
+			case K_DELETED:
+				BTextView::Delete(offset, offset + length);
+				if (replaced) {
+					UndoBuffer.Redo(&text, &length, &offset, &history, &cursor_pos, &replaced);
+					BTextView::Insert(offset, text, length);
+				}
+				Select(offset, offset + length);
+				break;
+			case K_REPLACED:
+				::beep();
+				(new BAlert("",
+					MDR_DIALECT_CHOICE("Inconsistency occurred in the Undo/Redo buffer.",
+					"Undo/Redoバッファに矛盾が発生しました！"),"OK"))->Go();
+				break;
+		}
+		ScrollToSelection();
+		ContentChanged();
+		UndoBuffer.On();
+	}
+}

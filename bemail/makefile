@@ -44,7 +44,8 @@ SRCS= BmapButton.cpp \
 	Status.cpp \
 	Utilities.cpp \
 	WIndex.cpp \
-	Words.cpp 
+	Words.cpp \
+	KUndoBuffer.cpp 
 
 #	specify the resource files to use
 #	full path or a relative path to the resource file can be used.
