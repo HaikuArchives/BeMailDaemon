@@ -19,7 +19,8 @@ using namespace Zoidberg;
 const uint32 kMsgActionMoveTo = 'argm';
 const uint32 kMsgActionDelete = 'argd';
 const uint32 kMsgActionSetTo = 'args';
-const uint32 kMsgReplyWith = 'argr';
+const uint32 kMsgActionReplyWith = 'argr';
+const uint32 kMsgActionSetRead = 'arge';
 
 
 class RuleFilterConfig : public BView {
@@ -89,7 +90,8 @@ void RuleFilterConfig::AttachedToWindow() {
 	menu->AddItem(new BMenuItem("Move To", new BMessage(kMsgActionMoveTo)));
 	menu->AddItem(new BMenuItem("Set Flags To", new BMessage(kMsgActionSetTo)));
 	menu->AddItem(new BMenuItem("Delete Message", new BMessage(kMsgActionDelete)));
-	menu->AddItem(new BMenuItem("Reply With", new BMessage(kMsgReplyWith)));
+	menu->AddItem(new BMenuItem("Reply With", new BMessage(kMsgActionReplyWith)));
+	menu->AddItem(new BMenuItem("Set As Read", new BMessage(kMsgActionSetRead)));
 	menu->SetTargetForItems(this);
 
 	BMenuField *field = new BMenuField(BRect(5,30,210,50),"do_what","Then",menu);
@@ -143,10 +145,17 @@ void RuleFilterConfig::MessageReceived(BMessage *msg) {
 				AddChild(arg);
 			}
 			break;
-		case kMsgReplyWith:
+		case kMsgActionReplyWith:
 			if (outbound->Parent() == NULL) {
 				arg->RemoveSelf();
 				AddChild(outbound_field);
+			}
+			break;
+		case kMsgActionSetRead:
+			arg->SetEnabled(false);
+			if (arg->Parent() == NULL) {
+				outbound_field->RemoveSelf();
+				AddChild(arg);
 			}
 			break;
 		default:

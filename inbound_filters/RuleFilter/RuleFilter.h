@@ -17,7 +17,8 @@ typedef enum {
 	Z_MOVE_TO,
 	Z_FLAG,
 	Z_TRASH,
-	Z_SET_REPLY
+	Z_SET_REPLY,
+	Z_SET_READ
 } z_mail_action_flags;
 
 class RuleFilter : public Zoidberg::Mail::Filter {

@@ -82,6 +82,10 @@ MDStatus RuleFilter::ProcessMailMessage
 		case Z_SET_REPLY:
 			BNode(entry).WriteAttr("MAIL:reply_with",B_INT32_TYPE,0,&chain_id,4);
 			break;
+		case Z_SET_READ:
+			if (io_headers->ReplaceString("STATUS", "Read") != B_OK)
+				io_headers->AddString("STATUS", "Read");
+			break;			
 		default:
 			fprintf(stderr,"Unknown do_what: 0x%04x!\n",do_what);
 	}
