@@ -1877,7 +1877,7 @@ void TMailWindow::MessageReceived(BMessage *msg)
 			//
 			if (foundRef)
 			{
-				OpenMessage(&nextRef);
+				OpenMessage(&nextRef, fHeaderView->fCharacterSetUserSees);
 				SetTrackerSelectionToCurrent();
 			}
 			else
@@ -2165,7 +2165,7 @@ void TMailWindow::MessageReceived(BMessage *msg)
 				if (GetTrackerWindowFile(&nextRef, (msg->what == M_NEXTMSG)))
 				{
 					SetCurrentMessageRead();
-					OpenMessage(&nextRef);
+					OpenMessage(&nextRef, fHeaderView->fCharacterSetUserSees);
 					SetTrackerSelectionToCurrent();
 				}
 				else
