@@ -4,7 +4,9 @@
 #define encode_base64__local_abi encode_base64__FPcPcx
 #define decode_base64__local_abi decode_base64__FPcPcxb
 #else
-#error "Find out what the GCC 2 ABI is and fix this!"
+//--------Note, this is for GCC 2 only
+#define encode_base64__local_abi encode_base64__FPcT0x
+#define decode_base64__local_abi decode_base64__FPcT0xb
 #endif
 
 extern "C" _EXPORT ssize_t encode_base64__local_abi(char *out, char *in, off_t length);
