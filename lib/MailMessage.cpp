@@ -265,11 +265,8 @@ status_t MailMessage::SetBody(PlainTextBodyComponent *body) {
 
 
 status_t MailMessage::RenderTo(BFile *file) {
-	// FIXME: please return an apropriate error code
-	if (_body == NULL) {
-		puts("no body!");
-		return B_ERROR;
-	}
+	if (_body == NULL)
+		return B_MAIL_INVALID_MAIL;
 
 	//------Copy in headers from _header_kludge_yikes
 	if (_header_kludge_yikes != NULL) {
