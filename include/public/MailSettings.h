@@ -90,8 +90,8 @@ class MailSettings
 	MailSettings();
 	~MailSettings();
 	
-	MailChain* NewChain();
-	MailChain* GetChain(uint32 id);
+	static MailChain* NewChain();
+	static MailChain* GetChain(uint32 id);
 	
 	//-------Note to Gargoyle: there *is* a reason for the following
 	//   namely, 'mnow' and 'msnd' have different functions, and some

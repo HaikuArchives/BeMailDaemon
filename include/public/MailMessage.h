@@ -25,7 +25,10 @@ class MailMessage {
 		void AddComponent(MailComponent *component);
 		MailComponent *GetComponent(int32 i);
 		
-		void Send(bool send_now, bool delete_on_send);
+		void RenderTo(BFile *file);
+		void RenderTo(BDirectory *dir);
+
+		void Send(bool send_now);
 	
 	private:
 		int32 _chain_id;

@@ -1,5 +1,9 @@
 #include <List.h>
 #include <String.h>
+#include <Directory.h>
+#include <File.h>
+#include <E-mail.h>
+#include <netdb.h>
 
 #include <malloc.h>
 #include <string.h>
@@ -8,6 +12,7 @@ class _EXPORT MailMessage;
 
 #include <MailMessage.h>
 #include <MailSettings.h>
+#include <MailDaemon.h>
 
 //-------Change the following!----------------------
 #define mime_boundary "----------Zoidberg-BeMail-temp--------"
@@ -106,5 +111,98 @@ MailComponent *MailMessage::GetComponent(int32 i) {
 	return NULL;
 }
 
-//----Come back here
-//void MailMessage::Send(bool send_now, bool delete_on_send);
+void MailMessage::RenderTo(BFile *file) {
+	BString recipients;
+	recipients << To();
+	if ((CC() != NULL) && (strlen(CC()) > 0))
+		recipients << ',' << CC();
+	if ((_bcc != NULL) && (strlen(_bcc) > 0))
+		recipients << ',' << _bcc;
+		
+	file->WriteAttrString(B_MAIL_ATTR_RECIPIENTS,&recipients);
+	
+	BString attr;
+	
+	attr = To();
+	file->WriteAttrString(B_MAIL_ATTR_TO,&attr);
+	attr = CC();
+	file->WriteAttrString(B_MAIL_ATTR_CC,&attr);
+	attr = Subject();
+	file->WriteAttrString(B_MAIL_ATTR_SUBJECT,&attr);
+	attr = ReplyTo();
+	file->WriteAttrString(B_MAIL_ATTR_REPLY,&attr);
+	attr = "Pending";
+	file->WriteAttrString(B_MAIL_ATTR_STATUS,&attr);
+	attr = "1.0";
+	file->WriteAttrString(B_MAIL_ATTR_MIME,&attr);
+	
+	int32 int_attr;
+	
+	int_attr = time(NULL);
+	file->WriteAttr(B_MAIL_ATTR_WHEN,B_TIME_TYPE,0,&int_attr,sizeof(int32));
+	int_attr = B_MAIL_PENDING | B_MAIL_SAVE;
+	file->WriteAttr(B_MAIL_ATTR_FLAGS,B_INT32_TYPE,0,&int_attr,sizeof(int32));
+	
+	/* add a message-id */
+	BString message_id;
+	/* empirical evidence indicates message id must be enclosed in
+	** angle brackets and there must be an "at" symbol in it
+	*/
+	message_id << "<";
+	message_id << system_time();
+	message_id << "-BeMail@";
+	
+	#if BONE
+		utsname uinfo;
+		uname(&uinfo);
+		message_id << uinfo.nodename;
+	#else
+		char host[255];
+		gethostname(host,255);
+		message_id << host;
+	#endif
+
+	message_id << ">";
+	_body->AddHeaderField("Message-ID: ", message_id.String());
+	
+	_body->Render(file);
+}
+	
+void MailMessage::RenderTo(BDirectory *dir) {
+	BString name;
+	name << "\"" << Subject() << "\": <" << To() << ">";
+	
+	BString worker;
+	int32 uniquer = time(NULL);
+	worker = name;
+	
+	while (dir->Contains(worker.String())) {
+		worker = name;
+		uniquer++;
+		
+		worker << ' ' << uniquer;
+	}
+		
+	BFile file;
+	dir->CreateFile(worker.String(),&file);
+	
+	RenderTo(&file);
+}
+	
+void MailMessage::Send(bool send_now) {
+	MailChain *via = new MailChain(_chain_id);
+	if ((via->InitCheck() != B_OK) || (via->ChainDirection() != outbound)) {
+		delete via;
+		via = new MailChain(MailSettings().DefaultOutboundChainID());
+	}
+	
+	BDirectory dir(via->MetaData()->FindString("path"));
+	RenderTo(&dir);
+	
+	if (send_now)
+		MailDaemon::SendQueuedMail();
+		
+	delete via;
+}
+		
+	
