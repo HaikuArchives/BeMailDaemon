@@ -151,7 +151,9 @@ class NoopWorker : public BHandler {
 				us->Close();
 			
 			if (us->selected_mb == "") {
-				us->SendCommand("SELECT INBOX");
+				BString command = "SELECT ";
+				command << us->inbox_name;
+				us->SendCommand(command.String());
 				us->selected_mb = us->inbox_name;
 				RecentMessages();
 			} else {
@@ -320,6 +322,9 @@ void IMAP4Client::InitializeMailboxes() {
 					parsed_name.ReplaceAll(response[2](),"/");
 				}
 			}
+			if (parsed_name.ByteAt(0) == '/')
+				parsed_name.Remove(0,1);
+				
 			mailboxes += parsed_name.String();
 			if (strcasecmp(parsed_name.String(),"INBOX") == 0) {
 				inbox_name = response[3]();
@@ -340,6 +345,26 @@ void IMAP4Client::InitializeMailboxes() {
 		hierarchy_delimiter = dem[2]();
 		if (hierarchy_delimiter == "" || hierarchy_delimiter == "NIL")
 			hierarchy_delimiter = "/";
+	}
+	
+	if (mb_root.ByteAt(mb_root.Length() - 1) != hierarchy_delimiter.ByteAt(0)) {	
+		command = "SELECT ";
+		command << mb_root;
+		SendCommand(command.String());
+		if (WasCommandOkay(command)) {
+			struct mailbox_info *info = new struct mailbox_info;
+			info->exists = -1;
+			info->next_uid = -1;
+			info->server_mb_name = mb_root;
+			
+			mailboxes += "";
+			box_info.AddItem(info);
+			
+			if (strcasecmp(mb_root.String(),"INBOX") == 0) {
+				inbox_name = mb_root;
+				inbox_index = box_info.CountItems() - 1;
+			}
+		}
 	}
 }
 
@@ -459,6 +484,9 @@ status_t IMAP4Client::CreateMailbox(const char *mailbox) {
 	info->next_uid = -1;
 	info->server_mb_name = mailbox;
 	info->server_mb_name.ReplaceAll("/",hierarchy_delimiter.String());
+	if (mb_root.ByteAt(mb_root.Length() - 1) != hierarchy_delimiter.ByteAt(0))
+		info->server_mb_name.Prepend(hierarchy_delimiter);
+		
 	info->server_mb_name.Prepend(mb_root.String());
 	
 	BString command;

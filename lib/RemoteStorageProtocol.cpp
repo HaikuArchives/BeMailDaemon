@@ -58,6 +58,8 @@ class UpdateHandler : public BHandler {
 					_prot->CheckForDeletedMessages(); //--- Refresh the manifest list, delete messages in locally deleted folders
 					
 					for (int32 i = 0; i < to_delete.CountItems(); i++) {
+						if (to_delete[i][0] == 0)
+							continue;
 						if (_prot->DeleteMailbox(to_delete[i]) == B_OK)
 							_prot->mailboxes -= to_delete[i];
 					}
@@ -73,11 +75,14 @@ class UpdateHandler : public BHandler {
 					watch_node(&watcher,B_WATCH_DIRECTORY,this);
 					
 					for (int32 i = 0; i < _prot->mailboxes.CountItems(); i++) {
+						
 						work_path = path;
 						work_path.Append(_prot->mailboxes[i]);
 						node.SetTo(work_path.Path());
 						node.GetNodeRef(&watcher);
 						nodes[watcher.node] = strdup(_prot->mailboxes[i]);
+						if (_prot->mailboxes[i][0] == 0)
+							continue; //--- We've covered this in the parent monitor
 						watch_node(&watcher,B_WATCH_DIRECTORY,this);
 					}
 					((Mail::ChainRunner *)(Looper()))->ResetProgress();
