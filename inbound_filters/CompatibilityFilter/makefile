@@ -120,4 +120,4 @@ DRIVER_PATH =
 include $(BUILDHOME)/etc/makefile-engine
 
 install:	default
-	mv $(TARGET) /boot/home/config/add-ons/mail_daemon/filters/
+	mv $(TARGET) /boot/home/config/add-ons/mail_daemon/inbound_filters/
