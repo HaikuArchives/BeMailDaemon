@@ -184,7 +184,8 @@ int32 ChainRunner::async_chain_runner(void *arg) {
 		
 		runner->message_cb.MakeEmpty();
 		
-		status->AddItem();
+		if (status->CountTotalItems() > 0)
+			status->AddItem();
 		
 		if (tmp.Contains(entry))
 			entry->Remove();

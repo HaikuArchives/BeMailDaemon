@@ -47,6 +47,7 @@ class StatusView : public BBox {
 				void	AddProgress(int32 how_much);
 				void	SetMessage(const char *msg);
 				void	SetMaximum(int32 max_bytes);
+				int32	CountTotalItems();
 				void	SetTotalItems(int32 items);
 				void	AddItem(void);
 		

@@ -380,6 +380,10 @@ void StatusView::SetTotalItems(int32 items) {
 	total_items = items;
 }
 
+int32 StatusView::CountTotalItems() {
+	return total_items;
+}
+
 // AddItem
 void StatusView::AddItem(void) {
 	AddSelfToWindow();
@@ -397,7 +401,7 @@ void StatusView::AddSelfToWindow() {
 //--------------------------------------------------------------------------
 //	#pragma mark -
 
-void ShowAlert(const char *title, const char *body, const char *button, alert_type type)
+_EXPORT void ShowAlert(const char *title, const char *body, const char *button, alert_type type)
 {
 	BAlert *alert = new BAlert(title,body,button,NULL,NULL,B_WIDTH_AS_USUAL,type);
 	alert->SetFeel(B_NORMAL_WINDOW_FEEL);

@@ -2,18 +2,16 @@
 #include <String.h>
 #include <Entry.h>
 #include <NodeInfo.h>
-
+#include <Path.h>
 #include <E-mail.h>
+
+#include <stdio.h>
 
 #include <MailAddon.h>
 #include <NodeMessage.h>
 #include <ChainRunner.h>
 #include <status.h>
-
 #include <FileConfigView.h>
-
-
-_EXPORT const char *pretty_name = "Outgoing Mail Folder";
 
 
 class StatusChanger : public MailCallback {
@@ -43,9 +41,6 @@ class DiskProducer : public MailFilter
 		BMessage* io_headers, BPath* io_folder, BString* io_uid
 	);
 };
-
-#include <Path.h>
-#include <stdio.h>
 DiskProducer::DiskProducer(BMessage* msg,StatusView*status)
 : MailFilter(msg)
 {
