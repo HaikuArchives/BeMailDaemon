@@ -49,7 +49,7 @@ class IMAP4Client : public Mail::Protocol {
 		
 		status_t Select(const char *mb);
 		
-		virtual status_t InitCheck(BString *) { return B_OK; }
+		virtual status_t InitCheck(BString *) { return err; }
 		
 		int GetResponse(BString &tag, NestedString *parsed_response, bool report_literals = false, bool recursion_flag = false);
 		bool WasCommandOkay(BString &response);
@@ -196,7 +196,7 @@ class NoopWorker : public BHandler {
 		IMAP4Client *us;
 };
 
-IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Protocol(settings,run), commandCount(0), net(NULL), selected_mb(""), inbox_index(-1) {
+IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Protocol(settings,run), commandCount(0), net(NULL), selected_mb(""), inbox_index(-1), sync(NULL), noop(NULL) {
 	err = B_OK;
 		
 	net = new BNetEndpoint;
@@ -236,8 +236,10 @@ IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Pro
 	command << "\"" << password << "\"";
 	SendCommand(command.String());
 	if (!WasCommandOkay(response)) {
-		response.Prepend("Error during login: ");
+		response.Prepend("Login failed. Please check your username and password.\n(");
+		response << ')';
 		runner->ShowError(response.String());
+		err = B_ERROR;
 		return;
 	}
 	
@@ -994,6 +996,8 @@ bool IMAP4Client::WasCommandOkay(BString &response) {
 	i = response.FindFirst(' ',i+1);
 	response.Remove(0,i+1);
 	response.ReplaceAll("\r\n","\n");
+	for (int32 i = response.Length()-1; response.String()[i] == '\n'; i--)
+		response.Truncate(i);
 	
 	return to_ret;
 }
