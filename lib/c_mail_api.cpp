@@ -63,3 +63,22 @@ _EXPORT status_t	get_pop_account(mail_pop_account* account, int32 index) {
 	return err;
 }
 
+
+_EXPORT status_t	get_smtp_host(char* buffer) {
+	MailChain chain(MailSettings().DefaultOutboundChainID());
+	status_t err = chain.InitCheck();
+	if (err < B_OK)
+		return err;
+		
+	BMessage settings;
+	err = chain.GetFilter(chain.CountFilters() - 1,&settings);
+	if (err < B_OK)
+		return err;
+	
+	if (settings.HasString("server"))
+		strcpy(buffer,settings.FindString("server"));
+	else
+		return B_NAME_NOT_FOUND;
+		
+	return B_OK;
+}
