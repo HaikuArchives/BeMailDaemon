@@ -139,9 +139,6 @@ ifeq ($(shell ls 2>/dev/null -1 /boot/develop/headers/be/bone/bone_api.h), /boot
 	LIBS += socket
 endif
 
-first:	default
-	addattr -t mime "BEOS:PREF_APP" "application/x-vnd.Be-POST" $(TARGET)
-
 INSTALL_DIR=/boot/beos/system/servers/
 
 include $(BUILDHOME)/etc/makefile-engine.MailD
