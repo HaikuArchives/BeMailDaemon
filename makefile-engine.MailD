@@ -1,4 +1,5 @@
-##	BeOS Generic Makefile Engine v2.2.0
+##	BeOS Generic Makefile Engine v2.2.0 modified for
+##	the Mail Daemon Replacement project.
 ##	Does all the hard work for the Generic Makefile
 ##	which simply defines the project parameters
 
@@ -80,9 +81,19 @@ ifeq ($(CPU), x86)
 	endif
 	endif
 	endif
-		
 
-	
+
+#	SETTING: set the language define.  Use "make LANGUAGE=ENGLISHUK" to choose
+#	British English, or "make LANGUAGE=JAPANESE".  Default (no define) is English.
+	ifeq ($(LANGUAGE), ENGLISHUK)
+		CFLAGS += -DMDR_DIALECT=0
+	else
+	ifeq ($(LANGUAGE), JAPANESE)
+		CFLAGS += -DMDR_DIALECT=1
+	endif
+	endif
+
+
 #	SETTING: set proper debugger flags
 	ifeq ($(DEBUGGER), TRUE)
 		DEBUG += -g

@@ -62,6 +62,7 @@ All rights reserved.
 #include <MailSettings.h>
 #include <MailDaemon.h>
 #include <mail_util.h> // For StripGook.
+#include <MDRLanguage.h>
 
 #ifndef BONE
 #	include <netdb.h>
@@ -990,15 +991,16 @@ TMailWindow::TMailWindow(BRect rect, const char *title, const entry_ref *ref, co
 	//
 	//	File Menu
 	//
-	menu = new BMenu("File");
+	menu = new BMenu(MDR_DIALECT_CHOICE ("File", "Japanese File"));
 
 	msg = new BMessage(M_NEW);
 	msg->AddInt32("type", M_NEW);
-	menu->AddItem(item = new BMenuItem("New Mail Message", msg, 'N'));
+	menu->AddItem(item = new BMenuItem(MDR_DIALECT_CHOICE ("New Mail Message",
+		"Japanese New Mail Message"), msg, 'N'));
 	item->SetTarget(be_app);
 	
 	QueryMenu *qmenu;
-	qmenu = new QueryMenu("Open Draft", false);
+	qmenu = new QueryMenu(MDR_DIALECT_CHOICE ("Open Draft", "Japanese Open Draft"), false);
 	qmenu->SetTargetForItems(be_app);
 	
 	qmenu->SetPredicate("MAIL:draft==1");
