@@ -11,6 +11,9 @@
 #include <MailAddon.h>
 
 
+class BHandler;
+
+
 namespace Zoidberg {
 
 class StringList;
