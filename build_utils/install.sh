@@ -23,6 +23,8 @@ quit "application/x-vnd.Be-TSKB"
 
 rm -rf ~/config/add-ons/mail_daemon/*
 
+mkdir -p ~/config/add-ons/mail_daemon
+
 rm -f ~/config/lib/libmail2.so
 copyattr -d -m bin/libnumail.so ~/config/lib/libnumail.so
 
