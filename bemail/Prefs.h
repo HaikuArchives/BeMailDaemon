@@ -47,8 +47,8 @@ All rights reserved.
 #define ACCOUNT_USE_DEFAULT	0
 #define ACCOUNT_FROM_MAIL	1
 
-#define	PREF_WIDTH			320
-#define PREF_HEIGHT			310
+#define	PREF_WIDTH			340
+#define PREF_HEIGHT			330
 
 #define SIG_NONE			"None"
 #define SIG_RANDOM			"Random"
@@ -60,8 +60,9 @@ class Button;
 class TPrefsWindow : public BWindow
 {
 	public:
-		TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *warp, bool *cquotes,
-			uint32 *account, int32 *replyTo, char **preamble, char **sig, uint32 *encoding,
+		TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *warp,
+			bool *attachAttributes, bool *cquotes, uint32 *account,
+			int32 *replyTo, char **preamble, char **sig, uint32 *encoding,
 			bool *buttonBar);
 		~TPrefsWindow();
 
@@ -75,6 +76,7 @@ class TPrefsWindow : public BWindow
 		BPopUpMenu *BuildSignatureMenu(char*);
 		BPopUpMenu *BuildSizeMenu(BFont*);
 		BPopUpMenu *BuildWrapMenu(bool);
+		BPopUpMenu *BuildAttachAttributesMenu(bool);
 		BPopUpMenu *BuildColoredQuotesMenu(bool quote);
 		BPopUpMenu *BuildEncodingMenu(uint32 encoding);
 		BPopUpMenu *BuildButtonBarMenu(bool show);
@@ -84,6 +86,8 @@ class TPrefsWindow : public BWindow
 
 		bool	fWrap;
 		bool	*fNewWrap;
+		bool	fAttachAttributes;
+		bool	*fNewAttachAttributes;
 		bool	fButtonBar;
 		bool	*fNewButtonBar;
 		bool	fColoredQuotes, *fNewColoredQuotes;
@@ -106,6 +110,7 @@ class TPrefsWindow : public BWindow
 		BPopUpMenu *fSizeMenu;
 		BPopUpMenu *fLevelMenu;
 		BPopUpMenu *fWrapMenu, *fColoredQuotesMenu;
+		BPopUpMenu *fAttachAttributesMenu;
 		BPopUpMenu *fAccountMenu, *fReplyToMenu;
 		BMenu *fReplyPreambleMenu;
 		BTextControl *fReplyPreamble;

@@ -104,6 +104,7 @@ bool		gHelpOnly = false;
 
 bool		header_flag = false;
 bool		wrap_mode = true;
+bool		attachAttributes_mode = true;
 bool		gColoredQuotes = true;
 bool		show_buttonbar = true;
 char		*gReplyPreamble;
@@ -264,6 +265,7 @@ TMailApp::TMailApp()
 				fPrefs->Read(gReplyPreamble, len);
 				gReplyPreamble[len] = '\0';
 			}
+			fPrefs->Read(&attachAttributes_mode, sizeof(bool));
 
 			Mail::Settings settings;
 			gDefaultChain = settings.DefaultOutboundChainID();
@@ -469,17 +471,6 @@ void TMailApp::MessageReceived(BMessage *msg)
 			break;
 		}
 
-		case M_WRAP_TEXT:
-		{
-			BMenuItem *item = NULL;
-			if (msg->FindPointer("source", (void **)&item) == B_NO_ERROR)
-			{
-				wrap_mode = !wrap_mode;
-				item->SetMarked(wrap_mode);
-			}
-			break;
-		}
-
 		case M_PREFS:
 			if (fPrefsWindow)
 				fPrefsWindow->Activate(true);
@@ -488,8 +479,9 @@ void TMailApp::MessageReceived(BMessage *msg)
 				fPrefsWindow = new TPrefsWindow(BRect(prefs_window.x, 
 						prefs_window.y, prefs_window.x + PREF_WIDTH,
 						prefs_window.y + PREF_HEIGHT),
-						&fFont, &level, &wrap_mode, &gColoredQuotes, &gDefaultChain,
-						&gUseAccountFrom, &gReplyPreamble, &signature, &gMailEncoding,
+						&fFont, &level, &wrap_mode, &attachAttributes_mode,
+						&gColoredQuotes, &gDefaultChain, &gUseAccountFrom,
+						&gReplyPreamble, &signature, &gMailEncoding,
 						&show_buttonbar);
 				fPrefsWindow->Show();
 				fPrevBBPref = show_buttonbar;
@@ -620,6 +612,7 @@ bool TMailApp::QuitRequested()
 		len = strlen(gReplyPreamble);
 		fPrefs->Write(&len, sizeof(int32));
 		fPrefs->Write(gReplyPreamble, len);
+		fPrefs->Write(&attachAttributes_mode, sizeof(bool));
 
 		if (gDefaultChain != ~0UL)
 		{
@@ -1728,6 +1721,7 @@ void TMailWindow::MessageReceived(BMessage *msg)
 				&& buttons == B_SECONDARY_MOUSE_BUTTON)
 			{
 				BPopUpMenu menu("Reply To", false, false);
+				menu.AddItem(new BMenuItem("Reply",new BMessage(M_REPLY)));
 				menu.AddItem(new BMenuItem("Reply to Sender",new BMessage(M_REPLY_TO_SENDER)));
 				menu.AddItem(new BMenuItem("Reply to All",new BMessage(M_REPLY_ALL)));
 
@@ -2819,7 +2813,7 @@ TMailWindow::Send(bool now)
 				if (!entry.Exists())
 					continue;
 
-				fMail->Attach(item->Ref());
+				fMail->Attach(item->Ref(), attachAttributes_mode);
 			}
 		}
 		if (fHeaderView->fChain != ~0L)

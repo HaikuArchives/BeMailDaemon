@@ -62,6 +62,7 @@ using namespace Zoidberg;
 #define SIZE_TEXT			"Size:"
 #define LEVEL_TEXT			"User Level:"
 #define WRAP_TEXT			"Text Wrapping:"
+#define ATTACH_ATTRIBUTES_TEXT	"Attach Attributes:"
 #define QUOTES_TEXT			"Colored Quotes:"
 #define ACCOUNT_TEXT		"Default Account:"
 #define REPLYTO_TEXT		"Reply Account:"
@@ -81,8 +82,8 @@ using namespace Zoidberg;
 #define REVERT_BUTTON_TEXT	"Revert"
 
 enum	P_MESSAGES			{P_OK = 128, P_CANCEL, P_REVERT, P_FONT,
-							 P_SIZE, P_LEVEL, P_WRAP, P_SIG, P_ENC, 
-							 P_BUTTON_BAR, P_ACCOUNT, P_REPLYTO,
+							 P_SIZE, P_LEVEL, P_WRAP, P_ATTACH_ATTRIBUTES,
+							 P_SIG, P_ENC, P_BUTTON_BAR, P_ACCOUNT, P_REPLYTO,
 							 P_REPLY_PREAMBLE, P_COLORED_QUOTES};
 
 extern BPoint	prefs_window;
@@ -119,12 +120,19 @@ const EncodingItem kEncodings[] =
 	{"ISO-8859-15", B_ISO15_CONVERSION}
 };
 
+
+static const char *kAttachedAttributesOn =
+	"Include BeOS Attributes in Attachments";
+static const char *kAttachedAttributesOff =
+	"No BeOS Attributes, just Plain Data";
+
+
 //====================================================================
 
 
-TPrefsWindow::TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *wrap, bool *cquotes,
-	uint32 *account, int32 *replyTo, char **preamble, char **sig, uint32 *encoding,
-	bool *buttonBar)
+TPrefsWindow::TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *wrap,
+	bool *attachAttributes, bool *cquotes, uint32 *account, int32 *replyTo,
+	char **preamble, char **sig, uint32 *encoding, bool *buttonBar)
 	:	BWindow(rect, "BeMail Preferences", B_TITLED_WINDOW, B_NOT_RESIZABLE |B_NOT_ZOOMABLE)
 {
 	BMenuField *menu;
@@ -132,6 +140,7 @@ TPrefsWindow::TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *wrap, bo
 	fNewFont = font;			fFont = *fNewFont;
 	fNewLevel = level;			fLevel = *fNewLevel;
 	fNewWrap = wrap;			fWrap = *fNewWrap;
+	fNewAttachAttributes = attachAttributes;	fAttachAttributes = *fNewAttachAttributes;
 	fNewColoredQuotes = cquotes;	fColoredQuotes = *fNewColoredQuotes;
 	fNewAccount = account;		fAccount = *fNewAccount;
 	fNewReplyTo = replyTo;		fReplyTo = *fNewReplyTo;
@@ -153,7 +162,7 @@ TPrefsWindow::TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *wrap, bo
 	font_height fontHeight;
 	view->GetFontHeight(&fontHeight);
 	int32 height = (int32)(fontHeight.ascent + fontHeight.descent + fontHeight.leading) + 6;
-	int32 labelWidth = (int32)view->StringWidth(ACCOUNT_TEXT) + SEPARATOR_MARGIN;
+	int32 labelWidth = (int32)view->StringWidth(ATTACH_ATTRIBUTES_TEXT) + SEPARATOR_MARGIN;
 
 	// group boxes
 
@@ -162,7 +171,7 @@ TPrefsWindow::TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *wrap, bo
 	interfaceBox->SetLabel("User Interface");
 	view->AddChild(interfaceBox);
 
-	r.top = r.bottom + 8;  r.bottom = r.top + 7 * (height + ITEM_SPACE);
+	r.top = r.bottom + 8;  r.bottom = r.top + 8 * (height + ITEM_SPACE);
 	BBox *mailBox = new BBox(r,NULL,B_FOLLOW_LEFT_RIGHT | B_FOLLOW_TOP);
 	mailBox->SetLabel("Mailing");
 	view->AddChild(mailBox);
@@ -287,6 +296,14 @@ TPrefsWindow::TPrefsWindow(BRect rect, BFont *font, int32 *level, bool *wrap, bo
 	menu->SetAlignment(B_ALIGN_RIGHT);
 	mailBox->AddChild(menu);
 	
+	r.OffsetBy(0,height + ITEM_SPACE);
+	fAttachAttributesMenu = BuildAttachAttributesMenu(*attachAttributes);
+	menu = new BMenuField(r, "attachAttributes", ATTACH_ATTRIBUTES_TEXT, fAttachAttributesMenu, B_FOLLOW_ALL,
+				B_WILL_DRAW | B_NAVIGABLE | B_NAVIGABLE_JUMP);
+	menu->SetDivider(labelWidth);
+	menu->SetAlignment(B_ALIGN_RIGHT);
+	mailBox->AddChild(menu);
+	
 	ResizeTo(Frame().Width(), fRevert->Frame().bottom + 8);
 	Show();
 }
@@ -365,6 +382,7 @@ TPrefsWindow::MessageReceived(BMessage *msg)
 			}
 			*fNewLevel = fLevel;
 			*fNewWrap = fWrap;
+			*fNewAttachAttributes = fAttachAttributes;
 
 			if (strcmp(fSignature, *fNewSignature))
 			{
@@ -403,6 +421,10 @@ TPrefsWindow::MessageReceived(BMessage *msg)
 
 				strcpy(label, fWrap ? "On" : "Off");
 				if ((item = fWrapMenu->FindItem(label)) != NULL)
+					item->SetMarked(true);
+
+				strcpy(label, fAttachAttributes ? kAttachedAttributesOn : kAttachedAttributesOff);
+				if ((item = fAttachAttributesMenu->FindItem(label)) != NULL)
 					item->SetMarked(true);
 
 				strcpy(label, fColoredQuotes ? "On" : "Off");
@@ -465,6 +487,9 @@ TPrefsWindow::MessageReceived(BMessage *msg)
 		case P_WRAP:
 			msg->FindBool("wrap", fNewWrap);
 			break;
+		case P_ATTACH_ATTRIBUTES:
+			msg->FindBool("attachAttributes", fNewAttachAttributes);
+			break;
 		case P_COLORED_QUOTES:
 			msg->FindBool("cquotes", fNewColoredQuotes);
 			break;
@@ -521,6 +546,7 @@ TPrefsWindow::MessageReceived(BMessage *msg)
 	changed = old_size != new_size
 		|| fLevel != *fNewLevel
 		|| fWrap != *fNewWrap
+		|| fAttachAttributes != *fNewAttachAttributes
 		|| fColoredQuotes != *fNewColoredQuotes
 		|| fAccount != *fNewAccount
 		|| fReplyTo != *fNewReplyTo
@@ -798,6 +824,30 @@ TPrefsWindow::BuildWrapMenu(bool wrap)
 
 
 BPopUpMenu *
+TPrefsWindow::BuildAttachAttributesMenu(bool attachAttributes)
+{
+	BMenuItem	*item;
+	BMessage	*msg;
+	BPopUpMenu	*menu;
+
+	menu = new BPopUpMenu("");
+	msg = new BMessage(P_ATTACH_ATTRIBUTES);
+	msg->AddBool("attachAttributes", true);
+	menu->AddItem(item = new BMenuItem(kAttachedAttributesOn, msg));
+	if (attachAttributes)
+		item->SetMarked(true);
+
+	msg = new BMessage(P_ATTACH_ATTRIBUTES);
+	msg->AddInt32("attachAttributes", false);
+	menu->AddItem(item = new BMenuItem(kAttachedAttributesOff, msg));
+	if (!attachAttributes)
+		item->SetMarked(true);
+
+	return menu;
+}
+
+
+BPopUpMenu *
 TPrefsWindow::BuildColoredQuotesMenu(bool quote)
 {
 	return BuildBoolMenu(P_COLORED_QUOTES,"cquotes",quote);
@@ -852,4 +902,3 @@ TPrefsWindow::BuildButtonBarMenu(bool show)
 		item->SetMarked(true);
 	return menu;
 }
-

@@ -94,7 +94,6 @@ enum MENUS
 	M_BEGINNER,
 	M_EXPERT,
 	/* file */
-	M_WRAP_TEXT,
 	M_REPLY,
 	M_REPLY_TO_SENDER,
 	M_REPLY_ALL,
