@@ -140,9 +140,10 @@ void DeletePass::Callback(MDStatus status) {
 		
 		*(us->unique_ids) -= to_delete;
 	}
-	
-	if (us->parent->Chain()->MetaData()->ReplaceFlat("manifest",us->unique_ids) < B_OK)
-		us->parent->Chain()->MetaData()->AddFlat("manifest",us->unique_ids);
+	if (us->unique_ids != NULL) {
+		if (us->parent->Chain()->MetaData()->ReplaceFlat("manifest",us->unique_ids) < B_OK)
+			us->parent->Chain()->MetaData()->AddFlat("manifest",us->unique_ids);
+	}
 }
 
 MessageDeletion::MessageDeletion(MailProtocol *home, BString *uid) :
