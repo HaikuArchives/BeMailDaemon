@@ -87,15 +87,12 @@ class NoopWorker : public BHandler {
 	public:
 		NoopWorker(IMAP4Client *a) : us(a), last_run(0) {}
 		void MessageReceived(BMessage *msg) {
-			puts("Noop message received");
 			if (msg->what != 'impn' /* IMaP Noop */)
 				return;
 				
 			if ((time(NULL) - last_run) < 9)
 				return;
-			
-			puts("Issuing NOOP");
-				
+							
 			us->Select(us->inbox_name.String());
 			last_run = time(NULL);
 		}
