@@ -2286,6 +2286,9 @@ TTextView::Reader::Process(const char *data, int32 data_len, bool isHeader)
 	int32 count = 0;
 
 	for (int32 loop = 0; loop < data_len; loop++) {
+		if (fView->fStopLoading)
+			return false;
+
 		if (fQuote && (!loop || (loop && data[loop - 1] == '\n'))) {
 			strcpy(&line[count], QUOTE);
 			count += strlen(QUOTE);
@@ -2485,7 +2488,8 @@ TTextView::Reader::Run(void *_this)
 				bodyLength = strlen(bodyText);
 				body = NULL;	// to add the HTML text as enclosure
 			}
-			reader->Process(bodyText, bodyLength);
+			if (!reader->Process(bodyText, bodyLength))
+				goto done;
 
 			if (isHTML)
 				free(bodyText);
@@ -2497,8 +2501,7 @@ TTextView::Reader::Run(void *_this)
 		//reader->fView->fMail = mail;
 	}
 
-	if (!view->fStopLoading && view->Window()->Lock())
-	{
+	if (!view->fStopLoading && view->Window()->Lock()) {
 		view->Select(0, 0);
 		view->MakeSelectable(true);
 		if (!reader->fIncoming)
