@@ -34,15 +34,6 @@ class StatusChanger : public Mail::ChainCallback {
 		const char * to_change;
 };
 
-class SMTPTermination : public Mail::ChainCallback {
-	public:
-		SMTPTermination(Mail::ChainRunner *run) : runner(run) {}
-		void Callback(status_t) { runner->Stop(); }
-		
-	private:
-		Mail::ChainRunner *runner;
-};
-
 class DiskProducer : public Mail::Filter
 {
 	BString src_string;
@@ -102,8 +93,8 @@ DiskProducer::DiskProducer(BMessage* msg,Mail::ChainRunner*status)
 		return;
 	}
 	
-	runner->RegisterProcessCallback(new SMTPTermination(runner));
 	runner->GetMessages(&paths_to_send,total_size);
+	runner->Stop();
 }
 
 status_t DiskProducer::InitCheck(BString* err)
