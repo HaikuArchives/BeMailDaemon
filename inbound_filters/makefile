@@ -1,7 +1,8 @@
 # makefile for all sample code
 
 SUBDIRS = \
-	CompatibilityFilter
+	CompatibilityFilter \
+	RuleFilter
 
 all: default
 

@@ -1,14 +1,21 @@
+#include <Node.h>
+#include <String.h>
+
+#include <stdio.h>
+
 #include "RuleFilter.h"
 
 class StatusView;
 
 RuleFilter::RuleFilter(BMessage *settings) : MailFilter(settings) {
-	BMessage *message = new BMessage;
-	for (int32 i = 0; settings->FindMessage("filter_rule",i,message) == B_OK; i++) {
-		filters.AddItem(new FilterRule(message));
-		message = new BMessage;
-	}
-	delete message;
+	settings->FindString("attribute",&attribute);
+	
+	const char *regex;
+	settings->FindString("regex",&regex);
+	matcher.SetPattern(regex,true);
+	
+	settings->FindString("argument",&arg);
+	settings->FindInt32("do_what",(long *)&do_what);
 }
 
 status_t RuleFilter::InitCheck(BString* out_message) {
@@ -17,18 +24,35 @@ status_t RuleFilter::InitCheck(BString* out_message) {
 
 MDStatus RuleFilter::ProcessMailMessage
 (
-	BPositionIO** , BEntry* ,
+	BPositionIO** , BEntry* entry,
 	BMessage* io_headers, BPath* io_folder, BString* 
 ) {
-	for (int32 i = 0; i < filters.CountItems(); i++) {
-		MDStatus result = ((FilterRule *)(filters.ItemAt(i)))->DoStuff(io_headers,io_folder);
-		switch (result) {
-			case MD_HANDLED:
-				break;
-			case MD_DISCARD:
-				return MD_DISCARD;
-		}
+	char *data;
+	io_headers->FindString(attribute,&data);
+	puts("got data");
+	if (data == NULL)
+		return MD_OK; //----That field doesn't exist? NO match
+	puts(data);
+	if (!matcher.Match(data))
+		return MD_OK; //-----There wasn't an error. We're just not supposed to do anything
+		
+	switch (do_what) {
+		case Z_MOVE_TO:
+			if (io_headers->ReplaceString("DESTINATION",arg) != B_OK)
+				io_headers->AddString("DESTINATION",arg);
+			break;
+		case Z_TRASH:
+			return MD_DISCARD;
+		case Z_FLAG:
+			{
+			BString string = arg;
+			BNode(entry).WriteAttrString("MAIL:filter_flags",&string);
+			}
+			break;
+		default:
+			fprintf(stderr,"Unknown do_what: 0x%04x!\n",do_what);
 	}
+	
 	return MD_OK;
 }
 

@@ -30,7 +30,7 @@ TYPE= SHARED
 #	if two source files with the same name (source.c or source.cpp)
 #	are included from different directories.  Also note that spaces
 #	in folder names do not work well with this makefile.
-SRCS= StringMatcher.cpp RuleFilter.cpp FilterRule.cpp
+SRCS= StringMatcher.cpp RuleFilter.cpp ConfigView.cpp
 
 #	specify the resource files to use
 #	full path or a relative path to the resource file can be used.

@@ -20,17 +20,7 @@ class RuleFilter : public MailFilter {
 			BMessage* io_headers, BPath* io_folder, BString* io_uid
 		);
 	private:
-		BList filters;
-};
-
-class FilterRule {
-	public:
-		FilterRule(BMessage *settings);
-		~FilterRule();
-		
-		virtual MDStatus DoStuff(BMessage *headers,BPath *server_path);
-	private:
 		StringMatcher matcher;
-		BMessage *actions;
-		const char *attribute;
+		char *attribute, *arg;
+		z_mail_action_flags do_what;
 };
