@@ -53,7 +53,7 @@ class MailDaemonApp : public BApplication {
 		MailSettings settings_file;
 		
 		int32 new_messages;
-		BList clean_up;
+		BList fetch_done_respondents;
 };
 
 
@@ -261,15 +261,29 @@ void MailDaemonApp::MessageReceived(BMessage *msg) {
 		case 'wsch':	// workspace changed
 			status->PostMessage(msg);
 			break;
-		/*case 'stwg': //---StaT Window Gone
+		case 'stwg': //----StaT Window Gone
 			{
-			MailChain *chain;
-			while ((chain = (MailChain *)clean_up.RemoveItem(0L)) != NULL) {
-				chain->Save();
-				delete chain;
+			BMessage *msg, reply('mnuc');
+			reply.AddInt32("num_new_messages",new_messages);
+			
+			while(msg = (BMessage *)fetch_done_respondents.RemoveItem(0L)) {
+				msg->SendReply(&reply);
+				delete msg;
 			}
 			}
-			break;  */ //-------Now handled by ChainRunner
+			break;
+		case 'mnum': //----Number of new messages
+			{
+			BMessage reply('mnuc' /* Mail NU message Count */);
+			if (msg->FindBool("wait_for_fetch_done")) {
+				fetch_done_respondents.AddItem(DetachCurrentMessage());
+				break;
+			}
+			
+			reply.AddInt32("num_new_messages",new_messages);
+			msg->SendReply(&reply);
+			}
+			break;
 		case B_QUERY_UPDATE:
 			{
 			int32 what;
@@ -346,8 +360,6 @@ void MailDaemonApp::GetNewMessages() {
 		
 		chain->RunChain(status,true,true,true);
 	}
-	
-	clean_up.AddList(list);
 }
 
 void MailDaemonApp::SendPendingMessages() {
@@ -360,6 +372,4 @@ void MailDaemonApp::SendPendingMessages() {
 		
 		chain->RunChain(status,true,true,true);
 	}
-	
-	clean_up.AddList(list);
 }
