@@ -29,13 +29,13 @@ class MailMessage : public MailComponent {
 		const char *Subject();
 		int Priority();
 		
-		void SetSubject(const char *subject);
-		void SetReplyTo(const char *reply_to);
-		void SetFrom(const char *from);
-		void SetTo(const char *from);
-		void SetCC(const char *from);
-		void SetBCC(const char *from);
-		void SetPriority(int priority);
+		void SetSubject(const char *to);
+		void SetReplyTo(const char *to);
+		void SetFrom(const char *to);
+		void SetTo(const char *to);
+		void SetCC(const char *to);
+		void SetBCC(const char *to);
+		void SetPriority(int to);
 		
 		void SendViaAccount(const char *account_name);
 		void SendViaAccount(int32 chain_id);

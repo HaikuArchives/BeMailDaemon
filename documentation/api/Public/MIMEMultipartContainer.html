@@ -427,7 +427,7 @@ and
                   <TD>
                      <P>
                      void <FONT SIZE="+1"><B><TT>AddComponent(</TT></B></FONT>
-                     MailComponent *<FONT FACE="HELVETICA" COLOR="#991122"><I>component</I></FONT>
+                     <A HREF="MailComponent.html">MailComponent</A> *<FONT FACE="HELVETICA" COLOR="#991122"><I>component</I></FONT>
                      <FONT SIZE="+1"><B><TT>)</TT></B></FONT></P>
                   </TD>
                </TR>
@@ -467,7 +467,7 @@ and
                <TR>
                   <TD>
                      <P>
-                     MailComponent * <FONT SIZE="+1"><B><TT>GetComponent(</TT></B></FONT>
+                     <A HREF="MailComponent.html">MailComponent</A> * <FONT SIZE="+1"><B><TT>GetComponent(</TT></B></FONT>
                      int32 <FONT FACE="HELVETICA" COLOR="#991122"><I>index</I></FONT>
                      <FONT SIZE="+1"><B><TT>)</TT></B></FONT></P>
                   </TD>
@@ -550,7 +550,7 @@ and
                   <TD>
                      <P>
                      status_t <FONT SIZE="+1"><B><TT>ManualGetComponent(</TT></B></FONT>
-                     MailComponent * <FONT FACE="HELVETICA" COLOR="#991122"><I>component</I></FONT>,
+                     <A HREF="MailComponent.html">MailComponent</A> * <FONT FACE="HELVETICA" COLOR="#991122"><I>component</I></FONT>,
                      int32 <FONT FACE="HELVETICA" COLOR="#991122"><I>index</I></FONT>
                      <FONT SIZE="+1"><B><TT>)</TT></B></FONT></P>
                   </TD>
@@ -563,10 +563,10 @@ and
    
    <P>Attempts to Instantiate() <FONT FACE="HELVETICA" COLOR="#991122"><I>component</I></FONT> from the component at
    <FONT FACE="HELVETICA" COLOR="#991122"><I>index</I></FONT>. Note that this will fail either if <FONT FACE="HELVETICA" COLOR="#991122"><I>component</I></FONT>->Instantiate() fails
-   or if the component at <FONT FACE="HELVETICA" COLOR="#991122"><I>index</I></FONT> either does not exist or exists only as a MailComponent and not as a raw buffer. In other words,
+   or if the component at <FONT FACE="HELVETICA" COLOR="#991122"><I>index</I></FONT> either does not exist or exists only as a <A HREF="MailComponent.html">MailComponent</A> and not as a raw buffer. In other words,
    this function will succeed if and only if the component at <FONT FACE="HELVETICA" COLOR="#991122"><I>index</I></FONT> exists, was part of the message
    when this MIMEMultipartContainer was instantiated and has not been written over since then, and <FONT FACE="HELVETICA" COLOR="#991122"><I>component</I></FONT>->Instantiate() succeeds on this buffer.
-   <FONT FACE="HELVETICA" COLOR="#991122"><I>component</I></FONT> must be a valid MailComponent.</P>
+   <FONT FACE="HELVETICA" COLOR="#991122"><I>component</I></FONT> must be a valid <A HREF="MailComponent.html">MailComponent</A>.</P>
    
    <P><B>Return Value:</B></P>
    
