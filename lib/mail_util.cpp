@@ -287,11 +287,11 @@ _EXPORT ssize_t utf8_to_rfc2047 (char **bufp, ssize_t length,uint32 charset, cha
 					break;
 				case 'q':
 					encoded = (char *)malloc(current->length * 3);
-					encoded_len = encode_qp(encoded,(char *)current->begin,current->length);
+					encoded_len = encode_qp(encoded,current->begin,current->length,true);
 					break;
 				case 'b':
 					encoded = (char *)malloc(current->length * 2);
-					encoded_len = encode_base64(encoded,(char *)current->begin,current->length);
+					encoded_len = encode_base64(encoded,current->begin,current->length);
 					break;
 			}
 			

@@ -7,8 +7,8 @@
 extern "C" {
 #endif 
 
-ssize_t	encode_base64(char *out, char *in, off_t length);
-ssize_t	decode_base64(char *out, char *in, off_t length);
+ssize_t	encode_base64(char *out, const char *in, off_t length);
+ssize_t	decode_base64(char *out, const char *in, off_t length);
 
 #ifdef __cplusplus
 }

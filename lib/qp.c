@@ -6,11 +6,11 @@
 
 const char hex_alphabet[16] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
 
-_EXPORT ssize_t	decode_qp(char *out, char *in, off_t length)
+_EXPORT ssize_t	decode_qp(char *out, const char *in, off_t length)
 {
 	// decode Quoted Printable
-	char *dataout = out, *dataend = in+length;
-	char *datain = in;
+	char *dataout = out;
+	const char *datain = in, *dataend = in+length;
 	
 	while ( datain < dataend )
 	{
@@ -49,7 +49,7 @@ _EXPORT ssize_t	decode_qp(char *out, char *in, off_t length)
 	return dataout-out;	
 }
 
-_EXPORT ssize_t	encode_qp(register char *out, register char *in, register off_t length) {
+_EXPORT ssize_t	encode_qp(register char *out, register const char *in, register off_t length, register int encode_spaces) {
 	register int g = 0, i = 0;
 	
 	for (; i < length; i++) {
@@ -58,7 +58,7 @@ _EXPORT ssize_t	encode_qp(register char *out, register char *in, register off_t 
 			out[g++] = hex_alphabet[(in[i] >> 4) & 0x0f];
 			out[g++] = hex_alphabet[in[i] & 0x0f];
 		}
-		else if ((in[i] == ' ')  || (in[i] == '\t'))
+		else if (((in[i] == ' ')  || (in[i] == '\t')) && (encode_spaces))
 			out[g++] = '_';
 		else
 			out[g++] = in[i];

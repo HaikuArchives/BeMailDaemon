@@ -10,7 +10,7 @@ char base64_alphabet[64] = { //----Fast lookup table
   '/'
  };
  
-_EXPORT ssize_t	encode_base64(char *out, char *in, register off_t length) {
+_EXPORT ssize_t	encode_base64(char *out, const char *in, register off_t length) {
 	register unsigned long concat;
 	register int i = 0;
 	register int k = 0;
@@ -50,7 +50,7 @@ _EXPORT ssize_t	encode_base64(char *out, char *in, register off_t length) {
 	return k;
 }
 
-_EXPORT  ssize_t	decode_base64(char *out, char *in, register off_t length) {
+_EXPORT  ssize_t	decode_base64(char *out, const char *in, register off_t length) {
 		
 		register unsigned long concat, value;
 		register int i,j;

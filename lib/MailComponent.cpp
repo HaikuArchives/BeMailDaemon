@@ -10,6 +10,40 @@ class _EXPORT PlainTextBodyComponent;
 #include <MailComponent.h>
 #include <mail_util.h>
 
+#include <base64.h>
+#include <qp.h>
+
+struct CharsetConversionEntry
+{
+	const char *charset;
+	uint32 flavor;
+};
+
+static const CharsetConversionEntry charsets[] =
+{
+	{"iso-8859-1",  B_ISO1_CONVERSION},
+	{"iso-8859-2",  B_ISO2_CONVERSION},
+	{"iso-8859-3",  B_ISO3_CONVERSION},
+	{"iso-8859-4",  B_ISO4_CONVERSION},
+	{"iso-8859-5",  B_ISO5_CONVERSION},
+	{"iso-8859-6",  B_ISO6_CONVERSION},
+	{"iso-8859-7",  B_ISO7_CONVERSION},
+	{"iso-8859-8",  B_ISO8_CONVERSION},
+	{"iso-8859-9",  B_ISO9_CONVERSION},
+	{"iso-8859-10", B_ISO10_CONVERSION},
+	{"iso-2022-jp", B_JIS_CONVERSION},
+	{"koi8-r",      B_KOI8R_CONVERSION},
+	{"iso-8859-13", B_ISO13_CONVERSION},
+	{"iso-8859-14", B_ISO14_CONVERSION},
+	{"iso-8859-15", B_ISO15_CONVERSION},
+	{"Windows-1251",B_MS_WINDOWS_1251_CONVERSION},
+	{"Windows-1252",B_MS_WINDOWS_CONVERSION},
+	{"dos-866",     B_MS_DOS_866_CONVERSION},
+	{"dos-437",     B_MS_DOS_CONVERSION},
+	{"euc-kr",      B_EUC_KR_CONVERSION},
+	{"x-mac-roman", B_MAC_ROMAN_CONVERSION}
+};
+
 MailComponent::MailComponent() {}
 		
 void MailComponent::AddHeaderField(const char *key, const char *value, uint32 charset, char encoding, bool replace_existing) {
@@ -52,7 +86,7 @@ status_t MailComponent::Instantiate(BPositionIO *data, size_t length) {
 			continue;
 		
 		string.CopyInto(piece,0,string.FindFirst(": "));
-		piece.ToLower(); //-------Unified case for later fetch
+		//piece.ToLower(); //-------Unified case for later fetch
 		
 		headers.AddString(piece.String(),string.String() + piece.Length() + 2);
 	}
@@ -153,23 +187,121 @@ const char *PlainTextBodyComponent::Text() {
 status_t PlainTextBodyComponent::Instantiate(BPositionIO *data, size_t length) {
 	MailComponent::Instantiate(data,length);
 	
-	SetText(data);
+	BString content_type = HeaderField("Content-Type");
+	content_type.Truncate(content_type.FindFirst("; ") + 2);
+	
+	charset = B_ISO1_CONVERSION;
+	for (int32 i = 0; i < 21; i++) {
+		if (content_type == charsets[i].charset) {
+			charset = charsets[i].flavor;
+			break;
+		}
+	}
+	
+	content_type = HeaderField("Content-Transfer-Encoding");
+	encoding = -1;
+	
+	if (content_type.IFindFirst("base64") >= 0)
+		encoding = 'b';
+	if (content_type.IFindFirst("quoted-printable") >= 0)
+		encoding = 'q';
+	
+	char buffer[255];
+	size_t buf_len;
+	
+	BString alternate, alt2;
+	for (int32 offset = 0; (buf_len = data->Read(buffer,((length - offset) >= 254) ? 254 : (length - offset))) > 0; offset++) { 
+		buffer[buf_len] = 0;
+		alternate << buffer;
+	}
+	
+	alternate.ReplaceAll("\r\n","\n");
+	
+	ssize_t len;
+	char *text = alt2.LockBuffer(alternate.Length()+1);
+	switch (encoding) {
+		case 'b':
+			len = decode_base64(text,alternate.String(),alternate.Length());
+			text[len] = 0;
+			break;
+		case 'q':
+			len = decode_qp(text,alternate.String(),alternate.Length());
+			text[len] = 0;
+			break;
+		default:
+			len = alternate.Length();
+			strcpy(text,alternate.String());
+	}
+	alt2.UnlockBuffer(len+1);
+	
+	text = this->text.LockBuffer(len * 2);
+	int32 dest_len = len * 2;
+	int32 state;
+	convert_to_utf8(charset,alt2.String(),&len,text,&dest_len,&state);
+	text[dest_len] = 0;
+	this->text.UnlockBuffer(dest_len+1);
 	
 	return B_OK;
 }
 
 status_t PlainTextBodyComponent::Render(BPositionIO *render_to) {
+	BString content_type;
+	content_type << "text/plain; ";
+	
+	for (int32 i = 0; i < sizeof(charsets); i++) {
+		if (charsets[i].flavor == charset) {
+			content_type << "charset=\"" << charsets[i].charset << "\"";
+			break;
+		}
+	}
+	
+	AddHeaderField("Content-Type",content_type.String());
+	
+	const char *transfer_encoding = NULL;
+	switch (encoding) {
+		case 'b':
+			transfer_encoding = "base64";
+			break;
+		case 'q':
+			transfer_encoding = "quoted-printable";
+			break;
+		default:
+			transfer_encoding = "7bit";
+			break;
+	}
+	
+	AddHeaderField("Content-Transfer-Encoding",transfer_encoding);
+	
 	MailComponent::Render(render_to);
 	
-	char *rfc2047 = (char *)malloc(text.Length() + 1);
-	strcpy(rfc2047,text.String());
+	BString modified;
+	BString alt;
 	
-	utf8_to_rfc2047(&rfc2047,text.Length(),charset,encoding);
+	int32 len = this->text.Length();
+	int32 dest_len = len * 2;
+	char *raw = alt.LockBuffer(dest_len);
+	int32 state;
+	convert_from_utf8(charset,this->text.String(),&len,raw,&dest_len,&state);
+	raw[dest_len] = 0;
+	alt.UnlockBuffer(dest_len + 1);
+	
+	raw = modified.LockBuffer(alt.Length()+1);
+	switch (encoding) {
+		case 'b':
+			len = encode_base64(raw,alt.String(),alt.Length());
+			text[len] = 0;
+			break;
+		case 'q':
+			len = encode_qp(raw,alt.String(),alt.Length(), false);
+			text[len] = 0;
+			break;
+		default:
+			len = alt.Length();
+			strcpy(raw,alt.String());
+	}
+	modified.UnlockBuffer(len+1);
 	
 	//------Desperate bid to wrap lines
-	BString modified = rfc2047;
-	free(rfc2047);
-	
 	modified.ReplaceAll("\n","\r\n");
 	
 	int32 curr_line_length = 0;
