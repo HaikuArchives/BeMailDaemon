@@ -23,12 +23,7 @@
 #include "md5.h"
 
 #ifdef BONE
-	#ifdef _KERNEL_MODE
-		#undef _KERNEL_MODE
-		#include <sys/socket.h>
-		#include <sys/select.h>
-		#define _KERNEL_MODE 1
-	#endif
+	#include <sys/socket.h>
 	#include <arpa/inet.h>
 #else
 	#include <socket.h>
