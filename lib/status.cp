@@ -323,7 +323,7 @@ void StatusView::AddProgress(int32 how_much) {
 	if (LockLooper())
 	{
 		char final[40];
-		sprintf(final,"%.1f / %.1f kb (%d / %d messages)",float(float(status->CurrentValue() + how_much) / 1024),float(float(status->MaxValue()) / 1024),(int)items_now,(int)total_items);
+		sprintf(final,"%.1f / %.1f kb (%d / %d messages)",float(float(status->CurrentValue() + how_much) / 1024),float(float(status->MaxValue()) / 1024),(int)items_now+1,(int)total_items);
 		status->Update(how_much,NULL,final);
 		UnlockLooper();
 	}
