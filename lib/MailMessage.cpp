@@ -761,6 +761,8 @@ Message::RenderToRFC822(BPositionIO *file)
 
 		BNodeInfo(attributed).SetType(B_MAIL_TYPE);
 	}
+	
+	return B_OK;
 }
 	
 

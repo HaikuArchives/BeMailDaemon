@@ -74,6 +74,11 @@
  * set encoding (UTF-8) rather than blindly copying the characters.
  *
  * $Log$
+ * Revision 1.65  2002/11/10 18:43:55  agmsmith
+ * Added a time delay to some quitting operations so that scripting commands
+ * from a second client (like a second e-mail account) will make the program
+ * abort the quit operation.
+ *
  * Revision 1.64  2002/11/05 18:05:16  agmsmith
  * Looked at Nathan's PPC changes (thanks!), modified style a bit.
  *
@@ -1252,6 +1257,7 @@ static void WrapTextToStream (ostream& OutputStream, char *TextPntr)
 /******************************************************************************
  * Print the usage info to the stream.  Includes a list of all commands.
  */
+ostream& PrintUsage (ostream& OutputStream);
 
 ostream& PrintUsage (ostream& OutputStream)
 {
