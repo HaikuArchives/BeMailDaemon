@@ -100,7 +100,11 @@ MailChain* MailSettings::NewChain()
 	// attempted solution: use time(NULL) and hope it's unique. Is there a better idea?
 	// note that two chains in two second is quite possible. how to fix this?
 	// maybe we could | in some bigtime_t as well. hrrm...
-	
+
+	// This is to fix a problem with generating the correct id for chains.
+	// Basically if the chains dir does not exist, the first time you create
+	// an account both the inbound and outbound chains will be called 0.
+	create_directory("/boot/home/config/settings/Mail/chains",0777);	
 	
 	BPath path;
 	find_directory(B_USER_SETTINGS_DIRECTORY, &path);
