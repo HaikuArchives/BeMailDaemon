@@ -27,12 +27,12 @@ class ErrorPanel : public BView {
 			*width = Bounds().Width();
 			*height = add_next_at;
 		}
-		
+
 		void TargetedByScrollView(BScrollView *scroll_view) { scroll = scroll_view; /*scroll->ScrollBar(B_VERTICAL)->SetRange(0,add_next_at);*/ }
 		void FrameResized(float w, float /*h*/) {
 			if (w == Frame().Width())
 				return;
-				
+
 			add_next_at = 0;
 			for (int32 i = 0; i < CountChildren(); i++) {
 				ChildAt(i)->MoveTo(BPoint(0,add_next_at));
@@ -48,38 +48,62 @@ class ErrorPanel : public BView {
 		BScrollView *scroll;
 };
 
-ErrorLogWindow::ErrorLogWindow(BRect rect, const char *name, window_type type) : BWindow(rect,name,type,B_NO_WORKSPACE_ACTIVATION | B_NOT_MINIMIZABLE | B_ASYNCHRONOUS_CONTROLS) {
+
+//	#pragma mark -
+
+
+ErrorLogWindow::ErrorLogWindow(BRect rect, const char *name, window_type type)
+	: BWindow(rect, name, type,
+		B_NO_WORKSPACE_ACTIVATION | B_NOT_MINIMIZABLE | B_ASYNCHRONOUS_CONTROLS)
+{
 	rect = Bounds();
 	rect.right -= B_V_SCROLL_BAR_WIDTH;
-	//rect.bottom -= B_H_SCROLL_BAR_HEIGHT;
 	
 	view = new ErrorPanel(rect);
-	AddChild(new BScrollView("ErrorScroller",view,B_FOLLOW_ALL_SIDES,0,false,true));
+	AddChild(new BScrollView("ErrorScroller", view, B_FOLLOW_ALL_SIDES, 0, false, true));
 }
 
-void ErrorLogWindow::AddError(alert_type type,const char *message,const char *tag,bool timestamp) {
+
+void
+ErrorLogWindow::AddError(alert_type type, const char *message, const char *tag, bool timestamp)
+{
+	ErrorPanel *panel = (ErrorPanel *)view;
+
 	Lock();
-	ErrorPanel *panel = (ErrorPanel *)(view);
-	Error *new_error = new Error(BRect(0,panel->add_next_at,panel->Bounds().right,panel->add_next_at+1),type,tag,message,timestamp,
-								 (panel->alerts_displayed++ % 2 == 0) ? white : notwhite);
-	new_error->ResizeToPreferred();
-	panel->add_next_at += new_error->Bounds().Height();
-	panel->AddChild(new_error);
+
+	Error *newError = new Error(BRect(0, panel->add_next_at, panel->Bounds().right,
+		panel->add_next_at + 1), type, tag, message, timestamp,
+		(panel->alerts_displayed++ % 2 == 0) ? white : notwhite);
+
+	newError->ResizeToPreferred();
+	panel->add_next_at += newError->Bounds().Height();
+	panel->AddChild(newError);
 	panel->ResizeToPreferred();
-	if (panel->add_next_at > Frame().Height())
-		panel->scroll->ScrollBar(B_VERTICAL)->SetRange(0,panel->add_next_at - Frame().Height());
-	else
+
+	if (panel->add_next_at > Frame().Height()) {
+		BScrollBar *bar = panel->scroll->ScrollBar(B_VERTICAL);
+
+		bar->SetRange(0, panel->add_next_at - Frame().Height());
+		bar->SetSteps(1, Frame().Height());
+		bar->SetProportion(Frame().Height() / panel->add_next_at);
+	} else
 		panel->scroll->ScrollBar(B_VERTICAL)->SetRange(0,0);
+
 	if (IsHidden())
 		Show();
+
 	Unlock();
 }
 	
 
-bool ErrorLogWindow::QuitRequested() {
+bool
+ErrorLogWindow::QuitRequested()
+{
 	Hide();
+
 	while (view->CountChildren() != 0)
 		view->RemoveChild(view->ChildAt(0));
+
 	ErrorPanel *panel = (ErrorPanel *)(view);
 	panel->add_next_at = 0;
 	panel->alerts_displayed = 0;
@@ -88,16 +112,28 @@ bool ErrorLogWindow::QuitRequested() {
 	return false;
 }
 
-void ErrorLogWindow::FrameResized(float new_width, float new_height) {
-	ErrorPanel *panel = (ErrorPanel *)(view);
-	panel->ResizeTo(new_width,panel->add_next_at);
-	panel->FrameResized(new_width-B_V_SCROLL_BAR_WIDTH,panel->add_next_at);
+
+void
+ErrorLogWindow::FrameResized(float newWidth, float newHeight)
+{
+	ErrorPanel *panel = (ErrorPanel *)view;
+	panel->ResizeTo(newWidth, panel->add_next_at);
+	panel->FrameResized(newWidth - B_V_SCROLL_BAR_WIDTH, panel->add_next_at);
 	panel->Invalidate();
-	if (panel->add_next_at > new_height)
-		panel->scroll->ScrollBar(B_VERTICAL)->SetRange(0,panel->add_next_at - new_height);
-	else
+
+	if (panel->add_next_at > newHeight) {
+		BScrollBar *bar = panel->scroll->ScrollBar(B_VERTICAL);
+
+		bar->SetRange(0, panel->add_next_at - Frame().Height());
+		bar->SetSteps(1, Frame().Height());
+		bar->SetProportion(Frame().Height() / panel->add_next_at);
+	} else
 		panel->scroll->ScrollBar(B_VERTICAL)->SetRange(0,0);
 }
+
+
+//	#pragma mark -
+
 
 Error::Error(BRect rect,alert_type atype,const char *tag,const char *message,bool timestamp,rgb_color bkg) : BView(rect,"error",B_FOLLOW_LEFT | B_FOLLOW_RIGHT | B_FOLLOW_TOP,B_NAVIGABLE | B_WILL_DRAW | B_FRAME_EVENTS), type(atype) {
 	SetViewColor(bkg);
@@ -130,7 +166,7 @@ Error::Error(BRect rect,alert_type atype,const char *tag,const char *message,boo
 		atime.Append("]");
 		view->Insert(view->TextLength(),atime.String(),atime.Length(),&array);
 	}		
-	
+
 	float height,width;
 	width = view->Frame().Width();
 	height = view->TextHeight(0,view->CountLines()) + 3;
@@ -138,16 +174,29 @@ Error::Error(BRect rect,alert_type atype,const char *tag,const char *message,boo
 	AddChild(view);
 }	
 
-void Error::GetPreferredSize(float *width, float *height) {
-	*width = FindView("error_display")->Frame().Width() + 20;
-	*height = ((BTextView *)(FindView("error_display")))->TextHeight(0,LONG_MAX) + 3;
-}
-	
-void Error::Draw(BRect updateRect) {
-	FillRect(updateRect,B_SOLID_LOW);
+
+void
+Error::GetPreferredSize(float *width, float *height)
+{
+	BTextView *view = static_cast<BTextView *>(FindView("error_display"));
+
+	*width = view->Frame().Width() + 20;
+	*height = view->TextHeight(0, LONG_MAX) + 3;
 }
 
-void Error::FrameResized(float w, float h) {
-	FindView("error_display")->ResizeTo(w-20,h);
-	((BTextView *)(FindView("error_display")))->SetTextRect(BRect(0,3,w-20,h));
+
+void
+Error::Draw(BRect updateRect)
+{
+	FillRect(updateRect, B_SOLID_LOW);
+}
+
+
+void
+Error::FrameResized(float w, float h)
+{
+	BTextView *view = static_cast<BTextView *>(FindView("error_display"));
+
+	view->ResizeTo(w - 20, h);
+	view->SetTextRect(BRect(0, 3, w - 20, h));
 }
