@@ -83,8 +83,6 @@ fi
 copyattr -d -m bin/SoundGenuine "${HOME}/config/settings/AGMSBayesianSpam/SoundGenuine"
 copyattr -d -m bin/SoundSpam "${HOME}/config/settings/AGMSBayesianSpam/SoundSpam"
 copyattr -d -m bin/SoundUncertain "${HOME}/config/settings/AGMSBayesianSpam/SoundUncertain"
-# Create the MIME types and indices needed by the spam server.
-~/config/bin/AGMSBayesianSpamServer InstallThings
 
 # Patch up things that need Japanese names.  Do it here before the daemon is
 # started.  A link (rather than renaming) is done so that saved chain settings,
@@ -96,13 +94,16 @@ ln -f -s -v "${HOME}/config/add-ons/mail_daemon/system_filters/Outbox" "${HOME}/
 ln -f -s -v "${HOME}/config/add-ons/mail_daemon/system_filters/New Mail Notification" "${HOME}/config/add-ons/mail_daemon/system_filters/着信通知方法"
 
 # Various fixups...
+
 # The word index files sometimes go corrupt.  Since they are regenerated if
 # they aren't there, this is fixed by just deleting the whole annoying
 # directory.
 rm -r /boot/beos/etc/word_index/
-# And the old installer used to delete the developer's link to the libmail.so
+
+# The old installer used to delete the developer's link to the libmail.so
 # library, so put it back.  Do for x86 and ppc, will do nothing if you don't
-# have that development system installed (ln will fail harmlessly).
+# have that development system installed (ln will fail harmlessly).  Won't work
+# if you have both PPC and x86 development systems.
 if test -e "/boot/develop/lib/x86/libmail.so";	then
 	echo "/boot/develop/lib/x86/libmail.so already exists, no need to fix.";
 else
@@ -120,13 +121,23 @@ mimeset -F -apps /system/servers/mail_daemon
 mimeset -F -apps /boot/beos/apps/BeMail
 mimeset -F -apps ~/config/bin/AGMSBayesianSpamServer
 
-# The daemon will reinstall the MIME type correctly if it isn't there.
+# The daemon will reinstall the MIME type correctly if it isn't there.  This
+# also removes some cruft that accumulates in the MIME database - the related
+# attributes to display list sometimes gets a bit large and out of sync in the
+# different columns.
+rm ~/config/settings/beos_mime/text/x-email
 rm ~/config/settings/beos_mime/text/x-partial-email
 
 sleep 1
 /system/Deskbar &
 sleep 1
 /system/servers/mail_daemon &
+sleep 2
+
+# Create the MIME types and indices needed by the spam server.  Note that it
+# modifies the e-mail type by adding attributes to it, so we have to wait until
+# the daemon has started and created the text/x-email MIME type entry.
+~/config/bin/AGMSBayesianSpamServer InstallThings
 
 sync
 alert "Mail Daemon Replacementインストール
