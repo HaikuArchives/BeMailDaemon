@@ -50,10 +50,11 @@ class IMAP4Client : public Mail::Protocol {
 	private:
 		friend class SyncHandler;
 		friend class SyncCallback;
+		friend class NoopWorker;
 		
 		int32 commandCount;
 		BNetEndpoint *net;
-		BString selected_mb;
+		BString selected_mb, inbox_name;
 		StringList boxes;
 		status_t err;
 };
@@ -91,6 +92,77 @@ class SyncHandler : public BHandler {
 void SyncCallback::Callback(status_t) {
 	handler->runner = new BMessageRunner(BMessenger(handler,handler->client->runner),new BMessage('imps'),30e6,1);
 }
+
+class NoopWorker : public BHandler {
+	public:
+		NoopWorker(IMAP4Client *a) : us(a) {}
+		void RecentMessages() {
+			int32 num_messages = -1;
+			int32 total = -1;
+			char expected[255];
+			BString tag;
+			::sprintf(expected,"a%.7ld",us->commandCount);
+			while(1) {
+				NestedString response;
+				us->GetResponse(tag,&response);
+				
+				response.PrintToStream();
+				
+				if (tag == expected)
+					break;
+				
+				if (strcasecmp(response[1](),"RECENT") == 0)
+					num_messages = atoi(response[0]());
+				if (strcasecmp(response[1](),"EXISTS") == 0)
+					total = atoi(response[0]());
+			}
+			if ((num_messages <= 0) || (total <= 0))
+				return;
+				
+			BString command;
+			command = "FETCH ";
+			command << total - num_messages + 1 << ':' << total << " UID";
+			us->SendCommand(command.String());
+			::sprintf(expected,"a%.7ld",us->commandCount);
+			StringList list;
+			BString uid;
+			while(1) {
+				NestedString response;
+				us->GetResponse(tag,&response);
+							
+				if (tag == expected)
+					break;
+				
+				uid = us->inbox_name;
+				uid << '/' << response[2][1]();
+				list.AddItem(uid.String());
+			}
+			
+			us->runner->GetMessages(&list,-1);
+		}
+		void MessageReceived(BMessage *msg) {
+			if (msg->what != 'impn' /* IMaP Noop */)
+				return;
+				
+			if (strcasecmp(us->selected_mb.String(),"INBOX")) {
+				us->SendCommand("CLOSE");
+				BString blork;
+				us->WasCommandOkay(blork);
+				us->selected_mb = "";
+			}
+			
+			if (us->selected_mb == "") {
+				us->SendCommand("SELECT INBOX");
+				us->selected_mb = us->inbox_name;
+				RecentMessages();
+			} else {
+				us->SendCommand("NOOP");
+				RecentMessages();
+			}
+		}
+	private:
+		IMAP4Client *us;
+};
 
 IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Protocol(settings,run), commandCount(1), net(NULL), selected_mb("") {
 	err = B_OK;
@@ -144,7 +216,10 @@ IMAP4Client::IMAP4Client(BMessage *settings, Mail::ChainRunner *run) : Mail::Pro
 	
 	SyncHandler *sync = new SyncHandler(this);
 	runner->AddHandler(sync);
-	sync->runner = new BMessageRunner(BMessenger(sync,runner),new BMessage('imps'),30e6,1);
+	NoopWorker *noop = new NoopWorker(this);
+	runner->AddHandler(noop);
+	sync->runner = new BMessageRunner(BMessenger(sync,runner),new BMessage('imps'),300e6,1);
+	sync->runner = new BMessageRunner(BMessenger(noop,runner),new BMessage('impn'),10e6);
 }
 
 IMAP4Client::~IMAP4Client() {	
@@ -168,8 +243,11 @@ void IMAP4Client::InitializeMailboxes() {
 		if (tag == expected)
 			break;
 		
-		if (response[3]()[0] != '.')
+		if (response[3]()[0] != '.') {
 			boxes += response[3]();
+			if (strcasecmp(response[3](),"INBOX") == 0)
+				inbox_name = response[3]();
+		}
 	} while (1);
 	
 	/*puts("Mailboxes:");
