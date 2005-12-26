@@ -1,4 +1,10 @@
-BEOS Mail Daemon Replacement v2.3.1
+BEOS Mail Daemon Replacement v2.3.2 for PowerPC only!
+
+Note that this is a slightly older version kept around for making PowerPC
+compatible installations.  Bug fixes (IMAP) and some new features (SSL)
+in the Haiku MDR version after 2.3.1 aren't included here!  See
+http://developer.berlios.de/projects/haiku/ for the newer Haiku version
+of the Mail Daemon Replacement that only runs on x86 systems.
 
 ABOUT:
 
@@ -156,6 +162,10 @@ For IMAP, things are slightly more complicated. The IMAP folder structure is dup
 Note that if you have a large number of archived e-mail messages on your system, it will scan all of them for message ID numbers to keep track of what has been downloaded and what has not.  This will delay the start of the mail check if you have tens of thousands of old messages (and thrash your hard drive).  To work around that, remove the MAIL:chain attribute from your old messages; the Terminal command "rmattr MAIL:chain *" will do that for all files in the current directory.
 
 HISTORY:
+
+December 26 2005 - v2.3.2
+- Updated spam detector code to use HTML tokenisation.
+- BeMail supported MIME type added for "application/x-vnd.Be.URL.mailto" as requested by tqh on BeBits.  So now opening a mailto link in NetPositive only opens one BeMail window rather than two.
 
 June 3 2004 - v2.3.1
 - Fixed code so IMAP could compile if OpenSSL not used.

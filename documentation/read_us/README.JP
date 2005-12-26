@@ -1,4 +1,4 @@
-BEOS Mail Daemon Replacement v2.3.1
+BEOS Mail Daemon Replacement v2.3.2
 
 概要：
 
@@ -180,6 +180,10 @@ BEOS Mail Daemon Replacement v2.3.1
 　　さらに、SampleSpamDatabaseに関する注釈を参照してください。
 
 履歴：
+
+December 26 2005 - v2.3.2
+- Updated spam detector code to use HTML tokenisation.
+- BeMail supported MIME type added for "application/x-vnd.Be.URL.mailto" as requested by tqh on BeBits.  So now opening a mailto link in NetPositive only opens one BeMail window rather than two.
 
 June 3 2004 - v2.3.1
 - Fixed code so IMAP could compile if OpenSSL not used.
