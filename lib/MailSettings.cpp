@@ -17,7 +17,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-class BMailSettings;
+class _EXPORT BMailSettings;
 
 namespace MailInternal {
 	status_t WriteMessageFile(const BMessage& archive, const BPath& path, const char* name);

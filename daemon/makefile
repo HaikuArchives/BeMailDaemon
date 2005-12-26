@@ -51,7 +51,12 @@ RSRCS= mail_daemon.rsrc
 #		naming scheme you need to specify the path to the library
 #		and it's name
 #		library: my_lib.a entry: my_lib.a or path/my_lib.a
-LIBS= be tracker mail stdc++.r4
+LIBS = be tracker mail
+ifeq ($(shell uname -m),BeMac)
+	LIBS += libmslcpp_4_0.a
+else
+	LIBS += stdc++.r4
+endif 
 
 #	specify additional paths to directories following the standard
 #	libXXX.so or libXXX.a naming scheme.  You can specify full paths
@@ -99,7 +104,11 @@ SYMBOLS = TRUE
 DEBUGGER = 
 
 #	specify additional compiler flags for all files
-COMPILER_FLAGS =
+ifeq ($(shell uname -m),BeMac)
+	COMPILER_FLAGS = -w iserr
+else
+	COMPILER_FLAGS = -Werror
+endif 
 
 #	specify additional linker flags
 LINKER_FLAGS =

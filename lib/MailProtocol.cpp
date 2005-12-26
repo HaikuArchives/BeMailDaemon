@@ -22,7 +22,7 @@
 
 #include <MDRLanguage.h>
 
-class BMailProtocol;
+class _EXPORT BMailProtocol;
 
 #include <MailProtocol.h>
 #include <ChainRunner.h>
