@@ -64,6 +64,9 @@
  * rule chain can delete the message or otherwise manipulate it.
  *
  * $Log$
+ * Revision 1.88  2005/12/26 22:23:45  agmsmith
+ * Backported the HTML tokenisation code from the Haiku version.
+ *
  * r15098 | agmsmith | 2005-11-23 23:17:00 -0500 (Wed, 23 Nov 2005) | 5 lines
  * Added better tokenization so that HTML is parsed and things like tags
  * between letters of a word no longer hide that word.  After testing, the
@@ -4855,8 +4858,10 @@ void ABSApp::ReadyToRun ()
       DisplayErrorMessage ("Unable to create window.");
       g_QuitCountdown = 0;
     }
-    else
+    else {
       DatabaseWindowPntr->Show (); /* Starts the window's message loop. */
+      DatabaseWindowPntr->Minimize (g_ServerMode);
+    }
   }
   g_AppReadyToRunCompleted = true;
 }
@@ -7011,13 +7016,6 @@ DatabaseWindow::DatabaseWindow ()
   if (m_WordsViewPntr == NULL)
     goto ErrorExit;
   AddChild (m_WordsViewPntr);
-
-  /* Minimize the window if we are starting up in server mode.  This is done
-  before the window is open so it doesn't flash onto the screen, and possibly
-  steal a keystroke or two.  The ControlsView will further update the minimize
-  mode when it detects changes in the server mode. */
-
-  Minimize (g_ServerMode);
 
   return;
 

@@ -150,9 +150,6 @@ ifeq ($(shell ls 2>/dev/null -1 /boot/develop/headers/be/bone/bone_api.h), /boot
 		LIBS += zeta
 		DEFINES += _ZETA_USING_DEPRECATED_API_
 	endif
-else
-	# hack to fix lack of uname on my system
-	LIBS += net
 endif
 
 
